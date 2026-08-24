@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Optyker</title>
+<style>html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;background:#f4f7fb;color:#173e69}.load{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}.card{background:#fff;border:1px solid #dbe5ef;border-radius:18px;padding:28px;box-shadow:0 16px 50px #173e6918;max-width:520px}.spin{width:34px;height:34px;border:4px solid #dbe5ef;border-top-color:#1769d2;border-radius:50%;margin:0 auto 16px;animation:s .8s linear infinite}@keyframes s{to{transform:rotate(360deg)}}.err{color:#b42323;white-space:pre-wrap}</style>
+</head>
+<body>
+<div class="load"><div class="card"><div class="spin"></div><h2>Optyker</h2><div id="msg">Caricamento applicazione…</div></div></div>
+<script>
+(async()=>{
+  const source='https://whgziwaegjzqsgcntesr.supabase.co/storage/v1/object/public/optyker-web/index.html?v=20260824';
+  try{
+    const r=await fetch(source,{cache:'no-store'});
+    if(!r.ok) throw new Error('Errore caricamento: HTTP '+r.status);
+    const html=await r.text();
+    if(!/<!doctype html/i.test(html)||html.length<100000) throw new Error('Build Optyker non valida o incompleta.');
+    document.open();
+    document.write(html);
+    document.close();
+  }catch(e){
+    document.querySelector('.spin').style.display='none';
+    const m=document.getElementById('msg');
+    m.className='err';
+    m.textContent='Impossibile avviare Optyker.\n'+(e&&e.message?e.message:e);
+  }
+})();
+</script>
+</body>
+</html>
