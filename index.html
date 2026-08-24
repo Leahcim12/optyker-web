@@ -20,20 +20,25 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
     return await new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.onerror=reject;fr.readAsDataURL(blob);});
   }
   try{
-    const [r,op,vc]=await Promise.all([
+    const [r,op,vc,printRes]=await Promise.all([
       fetch(source,{cache:'no-store'}),
       asDataUrl('https://raw.githubusercontent.com/Leahcim12/optyker-web/main/optyker-logo.svg'),
-      asDataUrl('https://raw.githubusercontent.com/Leahcim12/optyker-web/main/visualcare-logo.svg')
+      asDataUrl('https://raw.githubusercontent.com/Leahcim12/optyker-web/main/visualcare-logo.svg'),
+      fetch('https://raw.githubusercontent.com/Leahcim12/optyker-web/main/visualcare-print.b64?v=20260824',{cache:'no-store'})
     ]);
     if(!r.ok) throw new Error('Errore caricamento: HTTP '+r.status);
     let html=await r.text();
     if(!/<!doctype html/i.test(html)||html.length<100000) throw new Error('Build Optyker non valida o incompleta.');
+    if(!printRes.ok) throw new Error('Errore caricamento logo stampa: HTTP '+printRes.status);
+    const printB64=(await printRes.text()).trim();
+    if(printB64.length<1000) throw new Error('Logo stampa non valido.');
+    const printLogo='data:image/webp;base64,'+printB64;
 
     html=html.replace('<link rel="icon" type="image/png" href="'+blank+'">','<link rel="icon" href="'+op+'">');
     html=html.replace('<img class="optykerLoginLogo" src="'+blank+'" alt="Visual Care">','<img class="optykerLoginLogo" src="'+op+'" alt="Optyker">');
     html=html.replace('<img src="'+blank+'" alt="Visivision">','<img src="'+op+'" alt="Optyker">');
     html=html.replace('<div class="lacSheetLogo"><img src="'+blank+'" alt="Ottica Visual Care"></div>','<div class="lacSheetLogo"><img src="'+vc+'" alt="Ottica Visual Care"></div>');
-    html=html.replace("var OPTYKER_PRINT_LOGO_DATA='"+blank+"';","var OPTYKER_PRINT_LOGO_DATA='"+vc+"';");
+    html=html.replace(/var\s+OPTYKER_PRINT_LOGO_DATA\s*=\s*'[^']*';/,"var OPTYKER_PRINT_LOGO_DATA='"+printLogo+"';");
 
     const css=`<style id="optykerGlobalSearchCss">
 #winWindowControls,.winWindowControls{display:none!important}
