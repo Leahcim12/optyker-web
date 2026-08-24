@@ -10,10 +10,12 @@
 <div class="load"><div class="card"><div class="spin"></div><h2>Optyker</h2><div id="msg">Caricamento applicazione…</div></div></div>
 <script>
 (async()=>{
-  const source='https://whgziwaegjzqsgcntesr.supabase.co/storage/v1/object/public/optyker-web/index.html?v=20260824-logo2';
+  const source='https://whgziwaegjzqsgcntesr.supabase.co/storage/v1/object/public/optyker-web/index.html?v=20260824-logo3';
   const blank='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
-  const op='https://raw.githubusercontent.com/Leahcim12/optyker-web/main/optyker-logo.svg';
-  const vc='https://raw.githubusercontent.com/Leahcim12/optyker-web/main/visualcare-logo.svg';
+  const opSvg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 240"><defs><linearGradient id="g" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#05a8ff"/><stop offset=".45" stop-color="#13256a"/><stop offset=".75" stop-color="#7a2cff"/><stop offset="1" stop-color="#04d8ff"/></linearGradient><linearGradient id="r" x1="0" x2="1"><stop stop-color="#ff213d"/><stop offset=".18" stop-color="#ff9b00"/><stop offset=".35" stop-color="#ffe600"/><stop offset=".52" stop-color="#20d650"/><stop offset=".69" stop-color="#0087ff"/><stop offset=".86" stop-color="#4e31ff"/><stop offset="1" stop-color="#d928ff"/></linearGradient></defs><path d="M180 8 346 226H14Z" fill="url(#g)" stroke="#061a54" stroke-width="6"/><path d="M180 10 255 126 180 205 106 126Z" fill="#07101d" opacity=".84"/><path d="M53 178 168 105 317 65" fill="none" stroke="url(#r)" stroke-width="12"/><circle cx="62" cy="170" r="13" fill="#fff"/><text x="180" y="190" text-anchor="middle" fill="white" font-family="Georgia,serif" font-style="italic" font-weight="700" font-size="65">OP</text></svg>`;
+  const vcSvg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360"><circle cx="180" cy="180" r="170" fill="#101010"/><circle cx="180" cy="180" r="151" fill="none" stroke="white" stroke-width="5"/><text x="180" y="70" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-size="23" font-weight="700">PROFESSIONISTI</text><text x="180" y="98" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-size="23" font-weight="700">DELLA VISIONE</text><g fill="none" stroke="white" stroke-width="12"><circle cx="125" cy="180" r="39"/><circle cx="235" cy="180" r="39"/><path d="M164 180h32M92 153l-35-31M268 153l35-31"/></g><text x="180" y="278" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-size="25">OTTICA</text><text x="180" y="312" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-size="29" font-weight="700" letter-spacing="5">VISUAL CARE</text></svg>`;
+  const op='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(opSvg);
+  const vc='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(vcSvg);
   try{
     const r=await fetch(source,{cache:'no-store'});
     if(!r.ok) throw new Error('Errore caricamento: HTTP '+r.status);
