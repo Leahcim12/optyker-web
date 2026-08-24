@@ -1,0 +1,63 @@
+name: Patch sidebar order
+
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-sidebar.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Move Clienti below Dashboard
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          marker = 'OPTYKER_SIDEBAR_CLIENTI_BELOW_DASHBOARD_V1'
+          if marker in s:
+              print('Patch already present')
+              raise SystemExit(0)
+          needle = "    html=html.replace(/Diego Panseri/g,'Diego Pansieri');"
+          if needle not in s:
+              raise SystemExit('Injection point not found')
+          patch = r'''
+    // OPTYKER_SIDEBAR_CLIENTI_BELOW_DASHBOARD_V1
+    html=html.replace('</body>', `<script id="optykerSidebarOrderJs">
+(function(){
+  function moveClientsBelowDashboard(){
+    var nav=document.getElementById('moduleNav');
+    var dash=document.getElementById('navDashboard');
+    var clients=document.getElementById('navClients');
+    if(nav&&dash&&clients&&dash.nextElementSibling!==clients){
+      nav.insertBefore(clients,dash.nextElementSibling);
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',moveClientsBelowDashboard);
+  else moveClientsBelowDashboard();
+  setTimeout(moveClientsBelowDashboard,50);
+  setTimeout(moveClientsBelowDashboard,500);
+})();
+<\/script></body>`);
+'''
+          s = s.replace(needle, needle + '\n' + patch, 1)
+          p.write_text(s, encoding='utf-8')
+          print('Patched index.html')
+          PY
+      - name: Commit patch
+        run: |
+          if git diff --quiet -- index.html; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Move Clienti below Dashboard"
+          git push
