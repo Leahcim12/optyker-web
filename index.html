@@ -40,6 +40,7 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
     html=html.replace('<div class="lacSheetLogo"><img src="'+blank+'" alt="Ottica Visual Care"></div>','<div class="lacSheetLogo"><img src="'+vc+'" alt="Ottica Visual Care"></div>');
     html=html.replace(/var\s+OPTYKER_PRINT_LOGO_DATA\s*=\s*'[^']*';/,"var OPTYKER_PRINT_LOGO_DATA='"+printLogo+"';");
     html=html.replace(/Diego Panseri/g,'Diego Pansieri');
+    html=html.replace('</body>','<script>(function(){function m(){var n=document.getElementById("moduleNav"),d=document.getElementById("navDashboard"),c=document.getElementById("navClients");if(n&&d&&c&&d.nextElementSibling!==c)n.insertBefore(c,d.nextElementSibling)}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",m);else m();setTimeout(m,100);setTimeout(m,700)})();<\/script></body>');
 
     const css=`<style id="optykerGlobalSearchCss">
 #winWindowControls,.winWindowControls{display:none!important}
