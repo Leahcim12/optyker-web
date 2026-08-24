@@ -103,7 +103,7 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
     var btns=box.querySelectorAll('[data-optyker-result]');for(i=0;i<btns.length;i++)btns[i].onclick=function(){var n=parseInt(this.getAttribute('data-optyker-result'),10);var x=actions[n];box.style.display='none';input.blur();if(x&&x.run)x.run()}
   }
   function installLoginFix(){
-    var u=E('optykerLoginUser'), p=E('optykerLoginPassword'), form=document.querySelector('.optykerLoginCard'), err=E('optykerLoginError');
+    var u=E('optykerLoginUser'), p=E('optykerLoginPassword'), form=document.querySelector('form.optykerLoginCard'), err=E('optykerLoginError');
     if(u){
       u.value='OTTICA VISUAL CARE';
       u.readOnly=true;
@@ -114,35 +114,43 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
       if(lab)lab.textContent='Account';
     }
     if(p)p.setAttribute('autocomplete','current-password');
+    if(form && !form.__optykerLoginBound){
+      form.__optykerLoginBound=true;
+      form.addEventListener('submit',function(ev){ev.preventDefault();ev.stopPropagation();window.optykerLogin();return false;},true);
+    }
     window.optykerLogin=function(){
-      var pass=String((p&&p.value)||'').trim(), btn=document.querySelector('.optykerLoginButton');
+      var user='OTTICA VISUAL CARE';
+      var pass=String((p&&p.value)||'').trim();
+      var btn=document.querySelector('.optykerLoginButton');
       if(!pass){if(err)err.innerHTML='Inserisci la password.';if(p)p.focus();return false;}
-      if(btn){btn.disabled=true;btn.textContent='COLLEGAMENTO…';}
-      if(err)err.innerHTML='';
-      if(!window.OPTYKER_CLOUD){if(err)err.innerHTML='Servizio cloud non disponibile.';if(btn){btn.disabled=false;btn.textContent='ACCEDI A OPTYKER';}return false;}
-      OPTYKER_CLOUD.username='OTTICA VISUAL CARE';
-      OPTYKER_CLOUD.password=pass;
-      cloudApi('ping',{}).then(function(){
-        window.optykerAuthenticated=true;
-        var screen=E('optykerLoginScreen'), app=E('mainApp');
-        if(screen)screen.style.display='none';
-        if(app)app.style.display='grid';
-        try{if(window.optykerCollapseSheetsSidebar)optykerCollapseSheetsSidebar();}catch(z){}
-        try{if(window.showDashboard)showDashboard();}catch(z){}
-        return cloudLoadClients().catch(function(loadErr){
-          try{if(window.cloudSetStatus)cloudSetStatus('Accesso eseguito · sincronizzazione clienti da riprovare: '+(loadErr.message||loadErr),false);}catch(z){}
-          return [];
-        });
-      }).catch(function(e){
-        OPTYKER_CLOUD.username='';OPTYKER_CLOUD.password='';
-        var msg=(e&&e.message)||'Accesso non riuscito';
-        if(/Credenziali non valide/i.test(msg))msg='Password non corretta.';
-        if(err)err.innerHTML=msg;
+      if(typeof window.optykerHash!=='function'){if(err)err.innerHTML='Modulo di accesso non pronto. Riprova tra un secondo.';return false;}
+      if(window.optykerHash(user)!==2165689120 || window.optykerHash(pass)!==3602494848){
+        if(err)err.innerHTML='Password non corretta.';
         if(p){p.value='';try{p.focus();}catch(z){}}
-      }).finally(function(){if(btn){btn.disabled=false;btn.textContent='ACCEDI A OPTYKER';}});
+        return false;
+      }
+      if(btn){btn.disabled=true;btn.textContent='ACCESSO…';}
+      if(err)err.innerHTML='';
+      window.optykerAuthenticated=true;
+      try{sessionStorage.setItem('optyker_session_ok','1');}catch(z){}
+      if(window.OPTYKER_CLOUD){OPTYKER_CLOUD.username=user;OPTYKER_CLOUD.password=pass;}
+      var screen=E('optykerLoginScreen'), app=E('mainApp');
+      if(screen)screen.style.display='none';
+      if(app)app.style.display='grid';
+      try{if(window.optykerCollapseSheetsSidebar)optykerCollapseSheetsSidebar();}catch(z){}
+      try{if(window.showDashboard)showDashboard();}catch(z){}
+      if(btn){btn.disabled=false;btn.textContent='ACCEDI A OPTYKER';}
+      if(window.OPTYKER_CLOUD && typeof window.cloudApi==='function'){
+        window.cloudApi('ping',{}).then(function(){if(typeof window.cloudLoadClients==='function')return window.cloudLoadClients();}).catch(function(loadErr){
+          try{if(window.cloudSetStatus)cloudSetStatus('Gestionale aperto · cloud da riconnettere: '+((loadErr&&loadErr.message)||loadErr),false);}catch(z){}
+        });
+      }
       return false;
     };
-    if(form)form.onsubmit=function(ev){if(ev)ev.preventDefault();return window.optykerLogin();};
+    window.optykerShowLogin=function(){
+      if(window.optykerAuthenticated){var sc=E('optykerLoginScreen'), ap=E('mainApp');if(sc)sc.style.display='none';if(ap)ap.style.display='grid';return;}
+      var sc=E('optykerLoginScreen'), ap=E('mainApp');if(ap)ap.style.display='none';if(sc)sc.style.display='flex';if(err)err.innerHTML='';if(p)p.value='';setTimeout(function(){try{if(p)p.focus();}catch(z){}},100);
+    };
   }
   function install(){
     installLoginFix();
@@ -157,7 +165,7 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
     document.addEventListener('click',function(ev){if(!tools.contains(ev.target))box.style.display='none'});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
-  setInterval(function(){installLoginFix();var wc=E('winWindowControls');if(wc&&wc.parentNode)wc.parentNode.removeChild(wc);if(!E('optykerGlobalTools'))install()},700);
+  setInterval(function(){if(!window.optykerAuthenticated)installLoginFix();var wc=E('winWindowControls');if(wc&&wc.parentNode)wc.parentNode.removeChild(wc);if(!E('optykerGlobalTools'))install()},700);
 })();
 </scr`+`ipt>`;
     html=html.replace('</body>',css+enhancer+'</body>');
