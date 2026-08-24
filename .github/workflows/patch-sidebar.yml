@@ -3,7 +3,7 @@ name: Patch sidebar order
 on:
   push:
     paths:
-      - '.github/workflows/patch-sidebar.yml'
+      - .github/workflows/patch-sidebar.yml
   workflow_dispatch:
 
 permissions:
@@ -15,47 +15,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Move Clienti below Dashboard
+        shell: bash
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          p = Path('index.html')
-          s = p.read_text(encoding='utf-8')
-          marker = 'OPTYKER_SIDEBAR_CLIENTI_BELOW_DASHBOARD_V1'
-          if marker in s:
-              print('Patch already present')
-              raise SystemExit(0)
-          needle = "    html=html.replace(/Diego Panseri/g,'Diego Pansieri');"
-          if needle not in s:
-              raise SystemExit('Injection point not found')
-          patch = r'''
-    // OPTYKER_SIDEBAR_CLIENTI_BELOW_DASHBOARD_V1
-    html=html.replace('</body>', `<script id="optykerSidebarOrderJs">
-(function(){
-  function moveClientsBelowDashboard(){
-    var nav=document.getElementById('moduleNav');
-    var dash=document.getElementById('navDashboard');
-    var clients=document.getElementById('navClients');
-    if(nav&&dash&&clients&&dash.nextElementSibling!==clients){
-      nav.insertBefore(clients,dash.nextElementSibling);
-    }
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',moveClientsBelowDashboard);
-  else moveClientsBelowDashboard();
-  setTimeout(moveClientsBelowDashboard,50);
-  setTimeout(moveClientsBelowDashboard,500);
-})();
-<\/script></body>`);
-'''
-          s = s.replace(needle, needle + '\n' + patch, 1)
-          p.write_text(s, encoding='utf-8')
-          print('Patched index.html')
-          PY
-      - name: Commit patch
+          python -c "from pathlib import Path; p=Path('index.html'); s=p.read_text(encoding='utf-8'); needle=\"    html=html.replace(/Diego Panseri/g,'Diego Pansieri');\"; patch=\"    html=html.replace('</body>','<script>(function(){function m(){var n=document.getElementById(\\\"moduleNav\\\"),d=document.getElementById(\\\"navDashboard\\\"),c=document.getElementById(\\\"navClients\\\");if(n&&d&&c&&d.nextElementSibling!==c)n.insertBefore(c,d.nextElementSibling)}if(document.readyState===\\\"loading\\\")document.addEventListener(\\\"DOMContentLoaded\\\",m);else m();setTimeout(m,100);setTimeout(m,700)})();<\\\\/script></body>');\"; p.write_text(s if 'navClients\\\");if(n&&d&&c' in s else s.replace(needle, needle+'\\n'+patch,1), encoding='utf-8')"
+      - name: Commit change
+        shell: bash
         run: |
-          if git diff --quiet -- index.html; then
-            echo "No changes to commit"
-            exit 0
-          fi
+          if git diff --quiet -- index.html; then exit 0; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html
