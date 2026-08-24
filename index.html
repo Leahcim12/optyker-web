@@ -10,12 +10,20 @@
 <div class="load"><div class="card"><div class="spin"></div><h2>Optyker</h2><div id="msg">Caricamento applicazione…</div></div></div>
 <script>
 (async()=>{
-  const source='https://whgziwaegjzqsgcntesr.supabase.co/storage/v1/object/public/optyker-web/index.html?v=20260824';
+  const source='https://whgziwaegjzqsgcntesr.supabase.co/storage/v1/object/public/optyker-web/index.html?v=20260824-logo2';
+  const blank='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+  const op='https://raw.githubusercontent.com/Leahcim12/optyker-web/main/optyker-logo.svg';
+  const vc='https://raw.githubusercontent.com/Leahcim12/optyker-web/main/visualcare-logo.svg';
   try{
     const r=await fetch(source,{cache:'no-store'});
     if(!r.ok) throw new Error('Errore caricamento: HTTP '+r.status);
-    const html=await r.text();
+    let html=await r.text();
     if(!/<!doctype html/i.test(html)||html.length<100000) throw new Error('Build Optyker non valida o incompleta.');
+    html=html.replace('<link rel="icon" type="image/png" href="'+blank+'">','<link rel="icon" type="image/svg+xml" href="'+op+'">');
+    html=html.replace('<img class="optykerLoginLogo" src="'+blank+'" alt="Visual Care">','<img class="optykerLoginLogo" src="'+op+'" alt="Optyker">');
+    html=html.replace('<img src="'+blank+'" alt="Visivision">','<img src="'+op+'" alt="Optyker">');
+    html=html.replace('<div class="lacSheetLogo"><img src="'+blank+'" alt="Ottica Visual Care"></div>','<div class="lacSheetLogo"><img src="'+vc+'" alt="Ottica Visual Care"></div>');
+    html=html.replace("var OPTYKER_PRINT_LOGO_DATA='"+blank+"';","var OPTYKER_PRINT_LOGO_DATA='"+vc+"';");
     document.open();
     document.write(html);
     document.close();
