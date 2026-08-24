@@ -102,58 +102,24 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
     box.innerHTML=h;box.style.display='block';
     var btns=box.querySelectorAll('[data-optyker-result]');for(i=0;i<btns.length;i++)btns[i].onclick=function(){var n=parseInt(this.getAttribute('data-optyker-result'),10);var x=actions[n];box.style.display='none';input.blur();if(x&&x.run)x.run()}
   }
-  function installLoginFix(){
-    var u=E('optykerLoginUser'), p=E('optykerLoginPassword'), form=document.querySelector('form.optykerLoginCard'), err=E('optykerLoginError');
-    if(u){
-      u.value='OTTICA VISUAL CARE';
-      u.readOnly=true;
-      u.setAttribute('autocomplete','username');
-      u.style.background='#eef4fa';
-      u.style.fontWeight='800';
-      var lab=document.querySelector('label[for="optykerLoginUser"]');
-      if(lab)lab.textContent='Account';
-    }
-    if(p)p.setAttribute('autocomplete','current-password');
-    if(form && !form.__optykerLoginBound){
-      form.__optykerLoginBound=true;
-      form.addEventListener('submit',function(ev){ev.preventDefault();ev.stopPropagation();window.optykerLogin();return false;},true);
-    }
-    window.optykerLogin=function(){
-      var user='OTTICA VISUAL CARE';
-      var pass=String((p&&p.value)||'').trim();
-      var btn=document.querySelector('.optykerLoginButton');
-      if(!pass){if(err)err.innerHTML='Inserisci la password.';if(p)p.focus();return false;}
-      if(typeof window.optykerHash!=='function'){if(err)err.innerHTML='Modulo di accesso non pronto. Riprova tra un secondo.';return false;}
-      if(window.optykerHash(user)!==2165689120 || window.optykerHash(pass)!==3602494848){
-        if(err)err.innerHTML='Password non corretta.';
-        if(p){p.value='';try{p.focus();}catch(z){}}
-        return false;
-      }
-      if(btn){btn.disabled=true;btn.textContent='ACCESSO…';}
-      if(err)err.innerHTML='';
-      window.optykerAuthenticated=true;
-      try{sessionStorage.setItem('optyker_session_ok','1');}catch(z){}
-      if(window.OPTYKER_CLOUD){OPTYKER_CLOUD.username=user;OPTYKER_CLOUD.password=pass;}
-      var screen=E('optykerLoginScreen'), app=E('mainApp');
-      if(screen)screen.style.display='none';
-      if(app)app.style.display='grid';
-      try{if(window.optykerCollapseSheetsSidebar)optykerCollapseSheetsSidebar();}catch(z){}
-      try{if(window.showDashboard)showDashboard();}catch(z){}
-      if(btn){btn.disabled=false;btn.textContent='ACCEDI A OPTYKER';}
-      if(window.OPTYKER_CLOUD && typeof window.cloudApi==='function'){
-        window.cloudApi('ping',{}).then(function(){if(typeof window.cloudLoadClients==='function')return window.cloudLoadClients();}).catch(function(loadErr){
-          try{if(window.cloudSetStatus)cloudSetStatus('Gestionale aperto · cloud da riconnettere: '+((loadErr&&loadErr.message)||loadErr),false);}catch(z){}
-        });
-      }
-      return false;
-    };
+  function installNoLogin(){
+    window.optykerAuthenticated=true;
+    var screen=E('optykerLoginScreen'), app=E('mainApp');
+    if(screen){screen.style.display='none';screen.setAttribute('aria-hidden','true');}
+    if(app)app.style.display='grid';
     window.optykerShowLogin=function(){
-      if(window.optykerAuthenticated){var sc=E('optykerLoginScreen'), ap=E('mainApp');if(sc)sc.style.display='none';if(ap)ap.style.display='grid';return;}
-      var sc=E('optykerLoginScreen'), ap=E('mainApp');if(ap)ap.style.display='none';if(sc)sc.style.display='flex';if(err)err.innerHTML='';if(p)p.value='';setTimeout(function(){try{if(p)p.focus();}catch(z){}},100);
+      var sc=E('optykerLoginScreen'), ap=E('mainApp');
+      window.optykerAuthenticated=true;
+      if(sc)sc.style.display='none';
+      if(ap)ap.style.display='grid';
     };
+    window.optykerLogin=function(){ installNoLogin(); return false; };
+    try{if(window.optykerCollapseSheetsSidebar)optykerCollapseSheetsSidebar();}catch(z){}
+    try{if(window.showDashboard)showDashboard();}catch(z){}
+    try{if(window.cloudSetStatus && window.OPTYKER_CLOUD && !OPTYKER_CLOUD.username)cloudSetStatus('Gestionale aperto · archivio cloud protetto',true);}catch(z){}
   }
   function install(){
-    installLoginFix();
+    installNoLogin();
     var wc=E('winWindowControls');if(wc&&wc.parentNode)wc.parentNode.removeChild(wc);
     var right=document.querySelector('.topbarRight');if(!right||E('optykerGlobalTools'))return;
     var tools=document.createElement('div');tools.id='optykerGlobalTools';tools.className='optykerGlobalTools';tools.innerHTML='<div class="optykerGlobalSearchWrap"><span class="optykerSearchIcon">⌕</span><input id="optykerGlobalSearch" type="search" autocomplete="off" placeholder="Cerca qualsiasi cosa: cliente, scheda, ordine, funzione…"><button id="optykerSearchClear" class="optykerSearchClear" type="button" title="Cancella">×</button><div id="optykerGlobalResults"></div></div><button id="optykerQuickNewClient" type="button">+ Nuovo cliente</button>';
@@ -165,7 +131,7 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
     document.addEventListener('click',function(ev){if(!tools.contains(ev.target))box.style.display='none'});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
-  setInterval(function(){if(!window.optykerAuthenticated)installLoginFix();var wc=E('winWindowControls');if(wc&&wc.parentNode)wc.parentNode.removeChild(wc);if(!E('optykerGlobalTools'))install()},700);
+  setInterval(function(){installNoLogin();var wc=E('winWindowControls');if(wc&&wc.parentNode)wc.parentNode.removeChild(wc);if(!E('optykerGlobalTools'))install()},700);
 })();
 </scr`+`ipt>`;
     html=html.replace('</body>',css+enhancer+'</body>');
