@@ -39,6 +39,7 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
     html=html.replace('<img src="'+blank+'" alt="Visivision">','<img src="'+op+'" alt="Optyker">');
     html=html.replace('<div class="lacSheetLogo"><img src="'+blank+'" alt="Ottica Visual Care"></div>','<div class="lacSheetLogo"><img src="'+vc+'" alt="Ottica Visual Care"></div>');
     html=html.replace(/var\s+OPTYKER_PRINT_LOGO_DATA\s*=\s*'[^']*';/,"var OPTYKER_PRINT_LOGO_DATA='"+printLogo+"';");
+    html=html.replace(/Diego Panseri/g,'Diego Pansieri');
 
     const css=`<style id="optykerGlobalSearchCss">
 #winWindowControls,.winWindowControls{display:none!important}
@@ -59,6 +60,16 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
 .optykerSearchEmpty{padding:14px 12px;font-size:11px;color:#718294;text-align:center}
 #optykerQuickNewClient{height:34px!important;border:0!important;border-radius:8px!important;background:#1769aa!important;color:#fff!important;padding:0 13px!important;font-size:11px!important;font-weight:800!important;white-space:nowrap!important;cursor:pointer!important;box-shadow:0 2px 7px rgba(23,105,170,.18)!important}
 #optykerQuickNewClient:hover{background:#135a92!important}
+#optykerLoginScreen{display:flex!important}
+.optykerUserLoginCard{border-top:1px solid #e0e7ef;padding-top:22px;text-align:left}
+.optykerUserLoginTitle{text-align:center;font-size:17px;font-weight:900;color:#1d3550;margin-bottom:7px}
+.optykerUserLoginHint{text-align:center;font-size:11px;color:#718294;margin-bottom:16px}
+.optykerUserLoginLabel{display:block;font-size:12px;color:#40556d;font-weight:800;margin-bottom:6px}
+#optykerUserSelect{width:100%;height:48px;border:1px solid #c7d4e1;border-radius:11px;padding:0 13px;background:#fbfdff;color:#172b4d;font:700 14px/1.2 "Segoe UI",Arial,sans-serif;outline:none}
+#optykerUserSelect:focus{border-color:#1769aa;box-shadow:0 0 0 3px rgba(23,105,170,.12)}
+#optykerUserEnter{width:100%;border:0;border-radius:11px;background:#1769aa;color:#fff;padding:13px 18px;font-size:14px;font-weight:900;cursor:pointer;box-shadow:0 7px 17px rgba(23,105,170,.22);margin-top:12px}
+#optykerUserEnter:hover{background:#135a92}
+.optykerActiveUserBadge{height:30px;display:flex;align-items:center;padding:0 10px;border:1px solid #cbd8e4;border-radius:8px;background:#fff;color:#34495e;font-size:10px;font-weight:800;white-space:nowrap}
 @media(max-width:980px){.optykerGlobalTools{min-width:240px}.optykerGlobalSearchWrap{min-width:160px}.cloudBadge{display:none!important}}
 @media(max-width:720px){.topbarRight{display:flex!important}.topShortcutBtn.topHomeBtn{display:none!important}.optykerGlobalTools{min-width:0}.optykerGlobalSearchWrap{min-width:120px}#optykerQuickNewClient{padding:0 9px!important}.topbar{padding-right:8px!important}}
 </style>`;
@@ -102,27 +113,76 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
     box.innerHTML=h;box.style.display='block';
     var btns=box.querySelectorAll('[data-optyker-result]');for(i=0;i<btns.length;i++)btns[i].onclick=function(){var n=parseInt(this.getAttribute('data-optyker-result'),10);var x=actions[n];box.style.display='none';input.blur();if(x&&x.run)x.run()}
   }
-  function installNoLogin(){
+  function syncActiveOperator(){
+    var user=window.OPTYKER_ACTIVE_USER||'';
+    if(!user)return;
+    var s=E('specialistName');
+    if(s){
+      var found=false;
+      for(var i=0;i<s.options.length;i++){
+        if(s.options[i].value===user){found=true;break}
+      }
+      if(!found){var o=document.createElement('option');o.value=user;o.text=user;s.appendChild(o)}
+      if(s.value!==user){s.value=user;try{s.dispatchEvent(new Event('change',{bubbles:true}))}catch(z){}}
+    }
+    var h=E('hearingOperatorName');
+    if(h && !String(h.value||'').trim()) h.value=user;
+    var badge=E('optykerActiveUserBadge');if(badge)badge.textContent='Operatore: '+user;
+  }
+  function enterWithUser(user){
+    user=String(user||'').trim();
+    var allowed=['Ottica Visual Care','Michael Mologni','Giorgia Bono','Diego Pansieri'];
+    if(allowed.indexOf(user)<0)return false;
+    window.OPTYKER_ACTIVE_USER=user;
     window.optykerAuthenticated=true;
-    var screen=E('optykerLoginScreen'), app=E('mainApp');
-    if(screen){screen.style.display='none';screen.setAttribute('aria-hidden','true');}
+    try{sessionStorage.setItem('optyker_active_user',user)}catch(z){}
+    var screen=E('optykerLoginScreen'),app=E('mainApp');
+    if(screen){screen.style.setProperty('display','none','important');screen.setAttribute('aria-hidden','true')}
     if(app)app.style.display='grid';
+    syncActiveOperator();
+    try{if(window.optykerCollapseSheetsSidebar)optykerCollapseSheetsSidebar()}catch(z){}
+    try{if(window.showDashboard)showDashboard()}catch(z){}
+    return false;
+  }
+  function installUserLogin(){
+    var screen=E('optykerLoginScreen'),app=E('mainApp');
+    if(!screen)return;
+    if(!window.optykerAuthenticated){
+      if(app)app.style.display='none';
+      screen.style.setProperty('display','flex','important');
+      screen.removeAttribute('aria-hidden');
+    }
+    var shell=screen.querySelector('.optykerLoginShell');
+    if(!shell)return;
+    var old=shell.querySelector('.optykerLoginCard');
+    if(old && !E('optykerUserSelect')){
+      var card=document.createElement('div');
+      card.className='optykerUserLoginCard';
+      card.innerHTML='<div class="optykerUserLoginTitle">Accesso al gestionale</div><div class="optykerUserLoginHint">Seleziona l\'utente che sta utilizzando Optyker.</div><label class="optykerUserLoginLabel" for="optykerUserSelect">Utente</label><select id="optykerUserSelect"><option value="">Seleziona utente…</option><option value="Ottica Visual Care">Ottica Visual Care</option><option value="Michael Mologni">Michael Mologni</option><option value="Giorgia Bono">Giorgia Bono</option><option value="Diego Pansieri">Diego Pansieri</option></select><button id="optykerUserEnter" type="button">ENTRA IN OPTYKER</button><div id="optykerUserLoginError" class="optykerLoginError"></div><div class="optykerLoginFoot">Accesso operatore · Mologni Company S.R.L.</div>';
+      old.parentNode.replaceChild(card,old);
+      var sel=E('optykerUserSelect'),btn=E('optykerUserEnter'),err=E('optykerUserLoginError');
+      btn.onclick=function(){var v=sel.value;if(!v){if(err)err.textContent='Seleziona un utente.';return}if(err)err.textContent='';enterWithUser(v)};
+      sel.onchange=function(){if(err)err.textContent=''};
+      sel.onkeydown=function(ev){if(ev.key==='Enter'){ev.preventDefault();btn.click()}};
+      try{sel.focus()}catch(z){}
+    }
     window.optykerShowLogin=function(){
-      var sc=E('optykerLoginScreen'), ap=E('mainApp');
-      window.optykerAuthenticated=true;
-      if(sc)sc.style.display='none';
-      if(ap)ap.style.display='grid';
+      window.optykerAuthenticated=false;
+      window.OPTYKER_ACTIVE_USER='';
+      try{sessionStorage.removeItem('optyker_active_user')}catch(z){}
+      if(app)app.style.display='none';
+      screen.style.setProperty('display','flex','important');
+      screen.removeAttribute('aria-hidden');
+      var sel=E('optykerUserSelect');if(sel){sel.value='';try{sel.focus()}catch(z){}}
     };
-    window.optykerLogin=function(){ installNoLogin(); return false; };
-    try{if(window.optykerCollapseSheetsSidebar)optykerCollapseSheetsSidebar();}catch(z){}
-    try{if(window.showDashboard)showDashboard();}catch(z){}
-    try{if(window.cloudSetStatus && window.OPTYKER_CLOUD && !OPTYKER_CLOUD.username)cloudSetStatus('Gestionale aperto · archivio cloud protetto',true);}catch(z){}
+    window.optykerLogin=function(){var sel=E('optykerUserSelect');return enterWithUser(sel?sel.value:'')};
   }
   function install(){
-    installNoLogin();
+    installUserLogin();
     var wc=E('winWindowControls');if(wc&&wc.parentNode)wc.parentNode.removeChild(wc);
+    if(!window.optykerAuthenticated)return;
     var right=document.querySelector('.topbarRight');if(!right||E('optykerGlobalTools'))return;
-    var tools=document.createElement('div');tools.id='optykerGlobalTools';tools.className='optykerGlobalTools';tools.innerHTML='<div class="optykerGlobalSearchWrap"><span class="optykerSearchIcon">⌕</span><input id="optykerGlobalSearch" type="search" autocomplete="off" placeholder="Cerca qualsiasi cosa: cliente, scheda, ordine, funzione…"><button id="optykerSearchClear" class="optykerSearchClear" type="button" title="Cancella">×</button><div id="optykerGlobalResults"></div></div><button id="optykerQuickNewClient" type="button">+ Nuovo cliente</button>';
+    var tools=document.createElement('div');tools.id='optykerGlobalTools';tools.className='optykerGlobalTools';tools.innerHTML='<div class="optykerGlobalSearchWrap"><span class="optykerSearchIcon">⌕</span><input id="optykerGlobalSearch" type="search" autocomplete="off" placeholder="Cerca qualsiasi cosa: cliente, scheda, ordine, funzione…"><button id="optykerSearchClear" class="optykerSearchClear" type="button" title="Cancella">×</button><div id="optykerGlobalResults"></div></div><button id="optykerQuickNewClient" type="button">+ Nuovo cliente</button><div id="optykerActiveUserBadge" class="optykerActiveUserBadge"></div>';
     right.insertBefore(tools,right.firstChild);
     var input=E('optykerGlobalSearch'),clear=E('optykerSearchClear'),newb=E('optykerQuickNewClient'),box=E('optykerGlobalResults');
     input.oninput=render;input.onfocus=function(){if(input.value)render()};input.onkeydown=function(ev){if(ev.key==='Escape'){box.style.display='none';input.blur()}else if(ev.key==='Enter'){var first=box.querySelector('[data-optyker-result]');if(first){ev.preventDefault();first.click()}}};
@@ -131,7 +191,7 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
     document.addEventListener('click',function(ev){if(!tools.contains(ev.target))box.style.display='none'});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
-  setInterval(function(){installNoLogin();var wc=E('winWindowControls');if(wc&&wc.parentNode)wc.parentNode.removeChild(wc);if(!E('optykerGlobalTools'))install()},700);
+  setInterval(function(){installUserLogin();if(window.optykerAuthenticated)syncActiveOperator();var wc=E('winWindowControls');if(wc&&wc.parentNode)wc.parentNode.removeChild(wc);if(window.optykerAuthenticated&&!E('optykerGlobalTools'))install()},700);
 })();
 </scr`+`ipt>`;
     html=html.replace('</body>',css+enhancer+'</body>');
