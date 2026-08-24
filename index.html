@@ -4,44 +4,118 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Optyker</title>
-<style>html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;background:#f4f7fb;color:#173e69}.load{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}.card{background:#fff;border:1px solid #dbe5ef;border-radius:18px;padding:28px;box-shadow:0 16px 50px #173e6918;max-width:520px}.spin{width:34px;height:34px;border:4px solid #dbe5ef;border-top-color:#1769d2;border-radius:50%;margin:0 auto 16px;animation:s .8s linear infinite}@keyframes s{to{transform:rotate(360deg)}}.err{color:#b42323;white-space:pre-wrap}</style>
+<style>
+html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;background:#f4f7fb;color:#173e69}.load{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}.card{background:#fff;border:1px solid #dbe5ef;border-radius:18px;padding:28px;box-shadow:0 16px 50px #173e6918;max-width:520px}.spin{width:34px;height:34px;border:4px solid #dbe5ef;border-top-color:#1769d2;border-radius:50%;margin:0 auto 16px;animation:s .8s linear infinite}@keyframes s{to{transform:rotate(360deg)}}.err{color:#b42323;white-space:pre-wrap}
+</style>
 </head>
 <body>
 <div class="load"><div class="card"><div class="spin"></div><h2>Optyker</h2><div id="msg">Caricamento applicazione…</div></div></div>
 <script>
 (async()=>{
-  const source='https://whgziwaegjzqsgcntesr.supabase.co/storage/v1/object/public/optyker-web/index.html?v=20260824-originali';
+  const source='https://whgziwaegjzqsgcntesr.supabase.co/storage/v1/object/public/optyker-web/index.html?v=20260824-search1';
   const blank='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
-  const opUrl='https://raw.githubusercontent.com/Leahcim12/optyker-web/main/optyker-logo.svg?v=originale';
-  const vcUrl='https://raw.githubusercontent.com/Leahcim12/optyker-web/main/visualcare-logo.svg?v=originale';
+  async function asDataUrl(url){
+    const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw new Error('Logo HTTP '+r.status);
+    const blob=await r.blob();
+    return await new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.onerror=reject;fr.readAsDataURL(blob);});
+  }
   try{
-    const [appRes,opRes,vcRes]=await Promise.all([
+    const [r,op,vc]=await Promise.all([
       fetch(source,{cache:'no-store'}),
-      fetch(opUrl,{cache:'no-store'}),
-      fetch(vcUrl,{cache:'no-store'})
+      asDataUrl('https://raw.githubusercontent.com/Leahcim12/optyker-web/main/optyker-logo.svg'),
+      asDataUrl('https://raw.githubusercontent.com/Leahcim12/optyker-web/main/visualcare-logo.svg')
     ]);
-    if(!appRes.ok) throw new Error('Errore caricamento app: HTTP '+appRes.status);
-    if(!opRes.ok||!vcRes.ok) throw new Error('Errore caricamento loghi originali.');
-    let html=await appRes.text();
-    const opSvg=await opRes.text();
-    const vcSvg=await vcRes.text();
+    if(!r.ok) throw new Error('Errore caricamento: HTTP '+r.status);
+    let html=await r.text();
     if(!/<!doctype html/i.test(html)||html.length<100000) throw new Error('Build Optyker non valida o incompleta.');
-    if(!/<svg/i.test(opSvg)||!/<svg/i.test(vcSvg)) throw new Error('File logo non validi.');
-    const op='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(opSvg);
-    const vc='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(vcSvg);
-    html=html.replace('<link rel="icon" type="image/png" href="'+blank+'">','<link rel="icon" type="image/svg+xml" href="'+op+'">');
+
+    html=html.replace('<link rel="icon" type="image/png" href="'+blank+'">','<link rel="icon" href="'+op+'">');
     html=html.replace('<img class="optykerLoginLogo" src="'+blank+'" alt="Visual Care">','<img class="optykerLoginLogo" src="'+op+'" alt="Optyker">');
     html=html.replace('<img src="'+blank+'" alt="Visivision">','<img src="'+op+'" alt="Optyker">');
     html=html.replace('<div class="lacSheetLogo"><img src="'+blank+'" alt="Ottica Visual Care"></div>','<div class="lacSheetLogo"><img src="'+vc+'" alt="Ottica Visual Care"></div>');
     html=html.replace("var OPTYKER_PRINT_LOGO_DATA='"+blank+"';","var OPTYKER_PRINT_LOGO_DATA='"+vc+"';");
-    document.open();
-    document.write(html);
-    document.close();
+
+    const css=`<style id="optykerGlobalSearchCss">
+#winWindowControls,.winWindowControls{display:none!important}
+.topbarRight{position:relative!important;flex:1!important;min-width:0!important;flex-wrap:nowrap!important;gap:8px!important}
+.optykerGlobalTools{display:flex;align-items:center;gap:8px;position:relative;min-width:360px;flex:1;justify-content:flex-end}
+.optykerGlobalSearchWrap{position:relative;flex:1;max-width:520px;min-width:250px}
+#optykerGlobalSearch{width:100%;height:34px;box-sizing:border-box;border:1px solid #c9d5e1;border-radius:8px;background:#fff;padding:0 38px 0 36px;font:500 12px/1.2 "Segoe UI",Arial,sans-serif;color:#172b4d;outline:none;box-shadow:0 1px 2px rgba(20,45,70,.04)}
+#optykerGlobalSearch:focus{border-color:#1769aa;box-shadow:0 0 0 3px rgba(23,105,170,.12)}
+.optykerSearchIcon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;color:#667789;pointer-events:none}
+.optykerSearchClear{position:absolute;right:7px;top:50%;transform:translateY(-50%);width:24px;height:24px;border:0;background:transparent;border-radius:5px;color:#667789;cursor:pointer;font-size:16px;display:none}
+.optykerSearchClear:hover{background:#eef3f7;color:#173b5e}
+#optykerGlobalResults{display:none;position:absolute;z-index:100000;left:0;right:0;top:39px;max-height:min(520px,70vh);overflow:auto;background:#fff;border:1px solid #cbd7e2;border-radius:10px;box-shadow:0 16px 42px rgba(21,48,74,.18);padding:6px}
+.optykerSearchGroup{padding:7px 8px 4px;font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#7a8b9a}
+.optykerSearchItem{width:100%;border:0;background:transparent;border-radius:7px;padding:9px 10px;text-align:left;display:flex;align-items:center;gap:10px;cursor:pointer;color:#1d344a;font-family:inherit}
+.optykerSearchItem:hover,.optykerSearchItem.active{background:#eef6fd}
+.optykerSearchType{flex:0 0 auto;min-width:54px;padding:3px 6px;border-radius:5px;background:#edf3f8;color:#466179;font-size:9px;font-weight:850;text-align:center;text-transform:uppercase}
+.optykerSearchText{min-width:0;flex:1}.optykerSearchTitle{font-size:12px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.optykerSearchMeta{font-size:10px;color:#718294;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.optykerSearchEmpty{padding:14px 12px;font-size:11px;color:#718294;text-align:center}
+#optykerQuickNewClient{height:34px!important;border:0!important;border-radius:8px!important;background:#1769aa!important;color:#fff!important;padding:0 13px!important;font-size:11px!important;font-weight:800!important;white-space:nowrap!important;cursor:pointer!important;box-shadow:0 2px 7px rgba(23,105,170,.18)!important}
+#optykerQuickNewClient:hover{background:#135a92!important}
+@media(max-width:980px){.optykerGlobalTools{min-width:240px}.optykerGlobalSearchWrap{min-width:160px}.cloudBadge{display:none!important}}
+@media(max-width:720px){.topbarRight{display:flex!important}.topShortcutBtn.topHomeBtn{display:none!important}.optykerGlobalTools{min-width:0}.optykerGlobalSearchWrap{min-width:120px}#optykerQuickNewClient{padding:0 9px!important}.topbar{padding-right:8px!important}}
+</style>`;
+
+    const enhancer=`<scr`+`ipt id="optykerGlobalSearchJs">
+(function(){
+  function E(id){return document.getElementById(id)}
+  function clean(v){return String(v==null?'':v).toLowerCase().normalize?String(v==null?'':v).toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,''):String(v==null?'':v).toLowerCase()}
+  function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]})}
+  var commands=[
+    {title:'Dashboard',meta:'Pagina iniziale',keys:'home inizio principale',run:function(){if(window.showDashboard)showDashboard()}},
+    {title:'Anomalie visive',meta:'Scheda · test accomodativi e binoculari',keys:'analisi anomalie scheda',run:function(){if(window.showModule)showModule('analysis')}},
+    {title:'Prescrizione optometrica',meta:'Scheda prescrizione',keys:'rx prescrizione occhiali',run:function(){if(window.showModule)showModule('prescription')}},
+    {title:'Esame visivo',meta:'Scheda esame visivo',keys:'visita protocollo ovc',run:function(){if(window.showModule)showModule('visualexam')}},
+    {title:"Indicazioni d'uso",meta:'Prodotti e documenti di pulizia',keys:'indicazioni prodotti pulizia',run:function(){if(window.showModule)showModule('indications')}},
+    {title:'UDITO',meta:'Esame audiometrico',keys:'udito audiometria audiogramma',run:function(){if(window.showModule)showModule('hearing')}},
+    {title:'Clienti',meta:'Archivio clienti',keys:'cliente anagrafica archivio',run:function(){if(window.showModule)showModule('clients')}},
+    {title:'Ordini',meta:'Ordini online Shopify',keys:'ordine shopify spedizione brt',run:function(){if(window.openOnlineOrders)openOnlineOrders()}},
+    {title:'LAC · Dati',meta:'Lenti a contatto · scheda dati',keys:'lac lente contatto dati diottrie',run:function(){if(window.openLacDevice)openLacDevice();setTimeout(function(){if(window.lacSwitchTab)lacSwitchTab('data')},20)}},
+    {title:'LAC · Prodotto',meta:'Lenti a contatto · prodotto',keys:'lac lente contatto prodotto esoform preventivo busta',run:function(){if(window.openLacDevice)openLacDevice();setTimeout(function(){if(window.lacSwitchTab)lacSwitchTab('product')},20)}}
+  ];
+  var actions=[];
+  function add(type,title,meta,run){actions.push({type:type,title:title,meta:meta||'',run:run})}
+  function build(q){
+    actions=[];var term=clean(q).trim(),i,c,m,hay,clients,sheets,cid,arr,row,data,label;
+    for(i=0;i<commands.length;i++){c=commands[i];hay=clean(c.title+' '+c.meta+' '+c.keys);if(!term||hay.indexOf(term)>=0)add('Sezione',c.title,c.meta,c.run)}
+    clients=(window.OPTYKER_CLOUD&&Array.isArray(OPTYKER_CLOUD.clients))?OPTYKER_CLOUD.clients:[];
+    if(term){
+      for(i=0;i<clients.length;i++){m=clients[i]||{};hay=clean([m.name,m.surname,m.email,m.pec,m.phone,m.phoneHome,m.city,m.province,m.fiscal,m.vat,m.street,m.zip,m.profession,m.hobby,m.referral].join(' '));if(hay.indexOf(term)>=0){(function(id,title,meta){add('Cliente',title,meta,function(){if(window.showModule)showModule('clients');if(window.clientSelect)clientSelect(id)})})(m.id,((m.surname||'')+' '+(m.name||'')).trim()||'Cliente', [m.phone,m.email,m.city].filter(Boolean).join(' · '))}}
+      sheets=(window.OPTYKER_CLOUD&&OPTYKER_CLOUD.sheets)?OPTYKER_CLOUD.sheets:{};
+      for(cid in sheets){if(!Object.prototype.hasOwnProperty.call(sheets,cid))continue;arr=sheets[cid]||[];for(i=0;i<arr.length;i++){row=arr[i]||{};data=row.data||{};try{hay=clean((row.title||'')+' '+(row.sheet_type||'')+' '+JSON.stringify(data))}catch(z){hay=clean((row.title||'')+' '+(row.sheet_type||''))}if(hay.indexOf(term)>=0){m=null;for(var j=0;j<clients.length;j++)if(clients[j]&&clients[j].id===cid){m=clients[j];break}label=row.title||data.sheetLabel||row.sheet_type||'Scheda';(function(clientId,sheetId,ttl,person){add('Scheda',ttl,person,function(){if(window.showModule)showModule('clients');if(window.clientSelect)clientSelect(clientId);setTimeout(function(){if(window.clientOpenVisitInEditor)clientOpenVisitInEditor(sheetId)},350)})})(cid,row.id,label,m?(((m.surname||'')+' '+(m.name||'')).trim()):'Cliente')}}}
+      add('Ordini','Cerca “'+q+'” negli ordini','Ricerca ordine, cliente, email o prodotto',function(){if(window.openOnlineOrders)openOnlineOrders();setTimeout(function(){var x=E('onlineSearch');if(x){x.value=q;if(window.onlineRenderCurrent)onlineRenderCurrent()}},250)});
+    }
+    return actions.slice(0,40)
+  }
+  function render(){
+    var input=E('optykerGlobalSearch'),box=E('optykerGlobalResults'),clear=E('optykerSearchClear');if(!input||!box)return;var q=input.value||'',arr=build(q),h='',last='';if(clear)clear.style.display=q?'block':'none';
+    if(!q){box.style.display='none';box.innerHTML='';return}
+    if(!arr.length){box.innerHTML='<div class="optykerSearchEmpty">Nessun risultato.</div>';box.style.display='block';return}
+    for(var i=0;i<arr.length;i++){var a=arr[i];if(a.type!==last){h+='<div class="optykerSearchGroup">'+esc(a.type)+'</div>';last=a.type}h+='<button class="optykerSearchItem" type="button" data-optyker-result="'+i+'"><span class="optykerSearchType">'+esc(a.type)+'</span><span class="optykerSearchText"><span class="optykerSearchTitle">'+esc(a.title)+'</span><span class="optykerSearchMeta">'+esc(a.meta)+'</span></span></button>'}
+    box.innerHTML=h;box.style.display='block';
+    var btns=box.querySelectorAll('[data-optyker-result]');for(i=0;i<btns.length;i++)btns[i].onclick=function(){var n=parseInt(this.getAttribute('data-optyker-result'),10);var x=actions[n];box.style.display='none';input.blur();if(x&&x.run)x.run()}
+  }
+  function install(){
+    var wc=E('winWindowControls');if(wc&&wc.parentNode)wc.parentNode.removeChild(wc);
+    var right=document.querySelector('.topbarRight');if(!right||E('optykerGlobalTools'))return;
+    var tools=document.createElement('div');tools.id='optykerGlobalTools';tools.className='optykerGlobalTools';tools.innerHTML='<div class="optykerGlobalSearchWrap"><span class="optykerSearchIcon">⌕</span><input id="optykerGlobalSearch" type="search" autocomplete="off" placeholder="Cerca qualsiasi cosa: cliente, scheda, ordine, funzione…"><button id="optykerSearchClear" class="optykerSearchClear" type="button" title="Cancella">×</button><div id="optykerGlobalResults"></div></div><button id="optykerQuickNewClient" type="button">+ Nuovo cliente</button>';
+    right.insertBefore(tools,right.firstChild);
+    var input=E('optykerGlobalSearch'),clear=E('optykerSearchClear'),newb=E('optykerQuickNewClient'),box=E('optykerGlobalResults');
+    input.oninput=render;input.onfocus=function(){if(input.value)render()};input.onkeydown=function(ev){if(ev.key==='Escape'){box.style.display='none';input.blur()}else if(ev.key==='Enter'){var first=box.querySelector('[data-optyker-result]');if(first){ev.preventDefault();first.click()}}};
+    clear.onclick=function(){input.value='';render();input.focus()};
+    newb.onclick=function(){if(window.dashboardNewClient)dashboardNewClient();else if(window.showModule)showModule('clients')};
+    document.addEventListener('click',function(ev){if(!tools.contains(ev.target))box.style.display='none'});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
+  setInterval(function(){var wc=E('winWindowControls');if(wc&&wc.parentNode)wc.parentNode.removeChild(wc);if(!E('optykerGlobalTools'))install()},700);
+})();
+</scr`+`ipt>`;
+    html=html.replace('</body>',css+enhancer+'</body>');
+    document.open();document.write(html);document.close();
   }catch(e){
-    document.querySelector('.spin').style.display='none';
-    const m=document.getElementById('msg');
-    m.className='err';
-    m.textContent='Impossibile avviare Optyker.\n'+(e&&e.message?e.message:e);
+    document.querySelector('.spin').style.display='none';const m=document.getElementById('msg');m.className='err';m.textContent='Impossibile avviare Optyker.\n'+(e&&e.message?e.message:e);
   }
 })();
 </script>
