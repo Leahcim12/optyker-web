@@ -10,16 +10,19 @@ permissions:
   pages: write
   id-token: write
 
+environment:
+  name: github-pages
+
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
     steps:
       - name: Prepara sito
         run: |
@@ -27,7 +30,7 @@ jobs:
           curl -fL --retry 3 --retry-delay 2 "https://whgziwaegjzqsgcntesr.supabase.co/storage/v1/object/public/optyker-web/index.html?v=${GITHUB_SHA}" -o _site/index.html
           test -s _site/index.html
           touch _site/.nojekyll
-      - name: Configura GitHub Pages
+      - name: Abilita e configura GitHub Pages
         uses: actions/configure-pages@v5
         with:
           enablement: true
