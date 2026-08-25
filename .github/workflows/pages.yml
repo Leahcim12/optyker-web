@@ -33,6 +33,7 @@ jobs:
           python scripts/remove_login_store_user.py
           python scripts/patch_profile.py
           python scripts/patch_client_chat_tab.py
+          python scripts/patch_whatsapp_channel.py
           python - <<'PY'
           from pathlib import Path
           import re
@@ -48,6 +49,8 @@ jobs:
               raise SystemExit('Profilo operatore non presente nella build')
           if 'OPTYKER_CLIENT_CHAT_TAB_V1' not in s or 'id="clientChatSection"' not in s:
               raise SystemExit('Chat nella scheda cliente non presente nella build')
+          if 'OPTYKER_WHATSAPP_CHANNEL_V1' not in s or 'id="navSettings"' not in s or 'id="optykerSettingsPanel"' not in s:
+              raise SystemExit('Canale WhatsApp / Impostazioni non presente nella build')
           print('Script inline:',len(scripts),'bytes:',len(s))
           PY
           for f in _jscheck/*.js; do node --check "$f"; done
