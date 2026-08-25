@@ -1,0 +1,27 @@
+name: Verify staff portal embed
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.verify-staff-embed-20260825.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verifica rendering HTML staff portal
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$(curl -fsS --retry 3 --retry-delay 1 'https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-staff-embed-diag')"
+          echo "$OUT"
+          echo "$OUT" | grep -q '"ok":true'
+          echo "$OUT" | grep -q '"status":200'
+          echo "$OUT" | grep -q '"starts_html":true'
+          echo "$OUT" | grep -qi 'text/html'
+          echo "$OUT" | grep -qi 'inline'
