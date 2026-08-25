@@ -34,6 +34,9 @@ jobs:
           python scripts/patch_profile.py
           python scripts/patch_client_chat_tab.py
           python scripts/patch_whatsapp_channel.py
+          mkdir -p _site/staff-embed
+          cp staff-embed/index.html _site/staff-embed/index.html
+          test -s _site/staff-embed/index.html
           python - <<'PY'
           from pathlib import Path
           import re
@@ -41,6 +44,10 @@ jobs:
           scripts=re.findall(r'<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>',s,re.I)
           for i,code in enumerate(scripts):
               if code.strip(): Path(f'_jscheck/{i}.js').write_text(code,encoding='utf-8')
+          staff=Path('_site/staff-embed/index.html').read_text(encoding='utf-8')
+          staff_scripts=re.findall(r'<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>',staff,re.I)
+          for i,code in enumerate(staff_scripts):
+              if code.strip(): Path(f'_jscheck/staff-{i}.js').write_text(code,encoding='utf-8')
           if 'OPTYKER_CUSTOMER_CHAT_UI_V3' not in s or 'id="navChat"' not in s:
               raise SystemExit('Chat Optyker non presente nella build')
           if 'OPTYKER_TOP_DASHBOARD_NEXT_TO_NEW_CLIENT_V3' not in s:
@@ -51,7 +58,9 @@ jobs:
               raise SystemExit('Chat nella scheda cliente non presente nella build')
           if 'OPTYKER_WHATSAPP_CHANNEL_V2' not in s or 'id="navSettings"' not in s or 'id="optykerSettingsPanel"' not in s:
               raise SystemExit('WhatsApp integrato / Impostazioni non presente nella build')
-          print('Script inline:',len(scripts),'bytes:',len(s))
+          if 'optyker-shopify-staff-embed' not in staff or 'staffFrame' not in staff:
+              raise SystemExit('Renderer staff Shopify non presente nella build')
+          print('Script inline:',len(scripts),'staff scripts:',len(staff_scripts),'bytes:',len(s))
           PY
           for f in _jscheck/*.js; do node --check "$f"; done
           touch _site/.nojekyll
