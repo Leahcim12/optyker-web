@@ -1,1 +1,0 @@
-diagnose Optyker storage for client chat tab
