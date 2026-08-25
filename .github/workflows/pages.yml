@@ -34,6 +34,7 @@ jobs:
           python scripts/patch_profile.py
           python scripts/patch_client_chat_tab.py
           python scripts/patch_whatsapp_channel.py
+          python scripts/patch_appointments.py
           python scripts/patch_whatsapp_qr_connect.py
           python scripts/patch_whatsapp_qr_meta_fix.py
           mkdir -p _site/staff-embed
@@ -61,6 +62,8 @@ jobs:
               raise SystemExit('Chat nella scheda cliente non presente nella build')
           if 'OPTYKER_WHATSAPP_CHANNEL_V2' not in s or 'id="navSettings"' not in s or 'id="optykerSettingsPanel"' not in s:
               raise SystemExit('WhatsApp integrato / Impostazioni non presente nella build')
+          if 'OPTYKER_APPOINTMENTS_UI_V1' not in s or 'id="navAppointments"' not in s or 'id="optykerAppointmentsPanel"' not in s:
+              raise SystemExit('Agenda appuntamenti non presente nella build')
           if 'OPTYKER_WHATSAPP_QR_CONNECT_V1' not in s or 'optykerWaQrStart' not in s:
               raise SystemExit('Collegamento WhatsApp QR non presente nella build')
           if 'OPTYKER_WHATSAPP_QR_META_FIX_V2' not in s or "version:'v25.0'" not in s or "sessionInfoVersion:'3'" not in s:
