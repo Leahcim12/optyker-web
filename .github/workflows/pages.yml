@@ -34,6 +34,7 @@ jobs:
           python scripts/patch_profile.py
           python scripts/patch_client_chat_tab.py
           python scripts/patch_whatsapp_channel.py
+          python scripts/patch_whatsapp_qr_connect.py
           mkdir -p _site/staff-embed
           cp staff-embed/index.html _site/staff-embed/index.html
           test -s _site/staff-embed/index.html
@@ -58,6 +59,8 @@ jobs:
               raise SystemExit('Chat nella scheda cliente non presente nella build')
           if 'OPTYKER_WHATSAPP_CHANNEL_V2' not in s or 'id="navSettings"' not in s or 'id="optykerSettingsPanel"' not in s:
               raise SystemExit('WhatsApp integrato / Impostazioni non presente nella build')
+          if 'OPTYKER_WHATSAPP_QR_CONNECT_V1' not in s or 'optykerWaQrStart' not in s:
+              raise SystemExit('Collegamento WhatsApp QR non presente nella build')
           if 'optyker-shopify-staff-embed' not in staff or 'staffFrame' not in staff:
               raise SystemExit('Renderer staff Shopify non presente nella build')
           print('Script inline:',len(scripts),'staff scripts:',len(staff_scripts),'bytes:',len(s))
