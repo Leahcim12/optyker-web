@@ -13,11 +13,8 @@ jobs:
   apply:
     runs-on: ubuntu-latest
     steps:
-      - name: Applica patch Optyker
+      - name: Diagnostica storage Optyker
         shell: bash
         run: |
           set -euo pipefail
-          OUT="$(curl -sS --retry 2 --retry-delay 1 'https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-client-chat-tab-patch')"
-          echo "$OUT"
-          echo "$OUT" | grep -q '"ok":true'
-          echo "$OUT" | grep -q '"marker":1\|"already":true'
+          curl -sS 'https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-storage-diag'
