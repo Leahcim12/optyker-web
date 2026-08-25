@@ -30,6 +30,7 @@ jobs:
           curl -fL --retry 3 --retry-delay 2 "https://whgziwaegjzqsgcntesr.supabase.co/storage/v1/object/public/optyker-web/index.html?v=${GITHUB_SHA}" -o _site/index.html
           test -s _site/index.html
           python scripts/patch_optyker.py
+          python scripts/remove_login_store_user.py
           python - <<'PY'
           from pathlib import Path
           import re
