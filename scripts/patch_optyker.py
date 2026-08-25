@@ -1,0 +1,84 @@
+from pathlib import Path
+import re
+
+p=Path('_site/index.html')
+s=p.read_text(encoding='utf-8')
+
+# Remove obsolete duplicate header implementation.
+s=re.sub(r'<style id=["\']optykerHeaderSearchFixCss["\'][^>]*>[\s\S]*?</style>','',s,count=1,flags=re.I)
+s=re.sub(r'<script id=["\']optykerHeaderSearchFixJs["\'][^>]*>[\s\S]*?</script>','',s,count=1,flags=re.I)
+if 'optykerGlobalSearchInput' not in s or 'optykerTopNewClientBtn' not in s:
+    raise SystemExit('Topbar principale non trovata')
+
+def add_head(block):
+    global s
+    h=s.find('</head>'); b=s.find('<body')
+    if h<0 or (b>=0 and h>b): raise SystemExit('Chiusura head non trovata')
+    s=s[:h]+block+s[h:]
+
+def add_body_end(block):
+    global s
+    b=s.rfind('</body>')
+    if b<0: raise SystemExit('Chiusura body non trovata')
+    s=s[:b]+block+s[b:]
+
+# Dashboard beside + Nuovo cliente.
+DASH='OPTYKER_TOP_DASHBOARD_NEXT_TO_NEW_CLIENT_V3'
+if DASH not in s:
+    add_head('''\n<style id="optykerTopDashboardCss">/* OPTYKER_TOP_DASHBOARD_NEXT_TO_NEW_CLIENT_V3 */
+#optykerTopDashboardBtn{height:42px!important;border:1px solid #cdd9e4!important;border-radius:11px!important;background:#fff!important;color:#17324a!important;padding:0 15px!important;font-size:12px!important;font-weight:800!important;white-space:nowrap!important;cursor:pointer!important}
+#optykerTopDashboardBtn:hover{background:#f4f8fb!important}
+</style>\n''')
+    add_body_end('''\n<script id="optykerTopDashboardJs">
+(function(){function fix(){var r=document.querySelector('.topbarRight'),n=document.getElementById('optykerTopNewClientBtn');if(!r||!n)return;var d=document.getElementById('optykerTopDashboardBtn');if(!d){d=document.createElement('button');d.id='optykerTopDashboardBtn';d.type='button';d.textContent='Dashboard';d.onclick=function(){if(window.showDashboard)showDashboard()};}if(d.parentNode!==r||d.nextElementSibling!==n)r.insertBefore(d,n)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',fix);else fix();setInterval(fix,2000)})();
+</script>\n''')
+
+CHAT='OPTYKER_CUSTOMER_CHAT_UI_V3'
+if CHAT not in s:
+    anchor='<button id="navClients" class="moduleBtn" type="button" onclick="showModule(\'clients\')">Clienti</button>'
+    if anchor not in s: raise SystemExit('Pulsante Clienti non trovato')
+    chat_nav='<button id="navChat" class="moduleBtn" data-short="Chat" type="button" onclick="optykerOpenChat()"><span class="winNavIcon" aria-hidden="true">✉</span><span>Chat</span><span id="optykerChatBadge" class="optykerChatBadge" style="display:none">0</span></button>'
+    s=s.replace(anchor,anchor+'\n    '+chat_nav,1)
+
+    panel='''\n  <div id="optykerChatPanel" class="panel optykerChatPanel" style="display:none">
+    <div class="optykerChatHead"><div><div class="optykerChatKicker">Optyker · Clienti</div><div class="optykerChatTitle">Chat</div><div class="optykerChatSub">Il messaggio mostra automaticamente il nome dell'operatore scelto al login.</div></div><button class="secondary" type="button" onclick="showDashboard()">Dashboard</button></div>
+    <div class="optykerChatStart"><select id="optykerChatClientSelect"><option value="">Avvia una chat con un cliente…</option></select><button class="secondary" type="button" onclick="optykerChatStartSelected()">Apri cliente</button></div>
+    <div class="optykerChatGrid">
+      <div class="optykerChatLeft"><input id="optykerChatSearch" type="search" placeholder="Cerca nelle chat…" oninput="optykerChatRenderThreads()"><div id="optykerChatThreads" class="optykerChatThreads"><div class="optykerChatEmpty">Caricamento chat…</div></div></div>
+      <div class="optykerChatRight"><div id="optykerChatBlank" class="optykerChatBlank">Seleziona una conversazione.</div><div id="optykerChatConversation" style="display:none"><div class="optykerChatConvHead"><div><b id="optykerChatClientName"></b><div id="optykerChatOperator"></div></div><button class="secondary" type="button" onclick="optykerChatCopyLink()">Copia link cliente</button></div><div id="optykerChatMessages" class="optykerChatMessages"></div><div class="optykerChatComposer"><textarea id="optykerChatText" maxlength="4000" placeholder="Scrivi un messaggio…"></textarea><button id="optykerChatSend" class="primary" type="button" onclick="optykerChatSend()">Invia</button></div><div id="optykerChatStatus" class="optykerChatStatus">Aggiornamento automatico attivo.</div></div></div>
+    </div>
+  </div>\n'''
+    orders='  <div id="onlineOrdersPanel" class="panel">'
+    if orders not in s: raise SystemExit('Pannello Ordini non trovato')
+    s=s.replace(orders,panel+'\n'+orders,1)
+
+    add_head('''\n<style id="optykerChatCss">/* OPTYKER_CUSTOMER_CHAT_UI_V3 */
+#optykerChatPanel{grid-column:2!important;min-width:0}.optykerChatHead{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;border-bottom:1px solid rgba(0,0,0,.09);padding-bottom:13px}.optykerChatKicker{font-size:10px;font-weight:800;color:#1769aa;text-transform:uppercase;letter-spacing:.5px}.optykerChatTitle{font-size:24px;font-weight:650;margin-top:2px}.optykerChatSub{font-size:11px;color:#6d7f8f;margin-top:4px}.optykerChatStart{display:flex;gap:8px;margin:14px 0}.optykerChatStart select{flex:1}.optykerChatGrid{display:grid;grid-template-columns:320px minmax(0,1fr);min-height:590px;border:1px solid rgba(0,0,0,.11);border-radius:9px;overflow:hidden;background:#fff}.optykerChatLeft{border-right:1px solid rgba(0,0,0,.09);background:#f8fafc;padding:10px;min-width:0}.optykerChatThreads{margin-top:8px;max-height:520px;overflow:auto;border:1px solid #dfe6ec;border-radius:7px;background:#fff}.optykerChatThread{width:100%;border:0;border-bottom:1px solid #edf1f4;background:#fff;padding:10px;text-align:left;cursor:pointer}.optykerChatThread:last-child{border-bottom:0}.optykerChatThread:hover,.optykerChatThread.active{background:#eaf4fc}.optykerChatThreadTop{display:flex;justify-content:space-between;gap:8px}.optykerChatThreadName{font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.optykerChatThreadTime{font-size:9px;color:#8493a0;white-space:nowrap}.optykerChatThreadLast{font-size:10px;color:#657788;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.optykerChatUnread{display:inline-flex;min-width:18px;height:18px;align-items:center;justify-content:center;border-radius:999px;background:#1769aa;color:#fff;font-size:9px;font-weight:800;margin-left:5px}.optykerChatBadge{margin-left:auto;min-width:20px;height:20px;padding:0 5px;align-items:center;justify-content:center;border-radius:999px;background:#c42b1c;color:#fff;font-size:9px;font-weight:800}.optykerChatRight{min-width:0}.optykerChatBlank{min-height:590px;display:flex;align-items:center;justify-content:center;color:#798b9b;font-size:12px}.optykerChatConvHead{min-height:60px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 13px;border-bottom:1px solid #e4e9ee;background:#fbfcfd}.optykerChatConvHead b{font-size:14px}.optykerChatConvHead #optykerChatOperator{font-size:10px;color:#718294;margin-top:2px}.optykerChatMessages{height:435px;overflow:auto;padding:14px;background:linear-gradient(#f8fafc,#f4f7fa)}.optykerChatMsg{display:flex;margin:7px 0}.optykerChatMsg.staff{justify-content:flex-end}.optykerChatBubble{max-width:78%;padding:9px 11px;border:1px solid #dce5ed;border-radius:12px;background:#fff}.optykerChatMsg.staff .optykerChatBubble{background:#1769aa;border-color:#1769aa;color:#fff}.optykerChatSender{font-size:9px;font-weight:800;color:#587187;margin-bottom:3px}.optykerChatMsg.staff .optykerChatSender{color:#d7eafb}.optykerChatText{font-size:12px;line-height:1.4;white-space:pre-wrap;word-break:break-word}.optykerChatTime{font-size:8px;color:#8b99a6;margin-top:4px}.optykerChatMsg.staff .optykerChatTime{color:#d5e6f4}.optykerChatComposer{display:flex;gap:8px;padding:10px;border-top:1px solid #e3e9ee}.optykerChatComposer textarea{flex:1;min-height:44px!important;max-height:100px!important;resize:vertical}.optykerChatComposer button{min-width:78px}.optykerChatStatus{font-size:9px;color:#718294;padding:0 11px 8px}.optykerChatStatus.bad{color:#b42323}.optykerChatEmpty{padding:22px 12px;text-align:center;color:#788a99;font-size:11px}
+@media(max-width:900px){#optykerChatPanel{grid-column:1!important}.optykerChatGrid{grid-template-columns:1fr}.optykerChatLeft{border-right:0;border-bottom:1px solid #e2e8ed}.optykerChatThreads{max-height:220px}.optykerChatBlank{min-height:340px}.optykerChatMessages{height:390px}}
+</style>\n''')
+
+    add_body_end('''\n<script id="optykerChatJs">
+(function(){
+var S={threads:[],selected:'',messages:[],url:'',busy:false};
+function E(i){return document.getElementById(i)}function X(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}function L(v){return String(v||'').toLowerCase()}function D(v){if(!v)return'';try{return new Date(v).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}catch(e){return String(v)}}
+function api(a,p){if(!window.OPTYKER_CLOUD||!OPTYKER_CLOUD.username)return Promise.reject(new Error('Sessione non autenticata'));return fetch(OPTYKER_CLOUD.root+'/rest/v1/rpc/optyker_chat_api',{method:'POST',headers:{'Content-Type':'application/json','apikey':OPTYKER_CLOUD.key,'Authorization':'Bearer '+OPTYKER_CLOUD.key},body:JSON.stringify({p_username:OPTYKER_CLOUD.username,p_password:OPTYKER_CLOUD.password||'',p_action:a,p_payload:p||{}})}).then(function(r){if(!r.ok)throw new Error('Server '+r.status);return r.json()}).then(function(x){if(x&&x.ok===false)throw new Error(x.error||'Errore chat');return x})}
+function status(t,b){var e=E('optykerChatStatus');if(e){e.textContent=t;e.className='optykerChatStatus'+(b?' bad':'')}}function badge(n){n=parseInt(n||0,10)||0;var b=E('optykerChatBadge');if(b){b.textContent=n>99?'99+':n;b.style.display=n?'inline-flex':'none'}}function unread(){var n=0;S.threads.forEach(function(t){n+=parseInt(t.unread_count||0,10)||0});return n}
+function clients(){var sel=E('optykerChatClientSelect');if(!sel)return;var a=window.OPTYKER_CLOUD&&Array.isArray(OPTYKER_CLOUD.clients)?OPTYKER_CLOUD.clients:[];var old=sel.value;sel.innerHTML='<option value="">Avvia una chat con un cliente…</option>'+a.map(function(c){var n=((c.surname||'')+' '+(c.name||'')).trim()||'Cliente';return '<option value="'+X(c.id)+'">'+X(n)+'</option>'}).join('');sel.value=old}
+function loadThreads(){if(S.busy)return Promise.resolve();S.busy=true;return api('list_threads',{}).then(function(x){S.threads=Array.isArray(x.data)?x.data:[];badge(unread());window.optykerChatRenderThreads()}).catch(function(e){var b=E('optykerChatThreads');if(b)b.innerHTML='<div class="optykerChatEmpty">'+X(e.message)+'</div>'}).finally(function(){S.busy=false})}
+window.optykerChatRenderThreads=function(){var b=E('optykerChatThreads');if(!b)return;var q=L(E('optykerChatSearch')&&E('optykerChatSearch').value).trim();var a=S.threads.filter(function(t){return !q||L([t.client_name,t.email,t.phone,t.last_message].join(' ')).indexOf(q)>=0});if(!a.length){b.innerHTML='<div class="optykerChatEmpty">'+(q?'Nessun risultato.':'Nessuna conversazione.')+'</div>';return}b.innerHTML=a.map(function(t){var u=parseInt(t.unread_count||0,10)||0;return '<button class="optykerChatThread'+(String(t.client_id)===String(S.selected)?' active':'')+'" type="button" data-c="'+X(t.client_id)+'"><div class="optykerChatThreadTop"><span class="optykerChatThreadName">'+X(t.client_name||'Cliente')+(u?'<span class="optykerChatUnread">'+u+'</span>':'')+'</span><span class="optykerChatThreadTime">'+X(D(t.last_at))+'</span></div><div class="optykerChatThreadLast">'+X(t.last_message||'')+'</div></button>'}).join('');b.querySelectorAll('[data-c]').forEach(function(x){x.onclick=function(){window.optykerChatOpenThread(x.getAttribute('data-c'))}})};
+function msgs(){var b=E('optykerChatMessages');if(!b)return;if(!S.messages.length){b.innerHTML='<div class="optykerChatEmpty">Nessun messaggio. Scrivi il primo messaggio.</div>';return}b.innerHTML=S.messages.map(function(m){var st=m.sender_type==='staff';return '<div class="optykerChatMsg '+(st?'staff':'customer')+'"><div class="optykerChatBubble"><div class="optykerChatSender">'+X(m.sender_name||(st?'Operatore':'Cliente'))+'</div><div class="optykerChatText">'+X(m.message||'')+'</div><div class="optykerChatTime">'+X(D(m.created_at))+'</div></div></div>'}).join('');b.scrollTop=b.scrollHeight}
+window.optykerChatOpenThread=function(id){if(!id)return;S.selected=id;S.url='';window.optykerChatRenderThreads();E('optykerChatBlank').style.display='none';E('optykerChatConversation').style.display='block';E('optykerChatOperator').textContent='Operatore: '+((OPTYKER_CLOUD&&OPTYKER_CLOUD.username)||window.OPTYKER_ACTIVE_OPERATOR||'');status('Caricamento…');return api('get_thread',{client_id:id}).then(function(x){S.messages=Array.isArray(x.data)?x.data:[];S.url=x.chat_url||'';E('optykerChatClientName').textContent=x.client_name||'Cliente';msgs();status('Chat aggiornata automaticamente.');return loadThreads()}).catch(function(e){status(e.message,true)})};
+window.optykerChatSend=function(){var t=E('optykerChatText'),m=String(t&&t.value||'').trim(),b=E('optykerChatSend');if(!S.selected){alert('Seleziona un cliente.');return}if(!m)return;b.disabled=true;api('send',{client_id:S.selected,message:m}).then(function(){t.value='';return window.optykerChatOpenThread(S.selected)}).catch(function(e){status(e.message,true)}).finally(function(){b.disabled=false;t.focus()})};
+window.optykerChatCopyLink=function(){if(!S.selected)return;function cp(u){if(!u)return;if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(u).then(function(){status('Link cliente copiato.')}).catch(function(){prompt('Copia il link:',u)});else prompt('Copia il link:',u)}if(S.url){cp(S.url);return}api('get_link',{client_id:S.selected}).then(function(x){S.url=x.chat_url||'';cp(S.url)}).catch(function(e){alert(e.message)})};
+window.optykerChatStartSelected=function(){var id=E('optykerChatClientSelect').value;if(id)window.optykerChatOpenThread(id)};
+function hide(){['dashboardPanel','analysisPanel','prescriptionPanel','visualExamPanel','indicationsPanel','hearingPanel','clientsPanel','onlineOrdersPanel'].forEach(function(i){var e=E(i);if(e)e.style.display='none'});var r=E('reportSectionTop');if(r)r.style.display='none';var c=E('currentClientBanner');if(c)c.style.display='none';try{if(window.hideLac)hideLac()}catch(e){}}
+window.optykerOpenChat=function(){hide();var p=E('optykerChatPanel');if(p)p.style.display='block';document.querySelectorAll('#moduleNav .moduleBtn').forEach(function(b){b.classList.remove('active')});if(E('navChat'))E('navChat').classList.add('active');clients();if((!OPTYKER_CLOUD.clients||!OPTYKER_CLOUD.clients.length)&&window.cloudLoadClients)cloudLoadClients().then(clients).catch(function(){});loadThreads()};
+function poll(){if(!window.OPTYKER_CLOUD||!OPTYKER_CLOUD.username)return;api('unread_count',{}).then(function(x){badge(x&&x.data&&x.data.count||0)}).catch(function(){});var p=E('optykerChatPanel');if(p&&p.style.display!=='none'){loadThreads();if(S.selected)api('get_thread',{client_id:S.selected}).then(function(x){var a=Array.isArray(x.data)?x.data:[],n=a.map(function(m){return m.id}).join('|'),o=S.messages.map(function(m){return m.id}).join('|');if(n!==o){S.messages=a;S.url=x.chat_url||S.url;msgs()}}).catch(function(){})}}
+function boot(){var t=E('optykerChatText');if(t)t.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();window.optykerChatSend()}});setTimeout(poll,800);setInterval(poll,5000)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot()
+})();
+</script>\n''')
+
+for m in [DASH,CHAT,'id="navChat"','id="optykerChatPanel"','optyker_chat_api']:
+    if m not in s: raise SystemExit('Patch incompleta: '+m)
+p.write_text(s,encoding='utf-8')
+print('Patch Optyker applicata:',len(s),'bytes')
