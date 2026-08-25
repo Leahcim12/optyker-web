@@ -17,7 +17,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          OUT="$(curl -fsS --retry 3 --retry-delay 2 'https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-client-chat-tab-patch')"
+          OUT="$(curl -sS --retry 2 --retry-delay 1 'https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-client-chat-tab-patch')"
           echo "$OUT"
           echo "$OUT" | grep -q '"ok":true'
           echo "$OUT" | grep -q '"marker":1\|"already":true'
