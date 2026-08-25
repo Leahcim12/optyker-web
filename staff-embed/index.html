@@ -13,24 +13,20 @@
 </head>
 <body>
   <div id="state"><div><strong>Caricamento area operatore…</strong>Attendi un momento.</div></div>
-  <iframe id="staffFrame" title="Area operatore OTTICA VISUAL CARE"></iframe>
+  <iframe id="staffFrame" title="Area operatore OTTICA VISUAL CARE" referrerpolicy="no-referrer"></iframe>
   <script>
-  (async function(){
+  (function(){
     const state=document.getElementById('state');
     const frame=document.getElementById('staffFrame');
     const token=new URLSearchParams(location.search).get('t')||'';
     const BASE='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-shopify-staff-embed';
     function fail(){state.innerHTML='<div><strong>Impossibile caricare l’area operatore</strong>Ricarica la pagina oppure esegui nuovamente l’accesso.</div>';}
     if(!token){fail();return;}
-    try{
-      const r=await fetch(BASE+'?t='+encodeURIComponent(token),{cache:'no-store'});
-      let h=await r.text();
-      if(!r.ok||!/^\s*<!doctype html/i.test(h)) throw new Error('invalid portal response');
-      h=h.replace("history.replaceState({},'',location.pathname);","try{history.replaceState({},'',location.pathname)}catch(e){};");
-      h=h.split("fetch(location.pathname+'?api=1&t='+encodeURIComponent(TOKEN)").join("fetch('"+BASE+"?api=1&t='+encodeURIComponent(TOKEN)");
-      frame.onload=function(){state.style.display='none';frame.style.display='block';};
-      frame.srcdoc=h;
-    }catch(e){fail();}
+    let loaded=false;
+    frame.onload=function(){loaded=true;state.style.display='none';frame.style.display='block';};
+    frame.onerror=fail;
+    frame.src=BASE+'?t='+encodeURIComponent(token)+'&v=3';
+    setTimeout(function(){if(!loaded)fail();},12000);
   })();
   </script>
 </body>
