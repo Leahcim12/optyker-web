@@ -1,1 +1,1 @@
-apply Optyker client chat tab retry 2
+diagnose Optyker storage for client chat tab
