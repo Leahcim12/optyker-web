@@ -61,8 +61,8 @@ jobs:
               raise SystemExit('WhatsApp integrato / Impostazioni non presente nella build')
           if 'OPTYKER_WHATSAPP_QR_CONNECT_V1' not in s or 'optykerWaQrStart' not in s:
               raise SystemExit('Collegamento WhatsApp QR non presente nella build')
-          if 'optyker-shopify-staff-embed' not in staff or 'staffFrame' not in staff:
-              raise SystemExit('Renderer staff Shopify non presente nella build')
+          if 'optyker-shopify-staff-embed' not in staff or 'OPTYKER_STAFF_STATIC_UI_V2' not in staff:
+              raise SystemExit('Renderer staff Shopify standalone non presente nella build')
           print('Script inline:',len(scripts),'staff scripts:',len(staff_scripts),'bytes:',len(s))
           PY
           for f in _jscheck/*.js; do node --check "$f"; done
