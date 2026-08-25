@@ -31,6 +31,7 @@ jobs:
           test -s _site/index.html
           python scripts/patch_optyker.py
           python scripts/remove_login_store_user.py
+          python scripts/patch_profile.py
           python - <<'PY'
           from pathlib import Path
           import re
@@ -42,6 +43,8 @@ jobs:
               raise SystemExit('Chat Optyker non presente nella build')
           if 'OPTYKER_TOP_DASHBOARD_NEXT_TO_NEW_CLIENT_V3' not in s:
               raise SystemExit('Pulsante Dashboard non presente nella build')
+          if 'OPTYKER_OPERATOR_PROFILE_V1' not in s or 'optykerTopProfileBtn' not in s:
+              raise SystemExit('Profilo operatore non presente nella build')
           print('Script inline:',len(scripts),'bytes:',len(s))
           PY
           for f in _jscheck/*.js; do node --check "$f"; done
