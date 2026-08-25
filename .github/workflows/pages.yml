@@ -26,6 +26,21 @@ jobs:
           mkdir -p _site
           curl -fL --retry 3 --retry-delay 2 "https://whgziwaegjzqsgcntesr.supabase.co/storage/v1/object/public/optyker-web/index.html?v=${GITHUB_SHA}" -o _site/index.html
           test -s _site/index.html
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p = Path('_site/index.html')
+          s = p.read_text(encoding='utf-8')
+          # Mantiene la ricerca globale principale e rimuove la seconda topbar duplicata.
+          s, n_css = re.subn(r'<style id=["\']optykerHeaderSearchFixCss["\'][^>]*>[\s\S]*?</style>', '', s, count=1, flags=re.I)
+          s, n_js = re.subn(r'<script id=["\']optykerHeaderSearchFixJs["\'][^>]*>[\s\S]*?</script>', '', s, count=1, flags=re.I)
+          if 'optykerHeaderSearchFixJs' in s or 'optykerHeaderSearchFixCss' in s:
+              raise SystemExit('La topbar duplicata non è stata rimossa completamente')
+          if 'optykerGlobalSearchInput' not in s or 'optykerTopNewClientBtn' not in s:
+              raise SystemExit('La topbar principale non è presente')
+          p.write_text(s, encoding='utf-8')
+          print(f'Dedup topbar: css={n_css}, js={n_js}, bytes={len(s)}')
+          PY
           touch _site/.nojekyll
       - name: Abilita e configura GitHub Pages
         uses: actions/configure-pages@v5
