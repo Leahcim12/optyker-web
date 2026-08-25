@@ -37,6 +37,7 @@ jobs:
           python scripts/patch_whatsapp_qr_connect.py
           mkdir -p _site/staff-embed
           cp staff-embed/index.html _site/staff-embed/index.html
+          python scripts/patch_staff_whatsapp.py
           test -s _site/staff-embed/index.html
           python - <<'PY'
           from pathlib import Path
@@ -63,7 +64,9 @@ jobs:
               raise SystemExit('Collegamento WhatsApp QR non presente nella build')
           if 'optyker-shopify-staff-embed' not in staff or 'OPTYKER_STAFF_STATIC_UI_V2' not in staff:
               raise SystemExit('Renderer staff Shopify standalone non presente nella build')
-          print('Script inline:',len(scripts),'staff scripts:',len(staff_scripts),'bytes:',len(s))
+          if 'OPTYKER_STAFF_WHATSAPP_V1' not in staff or 'optyker-shopify-staff-whatsapp' not in staff or 'id="channelWa"' not in staff:
+              raise SystemExit('Chat WhatsApp Shopify non presente nella build')
+          print('Script inline:',len(scripts),'staff scripts:',len(staff_scripts),'bytes:',len(s),'staff bytes:',len(staff))
           PY
           for f in _jscheck/*.js; do node --check "$f"; done
           touch _site/.nojekyll
