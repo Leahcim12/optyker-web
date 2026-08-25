@@ -21,73 +21,41 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Prepara sito
+      - name: Scarica repository
+        uses: actions/checkout@v4
+
+      - name: Prepara e verifica Optyker
         run: |
-          mkdir -p _site
+          mkdir -p _site _jscheck
           curl -fL --retry 3 --retry-delay 2 "https://whgziwaegjzqsgcntesr.supabase.co/storage/v1/object/public/optyker-web/index.html?v=${GITHUB_SHA}" -o _site/index.html
           test -s _site/index.html
+          python scripts/patch_optyker.py
           python - <<'PY'
           from pathlib import Path
           import re
-          p = Path('_site/index.html')
-          s = p.read_text(encoding='utf-8')
-
-          # Mantiene una sola ricerca globale e un solo pulsante Nuovo cliente.
-          s, n_css = re.subn(r'<style id=["\']optykerHeaderSearchFixCss["\'][^>]*>[\s\S]*?</style>', '', s, count=1, flags=re.I)
-          s, n_js = re.subn(r'<script id=["\']optykerHeaderSearchFixJs["\'][^>]*>[\s\S]*?</script>', '', s, count=1, flags=re.I)
-          if 'optykerHeaderSearchFixJs' in s or 'optykerHeaderSearchFixCss' in s:
-              raise SystemExit('La topbar duplicata non è stata rimossa completamente')
-          if 'optykerGlobalSearchInput' not in s or 'optykerTopNewClientBtn' not in s:
-              raise SystemExit('La topbar principale non è presente')
-
-          marker = 'OPTYKER_TOP_DASHBOARD_NEXT_TO_NEW_CLIENT_V1'
-          if marker not in s:
-              patch = r'''
-          <style id="optykerTopDashboardFixCss">/* OPTYKER_TOP_DASHBOARD_NEXT_TO_NEW_CLIENT_V1 */
-          #optykerTopDashboardBtn{height:42px!important;flex:0 0 auto!important;border:1px solid #cdd9e4!important;border-radius:11px!important;background:#fff!important;color:#17324a!important;padding:0 16px!important;font-size:12px!important;font-weight:800!important;white-space:nowrap!important;cursor:pointer!important;box-shadow:0 2px 8px rgba(28,58,84,.055)!important}
-          #optykerTopDashboardBtn:hover{background:#f4f8fb!important;border-color:#9fb9cf!important}
-          @media(max-width:760px){#optykerTopDashboardBtn{padding:0 12px!important}}
-          </style>
-          <script id="optykerTopDashboardFixJs">
-          (function(){
-            function ensureDashboard(){
-              var right=document.querySelector('.topbarRight');
-              var newBtn=document.getElementById('optykerTopNewClientBtn');
-              if(!right||!newBtn)return;
-              var dash=document.getElementById('optykerTopDashboardBtn');
-              if(!dash){
-                dash=document.createElement('button');
-                dash.id='optykerTopDashboardBtn';
-                dash.type='button';
-                dash.textContent='Dashboard';
-                dash.onclick=function(){if(typeof window.showDashboard==='function')window.showDashboard();};
-              }
-              if(dash.parentNode!==right||dash.nextElementSibling!==newBtn)right.insertBefore(dash,newBtn);
-            }
-            function boot(){ensureDashboard();setTimeout(ensureDashboard,80);setTimeout(ensureDashboard,350);setTimeout(ensureDashboard,1000);}
-            if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
-            var target=document.querySelector('.topbarRight');
-            if(target){new MutationObserver(function(){setTimeout(ensureDashboard,0);}).observe(target,{childList:true});}
-          })();
-          </script>
-          '''
-              s = s.replace('</body>', patch + '\n</body>', 1)
-
-          if marker not in s:
-              raise SystemExit('Il pulsante Dashboard non è stato aggiunto')
-
-          p.write_text(s, encoding='utf-8')
-          print(f'Topbar pronta: dedup_css={n_css}, dedup_js={n_js}, dashboard=1, bytes={len(s)}')
+          s=Path('_site/index.html').read_text(encoding='utf-8')
+          scripts=re.findall(r'<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>',s,re.I)
+          for i,code in enumerate(scripts):
+              if code.strip(): Path(f'_jscheck/{i}.js').write_text(code,encoding='utf-8')
+          if 'OPTYKER_CUSTOMER_CHAT_UI_V3' not in s or 'id="navChat"' not in s:
+              raise SystemExit('Chat Optyker non presente nella build')
+          if 'OPTYKER_TOP_DASHBOARD_NEXT_TO_NEW_CLIENT_V3' not in s:
+              raise SystemExit('Pulsante Dashboard non presente nella build')
+          print('Script inline:',len(scripts),'bytes:',len(s))
           PY
+          for f in _jscheck/*.js; do node --check "$f"; done
           touch _site/.nojekyll
+
       - name: Abilita e configura GitHub Pages
         uses: actions/configure-pages@v5
         with:
           enablement: true
+
       - name: Carica sito
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site
+
       - name: Pubblica
         id: deployment
         uses: actions/deploy-pages@v4
