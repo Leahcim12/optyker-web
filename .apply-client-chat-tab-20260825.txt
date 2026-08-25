@@ -1,1 +1,1 @@
-apply Optyker client chat tab
+apply Optyker client chat tab retry 2
