@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "OTTICA VISUAL CARE",
+    "slug": "ottica-visual-care",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "otticavisualcare",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "it.otticavisualcare.app"
+    },
+    "android": {
+      "package": "it.otticavisualcare.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "extra": {
+      "shopUrl": "https://otticavisualcare.it",
+      "supabaseProject": "whgziwaegjzqsgcntesr"
+    }
+  }
+}
