@@ -36,9 +36,12 @@ jobs:
           python scripts/patch_whatsapp_channel.py
           python scripts/patch_whatsapp_qr_connect.py
           python scripts/patch_whatsapp_qr_meta_fix.py
+          python scripts/patch_appointments.py
+          python scripts/patch_appointments_v2.py
           mkdir -p _site/staff-embed
           cp staff-embed/index.html _site/staff-embed/index.html
           python scripts/patch_staff_whatsapp.py
+          python scripts/patch_staff_appointments.py
           test -s _site/staff-embed/index.html
           python - <<'PY'
           from pathlib import Path
@@ -65,10 +68,14 @@ jobs:
               raise SystemExit('Collegamento WhatsApp QR non presente nella build')
           if 'OPTYKER_WHATSAPP_QR_META_FIX_V2' not in s or "version:'v25.0'" not in s or "sessionInfoVersion:'3'" not in s:
               raise SystemExit('Fix Meta Embedded Signup non presente nella build')
+          if 'OPTYKER_APPOINTMENTS_UI_V1' not in s or 'OPTYKER_APPOINTMENTS_UI_V2' not in s or 'id="navAppointments"' not in s:
+              raise SystemExit('Agenda Optyker non presente nella build')
           if 'optyker-shopify-staff-embed' not in staff or 'OPTYKER_STAFF_STATIC_UI_V2' not in staff:
               raise SystemExit('Renderer staff Shopify standalone non presente nella build')
           if 'OPTYKER_STAFF_WHATSAPP_V1' not in staff or 'optyker-shopify-staff-whatsapp' not in staff or 'id="channelWa"' not in staff:
               raise SystemExit('Chat WhatsApp Shopify non presente nella build')
+          if 'OPTYKER_STAFF_APPOINTMENTS_V1' not in staff or 'id="tabAgenda"' not in staff:
+              raise SystemExit('Agenda Shopify staff non presente nella build')
           print('Script inline:',len(scripts),'staff scripts:',len(staff_scripts),'bytes:',len(s),'staff bytes:',len(staff))
           PY
           for f in _jscheck/*.js; do node --check "$f"; done
