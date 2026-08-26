@@ -83,8 +83,9 @@
   </section>
 </div>
 <script>
-(function(){/* OPTYKER_BOOKING_STATIC_V3 */ /* OPTYKER_BOOKING_GUIDED_V4 */
+(function(){/* OPTYKER_BOOKING_STATIC_V3 */ /* OPTYKER_BOOKING_GUIDED_V4 */ /* OPTYKER_BOOKING_CALENDAR_V5 */
 const API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-appointments-booking';
+const ICS_API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-calendar-ics';
 const S={cfg:null,serviceId:'',date:'',slot:null,slots:[],confirmed:null,step:1};
 const E=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -107,7 +108,15 @@ function eventRange(){const st=new Date(S.confirmed?.starts_at||S.slot?.starts_a
 function gStamp(d){return d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z')}
 function eventTitle(){return (service()?.name||'Appuntamento')+' · Ottica Visual Care'}
 function googleUrl(){const r=eventRange();const p=new URLSearchParams({action:'TEMPLATE',text:eventTitle(),dates:gStamp(r.st)+'/'+gStamp(r.en),details:'Appuntamento confermato presso Ottica Visual Care.',location:'Ottica Visual Care, Lallio (BG)'});return 'https://calendar.google.com/calendar/render?'+p.toString()}
-function downloadIcs(){const r=eventRange();const uid='optyker-'+Date.now()+'@otticavisualcare.it';const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Ottica Visual Care//Optyker//IT','BEGIN:VEVENT','UID:'+uid,'DTSTAMP:'+gStamp(new Date()),'DTSTART:'+gStamp(r.st),'DTEND:'+gStamp(r.en),'SUMMARY:'+eventTitle().replace(/[,;\\]/g,' '),'LOCATION:Ottica Visual Care\, Lallio (BG)','DESCRIPTION:Appuntamento confermato presso Ottica Visual Care.','END:VEVENT','END:VCALENDAR'];const blob=new Blob([lines.join('\r\n')],{type:'text/calendar;charset=utf-8'});const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download='appuntamento-ottica-visual-care.ics';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500)}
+function externalOpen(url){
+  if(window.ReactNativeWebView&&typeof window.ReactNativeWebView.postMessage==='function'){
+    window.ReactNativeWebView.postMessage(JSON.stringify({type:'openExternal',url:String(url)}));
+    return;
+  }
+  const w=window.open(url,'_blank');if(!w)location.href=url;
+}
+function icsUrl(){const r=eventRange();const p=new URLSearchParams({title:eventTitle(),start:r.st.toISOString(),end:r.en.toISOString(),details:'Appuntamento confermato presso Ottica Visual Care.',location:'Ottica Visual Care, Lallio (BG)'});return ICS_API+'?'+p.toString()}
+function downloadIcs(){externalOpen(icsUrl())}
 async function book(){const m=E('msg');m.className='msg';m.textContent='';if(!S.slot)return;const d=dataPayload();const p={service_id:S.serviceId,studio_id:null,operator_username:S.slot.operator_username,rule_id:S.slot.rule_id,starts_at:S.slot.starts_at,first_name:d.first_name,last_name:d.last_name,email:d.email,phone:d.phone,notes:d.notes,source:new URLSearchParams(location.search).get('source')||'web'};E('book').disabled=true;m.textContent='Conferma in corso…';try{const x=await api('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});S.confirmed={...S.slot,...(x?.data||{})};document.querySelectorAll('.card').forEach(c=>c.classList.remove('active'));document.querySelectorAll('.stepChip').forEach(c=>{c.classList.remove('on');c.classList.add('done')});E('doneText').innerHTML='Abbiamo registrato <b>'+esc(service()?.name||'l’appuntamento')+'</b> per <b>'+esc(dateLong(S.slot.starts_at))+'</b> alle <b>'+esc(timeIt(S.slot.starts_at))+'</b>.';E('done').classList.add('show');E('done').scrollIntoView({behavior:'smooth',block:'start'})}catch(e){m.className='msg bad';m.textContent=e.message;E('book').disabled=false}}
 function reset(){S.serviceId='';S.date='';S.slot=null;S.slots=[];S.confirmed=null;E('done').classList.remove('show');E('calendarOptions').classList.remove('show');E('calendarAsk').classList.remove('hide');E('services').querySelectorAll('.serviceBtn').forEach(x=>x.classList.remove('on'));E('book').disabled=false;go(1)}
 async function init(){const x=await api('?api=config');S.cfg=x;renderServices();const p=new URLSearchParams(location.search);[['first','first_name'],['last','last_name'],['email','email'],['phone','phone']].forEach(([id,k])=>{if(p.get(k))E(id).value=p.get(k)})}
@@ -118,7 +127,7 @@ E('back3').onclick=()=>go(3);
 E('book').onclick=book;
 E('calYes').onclick=()=>E('calendarOptions').classList.add('show');
 E('calNo').onclick=()=>E('calendarAsk').classList.add('hide');
-E('googleCal').onclick=()=>{const u=googleUrl();const w=window.open(u,'_blank');if(!w)location.href=u};
+E('googleCal').onclick=()=>externalOpen(googleUrl());
 E('icsCal').onclick=downloadIcs;
 E('newBooking').onclick=reset;
 init().catch(e=>{E('services').innerHTML='<div class="empty bad">'+esc(e.message)+'</div>'});
