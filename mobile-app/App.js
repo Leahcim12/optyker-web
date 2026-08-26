@@ -5,6 +5,7 @@ import {
   Alert,
   FlatList,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   RefreshControl,
@@ -26,6 +27,7 @@ const SUPABASE_KEY = 'sb_publishable_DndhLvY32YeCmqWMNRi30g_dEDm8upv';
 const MOBILE_API = `${SUPABASE_URL}/functions/v1/optyker-mobile-api`;
 const SHOP_URL = 'https://otticavisualcare.it';
 const BOOKING_URL = 'https://leahcim12.github.io/optyker-web/booking/?source=app';
+const OPTYKER_MOBILE_BOOKING_CALENDAR_V2 = true;
 
 const C = {
   navy: '#11395d',
@@ -535,7 +537,19 @@ function CustomerApp({ me, onLogout }) {
         {tab === 'booking' && (
           <View style={{ flex: 1 }}>
             <View style={styles.webHeader}><Text style={styles.webHeaderTitle}>Prenota un appuntamento</Text></View>
-            <WebView source={{ uri: BOOKING_URL }} startInLoadingState renderLoading={() => <Loading label="Carico gli appuntamenti…" />} />
+            <WebView
+              source={{ uri: BOOKING_URL }}
+              startInLoadingState
+              renderLoading={() => <Loading label="Carico gli appuntamenti…" />}
+              onMessage={(event) => {
+                try {
+                  const message = JSON.parse(event?.nativeEvent?.data || '{}');
+                  const url = String(message?.url || '');
+                  const allowed = /^https:\/\/(calendar\.google\.com\/|whgziwaegjzqsgcntesr\.supabase\.co\/functions\/v1\/optyker-calendar-ics(?:\?|$))/i.test(url);
+                  if (message?.type === 'openExternal' && allowed) Linking.openURL(url);
+                } catch (_) {}
+              }}
+            />
           </View>
         )}
 
