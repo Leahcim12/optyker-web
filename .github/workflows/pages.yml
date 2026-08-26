@@ -37,6 +37,7 @@ jobs:
           python scripts/patch_appointments.py
           python scripts/patch_appointments_v2.py
           python scripts/patch_appointments_v3.py
+          python scripts/patch_appointments_v4.py
           python scripts/patch_whatsapp_qr_connect.py
           python scripts/patch_whatsapp_qr_meta_fix.py
           python scripts/patch_exclusive_navigation.py
@@ -79,6 +80,8 @@ jobs:
               raise SystemExit('Agenda V2 mese / fasce orarie / impostazioni unificate non presente nella build')
           if 'OPTYKER_APPOINTMENTS_UI_V3' not in s or 'oaEntityDelete' not in s:
               raise SystemExit('Agenda V3 eliminazione servizi / studi non presente nella build')
+          if 'OPTYKER_APPOINTMENTS_UI_V4' not in s or 'oaRequiresStudio' not in s or 'Entrambi gli studi' not in s:
+              raise SystemExit('Agenda V4 studi opzionali / entrambi gli studi non presente nella build')
           if 'OPTYKER_EXCLUSIVE_NAV_V1' not in s or 'optykerExclusiveNavJs' not in s:
               raise SystemExit('Navigazione esclusiva / pulsante Agenda non presente nella build')
           if 'OPTYKER_WHATSAPP_QR_CONNECT_V1' not in s or 'optykerWaQrStart' not in s:
@@ -91,8 +94,8 @@ jobs:
               raise SystemExit('Chat WhatsApp Shopify non presente nella build')
           if 'OPTYKER_STAFF_APPOINTMENTS_V1' not in staff or 'id="tabAgenda"' not in staff:
               raise SystemExit('Agenda Shopify staff non presente nella build')
-          if 'OPTYKER_BOOKING_STATIC_V1' not in booking or 'optyker-appointments-booking' not in booking:
-              raise SystemExit('Pagina prenotazioni statica non presente nella build')
+          if 'OPTYKER_BOOKING_STATIC_V2' not in booking or 'optyker-appointments-booking' not in booking:
+              raise SystemExit('Pagina prenotazioni statica V2 non presente nella build')
           print('Script inline:',len(scripts),'staff scripts:',len(staff_scripts),'booking scripts:',len(booking_scripts),'bytes:',len(s),'staff bytes:',len(staff),'booking bytes:',len(booking))
           PY
           for f in _jscheck/*.js; do node --check "$f"; done
