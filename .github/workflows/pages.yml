@@ -40,6 +40,7 @@ jobs:
           python scripts/patch_appointments_v4.py
           python scripts/patch_appointments_v5.py
           python scripts/patch_appointments_v6.py
+          python scripts/patch_appointments_v7.py
           python scripts/patch_whatsapp_qr_connect.py
           python scripts/patch_whatsapp_qr_meta_fix.py
           python scripts/patch_exclusive_navigation.py
@@ -92,6 +93,8 @@ jobs:
               raise SystemExit('Agenda V5 operatori multipli / nome servizio non presente nella build')
           if 'OPTYKER_APPOINTMENTS_UI_V6' not in s or 'Giorni della settimana' not in s or 'nessun nome utente' not in s:
               raise SystemExit('Agenda V6 giorni multipli / disponibilità senza nome utente non presente nella build')
+          if 'OPTYKER_APPOINTMENTS_UI_V7' not in s or 'Turni e orari' not in s or 'oaStoreSetV7' not in s or 'Giorno di riposo' not in s:
+              raise SystemExit('Agenda V7 negozio / turni / stati assenza non presente nella build')
           if 'OPTYKER_EXCLUSIVE_NAV_V1' not in s or 'optykerExclusiveNavJs' not in s:
               raise SystemExit('Navigazione esclusiva / pulsante Agenda non presente nella build')
           if 'OPTYKER_SIDEBAR_ORDER_V1' not in s or 'id="navSheets"' not in s or 'id="sheetsSubmenu"' not in s:
