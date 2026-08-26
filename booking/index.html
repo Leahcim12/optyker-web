@@ -6,40 +6,122 @@
 <title>Prenota un appuntamento · Ottica Visual Care</title>
 <style>
 /* OPTYKER_BOOKING_STATIC_V3 */
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#f4f7f9;color:#17324a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}.w{max-width:820px;margin:auto;padding:16px}.hero{background:#173e69;color:#fff;border-radius:20px;padding:22px;margin-bottom:14px}.brand{font-size:10px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;opacity:.8}.hero h1{margin:4px 0 6px;font-size:28px;line-height:1.1}.hero p{margin:0;opacity:.86;font-size:13px}.card{background:#fff;border:1px solid #d9e4ec;border-radius:18px;padding:18px;margin:12px 0;box-shadow:0 3px 14px rgba(23,50,74,.04)}.cardTitle{font-size:17px;font-weight:900;margin-bottom:13px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.f{display:flex;flex-direction:column;gap:5px}.f.full{grid-column:1/-1}label{font-size:11px;font-weight:900;color:#4f6678}input,select,textarea{width:100%;min-height:44px;border:1px solid #cbd8e2;border-radius:10px;padding:10px 11px;background:#fff;color:#17324a;font:inherit}textarea{min-height:90px;resize:vertical}.slots{display:flex;flex-wrap:wrap;gap:8px;min-height:45px}.slot{border:1px solid #b9cbd8;background:#fff;border-radius:10px;padding:9px 12px;font-weight:850;color:#173e69;cursor:pointer;text-align:left}.slot:hover{background:#f3f8fb}.slot.on{background:#173e69;color:#fff;border-color:#173e69}.slotTime{display:block;font-size:13px}.slotMeta{display:block;font-size:9px;font-weight:700;opacity:.78;margin-top:2px}.svcDot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:1px}.btn{width:100%;border:0;border-radius:12px;background:#1769aa;color:#fff;padding:13px 16px;font-weight:900;font-size:15px;cursor:pointer}.btn:disabled{opacity:.45;cursor:not-allowed}.msg{min-height:22px;padding-top:9px;font-size:12px}.ok{color:#147a3e}.bad{color:#b42323}.empty{color:#6f8291;font-size:12px;padding:9px 0}.summary{display:none;margin:12px 0 0;padding:10px 12px;border:1px solid #d7e5ee;border-radius:10px;background:#f7fbfd;font-size:11px;color:#506a7d}.summary.show{display:block}@media(max-width:620px){.w{padding:10px}.hero{border-radius:15px;padding:18px}.hero h1{font-size:24px}.card{border-radius:14px;padding:14px}.grid{grid-template-columns:1fr}.f.full{grid-column:auto}.slot{flex:1 1 calc(50% - 8px);min-width:130px}}
+/* OPTYKER_BOOKING_GUIDED_V4 */
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#f4f7f9;color:#17324a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}.w{max-width:860px;margin:auto;padding:16px}.hero{background:linear-gradient(135deg,#173e69,#1769aa);color:#fff;border-radius:22px;padding:24px;margin-bottom:14px;box-shadow:0 12px 30px rgba(23,62,105,.15)}.brand{font-size:10px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;opacity:.82}.hero h1{margin:5px 0 7px;font-size:29px;line-height:1.08}.hero p{margin:0;opacity:.9;font-size:13px;line-height:1.45}.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}.stepChip{background:#e8eef3;color:#617789;border-radius:12px;padding:9px 8px;text-align:center;font-size:10px;font-weight:900;line-height:1.2}.stepChip b{display:block;font-size:13px;color:inherit;margin-bottom:2px}.stepChip.on{background:#173e69;color:#fff}.stepChip.done{background:#e8f5ee;color:#147a3e}.card{display:none;background:#fff;border:1px solid #d9e4ec;border-radius:19px;padding:19px;margin:12px 0;box-shadow:0 4px 16px rgba(23,50,74,.045)}.card.active{display:block}.cardTitle{font-size:19px;font-weight:900;margin-bottom:4px}.cardSub{font-size:12px;color:#687f90;margin-bottom:15px;line-height:1.45}.serviceGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.serviceBtn{display:flex;align-items:center;gap:11px;min-height:64px;border:1px solid #ccd9e3;background:#fff;border-radius:14px;padding:12px 13px;text-align:left;color:#17324a;cursor:pointer;font:inherit}.serviceBtn:hover{border-color:#1769aa;background:#f7fbfe}.serviceBtn.on{border:2px solid #1769aa;background:#edf7fd}.svcIcon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:#fff;font-weight:900;flex:0 0 auto}.svcName{font-size:14px;font-weight:900;display:block}.svcMeta{font-size:10px;color:#718696;display:block;margin-top:3px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.f{display:flex;flex-direction:column;gap:5px}.f.full{grid-column:1/-1}label{font-size:11px;font-weight:900;color:#4f6678}input,textarea{width:100%;min-height:46px;border:1px solid #cbd8e2;border-radius:11px;padding:10px 11px;background:#fff;color:#17324a;font:inherit}textarea{min-height:80px;resize:vertical}.dayStrip{display:flex;gap:8px;overflow-x:auto;padding:2px 1px 9px;scrollbar-width:thin}.dayBtn{flex:0 0 auto;min-width:88px;border:1px solid #cbd8e2;background:#fff;border-radius:12px;padding:9px 10px;color:#17324a;cursor:pointer;text-align:center}.dayBtn .dw{display:block;text-transform:uppercase;font-size:9px;font-weight:900;color:#708595}.dayBtn .dn{display:block;font-size:14px;font-weight:900;margin-top:2px}.dayBtn.on{background:#173e69;color:#fff;border-color:#173e69}.dayBtn.on .dw{color:#dceafa}.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;min-height:52px;margin-top:9px}.slot{border:1px solid #b9cbd8;background:#fff;border-radius:11px;padding:11px 8px;font-weight:900;color:#173e69;cursor:pointer;text-align:center;font:inherit}.slot:hover{background:#f3f8fb}.slot.on{background:#173e69;color:#fff;border-color:#173e69}.slotTime{display:block;font-size:14px;font-weight:900}.empty{grid-column:1/-1;color:#6f8291;font-size:12px;padding:11px 0}.summary{margin:10px 0;padding:14px;border:1px solid #d7e5ee;border-radius:13px;background:#f7fbfd}.sumService{font-size:17px;font-weight:900;margin-bottom:5px}.sumLine{font-size:12px;color:#4f687c;margin:4px 0}.actions{display:flex;gap:9px;margin-top:15px}.btn{flex:1;border:0;border-radius:12px;background:#1769aa;color:#fff;padding:13px 16px;font-weight:900;font-size:14px;cursor:pointer}.btn.secondary{background:#edf3f7;color:#173e69}.btn.green{background:#15824b}.btn:disabled{opacity:.45;cursor:not-allowed}.msg{min-height:22px;padding-top:9px;font-size:12px}.ok{color:#147a3e}.bad{color:#b42323}.doneCard{display:none;background:#fff;border:1px solid #cfe5d8;border-radius:19px;padding:20px;margin:12px 0;box-shadow:0 5px 18px rgba(20,122,62,.06)}.doneCard.show{display:block}.doneIcon{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:#e7f5ec;color:#147a3e;font-size:24px;font-weight:900}.doneTitle{font-size:21px;font-weight:900;margin:10px 0 5px}.doneText{font-size:12px;color:#5f7788;line-height:1.5}.calendarAsk{margin-top:16px;padding:15px;border-radius:14px;background:#f6f9fb;border:1px solid #d7e3eb}.calendarAsk h3{font-size:15px;margin:0 0 5px}.calendarAsk p{font-size:11px;color:#647b8c;margin:0 0 11px}.calendarOptions{display:none;margin-top:10px;gap:8px}.calendarOptions.show{display:flex}.tiny{font-size:10px;color:#758897;margin-top:8px}.hide{display:none!important}@media(max-width:650px){.w{padding:10px}.hero{border-radius:16px;padding:19px}.hero h1{font-size:24px}.steps{gap:5px}.stepChip{padding:8px 4px;font-size:8px}.stepChip b{font-size:11px}.card,.doneCard{border-radius:15px;padding:15px}.serviceGrid{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.f.full{grid-column:auto}.slots{grid-template-columns:repeat(3,1fr)}.actions{flex-direction:column-reverse}.calendarOptions.show{flex-direction:column}}
 </style>
 </head>
 <body>
 <div class="w">
-  <div class="hero"><div class="brand">Ottica Visual Care</div><h1>Prenota un appuntamento</h1><p>Agenda unica: il sistema assegna automaticamente uno dei due studi disponibili.</p></div>
-  <div class="card"><div class="cardTitle">Scegli quando</div><div class="grid">
-    <div class="f full"><label>Servizio</label><select id="service"><option value="">Caricamento servizi…</option></select></div>
-    <div class="f"><label>Operatore</label><select id="operator"><option value="">Qualsiasi operatore</option></select></div>
-    <div class="f"><label>Data</label><input id="date" type="date"></div>
-  </div><div style="margin-top:14px"><label>Orari disponibili</label><div id="slots" class="slots"><div class="empty">Seleziona servizio e data.</div></div></div><div id="summary" class="summary"></div></div>
-  <div class="card"><div class="cardTitle">I tuoi dati</div><div class="grid">
-    <div class="f"><label>Nome</label><input id="first" autocomplete="given-name"></div>
-    <div class="f"><label>Cognome</label><input id="last" autocomplete="family-name"></div>
-    <div class="f"><label>Email</label><input id="email" type="email" autocomplete="email"></div>
-    <div class="f"><label>Telefono</label><input id="phone" type="tel" autocomplete="tel"></div>
-    <div class="f full"><label>Note</label><textarea id="notes" placeholder="Informazioni utili per l’appuntamento"></textarea></div>
-  </div><button id="book" class="btn" disabled>Conferma appuntamento</button><div id="msg" class="msg"></div></div>
+  <div class="hero">
+    <div class="brand">Ottica Visual Care</div>
+    <h1>Prenota un appuntamento</h1>
+    <p>Scegli il servizio, inserisci i tuoi dati e poi visualizza solo gli orari realmente disponibili.</p>
+  </div>
+
+  <div id="steps" class="steps">
+    <div class="stepChip on" data-chip="1"><b>1</b>Servizio</div>
+    <div class="stepChip" data-chip="2"><b>2</b>I tuoi dati</div>
+    <div class="stepChip" data-chip="3"><b>3</b>Orario</div>
+    <div class="stepChip" data-chip="4"><b>4</b>Conferma</div>
+  </div>
+
+  <section id="step1" class="card active">
+    <div class="cardTitle">Quale servizio ti serve?</div>
+    <div class="cardSub">Seleziona un servizio per continuare.</div>
+    <div id="services" class="serviceGrid"><div class="empty">Caricamento servizi…</div></div>
+    <div id="svcMsg" class="msg"></div>
+  </section>
+
+  <section id="step2" class="card">
+    <div class="cardTitle">Inserisci i tuoi dati</div>
+    <div class="cardSub">Servono per associare correttamente la prenotazione e contattarti in caso di necessità.</div>
+    <div class="grid">
+      <div class="f"><label>Nome</label><input id="first" autocomplete="given-name"></div>
+      <div class="f"><label>Cognome</label><input id="last" autocomplete="family-name"></div>
+      <div class="f"><label>Email</label><input id="email" type="email" autocomplete="email"></div>
+      <div class="f"><label>Telefono</label><input id="phone" type="tel" autocomplete="tel"></div>
+      <div class="f full"><label>Note facoltative</label><textarea id="notes" placeholder="Informazioni utili per l’appuntamento"></textarea></div>
+    </div>
+    <div id="dataMsg" class="msg"></div>
+    <div class="actions"><button id="back1" class="btn secondary" type="button">Indietro</button><button id="toSlots" class="btn" type="button">Mostra gli orari disponibili</button></div>
+  </section>
+
+  <section id="step3" class="card">
+    <div class="cardTitle">Scegli giorno e fascia oraria</div>
+    <div class="cardSub">Gli orari mostrati sono quelli disponibili nell’agenda Optyker in questo momento.</div>
+    <label>Giorno</label>
+    <div id="days" class="dayStrip"></div>
+    <label>Fasce orarie disponibili</label>
+    <div id="slots" class="slots"><div class="empty">Seleziona un giorno.</div></div>
+    <div id="slotMsg" class="msg"></div>
+    <div class="actions"><button id="back2" class="btn secondary" type="button">Modifica i dati</button></div>
+  </section>
+
+  <section id="step4" class="card">
+    <div class="cardTitle">Controlla e conferma</div>
+    <div class="cardSub">Verifica i dati prima di salvare l’appuntamento.</div>
+    <div id="summary" class="summary"></div>
+    <div id="msg" class="msg"></div>
+    <div class="actions"><button id="back3" class="btn secondary" type="button">Cambia orario</button><button id="book" class="btn green" type="button">Conferma appuntamento</button></div>
+  </section>
+
+  <section id="done" class="doneCard">
+    <div class="doneIcon">✓</div>
+    <div class="doneTitle">Appuntamento confermato</div>
+    <div id="doneText" class="doneText"></div>
+    <div id="calendarAsk" class="calendarAsk">
+      <h3>Vuoi salvarlo nella tua agenda personale?</h3>
+      <p>Puoi aggiungerlo al tuo calendario per avere data e ora sempre con te.</p>
+      <div class="actions"><button id="calNo" class="btn secondary" type="button">No, grazie</button><button id="calYes" class="btn" type="button">Sì, aggiungilo</button></div>
+      <div id="calendarOptions" class="calendarOptions">
+        <button id="googleCal" class="btn" type="button">Google Calendar</button>
+        <button id="icsCal" class="btn secondary" type="button">Apple / Outlook / altro</button>
+      </div>
+      <div class="tiny">Il salvataggio nel calendario è facoltativo e non modifica la prenotazione già confermata.</div>
+    </div>
+    <div class="actions"><button id="newBooking" class="btn secondary" type="button">Prenota un altro appuntamento</button></div>
+  </section>
 </div>
 <script>
-(function(){/* OPTYKER_BOOKING_STATIC_V3 */
+(function(){/* OPTYKER_BOOKING_STATIC_V3 */ /* OPTYKER_BOOKING_GUIDED_V4 */
 const API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-appointments-booking';
-const S={cfg:null,slot:null};
+const S={cfg:null,serviceId:'',date:'',slot:null,slots:[],confirmed:null,step:1};
 const E=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function api(q,opt){const r=await fetch(API+(q||''),opt);const x=await r.json();if(!r.ok||x?.ok===false)throw Error(x?.error||'Errore di collegamento');return x}
-function service(){return S.cfg?.services?.find(x=>x.id===E('service').value)||null}
-function t(v){return new Date(v).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}
-function renderCfg(){const sv=S.cfg.services||[],op=S.cfg.operators||[];E('service').innerHTML='<option value="">Seleziona un servizio</option>'+sv.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>').join('');E('operator').innerHTML='<option value="">Qualsiasi operatore</option>'+op.map(x=>'<option value="'+esc(x.username)+'">'+esc(x.username)+'</option>').join('')}
-function clearChoice(){S.slot=null;E('book').disabled=true;E('summary').className='summary';E('summary').textContent=''}
-async function slots(){clearChoice();const sid=E('service').value,d=E('date').value;if(!sid||!d){E('slots').innerHTML='<div class="empty">Seleziona servizio e data.</div>';return}E('slots').innerHTML='<div class="empty">Caricamento disponibilità…</div>';try{let q='?api=slots&service_id='+encodeURIComponent(sid)+'&date='+encodeURIComponent(d);if(E('operator').value)q+='&operator='+encodeURIComponent(E('operator').value);const x=await api(q),a=x.data||[];E('slots').innerHTML=a.length?a.map((s,i)=>'<button type="button" class="slot" data-i="'+i+'"><span class="slotTime">'+esc(t(s.starts_at))+'</span><span class="slotMeta">'+esc(s.operator_username)+'</span></button>').join(''):'<div class="empty">Nessun orario disponibile per questa selezione.</div>';E('slots').querySelectorAll('.slot').forEach(b=>b.onclick=()=>{E('slots').querySelectorAll('.slot').forEach(x=>x.classList.remove('on'));b.classList.add('on');S.slot=a[+b.dataset.i];E('book').disabled=false;const svc=service();E('summary').innerHTML='<span class="svcDot" style="background:'+esc(svc?.color||'#1769aa')+'"></span><b>'+esc(svc?.name||'Appuntamento')+'</b> · '+esc(new Date(S.slot.starts_at).toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long'}))+' alle '+esc(t(S.slot.starts_at))+' · '+esc(S.slot.operator_username);E('summary').className='summary show'})}catch(e){E('slots').innerHTML='<div class="bad">'+esc(e.message)+'</div>'}}
-async function init(){const x=await api('?api=config');S.cfg=x;renderCfg();const n=new Date();n.setDate(n.getDate()+1);const today=new Date();E('date').min=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');E('date').value=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');['service','operator','date'].forEach(id=>E(id).addEventListener('change',slots));const p=new URLSearchParams(location.search);[['first','first_name'],['last','last_name'],['email','email'],['phone','phone']].forEach(([id,k])=>{if(p.get(k))E(id).value=p.get(k)});slots()}
-E('book').onclick=async()=>{const m=E('msg');m.className='msg';m.textContent='';if(!S.slot)return;const p={service_id:E('service').value,studio_id:null,operator_username:S.slot.operator_username,rule_id:S.slot.rule_id,starts_at:S.slot.starts_at,first_name:E('first').value.trim(),last_name:E('last').value.trim(),email:E('email').value.trim(),phone:E('phone').value.trim(),notes:E('notes').value.trim(),source:new URLSearchParams(location.search).get('source')||'web'};if(!p.first_name||!p.last_name||!p.email||!p.phone){m.className='msg bad';m.textContent='Compila nome, cognome, email e telefono.';return}E('book').disabled=true;m.textContent='Conferma in corso…';try{await api('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});m.className='msg ok';m.textContent='Appuntamento confermato. Ti aspettiamo!';await slots()}catch(e){m.className='msg bad';m.textContent=e.message;E('book').disabled=false}};
-init().catch(e=>{E('slots').innerHTML='<div class="bad">'+esc(e.message)+'</div>'});
+function service(){return S.cfg?.services?.find(x=>x.id===S.serviceId)||null}
+function pad(n){return String(n).padStart(2,'0')}
+function ymd(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function timeIt(v){return new Date(v).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}
+function dateLong(v){return new Date(v).toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}
+function durationMinutes(){const s=service();const n=Number(s?.duration_minutes||s?.duration||s?.minutes||30);return Number.isFinite(n)&&n>0?n:30}
+function go(n){S.step=n;for(let i=1;i<=4;i++){E('step'+i).classList.toggle('active',i===n);const c=document.querySelector('[data-chip="'+i+'"]');c.classList.toggle('on',i===n);c.classList.toggle('done',i<n)}if(n>=1&&n<=4){setTimeout(()=>E('step'+n).scrollIntoView({behavior:'smooth',block:'start'}),60)}}
+function renderServices(){const a=S.cfg?.services||[];if(!a.length){E('services').innerHTML='<div class="empty">Nessun servizio prenotabile al momento.</div>';return}E('services').innerHTML=a.map((x,i)=>{const dur=Number(x.duration_minutes||x.duration||0);return '<button type="button" class="serviceBtn" data-id="'+esc(x.id)+'"><span class="svcIcon" style="background:'+esc(x.color||'#1769aa')+'">'+esc(String(i+1))+'</span><span><span class="svcName">'+esc(x.name)+'</span>'+(dur?'<span class="svcMeta">circa '+esc(dur)+' min</span>':'')+'</span></button>'}).join('');E('services').querySelectorAll('.serviceBtn').forEach(b=>b.onclick=()=>{S.serviceId=b.dataset.id;S.slot=null;E('services').querySelectorAll('.serviceBtn').forEach(x=>x.classList.toggle('on',x===b));E('svcMsg').textContent='';go(2)})}
+function dataPayload(){return {first_name:E('first').value.trim(),last_name:E('last').value.trim(),email:E('email').value.trim(),phone:E('phone').value.trim(),notes:E('notes').value.trim()}}
+function validateData(){const p=dataPayload();if(!p.first_name||!p.last_name||!p.email||!p.phone)return 'Compila nome, cognome, email e telefono.';if(!/^\S+@\S+\.\S+$/.test(p.email))return 'Inserisci un indirizzo email valido.';return ''}
+function makeDays(){const box=E('days');const a=[];const now=new Date();for(let i=0;i<14;i++){const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+i);a.push(d)}box.innerHTML=a.map((d,i)=>'<button type="button" class="dayBtn" data-date="'+ymd(d)+'"><span class="dw">'+esc(d.toLocaleDateString('it-IT',{weekday:'short'}))+'</span><span class="dn">'+esc(d.toLocaleDateString('it-IT',{day:'2-digit',month:'short'}))+'</span></button>').join('');box.querySelectorAll('.dayBtn').forEach(b=>b.onclick=()=>selectDay(b.dataset.date,b));const preferred=a.length>1?a[1]:a[0];const b=box.querySelector('[data-date="'+ymd(preferred)+'"]');if(b)selectDay(b.dataset.date,b)}
+async function selectDay(date,button){S.date=date;S.slot=null;E('days').querySelectorAll('.dayBtn').forEach(x=>x.classList.toggle('on',x===button));await loadSlots()}
+async function loadSlots(){S.slot=null;E('slotMsg').textContent='';if(!S.serviceId||!S.date){E('slots').innerHTML='<div class="empty">Seleziona un giorno.</div>';return}E('slots').innerHTML='<div class="empty">Caricamento disponibilità…</div>';try{const x=await api('?api=slots&service_id='+encodeURIComponent(S.serviceId)+'&date='+encodeURIComponent(S.date));S.slots=x.data||[];E('slots').innerHTML=S.slots.length?S.slots.map((s,i)=>'<button type="button" class="slot" data-i="'+i+'"><span class="slotTime">'+esc(timeIt(s.starts_at))+'</span></button>').join(''):'<div class="empty">Nessun orario disponibile in questo giorno. Prova un’altra data.</div>';E('slots').querySelectorAll('.slot').forEach(b=>b.onclick=()=>{S.slot=S.slots[Number(b.dataset.i)];E('slots').querySelectorAll('.slot').forEach(x=>x.classList.toggle('on',x===b));renderSummary();go(4)})}catch(e){E('slots').innerHTML='<div class="empty bad">'+esc(e.message)+'</div>'}}
+function renderSummary(){const svc=service(),p=dataPayload();if(!S.slot)return;E('summary').innerHTML='<div class="sumService">'+esc(svc?.name||'Appuntamento')+'</div><div class="sumLine"><b>Quando:</b> '+esc(dateLong(S.slot.starts_at))+' alle '+esc(timeIt(S.slot.starts_at))+'</div><div class="sumLine"><b>Cliente:</b> '+esc(p.first_name+' '+p.last_name)+'</div><div class="sumLine"><b>Contatti:</b> '+esc(p.email)+' · '+esc(p.phone)+'</div>'+(p.notes?'<div class="sumLine"><b>Note:</b> '+esc(p.notes)+'</div>':'')}
+function eventRange(){const st=new Date(S.confirmed?.starts_at||S.slot?.starts_at);let en=S.confirmed?.ends_at?new Date(S.confirmed.ends_at):null;if(!en||Number.isNaN(en.getTime()))en=new Date(st.getTime()+durationMinutes()*60000);return {st,en}}
+function gStamp(d){return d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z')}
+function eventTitle(){return (service()?.name||'Appuntamento')+' · Ottica Visual Care'}
+function googleUrl(){const r=eventRange();const p=new URLSearchParams({action:'TEMPLATE',text:eventTitle(),dates:gStamp(r.st)+'/'+gStamp(r.en),details:'Appuntamento confermato presso Ottica Visual Care.',location:'Ottica Visual Care, Lallio (BG)'});return 'https://calendar.google.com/calendar/render?'+p.toString()}
+function downloadIcs(){const r=eventRange();const uid='optyker-'+Date.now()+'@otticavisualcare.it';const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Ottica Visual Care//Optyker//IT','BEGIN:VEVENT','UID:'+uid,'DTSTAMP:'+gStamp(new Date()),'DTSTART:'+gStamp(r.st),'DTEND:'+gStamp(r.en),'SUMMARY:'+eventTitle().replace(/[,;\\]/g,' '),'LOCATION:Ottica Visual Care\, Lallio (BG)','DESCRIPTION:Appuntamento confermato presso Ottica Visual Care.','END:VEVENT','END:VCALENDAR'];const blob=new Blob([lines.join('\r\n')],{type:'text/calendar;charset=utf-8'});const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download='appuntamento-ottica-visual-care.ics';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500)}
+async function book(){const m=E('msg');m.className='msg';m.textContent='';if(!S.slot)return;const d=dataPayload();const p={service_id:S.serviceId,studio_id:null,operator_username:S.slot.operator_username,rule_id:S.slot.rule_id,starts_at:S.slot.starts_at,first_name:d.first_name,last_name:d.last_name,email:d.email,phone:d.phone,notes:d.notes,source:new URLSearchParams(location.search).get('source')||'web'};E('book').disabled=true;m.textContent='Conferma in corso…';try{const x=await api('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});S.confirmed={...S.slot,...(x?.data||{})};document.querySelectorAll('.card').forEach(c=>c.classList.remove('active'));document.querySelectorAll('.stepChip').forEach(c=>{c.classList.remove('on');c.classList.add('done')});E('doneText').innerHTML='Abbiamo registrato <b>'+esc(service()?.name||'l’appuntamento')+'</b> per <b>'+esc(dateLong(S.slot.starts_at))+'</b> alle <b>'+esc(timeIt(S.slot.starts_at))+'</b>.';E('done').classList.add('show');E('done').scrollIntoView({behavior:'smooth',block:'start'})}catch(e){m.className='msg bad';m.textContent=e.message;E('book').disabled=false}}
+function reset(){S.serviceId='';S.date='';S.slot=null;S.slots=[];S.confirmed=null;E('done').classList.remove('show');E('calendarOptions').classList.remove('show');E('calendarAsk').classList.remove('hide');E('services').querySelectorAll('.serviceBtn').forEach(x=>x.classList.remove('on'));E('book').disabled=false;go(1)}
+async function init(){const x=await api('?api=config');S.cfg=x;renderServices();const p=new URLSearchParams(location.search);[['first','first_name'],['last','last_name'],['email','email'],['phone','phone']].forEach(([id,k])=>{if(p.get(k))E(id).value=p.get(k)})}
+E('back1').onclick=()=>go(1);
+E('toSlots').onclick=()=>{const err=validateData();if(err){E('dataMsg').className='msg bad';E('dataMsg').textContent=err;return}E('dataMsg').textContent='';go(3);makeDays()};
+E('back2').onclick=()=>go(2);
+E('back3').onclick=()=>go(3);
+E('book').onclick=book;
+E('calYes').onclick=()=>E('calendarOptions').classList.add('show');
+E('calNo').onclick=()=>E('calendarAsk').classList.add('hide');
+E('googleCal').onclick=()=>{const u=googleUrl();const w=window.open(u,'_blank');if(!w)location.href=u};
+E('icsCal').onclick=downloadIcs;
+E('newBooking').onclick=reset;
+init().catch(e=>{E('services').innerHTML='<div class="empty bad">'+esc(e.message)+'</div>'});
 })();
 </script>
 </body>
