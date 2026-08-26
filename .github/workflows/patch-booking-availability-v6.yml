@@ -1,0 +1,47 @@
+name: Corregge orari prenotazione e colori calendario
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-booking-availability-v6.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Aggiorna booking guidato
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+          p=Path('booking/index.html')
+          s=p.read_text(encoding='utf-8')
+
+          css_old=".dayBtn.on{background:#173e69;color:#fff;border-color:#173e69}.dayBtn.on .dw{color:#dceafa}"
+          css_new=".dayBtn.on{background:#1769aa;color:#fff;border-color:#1769aa}.dayBtn.on .dw{color:#e8f4fb}.dayBtn.available{background:#eef7fd;border-color:#9ec7e2;color:#173e69}.dayBtn.closed{background:#0b2d4f;color:#fff;border-color:#0b2d4f;cursor:not-allowed;opacity:.94}.dayBtn.closed .dw{color:#d7e7f4}.dayBtn.closed .dn{color:#fff}.dayBtn:disabled{opacity:.94}.slot{background:#eef7fd;border-color:#9ec7e2}.slot.on{background:#1769aa;color:#fff;border-color:#1769aa}"
+          if css_old not in s:
+              raise SystemExit('CSS target non trovato')
+          s=s.replace(css_old,css_new,1)
+
+          make_new=r'''async function makeDays(){const box=E('days');const a=[];const now=new Date();for(let i=0;i<14;i++){const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+i);a.push(d)}box.innerHTML=a.map((d,i)=>'<button type="button" class="dayBtn" data-date="'+ymd(d)+'"><span class="dw">'+esc(d.toLocaleDateString('it-IT',{weekday:'short'}))+'</span><span class="dn">'+esc(d.toLocaleDateString('it-IT',{day:'2-digit',month:'short'}))+'</span></button>').join('');const buttons=[...box.querySelectorAll('.dayBtn')];buttons.forEach(b=>b.onclick=()=>{if(!b.disabled)selectDay(b.dataset.date,b)});const checks=await Promise.all(buttons.map(async b=>{try{const x=await api('?api=slots&service_id='+encodeURIComponent(S.serviceId)+'&date='+encodeURIComponent(b.dataset.date));return {b,slots:x.data||[]}}catch(e){return {b,slots:[]}}}));checks.forEach(({b,slots})=>{const ok=slots.length>0;b.classList.toggle('available',ok);b.classList.toggle('closed',!ok);b.disabled=!ok;b.title=ok?'Orari disponibili':'Chiuso o nessun orario disponibile'});const preferred=buttons.find(b=>!b.disabled);if(preferred)await selectDay(preferred.dataset.date,preferred);else{S.date='';S.slot=null;E('slots').innerHTML='<div class="empty">Nessun orario disponibile nei prossimi 14 giorni.</div>'}}'''
+          s,n=re.subn(r"function makeDays\(\)\{.*?\}\nasync function selectDay",make_new+"\nasync function selectDay",s,count=1,flags=re.S)
+          if n!=1:
+              raise SystemExit(f'makeDays replacement count={n}')
+
+          load_new=r'''async function loadSlots(){S.slot=null;E('slotMsg').textContent='';if(!S.serviceId||!S.date){E('slots').innerHTML='<div class="empty">Seleziona un giorno.</div>';return}E('slots').innerHTML='<div class="empty">Caricamento disponibilità…</div>';try{const x=await api('?api=slots&service_id='+encodeURIComponent(S.serviceId)+'&date='+encodeURIComponent(S.date));const raw=x.data||[];const byTime=new Map();raw.forEach(s=>{const k=String(s.starts_at||'');if(k&&!byTime.has(k))byTime.set(k,s)});S.slots=[...byTime.values()].sort((a,b)=>new Date(a.starts_at)-new Date(b.starts_at));E('slots').innerHTML=S.slots.length?S.slots.map((s,i)=>'<button type="button" class="slot" data-i="'+i+'"><span class="slotTime">'+esc(timeIt(s.starts_at))+'</span></button>').join(''):'<div class="empty">Nessun orario disponibile in questo giorno. Prova un’altra data.</div>';E('slots').querySelectorAll('.slot').forEach(b=>b.onclick=()=>{S.slot=S.slots[Number(b.dataset.i)];E('slots').querySelectorAll('.slot').forEach(x=>x.classList.toggle('on',x===b));renderSummary();go(4)})}catch(e){E('slots').innerHTML='<div class="empty bad">'+esc(e.message)+'</div>'}}'''
+          s,n=re.subn(r"async function loadSlots\(\)\{.*?\}\nfunction renderSummary",load_new+"\nfunction renderSummary",s,count=1,flags=re.S)
+          if n!=1:
+              raise SystemExit(f'loadSlots replacement count={n}')
+
+          s=s.replace('/* OPTYKER_BOOKING_CALENDAR_V5 */','/* OPTYKER_BOOKING_CALENDAR_V5 */ /* OPTYKER_BOOKING_AVAILABILITY_V6 */',1)
+          p.write_text(s,encoding='utf-8')
+      - name: Commit modifica
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add booking/index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Sistema orari prenotabili e colori calendario"
+          git push
