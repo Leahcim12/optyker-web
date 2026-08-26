@@ -42,6 +42,7 @@ jobs:
           python scripts/patch_appointments_v6.py
           python scripts/patch_appointments_v7.py
           python scripts/patch_appointments_v8.py
+          python scripts/patch_appointments_v9_graphics.py
           python scripts/patch_whatsapp_qr_connect.py
           python scripts/patch_whatsapp_qr_meta_fix.py
           python scripts/patch_exclusive_navigation.py
@@ -98,6 +99,8 @@ jobs:
               raise SystemExit('Agenda V7 negozio / turni / stati assenza non presente nella build')
           if 'OPTYKER_APPOINTMENTS_UI_V8' not in s or 'Agenda unica' not in s or 'oaUnifiedRuleStudioHidden' not in s:
               raise SystemExit('Agenda V8 unificata con capacità dei due studi non presente nella build')
+          if 'OPTYKER_APPOINTMENTS_UI_V9_GRAPHICS' not in s or 'oaV9Service' not in s or 'optykerAppointmentsV9GraphicsCss' not in s:
+              raise SystemExit('Agenda V9 grafica responsive non presente nella build')
           if 'OPTYKER_EXCLUSIVE_NAV_V1' not in s or 'optykerExclusiveNavJs' not in s:
               raise SystemExit('Navigazione esclusiva / pulsante Agenda non presente nella build')
           if 'OPTYKER_SIDEBAR_ORDER_V1' not in s or 'id="navSheets"' not in s or 'id="sheetsSubmenu"' not in s:
