@@ -43,6 +43,7 @@ jobs:
           python scripts/patch_appointments_v7.py
           python scripts/patch_appointments_v8.py
           python scripts/patch_appointments_v9_graphics.py
+          python scripts/patch_appointments_v10_manage.py
           python scripts/patch_whatsapp_qr_connect.py
           python scripts/patch_whatsapp_qr_meta_fix.py
           python scripts/patch_exclusive_navigation.py
@@ -101,6 +102,8 @@ jobs:
               raise SystemExit('Agenda V8 unificata con capacità dei due studi non presente nella build')
           if 'OPTYKER_APPOINTMENTS_UI_V9_GRAPHICS' not in s or 'oaV9Service' not in s or 'optykerAppointmentsV9GraphicsCss' not in s:
               raise SystemExit('Agenda V9 grafica responsive non presente nella build')
+          if 'OPTYKER_APPOINTMENTS_UI_V10_MANAGE' not in s or 'id="oaManageModal"' not in s or 'oaV10Save' not in s or 'oaV10Cancel' not in s:
+              raise SystemExit('Agenda V10 dettaglio / modifica / annullamento non presente nella build')
           if 'OPTYKER_EXCLUSIVE_NAV_V1' not in s or 'optykerExclusiveNavJs' not in s:
               raise SystemExit('Navigazione esclusiva / pulsante Agenda non presente nella build')
           if 'OPTYKER_SIDEBAR_ORDER_V1' not in s or 'id="navSheets"' not in s or 'id="sheetsSubmenu"' not in s:
@@ -121,8 +124,8 @@ jobs:
               raise SystemExit('Chat WhatsApp Shopify non presente nella build')
           if 'OPTYKER_STAFF_APPOINTMENTS_V1' not in staff or 'id="tabAgenda"' not in staff:
               raise SystemExit('Agenda Shopify staff non presente nella build')
-          if 'OPTYKER_BOOKING_STATIC_V3' not in booking or 'optyker-appointments-booking' not in booking:
-              raise SystemExit('Pagina prenotazioni statica V3 unificata non presente nella build')
+          if 'I tuoi appuntamenti' not in booking or 'Sposta' not in booking or 'Aggiungi un altro' not in booking or 'optyker_appointment_tokens_v2' not in booking:
+              raise SystemExit('Nuova pagina appuntamenti cliente non presente nella build')
           print('Script inline:',len(scripts),'staff scripts:',len(staff_scripts),'booking scripts:',len(booking_scripts),'bytes:',len(s),'staff bytes:',len(staff),'booking bytes:',len(booking))
           PY
           for f in _jscheck/*.js; do node --check "$f"; done
