@@ -41,6 +41,7 @@ jobs:
           python scripts/patch_whatsapp_qr_connect.py
           python scripts/patch_whatsapp_qr_meta_fix.py
           python scripts/patch_exclusive_navigation.py
+          python scripts/patch_sidebar_order.py
           mkdir -p _site/staff-embed
           cp staff-embed/index.html _site/staff-embed/index.html
           python scripts/patch_staff_whatsapp.py
@@ -84,6 +85,8 @@ jobs:
               raise SystemExit('Agenda V4 studi opzionali / entrambi gli studi non presente nella build')
           if 'OPTYKER_EXCLUSIVE_NAV_V1' not in s or 'optykerExclusiveNavJs' not in s:
               raise SystemExit('Navigazione esclusiva / pulsante Agenda non presente nella build')
+          if 'OPTYKER_SIDEBAR_ORDER_V1' not in s or 'id="navSheets"' not in s or 'id="sheetsSubmenu"' not in s:
+              raise SystemExit('Ordine barra laterale / menu Schede non presente nella build')
           if 'OPTYKER_WHATSAPP_QR_CONNECT_V1' not in s or 'optykerWaQrStart' not in s:
               raise SystemExit('Collegamento WhatsApp QR non presente nella build')
           if 'OPTYKER_WHATSAPP_QR_META_FIX_V2' not in s or "version:'v25.0'" not in s or "sessionInfoVersion:'3'" not in s:
