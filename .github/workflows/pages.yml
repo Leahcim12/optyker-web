@@ -42,6 +42,9 @@ jobs:
           cp staff-embed/index.html _site/staff-embed/index.html
           python scripts/patch_staff_whatsapp.py
           test -s _site/staff-embed/index.html
+          mkdir -p _site/booking
+          cp booking/index.html _site/booking/index.html
+          test -s _site/booking/index.html
           python - <<'PY'
           from pathlib import Path
           import re
@@ -53,6 +56,10 @@ jobs:
           staff_scripts=re.findall(r'<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>',staff,re.I)
           for i,code in enumerate(staff_scripts):
               if code.strip(): Path(f'_jscheck/staff-{i}.js').write_text(code,encoding='utf-8')
+          booking=Path('_site/booking/index.html').read_text(encoding='utf-8')
+          booking_scripts=re.findall(r'<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>',booking,re.I)
+          for i,code in enumerate(booking_scripts):
+              if code.strip(): Path(f'_jscheck/booking-{i}.js').write_text(code,encoding='utf-8')
           if 'OPTYKER_CUSTOMER_CHAT_UI_V3' not in s or 'id="navChat"' not in s:
               raise SystemExit('Chat Optyker non presente nella build')
           if 'OPTYKER_TOP_DASHBOARD_NEXT_TO_NEW_CLIENT_V3' not in s:
@@ -75,7 +82,9 @@ jobs:
               raise SystemExit('Renderer staff Shopify standalone non presente nella build')
           if 'OPTYKER_STAFF_WHATSAPP_V1' not in staff or 'optyker-shopify-staff-whatsapp' not in staff or 'id="channelWa"' not in staff:
               raise SystemExit('Chat WhatsApp Shopify non presente nella build')
-          print('Script inline:',len(scripts),'staff scripts:',len(staff_scripts),'bytes:',len(s),'staff bytes:',len(staff))
+          if 'OPTYKER_BOOKING_STATIC_V1' not in booking or 'optyker-appointments-booking' not in booking:
+              raise SystemExit('Pagina prenotazioni statica non presente nella build')
+          print('Script inline:',len(scripts),'staff scripts:',len(staff_scripts),'booking scripts:',len(booking_scripts),'bytes:',len(s),'staff bytes:',len(staff),'booking bytes:',len(booking))
           PY
           for f in _jscheck/*.js; do node --check "$f"; done
           touch _site/.nojekyll
