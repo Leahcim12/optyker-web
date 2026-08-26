@@ -1,0 +1,30 @@
+name: Integra calendario esterno nella app
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/patch_mobile_calendar_v2.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Applica patch calendario app
+        run: python scripts/patch_mobile_calendar_v2.py
+      - name: Salva modifica App.js
+        run: |
+          if git diff --quiet -- mobile-app/App.js; then
+            echo "Nessuna modifica necessaria"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mobile-app/App.js
+          git commit -m "Apre calendario personale fuori dalla WebView"
+          git push
