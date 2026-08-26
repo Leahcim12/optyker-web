@@ -1,0 +1,30 @@
+name: Rifinisci calendario prenotazioni
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/patch_booking_calendar_v5.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Applica patch calendario
+        run: python scripts/patch_booking_calendar_v5.py
+      - name: Salva pagina booking
+        run: |
+          if git diff --quiet -- booking/index.html; then
+            echo "Nessuna modifica necessaria"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add booking/index.html
+          git commit -m "Migliora salvataggio calendario da app e Shopify"
+          git push
