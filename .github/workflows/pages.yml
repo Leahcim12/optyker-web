@@ -41,6 +41,7 @@ jobs:
           python scripts/patch_appointments_v5.py
           python scripts/patch_appointments_v6.py
           python scripts/patch_appointments_v7.py
+          python scripts/patch_appointments_v8.py
           python scripts/patch_whatsapp_qr_connect.py
           python scripts/patch_whatsapp_qr_meta_fix.py
           python scripts/patch_exclusive_navigation.py
@@ -95,6 +96,8 @@ jobs:
               raise SystemExit('Agenda V6 giorni multipli / disponibilità senza nome utente non presente nella build')
           if 'OPTYKER_APPOINTMENTS_UI_V7' not in s or 'Turni e orari' not in s or 'oaStoreSetV7' not in s or 'Giorno di riposo' not in s:
               raise SystemExit('Agenda V7 negozio / turni / stati assenza non presente nella build')
+          if 'OPTYKER_APPOINTMENTS_UI_V8' not in s or 'Agenda unica' not in s or 'oaUnifiedRuleStudioHidden' not in s:
+              raise SystemExit('Agenda V8 unificata con capacità dei due studi non presente nella build')
           if 'OPTYKER_EXCLUSIVE_NAV_V1' not in s or 'optykerExclusiveNavJs' not in s:
               raise SystemExit('Navigazione esclusiva / pulsante Agenda non presente nella build')
           if 'OPTYKER_SIDEBAR_ORDER_V1' not in s or 'id="navSheets"' not in s or 'id="sheetsSubmenu"' not in s:
@@ -115,8 +118,8 @@ jobs:
               raise SystemExit('Chat WhatsApp Shopify non presente nella build')
           if 'OPTYKER_STAFF_APPOINTMENTS_V1' not in staff or 'id="tabAgenda"' not in staff:
               raise SystemExit('Agenda Shopify staff non presente nella build')
-          if 'OPTYKER_BOOKING_STATIC_V2' not in booking or 'optyker-appointments-booking' not in booking:
-              raise SystemExit('Pagina prenotazioni statica V2 non presente nella build')
+          if 'OPTYKER_BOOKING_STATIC_V3' not in booking or 'optyker-appointments-booking' not in booking:
+              raise SystemExit('Pagina prenotazioni statica V3 unificata non presente nella build')
           print('Script inline:',len(scripts),'staff scripts:',len(staff_scripts),'booking scripts:',len(booking_scripts),'bytes:',len(s),'staff bytes:',len(staff),'booking bytes:',len(booking))
           PY
           for f in _jscheck/*.js; do node --check "$f"; done
