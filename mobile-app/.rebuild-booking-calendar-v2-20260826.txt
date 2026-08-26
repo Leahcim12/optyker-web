@@ -1,0 +1,1 @@
+Rebuild dell'app dopo l'integrazione del salvataggio calendario esterno V2.
