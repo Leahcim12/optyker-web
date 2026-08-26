@@ -10,6 +10,7 @@ if 'OPTYKER_SIDEBAR_ORDER_V1' not in s or 'id="moduleNav"' not in s:
 
 style=r'''<style id="optykerSidebarOrderV2Css">/* OPTYKER_SIDEBAR_ORDER_V2 */
 #moduleSheetGroup,#moduleSheetChildren{display:none!important}
+#moduleNav{align-content:flex-start!important;justify-content:flex-start!important;overflow-y:auto!important;overflow-x:hidden!important}
 #moduleNav>#navDashboard{order:10!important}
 #moduleNav>#navAppointments{order:20!important}
 #moduleNav>#navClients{order:30!important}
@@ -19,6 +20,9 @@ style=r'''<style id="optykerSidebarOrderV2Css">/* OPTYKER_SIDEBAR_ORDER_V2 */
 #moduleNav>#sheetsSubmenu{order:51!important}
 #moduleNav>#navOrders{order:60!important}
 #moduleNav>#navSettings{order:70!important}
+#moduleNav>.moduleBtn,#moduleNav>#navSheets{flex:0 0 auto!important;flex-shrink:0!important;min-height:46px!important;height:auto!important;padding-top:10px!important;padding-bottom:10px!important}
+#moduleNav>#sheetsSubmenu,#moduleNav>#clientSidebarSubmenu{flex:0 0 auto!important;flex-shrink:0!important}
+#moduleNav #sheetsSubmenu .moduleBtn,#moduleNav #clientSidebarSubmenu .moduleBtn{flex:0 0 auto!important;flex-shrink:0!important;min-height:42px!important;height:auto!important;padding-top:8px!important;padding-bottom:8px!important}
 </style>'''
 
 script=r'''<script id="optykerSidebarOrderV2Js">(function(){/* OPTYKER_SIDEBAR_ORDER_V2 */
