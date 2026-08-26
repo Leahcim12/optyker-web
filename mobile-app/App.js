@@ -25,6 +25,7 @@ const SUPABASE_URL = 'https://whgziwaegjzqsgcntesr.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_DndhLvY32YeCmqWMNRi30g_dEDm8upv';
 const MOBILE_API = `${SUPABASE_URL}/functions/v1/optyker-mobile-api`;
 const SHOP_URL = 'https://otticavisualcare.it';
+const BOOKING_URL = 'https://leahcim12.github.io/optyker-web/booking/?source=app';
 
 const C = {
   navy: '#11395d',
@@ -442,7 +443,7 @@ function AuthScreen({ onSignedIn }) {
         <View style={styles.logoMark}><Text style={styles.logoMarkText}>OVC</Text></View>
         <Text style={styles.authBrand}>OTTICA VISUAL CARE</Text>
         <Text style={styles.authTitle}>{mode === 'login' ? 'Accedi' : 'Crea il tuo account'}</Text>
-        <Text style={styles.authSub}>Shop, prescrizioni, LAC, ordini e chat in un’unica app.</Text>
+        <Text style={styles.authSub}>Appuntamenti, shop, prescrizioni, LAC, ordini e chat in un’unica app.</Text>
 
         <View style={styles.authCard}>
           <Text style={styles.inputLabel}>Email</Text>
@@ -498,6 +499,7 @@ function CustomerApp({ me, onLogout }) {
   const customer = home?.customer || me.customer || {};
   const items = [
     { key: 'home', label: 'Home', icon: '⌂' },
+    { key: 'booking', label: 'Prenota', icon: '◫' },
     { key: 'shop', label: 'Shop', icon: '▣' },
     { key: 'reorder', label: 'Riordina', icon: '↻' },
     { key: 'chat', label: 'Chat', icon: '◌', badge: home?.unread_chat || 0 },
@@ -528,6 +530,13 @@ function CustomerApp({ me, onLogout }) {
               {home?.orders?.length ? home.orders.slice(0, 5).map((o) => <OrderCard key={o.id} order={o} />) : <Empty title="Nessun ordine online" />}
             </Section>
           </ScrollView>
+        )}
+
+        {tab === 'booking' && (
+          <View style={{ flex: 1 }}>
+            <View style={styles.webHeader}><Text style={styles.webHeaderTitle}>Prenota un appuntamento</Text></View>
+            <WebView source={{ uri: BOOKING_URL }} startInLoadingState renderLoading={() => <Loading label="Carico gli appuntamenti…" />} />
+          </View>
         )}
 
         {tab === 'shop' && (
