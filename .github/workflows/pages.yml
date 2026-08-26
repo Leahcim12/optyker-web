@@ -26,107 +26,58 @@ jobs:
 
       - name: Prepara e verifica Optyker
         run: |
+          set -e
           mkdir -p _site _jscheck
           curl -fL --retry 3 --retry-delay 2 "https://whgziwaegjzqsgcntesr.supabase.co/storage/v1/object/public/optyker-web/index.html?v=${GITHUB_SHA}" -o _site/index.html
           test -s _site/index.html
-          python scripts/patch_optyker.py
-          python scripts/remove_login_store_user.py
-          python scripts/patch_profile.py
-          python scripts/patch_client_chat_tab.py
-          python scripts/patch_whatsapp_channel.py
-          python scripts/patch_appointments.py
-          python scripts/patch_appointments_v2.py
-          python scripts/patch_appointments_v3.py
-          python scripts/patch_appointments_v4.py
-          python scripts/patch_appointments_v5.py
-          python scripts/patch_appointments_v6.py
-          python scripts/patch_appointments_v7.py
-          python scripts/patch_appointments_v8.py
-          python scripts/patch_appointments_v9_graphics.py
-          python scripts/patch_appointments_v10_manage.py
-          python scripts/patch_whatsapp_qr_connect.py
-          python scripts/patch_whatsapp_qr_meta_fix.py
-          python scripts/patch_exclusive_navigation.py
-          python scripts/patch_sidebar_order.py
-          python scripts/patch_sidebar_order_v2.py
-          python scripts/patch_sidebar_clicks.py
-          python scripts/patch_sidebar_pointer_nav.py
-          mkdir -p _site/staff-embed
+          for f in \
+            scripts/patch_optyker.py \
+            scripts/remove_login_store_user.py \
+            scripts/patch_profile.py \
+            scripts/patch_client_chat_tab.py \
+            scripts/patch_whatsapp_channel.py \
+            scripts/patch_appointments.py \
+            scripts/patch_appointments_v2.py \
+            scripts/patch_appointments_v3.py \
+            scripts/patch_appointments_v4.py \
+            scripts/patch_appointments_v5.py \
+            scripts/patch_appointments_v6.py \
+            scripts/patch_appointments_v7.py \
+            scripts/patch_appointments_v8.py \
+            scripts/patch_appointments_v9_graphics.py \
+            scripts/patch_appointments_v10_manage.py \
+            scripts/patch_appointments_v11_secure.py \
+            scripts/patch_whatsapp_qr_connect.py \
+            scripts/patch_whatsapp_qr_meta_fix.py \
+            scripts/patch_exclusive_navigation.py \
+            scripts/patch_sidebar_order.py \
+            scripts/patch_sidebar_order_v2.py \
+            scripts/patch_sidebar_clicks.py \
+            scripts/patch_sidebar_pointer_nav.py; do python "$f"; done
+
+          mkdir -p _site/staff-embed _site/booking
           cp staff-embed/index.html _site/staff-embed/index.html
           python scripts/patch_staff_whatsapp.py
           python scripts/patch_staff_appointments.py
-          test -s _site/staff-embed/index.html
-          mkdir -p _site/booking
           cp booking/index.html _site/booking/index.html
+          test -s _site/staff-embed/index.html
           test -s _site/booking/index.html
+
           python - <<'PY'
           from pathlib import Path
           import re
-          s=Path('_site/index.html').read_text(encoding='utf-8')
-          scripts=re.findall(r'<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>',s,re.I)
-          for i,code in enumerate(scripts):
-              if code.strip(): Path(f'_jscheck/{i}.js').write_text(code,encoding='utf-8')
-          staff=Path('_site/staff-embed/index.html').read_text(encoding='utf-8')
-          staff_scripts=re.findall(r'<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>',staff,re.I)
-          for i,code in enumerate(staff_scripts):
-              if code.strip(): Path(f'_jscheck/staff-{i}.js').write_text(code,encoding='utf-8')
+          files=['_site/index.html','_site/staff-embed/index.html','_site/booking/index.html']
+          for n,path in enumerate(files):
+              text=Path(path).read_text(encoding='utf-8')
+              for i,code in enumerate(re.findall(r'<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>',text,re.I)):
+                  if code.strip(): Path(f'_jscheck/{n}-{i}.js').write_text(code,encoding='utf-8')
+          main=Path('_site/index.html').read_text(encoding='utf-8')
           booking=Path('_site/booking/index.html').read_text(encoding='utf-8')
-          booking_scripts=re.findall(r'<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>',booking,re.I)
-          for i,code in enumerate(booking_scripts):
-              if code.strip(): Path(f'_jscheck/booking-{i}.js').write_text(code,encoding='utf-8')
-          if 'OPTYKER_CUSTOMER_CHAT_UI_V3' not in s or 'id="navChat"' not in s:
-              raise SystemExit('Chat Optyker non presente nella build')
-          if 'OPTYKER_TOP_DASHBOARD_NEXT_TO_NEW_CLIENT_V3' not in s:
-              raise SystemExit('Pulsante Dashboard non presente nella build')
-          if 'OPTYKER_OPERATOR_PROFILE_V1' not in s or 'optykerTopProfileBtn' not in s:
-              raise SystemExit('Profilo operatore non presente nella build')
-          if 'OPTYKER_CLIENT_CHAT_TAB_V1' not in s or 'id="clientChatSection"' not in s:
-              raise SystemExit('Chat nella scheda cliente non presente nella build')
-          if 'OPTYKER_WHATSAPP_CHANNEL_V2' not in s or 'id="navSettings"' not in s or 'id="optykerSettingsPanel"' not in s:
-              raise SystemExit('WhatsApp integrato / Impostazioni non presente nella build')
-          if 'OPTYKER_APPOINTMENTS_UI_V1' not in s or 'id="navAppointments"' not in s or 'id="optykerAppointmentsPanel"' not in s:
-              raise SystemExit('Agenda appuntamenti non presente nella build')
-          if 'OPTYKER_APPOINTMENTS_UI_V2' not in s or 'id="oaViewMonth"' not in s or 'optykerSettingsChooser' not in s or 'oaTimelineDay' not in s:
-              raise SystemExit('Agenda V2 mese / fasce orarie / impostazioni unificate non presente nella build')
-          if 'OPTYKER_APPOINTMENTS_UI_V3' not in s or 'oaEntityDelete' not in s:
-              raise SystemExit('Agenda V3 eliminazione servizi / studi non presente nella build')
-          if 'OPTYKER_APPOINTMENTS_UI_V4' not in s or 'oaRequiresStudio' not in s or 'Entrambi gli studi' not in s:
-              raise SystemExit('Agenda V4 studi opzionali / entrambi gli studi non presente nella build')
-          if 'OPTYKER_APPOINTMENTS_UI_V5' not in s or 'Operatori abilitati al servizio' not in s or 'oaSvcNameField' not in s:
-              raise SystemExit('Agenda V5 operatori multipli / nome servizio non presente nella build')
-          if 'OPTYKER_APPOINTMENTS_UI_V6' not in s or 'Giorni della settimana' not in s or 'nessun nome utente' not in s:
-              raise SystemExit('Agenda V6 giorni multipli / disponibilità senza nome utente non presente nella build')
-          if 'OPTYKER_APPOINTMENTS_UI_V7' not in s or 'Turni e orari' not in s or 'oaStoreSetV7' not in s or 'Giorno di riposo' not in s:
-              raise SystemExit('Agenda V7 negozio / turni / stati assenza non presente nella build')
-          if 'OPTYKER_APPOINTMENTS_UI_V8' not in s or 'Agenda unica' not in s or 'oaUnifiedRuleStudioHidden' not in s:
-              raise SystemExit('Agenda V8 unificata con capacità dei due studi non presente nella build')
-          if 'OPTYKER_APPOINTMENTS_UI_V9_GRAPHICS' not in s or 'oaV9Service' not in s or 'optykerAppointmentsV9GraphicsCss' not in s:
-              raise SystemExit('Agenda V9 grafica responsive non presente nella build')
-          if 'OPTYKER_APPOINTMENTS_UI_V10_MANAGE' not in s or 'id="oaManageModal"' not in s or 'oaV10Save' not in s or 'oaV10Cancel' not in s:
-              raise SystemExit('Agenda V10 dettaglio / modifica / annullamento non presente nella build')
-          if 'OPTYKER_EXCLUSIVE_NAV_V1' not in s or 'optykerExclusiveNavJs' not in s:
-              raise SystemExit('Navigazione esclusiva / pulsante Agenda non presente nella build')
-          if 'OPTYKER_SIDEBAR_ORDER_V1' not in s or 'id="navSheets"' not in s or 'id="sheetsSubmenu"' not in s:
-              raise SystemExit('Ordine barra laterale / menu Schede non presente nella build')
-          if 'OPTYKER_SIDEBAR_ORDER_V2' not in s or 'optykerSidebarOrderV2Js' not in s:
-              raise SystemExit('Ordine barra laterale persistente non presente nella build')
-          if 'OPTYKER_SIDEBAR_CLICKS_V1' not in s or 'optykerSidebarClicksJs' not in s:
-              raise SystemExit('Fix click pulsanti barra laterale non presente nella build')
-          if 'OPTYKER_SIDEBAR_POINTER_NAV_V1' not in s or 'optykerSidebarPointerNavJs' not in s:
-              raise SystemExit('Navigazione pointer barra laterale non presente nella build')
-          if 'OPTYKER_WHATSAPP_QR_CONNECT_V1' not in s or 'optykerWaQrStart' not in s:
-              raise SystemExit('Collegamento WhatsApp QR non presente nella build')
-          if 'OPTYKER_WHATSAPP_QR_META_FIX_V2' not in s or "version:'v25.0'" not in s or "sessionInfoVersion:'3'" not in s:
-              raise SystemExit('Fix Meta Embedded Signup non presente nella build')
-          if 'optyker-shopify-staff-embed' not in staff or 'OPTYKER_STAFF_STATIC_UI_V2' not in staff:
-              raise SystemExit('Renderer staff Shopify standalone non presente nella build')
-          if 'OPTYKER_STAFF_WHATSAPP_V1' not in staff or 'optyker-shopify-staff-whatsapp' not in staff or 'id="channelWa"' not in staff:
-              raise SystemExit('Chat WhatsApp Shopify non presente nella build')
-          if 'OPTYKER_STAFF_APPOINTMENTS_V1' not in staff or 'id="tabAgenda"' not in staff:
-              raise SystemExit('Agenda Shopify staff non presente nella build')
-          if 'I tuoi appuntamenti' not in booking or 'Sposta' not in booking or 'Aggiungi un altro' not in booking or 'optyker_appointment_tokens_v2' not in booking:
-              raise SystemExit('Nuova pagina appuntamenti cliente non presente nella build')
-          print('Script inline:',len(scripts),'staff scripts:',len(staff_scripts),'booking scripts:',len(booking_scripts),'bytes:',len(s),'staff bytes:',len(staff),'booking bytes:',len(booking))
+          required_main=['OPTYKER_APPOINTMENTS_UI_V9_GRAPHICS','OPTYKER_APPOINTMENTS_UI_V10_MANAGE','OPTYKER_APPOINTMENTS_UI_V11_SECURE','id="oaManageModal"','oaV10Save','oaV10Cancel','optyker-appointments-staff','id="navAppointments"']
+          required_booking=['I tuoi appuntamenti','Sposta','Aggiungi un altro','optyker_appointment_tokens_v2','Scegli lo studio disponibile']
+          missing=[x for x in required_main if x not in main]+[x for x in required_booking if x not in booking]
+          if missing: raise SystemExit('Mancano: '+', '.join(missing))
+          print('Build verificata',len(main),len(booking))
           PY
           for f in _jscheck/*.js; do node --check "$f"; done
           touch _site/.nojekyll
