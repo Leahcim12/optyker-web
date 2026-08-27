@@ -32,7 +32,7 @@ function cleanupFor(id){
   var report=E('reportSectionTop');
   if(report){
     var keep=id==='navClients'||id==='navAnalysis'||id==='navPrescription'||id==='navVisualExam'||id==='navIndications'||id==='navHearing';
-    if(!keep)report.style.display='none'
+    report.style.display=keep?'':'none'
   }
 }
 function selectId(id){
@@ -47,6 +47,8 @@ function clicked(ev){
   if(t&&IDS.indexOf(t.id)>=0){selectId(t.id);return}
   var d=ev.target&&ev.target.closest?ev.target.closest('.topHomeBtn,[onclick*="showDashboard()"]'):null;
   if(d){selectId('navDashboard');return}
+  var cl=ev.target&&ev.target.closest?ev.target.closest('[onclick*="showModule(\'clients\')"],[onclick*="dashboardNewClient()"]'):null;
+  if(cl){selectId('navClients');return}
 }
 document.addEventListener('pointerdown',clicked,true);
 document.addEventListener('click',clicked,true);
