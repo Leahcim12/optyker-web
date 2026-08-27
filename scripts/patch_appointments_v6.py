@@ -74,9 +74,7 @@ function load(force){if(busy&&!force)return Promise.resolve();busy=true;return b
 function watch(){var root=E('oaRules');if(root&&root.querySelector('.oaRule')&&!rendering)load(true).catch(function(){});var m=E('oaSettingsModal');if(m&&m.classList.contains('open')&&!CFG)load(false).catch(function(){})}
 function boot(){load(true).catch(function(e){console.error(e)});setTimeout(watch,200)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
-document.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('#oaSettings'):null;if(b)setTimeout(function(){load(true).catch(function(){})},40)},true);
-new MutationObserver(function(){setTimeout(watch,20)}).observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
-setInterval(watch,1800)
+window.addEventListener('pageshow',function(){setTimeout(watch,100)})
 })();</script>'''
 
 h=s.find('</head>')
