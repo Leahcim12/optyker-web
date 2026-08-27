@@ -50,13 +50,16 @@ function applyStatus(x){
   var box=E('optykerAuthFields'),mode=E('optykerAuthMode'),emailWrap=E('optykerAuthEmailWrap'),passWrap=E('optykerAuthPasswordWrap'),confirm=E('optykerAuthConfirmWrap'),hint=E('optykerAuthHint'),forgot=E('optykerForgot'),pass=E('optykerAuthPassword'),btn=document.querySelector('.optykerLoginButton');
   if(box)box.classList.add('show');clearPw();
   if(S.mode==='initial'){
-    if(mode)mode.textContent='Primo accesso · verifica l’email associata';
-    if(passWrap)passWrap.style.display='none';
-    if(confirm)confirm.style.display='none';
-    if(emailWrap)emailWrap.style.display='none';
-    if(hint)hint.textContent=x.has_email?'Per creare la password ti invieremo un link a '+(x.email_masked||'all’email associata')+'. Aprilo e scegli la nuova password.':'Email non configurata per questo username. Per sicurezza la prima password non può essere creata finché non viene associata un’email.';
+    if(mode)mode.textContent='Primo accesso · crea la password';
+    if(passWrap)passWrap.style.display='block';
+    if(confirm)confirm.style.display='block';
+    if(emailWrap)emailWrap.style.display=x.has_email?'block':'none';
+    if(pass)pass.autocomplete='new-password';
+    if(E('optykerAuthEmail'))E('optykerAuthEmail').value='';
+    if(E('optykerAuthEmailHint'))E('optykerAuthEmailHint').textContent=x.has_email?'Inserisci l’email associata ('+(x.email_masked||'')+').':'';
+    if(hint)hint.textContent=x.has_email?'Scegli almeno 8 caratteri. La password verrà richiesta a ogni nuovo accesso.':'Email non configurata per questo username.';
     if(forgot)forgot.classList.remove('show');
-    if(btn)btn.textContent=x.has_email?'INVIA LINK PER CREARE PASSWORD':'EMAIL DA CONFIGURARE';
+    if(btn)btn.textContent=x.has_email?'CREA PASSWORD E ACCEDI':'EMAIL DA CONFIGURARE';
   }else{
     if(mode)mode.textContent='Inserisci la password';
     if(passWrap)passWrap.style.display='block';
@@ -91,13 +94,17 @@ function doLogin(){
   var u=T(E('optykerLoginOperator')&&E('optykerLoginOperator').value);
   if(!u){err('Seleziona un utente.');return false}
   if(!S.status){checkUser();return false}
+  var p=String(E('optykerAuthPassword')&&E('optykerAuthPassword').value||'');
   if(S.mode==='initial'){
+    var p2=String(E('optykerAuthPassword2')&&E('optykerAuthPassword2').value||''),email=T(E('optykerAuthEmail')&&E('optykerAuthEmail').value);
     if(!S.status.has_email){err('Email non configurata per questo username.');return false}
-    setBusy(true);err('Invio link per creare la password…');
-    api('forgot',{username:u}).then(function(x){err('Link inviato a '+(x.email_masked||'all’email associata')+'. Apri l’email per creare la password.',true)}).catch(function(e){err(e.message)}).finally(function(){setBusy(false)});
+    if(!email){err('Inserisci l’email associata allo username.');return false}
+    if(p.length<8){err('La password deve avere almeno 8 caratteri.');return false}
+    if(p!==p2){err('Le due password non coincidono.');return false}
+    setBusy(true);err('');
+    api('initial',{username:u,email:email,password:p}).then(function(){return api('login',{username:u,password:p})}).then(function(x){enterApp(x.username||u,p)}).catch(function(e){err(e.message);clearPw()}).finally(function(){setBusy(false)});
     return false;
   }
-  var p=String(E('optykerAuthPassword')&&E('optykerAuthPassword').value||'');
   if(p.length<8){err('Inserisci una password di almeno 8 caratteri.');return false}
   setBusy(true);err('');
   api('login',{username:u,password:p}).then(function(x){enterApp(x.username||u,p)}).catch(function(e){err(e.message);clearPw();try{E('optykerAuthPassword').focus()}catch(z){}}).finally(function(){setBusy(false)});
@@ -107,7 +114,7 @@ function forgotPassword(){
   if(S.busy||S.recovery)return;
   var u=T(E('optykerLoginOperator')&&E('optykerLoginOperator').value);if(!u){err('Seleziona prima lo username.');return}
   setBusy(true);err('Invio email di recupero…');
-  api('forgot',{username:u}).then(function(x){err('Email di recupero inviata a '+(x.email_masked||'all’indirizzo associato')+'.',true)}).catch(function(e){err(e.message)}).finally(function(){setBusy(false)});
+  api('forgot',{username:u}).then(function(x){err('Email di recupero inviata a '+(x.email_masked||'all’indirizzo associato')+'.',true)}).catch(function(e){err(e.message||'Invio email non riuscito')}).finally(function(){setBusy(false)});
 }
 function detectRecovery(){
   var h=new URLSearchParams(String(location.hash||'').replace(/^#/,''));
