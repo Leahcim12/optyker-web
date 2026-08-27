@@ -48,8 +48,7 @@ function enhance(){enhanceServices();enhanceRules();syncNewOperator();var ss=E('
 function load(force){if(busy&&!force)return Promise.resolve();busy=true;return api('bootstrap',{}).then(function(x){CFG=x;enhance();return x}).finally(function(){busy=false})}
 function boot(){load(true).catch(function(e){console.error(e)});setTimeout(enhance,150)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
-new MutationObserver(function(){setTimeout(enhance,25)}).observe(document.documentElement,{subtree:true,childList:true});
-setInterval(function(){if(!CFG)load(false).catch(function(){});else enhance()},1800)
+window.addEventListener('pageshow',function(){setTimeout(enhance,100)})
 })();</script>'''
 
 h=s.find('</head>')
