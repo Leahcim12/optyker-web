@@ -71,17 +71,21 @@ jobs:
             scripts/patch_single_active_nav_v18.py \
             scripts/patch_ios_pwa.py; do python "$f"; done
 
-          mkdir -p _site/staff-embed _site/booking _site/iphone
+          mkdir -p _site/staff-embed _site/booking _site/iphone _site/iphone-app
           cp staff-embed/index.html _site/staff-embed/index.html
           python scripts/patch_staff_whatsapp.py
           python scripts/patch_staff_appointments.py
           cp booking/index.html _site/booking/index.html
           cp iphone/index.html _site/iphone/index.html
+          cp iphone-app/index.html _site/iphone-app/index.html
+          cp iphone-app/manifest.webmanifest _site/iphone-app/manifest.webmanifest
           cp manifest.webmanifest _site/manifest.webmanifest
           cp visualcare-logo.svg _site/visualcare-logo.svg
           test -s _site/staff-embed/index.html
           test -s _site/booking/index.html
           test -s _site/iphone/index.html
+          test -s _site/iphone-app/index.html
+          test -s _site/iphone-app/manifest.webmanifest
           test -s _site/manifest.webmanifest
           test -s _site/visualcare-logo.svg
 
