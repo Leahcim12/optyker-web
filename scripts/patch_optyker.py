@@ -33,6 +33,102 @@ if DASH not in s:
 (function(){function fix(){var r=document.querySelector('.topbarRight'),n=document.getElementById('optykerTopNewClientBtn');if(!r||!n)return;var d=document.getElementById('optykerTopDashboardBtn');if(!d){d=document.createElement('button');d.id='optykerTopDashboardBtn';d.type='button';d.textContent='Dashboard';d.onclick=function(){if(window.showDashboard)showDashboard()};}if(d.parentNode!==r||d.nextElementSibling!==n)r.insertBefore(d,n)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',fix);else fix();setInterval(fix,2000)})();
 </script>\n''')
 
+
+TODAY='OPTYKER_DASHBOARD_TODAY_APPOINTMENTS_V1'
+if TODAY not in s:
+    old='''      <div class="dashboardCard dashboardCreateCard">
+        <div>
+          <button class="dashboardBigPlus" type="button" onclick="dashboardNewClient()" title="Crea nuovo cliente">+</button>
+          <div class="dashboardCardTitle">Crea un nuovo cliente</div>
+          <div class="dashboardCardText">Apri una nuova scheda anagrafica e salva il cliente nell'archivio condiviso.</div>
+        </div>
+        <button class="dashboardCreateButton" type="button" onclick="dashboardNewClient()">Crea cliente</button>
+      </div>'''
+    new='''      <div class="dashboardCard dashboardCreateCard dashboardTodayAppointmentsCard">
+        <div class="dashboardTodayHead">
+          <div>
+            <div class="dashboardCardTitle">Appuntamenti di oggi</div>
+            <div id="dashboardTodayDate" class="dashboardCardText">Caricamento giornata…</div>
+          </div>
+          <div id="dashboardTodayCount" class="dashboardTodayCount">—</div>
+        </div>
+        <div id="dashboardTodayAppointments" class="dashboardTodayAppointments">
+          <div class="dashboardTodayEmpty">Caricamento appuntamenti…</div>
+        </div>
+        <button class="dashboardTodayOpenAgenda" type="button" onclick="optykerOpenAppointments()">Apri agenda</button>
+      </div>'''
+    if old not in s:
+        raise SystemExit('Scheda Crea un nuovo cliente non trovata nella dashboard')
+    s=s.replace(old,new,1)
+
+    add_head('''\n<style id="optykerDashboardTodayAppointmentsCss">/* OPTYKER_DASHBOARD_TODAY_APPOINTMENTS_V1 */
+.dashboardCreateCard.dashboardTodayAppointmentsCard{min-width:320px!important;display:flex!important;flex-direction:column!important;justify-content:flex-start!important;background:#f8fbff!important;border-color:#cfe0ef!important}
+.dashboardTodayHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.dashboardTodayCount{flex:0 0 auto;min-width:38px;height:38px;padding:0 10px;border-radius:12px;background:#e8f3ff;color:#1769aa;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;box-sizing:border-box}
+.dashboardTodayAppointments{border:1px solid #dce5ee;border-radius:11px;background:#fff;max-height:248px;overflow:auto;min-height:124px}
+.dashboardTodayEmpty{min-height:122px;padding:18px;display:flex;align-items:center;justify-content:center;text-align:center;color:#748293;font-size:12px;line-height:1.45;box-sizing:border-box}
+.dashboardTodayItem{width:100%;display:grid;grid-template-columns:54px minmax(0,1fr) auto;gap:10px;align-items:center;border:0;border-bottom:1px solid #edf1f5;background:#fff;padding:11px 10px;text-align:left;color:#172b4d;cursor:pointer;font:inherit}
+.dashboardTodayItem:last-child{border-bottom:0}.dashboardTodayItem:hover{background:#f3f8fd}
+.dashboardTodayItem.cancelled{opacity:.58}.dashboardTodayItem.cancelled .dashboardTodayName{text-decoration:line-through}
+.dashboardTodayTime{font-size:13px;font-weight:900;color:#1769aa}
+.dashboardTodayInfo{min-width:0}.dashboardTodayName{display:block;font-size:12px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dashboardTodayMeta{display:block;margin-top:3px;font-size:9px;color:#6f7f8d;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dashboardTodayStatus{font-size:8px;font-weight:900;color:#5e7180;background:#eef3f7;border-radius:999px;padding:5px 7px;white-space:nowrap}.dashboardTodayItem.cancelled .dashboardTodayStatus{color:#9c4040;background:#faecec}.dashboardTodayItem.completed .dashboardTodayStatus{color:#2f6e46;background:#edf8f0}
+.dashboardTodayOpenAgenda{width:100%;border:0;border-radius:9px;background:#1769aa;color:#fff;padding:12px 15px;font-weight:850;cursor:pointer;margin-top:12px}.dashboardTodayOpenAgenda:hover{background:#12598f}
+@media(max-width:850px){.dashboardCreateCard.dashboardTodayAppointmentsCard{min-width:0!important}.dashboardTodayAppointments{max-height:280px}}
+</style>\n''')
+
+    add_body_end('''\n<script id="optykerDashboardTodayAppointmentsJs">
+(function(){/* OPTYKER_DASHBOARD_TODAY_APPOINTMENTS_V1 */
+var T={busy:false,last:0};
+function E(i){return document.getElementById(i)}
+function X(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function tm(v){try{return new Date(v).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}catch(e){return''}}
+function st(v){return v==='cancelled'?'Annullato':v==='completed'?'Completato':v==='no_show'?'Assente':'Confermato'}
+function api(action,payload){
+  if(!window.OPTYKER_CLOUD||!OPTYKER_CLOUD.username||!OPTYKER_CLOUD.password)return Promise.reject(Error('Sessione non autenticata'));
+  return fetch(OPTYKER_CLOUD.root+'/rest/v1/rpc/optyker_appointments_api',{method:'POST',headers:{'Content-Type':'application/json','apikey':OPTYKER_CLOUD.key,'Authorization':'Bearer '+OPTYKER_CLOUD.key},body:JSON.stringify({p_username:OPTYKER_CLOUD.username,p_password:OPTYKER_CLOUD.password,p_action:action,p_payload:payload||{}})}).then(function(r){if(!r.ok)throw Error('Server '+r.status);return r.json()}).then(function(x){if(!x||x.ok===false)throw Error(x&&x.error||'Errore agenda');return x})
+}
+function isOpen(){var p=E('dashboardPanel');return !!(p&&getComputedStyle(p).display!=='none')}
+function dateLabel(){
+  var e=E('dashboardTodayDate'),d=new Date();if(e)e.textContent=d.toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long'});
+}
+function render(items){
+  items=(Array.isArray(items)?items:[]).slice().sort(function(a,b){return new Date(a.starts_at)-new Date(b.starts_at)});
+  var box=E('dashboardTodayAppointments'),count=E('dashboardTodayCount');if(!box)return;
+  if(count)count.textContent=String(items.length);
+  if(!items.length){box.innerHTML='<div class="dashboardTodayEmpty">Nessun appuntamento previsto per oggi.</div>';return}
+  box.innerHTML=items.map(function(a){
+    var name=((a.last_name||'')+' '+(a.first_name||'')).trim()||'Cliente';
+    var meta=[a.service_name,a.operator_username,a.studio_name].filter(Boolean).join(' · ');
+    var cls=a.status==='cancelled'?' cancelled':a.status==='completed'?' completed':'';
+    return '<button type="button" class="dashboardTodayItem'+cls+'" data-dashboard-appt="'+X(a.id||'')+'"><span class="dashboardTodayTime">'+X(tm(a.starts_at))+'</span><span class="dashboardTodayInfo"><span class="dashboardTodayName">'+X(name)+'</span><span class="dashboardTodayMeta">'+X(meta)+'</span></span><span class="dashboardTodayStatus">'+X(st(a.status))+'</span></button>'
+  }).join('');
+  box.querySelectorAll('[data-dashboard-appt]').forEach(function(b){b.onclick=function(){if(window.optykerOpenAppointments)window.optykerOpenAppointments()}})
+}
+function load(force){
+  dateLabel();var box=E('dashboardTodayAppointments');if(!box)return Promise.resolve();
+  if(T.busy)return Promise.resolve();
+  if(!window.OPTYKER_CLOUD||!OPTYKER_CLOUD.username||!OPTYKER_CLOUD.password){box.innerHTML='<div class="dashboardTodayEmpty">Accedi per visualizzare gli appuntamenti della giornata.</div>';var c=E('dashboardTodayCount');if(c)c.textContent='—';return Promise.resolve()}
+  if(!force&&Date.now()-T.last<30000)return Promise.resolve();
+  var n=new Date(),from=new Date(n.getFullYear(),n.getMonth(),n.getDate()),to=new Date(n.getFullYear(),n.getMonth(),n.getDate()+1);
+  T.busy=true;box.innerHTML='<div class="dashboardTodayEmpty">Caricamento appuntamenti…</div>';
+  return api('list',{from:from.toISOString(),to:to.toISOString()}).then(function(x){T.last=Date.now();render(x.data||[])}).catch(function(e){box.innerHTML='<div class="dashboardTodayEmpty">'+X(e.message||'Impossibile caricare gli appuntamenti.')+'</div>'}).finally(function(){T.busy=false})
+}
+window.optykerDashboardLoadToday=function(force){return load(!!force)};
+function wrapDashboard(){
+  var old=window.showDashboard;if(typeof old!=='function'||old.__todayAppointments)return;
+  var w=function(){var r=old.apply(this,arguments);setTimeout(function(){load(true)},20);return r};
+  w.__todayAppointments=true;window.showDashboard=w
+}
+function boot(){dateLabel();wrapDashboard();if(isOpen())setTimeout(function(){load(true)},250)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+window.addEventListener('pageshow',function(){setTimeout(boot,100)});
+document.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('#navDashboard,#optykerTopDashboardBtn'):null;if(b)setTimeout(function(){load(true)},80)},true);
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&isOpen())load(true)});
+setInterval(function(){wrapDashboard();if(isOpen())load(false)},60000);
+})();
+</script>\n''')
+
 CHAT='OPTYKER_CUSTOMER_CHAT_UI_V3'
 if CHAT not in s:
     anchor='<button id="navClients" class="moduleBtn" type="button" onclick="showModule(\'clients\')">Clienti</button>'
@@ -78,7 +174,7 @@ function boot(){var t=E('optykerChatText');if(t)t.addEventListener('keydown',fun
 })();
 </script>\n''')
 
-for m in [DASH,CHAT,'id="navChat"','id="optykerChatPanel"','optyker_chat_api']:
+for m in [DASH,TODAY,CHAT,'id="navChat"','id="optykerChatPanel"','optyker_chat_api','id="dashboardTodayAppointments"']:
     if m not in s: raise SystemExit('Patch incompleta: '+m)
 p.write_text(s,encoding='utf-8')
 print('Patch Optyker applicata:',len(s),'bytes')
