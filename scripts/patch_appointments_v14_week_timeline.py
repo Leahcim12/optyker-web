@@ -22,7 +22,28 @@ style=r'''<style id="optykerAppointmentsV14Css">/* OPTYKER_APPOINTMENTS_UI_V14_W
 #oaCalendarModeV7{margin:7px 0 3px!important;padding:2px!important;border-radius:5px!important;background:#f7f7f7!important;border-color:#d9dde0!important}
 #oaCalendarModeV7 button{padding:6px 10px!important;border-radius:3px!important;font-size:9px!important}
 #oaUnifiedAgendaNoteV8{display:none!important}
-#oaStoreCalendarV7>#oaCalendar{display:none!important}
+#oaStoreCalendarV7>#oaCalendar{display:block!important}
+#oaWeekGridV14{display:none!important}
+#oaCalendar.oaCalendarWeek{display:block!important;overflow:auto!important;border:1px solid #cfd5da!important;border-radius:0!important;background:#fff!important;max-height:calc(100vh - 235px)!important;min-height:560px!important}
+#oaCalendar.oaCalendarWeek .oaWeekGrid{grid-template-columns:58px repeat(7,minmax(145px,1fr))!important;min-width:1080px!important;background:#fff!important}
+#oaCalendar.oaCalendarWeek .oaWeekCorner,#oaCalendar.oaCalendarWeek .oaWeekHead{height:42px!important;box-sizing:border-box!important;border-color:#d8dde1!important;border-radius:0!important}
+#oaCalendar.oaCalendarWeek .oaWeekCorner{background:#fafafa!important}
+#oaCalendar.oaCalendarWeek .oaWeekHead{display:flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;padding:0!important;background:#fff!important}
+#oaCalendar.oaCalendarWeek .oaWeekHead.oaToday{background:#eef5fb!important;color:#174d75!important}
+#oaCalendar.oaCalendarWeek .oaWeekHead .oaDn{font-size:9px!important;color:#6e7981!important;font-weight:700!important}
+#oaCalendar.oaCalendarWeek .oaWeekHead .oaDd{font-size:15px!important;color:#33434f!important;font-weight:900!important}
+#oaCalendar.oaCalendarWeek .oaTimes{background:#fafafa!important;border-color:#cfd5da!important}
+#oaCalendar.oaCalendarWeek .oaTimeLabel{font-size:8px!important;color:#66747f!important;right:7px!important;background:#fafafa!important;padding:0 2px!important}
+#oaCalendar.oaCalendarWeek .oaTimelineDay{position:relative!important;border-color:#d8dde1!important;background-color:#fff!important}
+#oaCalendar.oaCalendarWeek .oaTimedEvent{left:3px!important;right:3px!important;z-index:5!important}
+#oaCalendar.oaCalendarWeek .oaTimedEvent .oaEvent{border-radius:1px!important;border:1px solid color-mix(in srgb,var(--c,#7fa34b) 72%,#6f7b82)!important;border-left:4px solid var(--c,#7fa34b)!important;background:color-mix(in srgb,var(--c,#91b85e) 58%,white)!important;box-shadow:none!important;padding:4px 5px!important}
+#oaCalendar.oaCalendarWeek .oaTimedEvent .oaEvent:after{display:none!important}
+#oaCalendar.oaCalendarWeek .oaEventTime{font-size:8px!important;line-height:1.1!important;color:#182315!important}
+#oaCalendar.oaCalendarWeek .oaEventClient{font-size:9px!important;line-height:1.15!important;color:#182315!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+#oaCalendar.oaCalendarWeek .oaEventMeta{font-size:7.5px!important;line-height:1.18!important;color:#263422!important;margin-top:1px!important}
+.oaV14ExistingClosed{position:absolute;left:0;right:0;background:rgba(216,219,222,.62);z-index:1;pointer-events:none}
+.oaV14ExistingNow{position:absolute;left:0;right:0;height:1px;background:#d34136;z-index:9;pointer-events:none}
+.oaV14ExistingNow:before{content:'';position:absolute;left:-4px;top:-3px;width:7px;height:7px;border-radius:50%;background:#d34136}
 
 .oaV14Wrap{width:100%;min-width:0;margin-top:6px;border:1px solid #cfd5da;background:#fff;box-sizing:border-box}
 .oaV14Scroller{width:100%;overflow:auto;max-height:calc(100vh - 235px);min-height:560px;background:#fff}
@@ -138,13 +159,33 @@ function makeDay(day,idx,date){
   return out
 }
 function build(){
-  if(busy)return;var src=E('oaCalendar'),store=E('oaStoreCalendarV7');if(!src||!store)return;var days=sourceDays();if(days.length!==7)return;
+  if(busy)return;var src=E('oaCalendar'),store=E('oaStoreCalendarV7');if(!src||!store)return;
+  if(!src.classList.contains('oaCalendarWeek'))return;
+  var grid=src.querySelector('.oaWeekGrid'),days=Array.from(src.querySelectorAll('.oaTimelineDay')),labels=Array.from(src.querySelectorAll('.oaTimeLabel'));
+  if(!grid||days.length!==7||!labels.length)return;
   busy=true;
   try{
-    var wrap=E('oaWeekGridV14');if(!wrap){wrap=document.createElement('div');wrap.id='oaWeekGridV14';wrap.className='oaV14Wrap';src.insertAdjacentElement('afterend',wrap)}
-    var start=parseRange(),dates=[];for(var i=0;i<7;i++){if(start){var d=new Date(start);d.setDate(start.getDate()+i);dates.push(iso(d))}else dates.push('')}
-    wrap.innerHTML='<div class="oaV14Scroller">'+header(days)+'<div class="oaV14Body">'+timeColumn()+'</div><div class="oaV14Hint">Doppio clic su uno spazio libero per creare un appuntamento</div></div>';
-    var body=wrap.querySelector('.oaV14Body');days.forEach(function(day,i){body.appendChild(makeDay(day,i,dates[i]))})
+    var first=String(labels[0].textContent||'08:00'),last=String(labels[labels.length-1].textContent||'20:00');
+    var lo=mins(first),hi=mins(last);if(lo==null||hi==null||hi<=lo)return;
+    var sample=days[0],height=sample.getBoundingClientRect().height||parseFloat(sample.style.height)||696;
+    var scale=height/(hi-lo);
+    days.forEach(function(day,i){
+      day.querySelectorAll('.oaV14ExistingClosed,.oaV14ExistingNow').forEach(function(x){x.remove()});
+      closedSegments(i+1).forEach(function(seg){
+        var a=clamp(seg[0],lo,hi),b=clamp(seg[1],lo,hi);if(b<=a)return;
+        var x=document.createElement('div');x.className='oaV14ExistingClosed';
+        x.style.top=((a-lo)*scale)+'px';x.style.height=((b-a)*scale)+'px';day.insertBefore(x,day.firstChild)
+      });
+    });
+    var heads=Array.from(src.querySelectorAll('.oaWeekHead')),todayIndex=heads.findIndex(function(h){return h.classList.contains('oaToday')});
+    if(todayIndex>=0){var now=new Date(),m=now.getHours()*60+now.getMinutes();if(m>=lo&&m<=hi){var n=document.createElement('div');n.className='oaV14ExistingNow';n.style.top=((m-lo)*scale)+'px';days[todayIndex].appendChild(n)}}
+    if(!src.__v14Dbl){
+      src.__v14Dbl=true;
+      src.addEventListener('dblclick',function(ev){
+        var day=ev.target&&ev.target.closest?ev.target.closest('.oaTimelineDay'):null;if(!day||ev.target.closest('.oaEvent'))return;
+        var b=E('oaNew');if(b)b.click()
+      })
+    }
   }finally{busy=false}
 }
 function schedule(){clearTimeout(timer);timer=setTimeout(build,45)}
@@ -167,6 +208,6 @@ b=s.rfind('</body>')
 if b<0: raise SystemExit('body non trovato')
 s=s[:b]+script+s[b:]
 p.write_text(s,encoding='utf-8')
-for req in [MARK,'oaWeekGridV14','oaV14Closed','oaV14Event','Doppio clic']:
+for req in [MARK,'oaCalendarWeek','oaV14ExistingClosed','oaTimedEvent','oaTimelineDay']:
     if req not in s: raise SystemExit('Agenda V14 incompleta: '+req)
 print('Appointments V14 weekly timeline OK')
