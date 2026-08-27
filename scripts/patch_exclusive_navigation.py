@@ -16,7 +16,7 @@ style=r'''<style id="optykerExclusiveNavStyle">/* OPTYKER_EXCLUSIVE_NAV_V1 */
 
 script=r'''<script id="optykerExclusiveNavJs">(function(){/* OPTYKER_EXCLUSIVE_NAV_V1 */
 var ROOTS=['dashboardPanel','analysisPanel','prescriptionPanel','visualExamPanel','indicationsPanel','hearingPanel','clientsPanel','onlineOrdersPanel','lacPanel','optykerChatPanel','optykerSettingsPanel','optykerAppointmentsPanel'];
-var NAVS=['navDashboard','navAnalysis','navPrescription','navVisualExam','navIndications','navHearing','navClients','navChat','navAppointments','navOrders','navSettings'];
+var NAVS=['navDashboard','navAnalysis','navPrescription','navVisualExam','navIndications','navHearing','navClients','navChat','navAppointments','navOrders','navWhatsAppConnect','navSettings'];
 function E(id){return document.getElementById(id)}
 function only(target,nav){
   ROOTS.forEach(function(id){var x=E(id);if(x)x.style.setProperty('display',id===target?'block':'none','important')});
