@@ -19,6 +19,7 @@ style=r'''<style id="optykerSidebarOrderV2Css">/* OPTYKER_SIDEBAR_ORDER_V2 */
 #moduleNav>#navSheets{order:50!important}
 #moduleNav>#sheetsSubmenu{order:51!important}
 #moduleNav>#navOrders{order:60!important}
+#moduleNav>#navWhatsAppConnect{order:65!important}
 #moduleNav>#navSettings{order:70!important}
 #moduleNav>.moduleBtn,#moduleNav>#navSheets{flex:0 0 auto!important;flex-shrink:0!important;min-height:46px!important;height:auto!important;padding-top:10px!important;padding-bottom:10px!important}
 #moduleNav>#sheetsSubmenu,#moduleNav>#clientSidebarSubmenu{flex:0 0 auto!important;flex-shrink:0!important}
@@ -54,6 +55,7 @@ function enforce(){
     move(nav,sheets);
     move(nav,sub);
     move(nav,E('navOrders'));
+    move(nav,E('navWhatsAppConnect'));
     move(nav,E('navSettings'));
     var old=E('moduleSheetGroup');if(old&&old.parentNode)old.parentNode.removeChild(old);
   }finally{working=false}
