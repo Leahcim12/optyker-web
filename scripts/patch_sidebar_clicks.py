@@ -39,7 +39,7 @@ function unlock(){IDS.forEach(function(id){var b=E(id);if(!b)return;b.removeAttr
 document.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('#moduleNav button'):null;if(!b||IDS.indexOf(b.id)<0)return;ev.preventDefault();ev.stopPropagation();if(ev.stopImmediatePropagation)ev.stopImmediatePropagation();route(b.id)},true);
 document.addEventListener('keydown',function(ev){if(ev.key!=='Enter'&&ev.key!==' ')return;var b=ev.target;if(!b||!b.id||IDS.indexOf(b.id)<0||!b.closest('#moduleNav'))return;ev.preventDefault();route(b.id)},true);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',unlock);else unlock();
-window.addEventListener('pageshow',unlock);setTimeout(unlock,100);setTimeout(unlock,700);setInterval(unlock,2000);
+window.addEventListener('pageshow',unlock);setTimeout(unlock,100);setTimeout(unlock,700);
 })();</script>'''
 
 h=s.find('</head>')
