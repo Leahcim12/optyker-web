@@ -7,6 +7,8 @@ on:
     paths:
       - 'mobile-app/**'
       - 'scripts/patch_mobile_appointments_v3.py'
+      - 'scripts/patch_mobile_appointments_v4_styles.py'
+      - 'scripts/patch_mobile_staff_dashboard_v5.py'
       - '.github/workflows/build-android-test.yml'
 
 permissions:
@@ -26,7 +28,11 @@ jobs:
       - name: Applica gestione appuntamenti mobile
         run: |
           python scripts/patch_mobile_appointments_v3.py
+          python scripts/patch_mobile_appointments_v4_styles.py
+          python scripts/patch_mobile_staff_dashboard_v5.py
           grep -q 'OPTYKER_MOBILE_APPOINTMENTS_V3' mobile-app/App.js
+          grep -q 'OPTYKER_MOBILE_APPOINTMENTS_V4_STYLES' mobile-app/App.js
+          grep -q 'OPTYKER_MOBILE_STAFF_DASHBOARD_V5' mobile-app/App.js
 
       - name: Setup Node
         uses: actions/setup-node@v4
