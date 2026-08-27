@@ -69,7 +69,9 @@ window.optykerOpenAgendaSettings=openAgendaSettings;
 
 function servicePayload(row){
   var requires=row.querySelector('.oaRequiresStudio');
-  return {id:row.dataset.s||'',name:txt((row.querySelector('.sn')||{}).value),duration_minutes:+((row.querySelector('.sd')||{}).value||30),color:(row.querySelector('.sc')||{}).value||'#1769aa',active:((row.querySelector('.sa')||{}).value||'true')==='true',requires_studio:requires?requires.value==='true':true}
+  var p={id:row.dataset.s||'',name:txt((row.querySelector('.sn')||{}).value),duration_minutes:+((row.querySelector('.sd')||{}).value||30),color:(row.querySelector('.sc')||{}).value||'#1769aa',active:((row.querySelector('.sa')||{}).value||'true')==='true'};
+  if(requires)p.requires_studio=requires.value==='true';
+  return p
 }
 function studioPayload(row){return {id:row.dataset.st||'',name:txt((row.querySelector('.stn')||{}).value),active:((row.querySelector('.sta')||{}).value||'true')==='true'}}
 function operatorPayload(row){var box=row.querySelector('.oaSvcOperators');if(!box)return null;return {id:row.dataset.s||'',operators:Array.from(box.querySelectorAll('input[type=checkbox]:checked')).map(function(x){return x.value})}}
