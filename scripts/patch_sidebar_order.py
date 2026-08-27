@@ -11,7 +11,7 @@ m=re.search(r'(<div\s+id="moduleNav"\s+class="moduleNav">)([\s\S]*?)(</div>\s*<d
 if not m:
     raise SystemExit('Barra laterale non trovata')
 body=m.group(2)
-ids=['navDashboard','navAppointments','navClients','navChat','navAnalysis','navPrescription','navVisualExam','navIndications','navHearing','navOrders','navSettings']
+ids=['navDashboard','navAppointments','navClients','navChat','navAnalysis','navPrescription','navVisualExam','navIndications','navHearing','navOrders','navWhatsAppConnect','navSettings']
 buttons={}
 for bid in ids:
     q=re.search(r'<button\b[^>]*\bid="'+re.escape(bid)+r'"[^>]*>[\s\S]*?</button>',body,re.I)
@@ -34,7 +34,7 @@ nav='''
     {settings}
   '''.format(
     dashboard=buttons['navDashboard'],agenda=buttons['navAppointments'],clients=buttons['navClients'],chat=buttons['navChat'],
-    sub=sub,orders=buttons['navOrders'],settings=buttons['navSettings']
+    sub=sub,orders=buttons['navOrders'],whatsapp=buttons['navWhatsAppConnect'],settings=buttons['navSettings']
 )
 s=s[:m.start(2)]+nav+s[m.end(2):]
 
