@@ -10,8 +10,10 @@ if old not in s: raise SystemExit('staffApi V10 non trovato')
 s=s.replace(old,new,1)
 old2="rpc('optyker_appointment_staff_reschedule',{p_username:OPTYKER_CLOUD.username,p_appointment_id:M.item.id,p_payload:p}).then(function(){"
 new2="staffManage('reschedule',Object.assign({id:M.item.id},p)).then(function(){"
-if old2 not in s: raise SystemExit('salvataggio V10 non trovato')
-s=s.replace(old2,new2,1)
+if old2 in s:
+    s=s.replace(old2,new2,1)
+elif "staffManage('reschedule'," not in s:
+    raise SystemExit('salvataggio V10 sicuro non trovato')
 i=s.find('</head>')
 s=s[:i]+"<meta name=\"optyker-appointments-v11\" content=\"OPTYKER_APPOINTMENTS_UI_V11_SECURE\">"+s[i:]
 p.write_text(s,encoding='utf-8')
