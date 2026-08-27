@@ -113,7 +113,7 @@ function doLogin(){
     if(p.length<8){err('La password deve avere almeno 8 caratteri.');return false}
     if(p!==p2){err('Le due password non coincidono.');return false}
     setBusy(true);err('');
-    api('initial',{username:u,email:'',password:p}).then(function(x){enterApp(x.username||u,p)}).catch(function(e){err(e.message);clearPw()}).finally(function(){setBusy(false)});
+    api('login',{username:u,password:p,setup:true}).then(function(x){enterApp(x.username||u,p)}).catch(function(e){err(e.message);clearPw()}).finally(function(){setBusy(false)});
     return false;
   }
   if(p.length<8){err('Inserisci una password di almeno 8 caratteri.');return false}
