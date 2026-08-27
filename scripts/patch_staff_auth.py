@@ -57,32 +57,19 @@ function setRememberedUI(on,u){var sel=E('optykerLoginOperator'),wrap=sel&&sel.p
 function restoreRemembered(){if(S.recovery)return;var sel=E('optykerLoginOperator'),u=savedUser();if(!sel||!u)return;var found='';for(var i=0;i<sel.options.length;i++){if(T(sel.options[i].value).toUpperCase()===u.toUpperCase()){found=sel.options[i].value;break}}if(!found){setSavedUser('');return}sel.value=found;setRememberedUI(true,found);checkUser()}
 function forgetUser(){setSavedUser('');S.status=null;S.mode='idle';clearPw();var sel=E('optykerLoginOperator'),box=E('optykerAuthFields'),forgot=E('optykerForgot');setRememberedUI(false,'');if(sel)sel.value='';if(box)box.classList.remove('show');if(forgot)forgot.classList.remove('show');err('');setTimeout(function(){try{if(sel)sel.focus()}catch(e){}},50)}
 function applyStatus(x){
-  S.status=x||null;S.mode=x&&x.needs_password?'initial':'login';
+  S.status=x||null;S.mode='login';
   var box=E('optykerAuthFields'),mode=E('optykerAuthMode'),emailWrap=E('optykerAuthEmailWrap'),passWrap=E('optykerAuthPasswordWrap'),confirm=E('optykerAuthConfirmWrap'),hint=E('optykerAuthHint'),forgot=E('optykerForgot'),pass=E('optykerAuthPassword'),btn=document.querySelector('.optykerLoginButton');
   if(box)box.classList.add('show');clearPw();
-  if(S.mode==='initial'){
-    if(mode)mode.textContent='Primo accesso · crea la password';
-    if(passWrap)passWrap.style.display='block';
-    if(confirm)confirm.style.display='block';
-    if(emailWrap)emailWrap.style.display='none';
-    if(pass)pass.autocomplete='new-password';
-    if(E('optykerAuthEmail'))E('optykerAuthEmail').value='';
-    if(E('optykerAuthEmailHint'))E('optykerAuthEmailHint').textContent='';
-    if(hint)hint.textContent='Scegli almeno 8 caratteri. La password verrà richiesta a ogni nuovo accesso.';
-    if(forgot)forgot.classList.remove('show');
-    if(btn)btn.textContent='CREA PASSWORD E ACCEDI';
-  }else{
-    if(mode)mode.textContent='Inserisci la password';
-    if(passWrap)passWrap.style.display='block';
-    if(confirm)confirm.style.display='none';
-    if(emailWrap)emailWrap.style.display='none';
-    if(pass)pass.autocomplete='current-password';
-    if(hint)hint.textContent=savedUser()?'Inserisci la password corretta per accedere.':'Inserisci username e password per accedere.';
-    if(forgot)forgot.classList.toggle('show',!!x.has_email);
-    if(btn)btn.textContent='ENTRA IN OPTYKER';
-    if(savedUser())setRememberedUI(true,x.username||T(E('optykerLoginOperator')&&E('optykerLoginOperator').value));
-    setTimeout(function(){try{if(pass)pass.focus()}catch(e){}},50);
-  }
+  if(mode)mode.textContent='Inserisci la password';
+  if(passWrap)passWrap.style.display='block';
+  if(confirm)confirm.style.display='none';
+  if(emailWrap)emailWrap.style.display='none';
+  if(pass)pass.autocomplete='current-password';
+  if(hint)hint.textContent=x&&x.needs_password?'Al primo accesso la password che inserisci verrà salvata.':'Inserisci la password corretta per accedere.';
+  if(forgot)forgot.classList.toggle('show',!!(x&&x.has_email));
+  if(btn)btn.textContent='ENTRA IN OPTYKER';
+  if(savedUser())setRememberedUI(true,(x&&x.username)||T(E('optykerLoginOperator')&&E('optykerLoginOperator').value));
+  setTimeout(function(){try{if(pass)pass.focus()}catch(e){}},50);
 }
 function checkUser(){
   if(S.recovery)return;
@@ -108,17 +95,9 @@ function doLogin(){
   if(!u){err('Seleziona un utente.');return false}
   if(!S.status){checkUser();return false}
   var p=String(E('optykerAuthPassword')&&E('optykerAuthPassword').value||'');
-  if(S.mode==='initial'){
-    var p2=String(E('optykerAuthPassword2')&&E('optykerAuthPassword2').value||'');
-    if(p.length<8){err('La password deve avere almeno 8 caratteri.');return false}
-    if(p!==p2){err('Le due password non coincidono.');return false}
-    setBusy(true);err('');
-    api('login',{username:u,password:p,setup:true}).then(function(x){enterApp(x.username||u,p)}).catch(function(e){err(e.message);clearPw()}).finally(function(){setBusy(false)});
-    return false;
-  }
   if(p.length<8){err('Inserisci una password di almeno 8 caratteri.');return false}
   setBusy(true);err('');
-  api('login',{username:u,password:p}).then(function(x){enterApp(x.username||u,p)}).catch(function(e){err(e.message);clearPw();try{E('optykerAuthPassword').focus()}catch(z){}}).finally(function(){setBusy(false)});
+  api('login',{username:u,password:p}).then(function(x){enterApp(x.username||u,p)}).catch(function(e){err(e.message||'Password errata');clearPw();try{E('optykerAuthPassword').focus()}catch(z){}}).finally(function(){setBusy(false)});
   return false;
 }
 function forgotPassword(){
