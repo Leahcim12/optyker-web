@@ -74,8 +74,7 @@ function enhance(){enhanceServices();enhanceRules();bindNew()}
 function reload(){if(loading)return Promise.resolve();loading=true;return api('bootstrap',{}).then(function(x){CFG=x;enhance()}).finally(function(){loading=false})}
 function boot(){reload().catch(function(e){console.error(e)});setTimeout(enhance,150)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
-new MutationObserver(function(){setTimeout(enhance,20)}).observe(document.documentElement,{subtree:true,childList:true});
-setInterval(function(){if(!CFG)reload().catch(function(){});else enhance()},1800)
+window.addEventListener('pageshow',function(){setTimeout(enhance,100)})
 })();</script>'''
 
 h=s.find('</head>')
