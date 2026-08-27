@@ -16,7 +16,7 @@ style=r'''<style id="optykerSidebarClicksCss">/* OPTYKER_SIDEBAR_CLICKS_V1 */
 
 script=r'''<script id="optykerSidebarClicksJs">(function(){/* OPTYKER_SIDEBAR_CLICKS_V1 */
 function E(i){return document.getElementById(i)}
-var IDS=['navDashboard','navAppointments','navClients','navChat','navSheets','navAnalysis','navPrescription','navVisualExam','navIndications','navHearing','navOrders','navSettings'];
+var IDS=['navDashboard','navAppointments','navClients','navChat','navSheets','navAnalysis','navPrescription','navVisualExam','navIndications','navHearing','navOrders','navWhatsAppConnect','navSettings'];
 function sheets(on){var n=E('moduleNav'),a=E('sheetsSubmenu');if(!n||!a)return;n.classList.toggle('sheetsOpen',!!on);a.setAttribute('aria-hidden',on?'false':'true');var b=E('navSheets');if(b)b.classList.toggle('active',!!on)}
 function route(id){
   try{
