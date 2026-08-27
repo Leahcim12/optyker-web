@@ -30,6 +30,8 @@ function err(t,ok){var e=E('optykerLoginError');if(!e)return;e.textContent=t||''
 function api(action,data,token){data=data||{};data.action=action;var h={'Content-Type':'application/json'};if(token)h.Authorization='Bearer '+token;return fetch(AUTH,{method:'POST',headers:h,cache:'no-store',body:JSON.stringify(data)}).then(function(r){return r.json().catch(function(){return{ok:false,error:'Risposta non valida'}}).then(function(x){if(!r.ok||!x||x.ok===false)throw Error(x&&x.error||'Operazione non riuscita');return x})})}
 function build(){
   var form=document.querySelector('.optykerLoginCard'),sel=E('optykerLoginOperator');if(!form||!sel||E('optykerAuthFields'))return;
+  try{form.removeAttribute('onsubmit');form.onsubmit=null}catch(e){}
+  form.addEventListener('submit',function(ev){ev.preventDefault();ev.stopImmediatePropagation();return secureLogin()},true);
   var submit=form.querySelector('.optykerLoginButton');if(!submit)return;
   var box=document.createElement('div');box.id='optykerAuthFields';box.className='optykerAuthFields';box.innerHTML=
     '<div id="optykerAuthMode" class="optykerAuthMode"></div>'+
@@ -129,7 +131,9 @@ function doReset(){
   }).catch(function(e){err(e.message)}).finally(function(){setBusy(false)});
   return false;
 }
-window.optykerLogin=function(){return S.recovery?doReset():doLogin()};
+function secureLogin(){return S.recovery?doReset():doLogin()}
+window.optykerSecureLogin=secureLogin;
+window.optykerLogin=secureLogin;
 var oldShow=window.optykerShowLogin;
 window.optykerShowLogin=function(){
   try{if(window.OPTYKER_CLOUD){OPTYKER_CLOUD.username='';OPTYKER_CLOUD.password='';OPTYKER_CLOUD.clients=[]}}catch(e){}
