@@ -16,7 +16,7 @@ style=r'''<style id="optykerSidebarPointerNavCss">/* OPTYKER_SIDEBAR_POINTER_NAV
 
 script=r'''<script id="optykerSidebarPointerNavJs">(function(){/* OPTYKER_SIDEBAR_POINTER_NAV_V1 */
 var ROOTS=['dashboardPanel','analysisPanel','prescriptionPanel','visualExamPanel','indicationsPanel','hearingPanel','clientsPanel','onlineOrdersPanel','lacPanel','optykerChatPanel','optykerSettingsPanel','optykerAppointmentsPanel'];
-var IDS=['navDashboard','navAppointments','navClients','navChat','navSheets','navAnalysis','navPrescription','navVisualExam','navIndications','navHearing','navOrders','navSettings'];
+var IDS=['navDashboard','navAppointments','navClients','navChat','navSheets','navAnalysis','navPrescription','navVisualExam','navIndications','navHearing','navOrders','navWhatsAppConnect','navSettings'];
 var lastId='',lastAt=0;
 function E(i){return document.getElementById(i)}
 function active(id){IDS.forEach(function(x){var b=E(x);if(b&&x!=='navSheets')b.classList.toggle('active',x===id)})}
