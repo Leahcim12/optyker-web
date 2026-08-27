@@ -66,7 +66,7 @@ function applyStatus(x){
     if(confirm)confirm.style.display='none';
     if(emailWrap)emailWrap.style.display='none';
     if(pass)pass.autocomplete='current-password';
-    if(hint)hint.textContent='';
+    if(hint)hint.textContent='Inserisci username e password per accedere.';
     if(forgot)forgot.classList.toggle('show',!!x.has_email);
     if(btn)btn.textContent='ENTRA IN OPTYKER';
     setTimeout(function(){try{if(pass)pass.focus()}catch(e){}},50);
@@ -100,7 +100,7 @@ function doLogin(){
     if(p.length<8){err('La password deve avere almeno 8 caratteri.');return false}
     if(p!==p2){err('Le due password non coincidono.');return false}
     setBusy(true);err('');
-    api('initial',{username:u,email:'',password:p}).then(function(){return api('login',{username:u,password:p})}).then(function(x){enterApp(x.username||u,p)}).catch(function(e){err(e.message);clearPw()}).finally(function(){setBusy(false)});
+    api('initial',{username:u,email:'',password:p}).then(function(x){enterApp(x.username||u,p)}).catch(function(e){err(e.message);clearPw()}).finally(function(){setBusy(false)});
     return false;
   }
   if(p.length<8){err('Inserisci una password di almeno 8 caratteri.');return false}
