@@ -54,6 +54,7 @@ jobs:
             scripts/patch_appointments_v14_week_timeline.py \
             scripts/patch_appointments_v17_search.py \
             scripts/patch_shifts_v16_monthly.py \
+            scripts/patch_shifts_store_style_v19.py \
             scripts/patch_whatsapp_qr_connect.py \
             scripts/patch_whatsapp_qr_meta_fix.py \
             scripts/patch_whatsapp_simple_connect.py \
