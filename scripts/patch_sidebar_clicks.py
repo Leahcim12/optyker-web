@@ -22,7 +22,13 @@ function route(id){
   try{
     if(id==='navSheets'){var n=E('moduleNav');sheets(!(n&&n.classList.contains('sheetsOpen')));return}
     if(id==='navDashboard'&&typeof window.showDashboard==='function')window.showDashboard();
-    else if(id==='navAppointments'&&typeof window.optykerOpenAppointments==='function')window.optykerOpenAppointments();
+    else if(id==='navAppointments'){
+      var p=E('optykerAppointmentsPanel');
+      document.querySelectorAll('.panel').forEach(function(x){x.style.display='none'});
+      if(p)p.style.display='block';
+      if(typeof window.optykerAgendaDirectOpen==='function')window.optykerAgendaDirectOpen();
+      else if(typeof window.optykerOpenAppointments==='function')window.optykerOpenAppointments();
+    }
     else if(id==='navClients'&&typeof window.showModule==='function')window.showModule('clients');
     else if(id==='navChat'&&typeof window.optykerOpenChat==='function')window.optykerOpenChat();
     else if(id==='navAnalysis'&&typeof window.showModule==='function')window.showModule('analysis');
