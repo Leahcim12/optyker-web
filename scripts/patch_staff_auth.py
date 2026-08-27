@@ -17,6 +17,8 @@ css=r'''<style id="optykerStaffAuthCss">/* OPTYKER_STAFF_AUTH_V1 */
 .optykerForgot{display:none;width:100%;border:0;background:transparent;color:#1769aa;font-size:11px;font-weight:800;text-decoration:underline;cursor:pointer;padding:10px 0 0}
 .optykerForgot.show{display:block}.optykerLoginButton:disabled{opacity:.55;cursor:wait}
 .optykerAuthSuccess{color:#2f6e33!important}.optykerAuthWarn{color:#a15c00!important}
+.optykerRememberedUser{display:none;margin:8px 0 2px;font-size:11px;font-weight:800;color:#40566a;text-align:center}
+.optykerRememberedUser.show{display:block}.optykerChangeUser{display:none;width:100%;border:0;background:transparent;color:#1769aa;font-size:10px;font-weight:800;text-decoration:underline;cursor:pointer;padding:6px 0 0}.optykerChangeUser.show{display:block}
 </style>'''
 
 js=r'''<script id="optykerStaffAuthJs">(function(){/* OPTYKER_STAFF_AUTH_V1 */
@@ -36,15 +38,24 @@ function build(){
     '<div id="optykerAuthConfirmWrap" class="optykerAuthField" style="display:none"><label for="optykerAuthPassword2">Conferma password</label><input id="optykerAuthPassword2" type="password" minlength="8" maxlength="128" autocomplete="new-password"></div>'+
     '<div id="optykerAuthHint" class="optykerAuthHint"></div>';
   form.insertBefore(box,submit);
+  var remembered=document.createElement('div');remembered.id='optykerRememberedUser';remembered.className='optykerRememberedUser';submit.parentElement.insertBefore(remembered,box);
   var forgot=document.createElement('button');forgot.id='optykerForgot';forgot.className='optykerForgot';forgot.type='button';forgot.textContent='Password dimenticata?';submit.insertAdjacentElement('afterend',forgot);
+  var change=document.createElement('button');change.id='optykerChangeUser';change.className='optykerChangeUser';change.type='button';change.textContent='Cambia utente';forgot.insertAdjacentElement('afterend',change);
   sel.addEventListener('change',checkUser);
   forgot.onclick=forgotPassword;
+  change.onclick=forgetUser;
   E('optykerAuthPassword').addEventListener('keydown',function(ev){if(ev.key==='Enter'){ev.preventDefault();window.optykerLogin()}});
   E('optykerAuthPassword2').addEventListener('keydown',function(ev){if(ev.key==='Enter'){ev.preventDefault();window.optykerLogin()}});
   detectRecovery();
+  if(!S.recovery)setTimeout(restoreRemembered,0);
 }
 function setBusy(on){S.busy=!!on;var b=document.querySelector('.optykerLoginButton'),sel=E('optykerLoginOperator');if(b)b.disabled=!!on;if(sel)sel.disabled=!!on}
 function clearPw(){if(E('optykerAuthPassword'))E('optykerAuthPassword').value='';if(E('optykerAuthPassword2'))E('optykerAuthPassword2').value=''}
+function savedUser(){try{return T(localStorage.getItem('optyker_login_username')||'')}catch(e){return''}}
+function setSavedUser(u){try{if(u)localStorage.setItem('optyker_login_username',u);else localStorage.removeItem('optyker_login_username')}catch(e){}}
+function setRememberedUI(on,u){var sel=E('optykerLoginOperator'),wrap=sel&&sel.parentElement,lab=E('optykerRememberedUser'),chg=E('optykerChangeUser');if(wrap)wrap.style.display=on?'none':'';if(lab){lab.textContent=on&&u?'Accesso: '+u:'';lab.classList.toggle('show',!!on)}if(chg)chg.classList.toggle('show',!!on)}
+function restoreRemembered(){if(S.recovery)return;var sel=E('optykerLoginOperator'),u=savedUser();if(!sel||!u)return;var found='';for(var i=0;i<sel.options.length;i++){if(T(sel.options[i].value).toUpperCase()===u.toUpperCase()){found=sel.options[i].value;break}}if(!found){setSavedUser('');return}sel.value=found;setRememberedUI(true,found);checkUser()}
+function forgetUser(){setSavedUser('');S.status=null;S.mode='idle';clearPw();var sel=E('optykerLoginOperator'),box=E('optykerAuthFields'),forgot=E('optykerForgot');setRememberedUI(false,'');if(sel)sel.value='';if(box)box.classList.remove('show');if(forgot)forgot.classList.remove('show');err('');setTimeout(function(){try{if(sel)sel.focus()}catch(e){}},50)}
 function applyStatus(x){
   S.status=x||null;S.mode=x&&x.needs_password?'initial':'login';
   var box=E('optykerAuthFields'),mode=E('optykerAuthMode'),emailWrap=E('optykerAuthEmailWrap'),passWrap=E('optykerAuthPasswordWrap'),confirm=E('optykerAuthConfirmWrap'),hint=E('optykerAuthHint'),forgot=E('optykerForgot'),pass=E('optykerAuthPassword'),btn=document.querySelector('.optykerLoginButton');
@@ -66,9 +77,10 @@ function applyStatus(x){
     if(confirm)confirm.style.display='none';
     if(emailWrap)emailWrap.style.display='none';
     if(pass)pass.autocomplete='current-password';
-    if(hint)hint.textContent='Inserisci username e password per accedere.';
+    if(hint)hint.textContent=savedUser()?'Inserisci la password corretta per accedere.':'Inserisci username e password per accedere.';
     if(forgot)forgot.classList.toggle('show',!!x.has_email);
     if(btn)btn.textContent='ENTRA IN OPTYKER';
+    if(savedUser())setRememberedUI(true,x.username||T(E('optykerLoginOperator')&&E('optykerLoginOperator').value));
     setTimeout(function(){try{if(pass)pass.focus()}catch(e){}},50);
   }
 }
@@ -80,6 +92,7 @@ function checkUser(){
   setBusy(true);api('status',{username:u}).then(applyStatus).catch(function(e){err(e.message)}).finally(function(){setBusy(false)});
 }
 function enterApp(username,password){
+  setSavedUser(username);
   try{if(window.optykerSetActiveOperator)optykerSetActiveOperator(username)}catch(e){}
   try{if(window.OPTYKER_CLOUD){OPTYKER_CLOUD.username=username;OPTYKER_CLOUD.password=password;OPTYKER_CLOUD.clients=[];OPTYKER_CLOUD.sheets={};OPTYKER_CLOUD.consents={}}}catch(e){}
   window.optykerAuthenticated=true;err('');
@@ -142,7 +155,7 @@ var oldShow=window.optykerShowLogin;
 window.optykerShowLogin=function(){
   try{if(window.OPTYKER_CLOUD){OPTYKER_CLOUD.username='';OPTYKER_CLOUD.password='';OPTYKER_CLOUD.clients=[]}}catch(e){}
   S.status=null;S.mode='idle';S.recovery=false;S.recoveryToken='';clearPw();
-  var r=oldShow?oldShow.apply(this,arguments):false;setTimeout(function(){var b=E('optykerAuthFields'),f=E('optykerForgot');if(b)b.classList.remove('show');if(f)f.classList.remove('show')},0);return r
+  var r=oldShow?oldShow.apply(this,arguments):false;setTimeout(function(){var b=E('optykerAuthFields'),f=E('optykerForgot');if(b)b.classList.remove('show');if(f)f.classList.remove('show');if(!S.recovery)restoreRemembered()},0);return r
 };
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',build,{once:true});else build();
 })();</script>'''
