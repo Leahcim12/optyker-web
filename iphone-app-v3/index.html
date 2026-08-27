@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#ffffff">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Visual Care">
+  <title>Ottica Visual Care</title>
+  <link rel="manifest" href="./manifest.webmanifest?v=3">
+  <link rel="apple-touch-icon" href="../visualcare-logo.svg?v=3">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    :root{--blue:#1769aa;--navy:#11395d;--bg:#f4f7fa;--line:#dce6ee;--text:#19384d;--muted:#6d8291;--card:#fff;--danger:#b42318}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+    button,input{font:inherit}.hidden{display:none!important}
+    #app{height:100%;min-height:100dvh}
+    .center{height:100%;display:flex;align-items:center;justify-content:center;padding:24px}.spinner{width:34px;height:34px;border:3px solid #d7e4ee;border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+    .loginPage{min-height:100%;display:flex;align-items:center;justify-content:center;padding:28px 20px;background:#eef3f7}
+    .loginShell{width:100%;max-width:430px;background:#fff;border:1px solid #d6e0e8;border-radius:18px;padding:30px 28px 24px;box-shadow:0 18px 45px #17324a20;text-align:center}
+    .brandLogo{width:108px;height:82px;margin:0 auto 15px;border:1px solid #dbe4eb;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden}
+    .brandLogo img{width:82%;height:82%;object-fit:contain}.brandTitle{font-size:29px;font-weight:850;color:#122e47}.brandSub{margin-top:7px;color:#708194;font-size:10px;font-weight:800;letter-spacing:.8px}
+    .loginCard{border-top:1px solid #e0e7ef;margin-top:20px;padding-top:20px;text-align:left}.loginCard h2{text-align:center;margin:0 0 18px;font-size:18px;color:#173b58}
+    .label{display:block;font-size:11px;font-weight:750;color:#52677a;margin:12px 0 6px}.input{width:100%;height:44px;border:1px solid #c7d4e1;border-radius:9px;padding:0 12px;background:#fbfdff;color:var(--text)}
+    .primary{width:100%;height:44px;border:0;border-radius:10px;background:var(--blue);color:#fff;font-weight:900;margin-top:16px}.linkBtn{border:0;background:none;color:var(--blue);font-size:12px;font-weight:800;padding:11px;width:100%}
+    .loginFoot{font-size:10px;color:#81909d;margin-top:9px;text-align:center}.error{font-size:12px;color:var(--danger);text-align:center;margin-top:10px;min-height:17px}.authNotice{padding:14px;border-radius:12px;background:#edf7f1;border:1px solid #cde6d6;color:#245c3a;font-size:12px;line-height:1.5;text-align:center;margin:10px 0 4px}.authBack{margin-top:5px}
+    .shell{height:100%;min-height:100dvh;display:flex;flex-direction:column;background:var(--bg)}.content{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch}
+    .page{padding:16px 15px 92px;max-width:760px;margin:auto}.header{padding:8px 0 12px}.eyebrow{font-size:10px;letter-spacing:1.3px;font-weight:900;color:var(--blue)}h1{font-size:27px;line-height:1.1;color:var(--navy);margin:5px 0 3px}.sub{font-size:12px;color:var(--muted)}
+    .card{background:#fff;border:1px solid var(--line);border-radius:17px;padding:15px;margin-bottom:12px}.card h2{font-size:17px;color:var(--navy);margin:0 0 12px}.empty{padding:20px 10px;text-align:center;color:var(--muted);font-size:13px}
+    .tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:#fff;border-top:1px solid var(--line);display:flex;padding:6px 4px calc(6px + env(safe-area-inset-bottom));min-height:70px}
+    .tab{flex:1;border:0;background:none;color:#7a8d9a;font-weight:800;font-size:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}.tab .ico{font-size:21px}.tab.active{color:var(--blue)}
+    .rxSet{border:1px solid #e0e9f0;border-radius:14px;overflow:hidden;margin-top:10px}.rxTitle{padding:8px 12px;background:#edf5fb;color:var(--navy);font-size:11px;font-weight:900}.eyeGrid{display:grid;grid-template-columns:1fr;gap:9px;padding:9px}
+    .eye{border:1px solid #e5ecf1;border-radius:12px;padding:10px}.eyeTitle{color:var(--blue);font-size:15px;font-weight:900;margin-bottom:6px}.field{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #edf1f4;font-size:12px}.field b{color:var(--muted);font-size:11px}.field span{font-weight:800}
+    .gonio{width:100%;height:118px;margin-top:5px}.appt{border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:9px}.apptTop{display:flex;justify-content:space-between;gap:10px}.apptTime{font-weight:900;color:var(--blue)}.apptStatus{font-size:10px;color:var(--muted)}.apptTitle{font-weight:900;margin-top:6px}.apptMeta{font-size:10px;color:var(--muted);margin-top:4px}.apptActions{display:flex;gap:8px;margin-top:11px}.apptBtn{flex:1;border:1px solid #bfd0dc;background:#fff;color:var(--navy);border-radius:10px;padding:10px 8px;font-size:10px;font-weight:900}.apptBtn.primary{background:var(--blue);border-color:var(--blue);color:#fff}.apptBtn.danger{color:#a52a20;border-color:#e1b8b3;background:#fff7f6}
+    .action{display:block;width:100%;border:0;border-radius:12px;background:var(--blue);color:#fff;font-weight:900;padding:13px 15px;text-align:center;text-decoration:none}.secondary{background:#fff;color:var(--navy);border:1px solid #b9ccda}
+    .bookingFrame,.shopFrame{position:fixed;inset:0 0 calc(70px + env(safe-area-inset-bottom)) 0;width:100%;height:auto;border:0;background:#fff;z-index:5}.frameBar{position:fixed;z-index:8;top:0;left:0;right:0;height:54px;padding:8px 12px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}.frameBar button,.frameBar a{border:0;background:none;color:var(--blue);font-weight:850;text-decoration:none}.framePad{padding-top:54px}
+    .profileRow{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #edf1f4;font-size:12px}.profileRow b{color:var(--muted)}.profileRow span{text-align:right;font-weight:800}
+    .shopIntro{background:linear-gradient(135deg,#11395d,#1769aa);color:white;border-radius:18px;padding:18px;margin-bottom:12px}.shopIntro h2{margin:0 0 6px;font-size:22px}.shopIntro p{margin:0;color:#e3edf5;font-size:13px;line-height:1.5}
+    .shopSource{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--muted);margin:4px 0 14px}.shopSource:before{content:"";width:7px;height:7px;border-radius:50%;background:#2f9e62}
+    .shopRootGrid{display:grid;grid-template-columns:1fr;gap:12px}.shopRoot{border:0;border-radius:18px;padding:22px 18px;text-align:left;background:#fff;box-shadow:0 8px 24px #14375212;border:1px solid var(--line);min-height:126px}.shopRoot strong{display:block;color:var(--navy);font-size:21px;margin-bottom:7px}.shopRoot span{display:block;color:var(--muted);font-size:12px;line-height:1.4}.shopRoot .arrow{margin-top:17px;color:var(--blue);font-weight:900;font-size:12px}
+    .shopToolbar{display:flex;align-items:center;gap:8px;margin:0 0 10px}.shopBack{border:1px solid var(--line);background:#fff;color:var(--blue);border-radius:10px;padding:9px 11px;font-weight:850;font-size:11px}
+    .shopSubGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.shopSub{border:1px solid var(--line);background:#fff;border-radius:14px;padding:16px 12px;min-height:82px;color:var(--navy);font-weight:900;text-align:left}.shopSub small{display:block;margin-top:5px;color:var(--muted);font-weight:650;font-size:9px}
+    .productGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.productCard{border:1px solid var(--line);background:#fff;border-radius:15px;overflow:hidden;text-align:left;padding:0;box-shadow:0 5px 18px #1437520b}.productImage{width:100%;aspect-ratio:1/1;object-fit:contain;background:#fff;display:block}.productNoImage{width:100%;aspect-ratio:1/1;background:#f3f6f8;display:flex;align-items:center;justify-content:center;color:#93a3ae;font-size:10px}.productBody{padding:11px}.productTitle{font-size:12px;line-height:1.35;font-weight:850;color:var(--navy);min-height:33px}.productPrice{margin-top:8px;font-size:14px;font-weight:900;color:var(--text)}.productCompare{font-size:10px;text-decoration:line-through;color:#96a4ae;margin-left:5px}.productOpen{margin-top:7px;font-size:9px;color:var(--blue);font-weight:900}.shopLoading{padding:28px 0;text-align:center;color:var(--muted);font-size:12px}.loadMore{margin-top:14px}
+    @media(min-width:640px){.shopRootGrid{grid-template-columns:1fr 1fr}.shopSubGrid{grid-template-columns:repeat(3,minmax(0,1fr))}.productGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    .tiny{font-size:10px;color:var(--muted);line-height:1.45}.installNote{background:#fff7db;border:1px solid #f0df9a;border-radius:12px;padding:10px 12px;font-size:11px;color:#6c5a15;margin-bottom:12px}
+    @media(min-width:640px){.eyeGrid{grid-template-columns:1fr 1fr}}
+  </style>
+</head>
+<body>
+<div id="app"><div class="center"><div class="spinner"></div></div></div>
+<script>
+const U='https://whgziwaegjzqsgcntesr.supabase.co';
+const K='sb_publishable_DndhLvY32YeCmqWMNRi30g_dEDm8upv';
+const API=U+'/functions/v1/optyker-mobile-api';
+const APPT=U+'/functions/v1/optyker-mobile-appointments';
+const CUSTOMER_AUTH=U+'/functions/v1/optyker-customer-auth';
+const BOOKING_API=U+'/functions/v1/optyker-appointments-booking';
+const CATALOG=U+'/functions/v1/optyker-shop-catalog';
+const SHOP='https://otticavisualcare.it';
+const BOOK='../booking/?source=iphone-app';
+const sb=window.supabase.createClient(U,K,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const app=document.getElementById('app');
+let state={session:null,me:null,home:null,appointments:[],tab:'shop',frame:null,shopCategories:[],shopParent:null,shopCategory:null,shopProducts:[],shopPageInfo:null,shopLoading:false,shopError:''};
+
+function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function fmtDate(v){try{return new Intl.DateTimeFormat('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(v))}catch{return''}}
+function fmtTime(v){try{return new Intl.DateTimeFormat('it-IT',{hour:'2-digit',minute:'2-digit'}).format(new Date(v))}catch{return''}}
+function status(v){return v==='cancelled'?'Annullato':v==='completed'?'Completato':v==='no_show'?'Assente':'Confermato'}
+function money(v,c='EUR'){const n=Number(v);if(!Number.isFinite(n))return '';try{return new Intl.NumberFormat('it-IT',{style:'currency',currency:c||'EUR'}).format(n)}catch{return n.toFixed(2)+' €'}}
+function shopParent(){return (state.shopCategories||[]).find(x=>x.key===state.shopParent)||null}
+function shopChild(){const p=shopParent();return p?.children?.find(x=>x.key===state.shopCategory)||null}
+function shopMarkup(){
+  const cats=state.shopCategories||[];
+  if(!state.shopParent){
+    return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>Shop</h1><div class="sub">Scegli la categoria</div></div>
+      <div class="shopSource">Prodotti, prezzi e disponibilità aggiornati dal sito Shopify · APP 3.0</div>
+      <div class="shopRootGrid">${cats.map(c=>`<button class="shopRoot" onclick="chooseShopParent('${esc(c.key)}')"><strong>${esc(c.title)}</strong><span>${esc(c.subtitle||'')}</span><div class="arrow">Scegli →</div></button>`).join('')}</div></div>`;
+  }
+  const parent=shopParent();
+  if(!state.shopCategory){
+    return `<div class="page"><div class="shopToolbar"><button class="shopBack" onclick="shopBackRoot()">‹ Shop</button></div><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>${esc(parent?.title||'Shop')}</h1><div class="sub">${esc(parent?.subtitle||'Scegli una categoria')}</div></div>
+      <div class="shopSource">Collezioni collegate direttamente a otticavisualcare.it</div>
+      <div class="shopSubGrid">${(parent?.children||[]).map(c=>`<button class="shopSub" onclick="chooseShopCategory('${esc(c.key)}')">${esc(c.title)}<small>Apri prodotti</small></button>`).join('')}</div></div>`;
+  }
+  const child=shopChild();
+  const cards=(state.shopProducts||[]).map(p=>{
+    const img=p.image?`<img class="productImage" src="${esc(p.image)}" alt="${esc(p.image_alt||p.title)}" loading="lazy">`:'<div class="productNoImage">Immagine non disponibile</div>';
+    const min=money(p.min_price,p.currency),max=money(p.max_price,p.currency);
+    const price=min&&max&&min!==max?`${min} – ${max}`:min||max||'';
+    const compare=p.compare_at&&Number(p.compare_at)>Number(p.min_price)?`<span class="productCompare">${money(p.compare_at,p.currency)}</span>`:'';
+    return `<button class="productCard" onclick="openProduct('${encodeURIComponent(p.url||'')}','${encodeURIComponent(p.title||'Prodotto')}')">${img}<div class="productBody"><div class="productTitle">${esc(p.title)}</div><div class="productPrice">${price}${compare}</div><div class="productOpen">Apri nell’app →</div></div></button>`;
+  }).join('');
+  return `<div class="page"><div class="shopToolbar"><button class="shopBack" onclick="shopBackParent()">‹ ${esc(parent?.title||'Categorie')}</button></div><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>${esc(child?.title||'Prodotti')}</h1><div class="sub">Catalogo del sito</div></div>
+    <div class="shopSource">Aggiornamento diretto Shopify</div>
+    ${state.shopError?`<div class="error">${esc(state.shopError)}</div>`:''}
+    ${state.shopLoading&&!state.shopProducts.length?'<div class="shopLoading">Caricamento prodotti…</div>':`<div class="productGrid">${cards||'<div class="empty">Nessun prodotto disponibile.</div>'}</div>`}
+    ${state.shopPageInfo?.hasNextPage?`<button class="action secondary loadMore" onclick="loadMoreShop()" ${state.shopLoading?'disabled':''}>${state.shopLoading?'Caricamento…':'Mostra altri prodotti'}</button>`:''}
+  </div>`;
+}
+async function token(){const {data}=await sb.auth.getSession();return data?.session?.access_token||''}
+async function call(url,action,payload={}){const t=await token();const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','apikey':K,'Authorization':'Bearer '+t},body:JSON.stringify({action,payload})});const x=await r.json().catch(()=>({ok:false,error:'Risposta non valida'}));if(!r.ok||x?.ok===false)throw Error(x?.error||'Operazione non riuscita');return x}
+async function customerAuth(action,payload={}){const r=await fetch(CUSTOMER_AUTH,{method:'POST',headers:{'Content-Type':'application/json','apikey':K},body:JSON.stringify({action,...payload})});const x=await r.json().catch(()=>({ok:false,error:'Risposta non valida'}));if(!r.ok||x?.ok===false)throw Error(x?.error||'Operazione non riuscita');return x}
+
+function login(message='', presetEmail=''){
+  app.innerHTML=`<div class="loginPage"><div class="loginShell">
+    <div class="brandLogo"><img src="../visualcare-logo.svg?v=3" alt="Ottica Visual Care"></div>
+    <div class="brandTitle">Optyker</div><div class="brandSub">OTTICA VISUAL CARE · AREA CLIENTE</div>
+    <div class="loginCard"><h2>Accesso cliente</h2>
+      <label class="label">Email</label><input id="email" class="input" type="email" autocomplete="email" placeholder="nome@email.it" value="${esc(presetEmail)}">
+      <label class="label">Password</label><input id="password" class="input" type="password" autocomplete="current-password" placeholder="Password">
+      <button id="enter" class="primary">ENTRA</button>
+      <button id="forgot" class="linkBtn">Password dimenticata?</button>
+      <button id="register" class="linkBtn">Non hai ancora un account? Registrati</button>
+      <div id="err" class="error">${esc(message)}</div>
+      <div class="loginFoot">Accesso con account Optyker · nessuna password Shopify richiesta</div>
+    </div></div></div>`;
+  const err=document.getElementById('err');
+  document.getElementById('enter').onclick=async(e)=>{
+    e.currentTarget.disabled=true;
+    const email=document.getElementById('email').value.trim().toLowerCase(),password=document.getElementById('password').value;
+    if(!email||password.length<6){err.textContent='Inserisci email e password valide.';e.currentTarget.disabled=false;return}
+    err.textContent='Accesso in corso…';
+    const {error}=await sb.auth.signInWithPassword({email,password});
+    if(error){err.textContent=error.message;e.currentTarget.disabled=false;return}
+    await boot();
+  };
+  document.getElementById('register').onclick=()=>{
+    const email=document.getElementById('email').value.trim().toLowerCase();
+    registerScreen(email);
+  };
+  document.getElementById('forgot').onclick=()=>{
+    const email=document.getElementById('email').value.trim().toLowerCase();
+    forgotScreen(email);
+  };
+}
+
+function registerScreen(presetEmail=''){
+  app.innerHTML=`<div class="loginPage"><div class="loginShell">
+    <div class="brandLogo"><img src="${'../visualcare-logo.svg?v=3'}" alt="Ottica Visual Care"></div>
+    <div class="brandTitle">Optyker</div><div class="brandSub">OTTICA VISUAL CARE · AREA CLIENTE</div>
+    <div class="loginCard"><h2>Crea il tuo account</h2>
+      <div class="tiny" style="text-align:center;margin-bottom:14px">Inserisci gli stessi dati presenti nella tua scheda cliente Optyker.</div>
+      <label class="label">Email</label><input id="regEmail" class="input" type="email" autocomplete="email" placeholder="nome@email.it" value="${esc(presetEmail)}">
+      <label class="label">Nome</label><input id="regName" class="input" type="text" autocomplete="given-name" placeholder="Nome">
+      <label class="label">Cognome</label><input id="regSurname" class="input" type="text" autocomplete="family-name" placeholder="Cognome">
+      <label class="label">Telefono</label><input id="regPhone" class="input" type="tel" autocomplete="tel" placeholder="Numero di telefono">
+      <label class="label">Crea password</label><input id="regPassword" class="input" type="password" autocomplete="new-password" placeholder="Minimo 8 caratteri">
+      <label class="label">Ripeti password</label><input id="regPassword2" class="input" type="password" autocomplete="new-password" placeholder="Ripeti la password">
+      <button id="regGo" class="primary">CREA ACCOUNT</button>
+      <button id="regBack" class="linkBtn authBack">‹ Torna all’accesso</button>
+      <div id="regErr" class="error"></div>
+      <div class="loginFoot">Non viene usata alcuna password Shopify e non viene inviata alcuna email di conferma.</div>
+    </div></div></div>`;
+  document.getElementById('regBack').onclick=()=>login('',document.getElementById('regEmail').value);
+  document.getElementById('regGo').onclick=async(e)=>{
+    const btn=e.currentTarget,err=document.getElementById('regErr');
+    const email=document.getElementById('regEmail').value.trim().toLowerCase();
+    const name=document.getElementById('regName').value.trim();
+    const surname=document.getElementById('regSurname').value.trim();
+    const phone=document.getElementById('regPhone').value.trim();
+    const p1=document.getElementById('regPassword').value,p2=document.getElementById('regPassword2').value;
+    if(!email||name.length<2||surname.length<2||phone.replace(/\D/g,'').length<8||p1.length<8){err.textContent='Compila nome, cognome, email, telefono e una password di almeno 8 caratteri.';return}
+    if(p1!==p2){err.textContent='Le due password non coincidono.';return}
+    btn.disabled=true;btn.textContent='CREAZIONE ACCOUNT…';err.textContent='';
+    try{
+      await customerAuth('register',{email,name,surname,phone,password:p1});
+      const {error}=await sb.auth.signInWithPassword({email,password:p1});
+      if(error)throw error;
+      await boot();
+    }catch(ex){
+      err.textContent=ex?.message||'Impossibile creare l’account.';
+      btn.disabled=false;btn.textContent='CREA ACCOUNT';
+    }
+  };
+}
+
+function forgotScreen(presetEmail=''){
+  app.innerHTML=`<div class="loginPage"><div class="loginShell">
+    <div class="brandLogo"><img src="${'../visualcare-logo.svg?v=3'}" alt="Ottica Visual Care"></div>
+    <div class="brandTitle">Optyker</div><div class="brandSub">OTTICA VISUAL CARE · AREA CLIENTE</div>
+    <div class="loginCard"><h2>Crea nuova password</h2>
+      <div class="tiny" style="text-align:center;margin-bottom:14px">Verifica i dati della tua scheda Optyker e scegli subito una nuova password.</div>
+      <label class="label">Email</label><input id="forgotEmail" class="input" type="email" autocomplete="email" placeholder="nome@email.it" value="${esc(presetEmail)}">
+      <label class="label">Nome</label><input id="forgotName" class="input" type="text" autocomplete="given-name" placeholder="Nome">
+      <label class="label">Cognome</label><input id="forgotSurname" class="input" type="text" autocomplete="family-name" placeholder="Cognome">
+      <label class="label">Telefono</label><input id="forgotPhone" class="input" type="tel" autocomplete="tel" placeholder="Numero di telefono">
+      <label class="label">Nuova password</label><input id="forgotPwd1" class="input" type="password" autocomplete="new-password" placeholder="Minimo 8 caratteri">
+      <label class="label">Ripeti password</label><input id="forgotPwd2" class="input" type="password" autocomplete="new-password" placeholder="Ripeti la password">
+      <button id="forgotGo" class="primary">SALVA NUOVA PASSWORD</button>
+      <button id="forgotBack" class="linkBtn authBack">‹ Torna all’accesso</button>
+      <div id="forgotErr" class="error"></div>
+      <div class="loginFoot">Nessuna email di recupero necessaria.</div>
+    </div></div></div>`;
+  document.getElementById('forgotBack').onclick=()=>login('',document.getElementById('forgotEmail').value);
+  document.getElementById('forgotGo').onclick=async(e)=>{
+    const btn=e.currentTarget,err=document.getElementById('forgotErr');
+    const email=document.getElementById('forgotEmail').value.trim().toLowerCase();
+    const name=document.getElementById('forgotName').value.trim();
+    const surname=document.getElementById('forgotSurname').value.trim();
+    const phone=document.getElementById('forgotPhone').value.trim();
+    const p1=document.getElementById('forgotPwd1').value,p2=document.getElementById('forgotPwd2').value;
+    if(!email||name.length<2||surname.length<2||phone.replace(/\D/g,'').length<8||p1.length<8){err.textContent='Compila nome, cognome, email, telefono e una password di almeno 8 caratteri.';return}
+    if(p1!==p2){err.textContent='Le due password non coincidono.';return}
+    btn.disabled=true;btn.textContent='SALVATAGGIO…';err.textContent='';
+    try{
+      await customerAuth('reset',{email,name,surname,phone,password:p1});
+      const {error}=await sb.auth.signInWithPassword({email,password:p1});
+      if(error)throw error;
+      await boot();
+    }catch(ex){
+      err.textContent=ex?.message||'Impossibile aggiornare la password.';
+      btn.disabled=false;btn.textContent='SALVA NUOVA PASSWORD';
+    }
+  };
+}
+
+function authSuccess(title,text,email=''){
+  app.innerHTML=`<div class="loginPage"><div class="loginShell">
+    <div class="brandLogo"><img src="../visualcare-logo.svg?v=3" alt="Ottica Visual Care"></div>
+    <div class="brandTitle">Optyker</div><div class="brandSub">OTTICA VISUAL CARE · AREA CLIENTE</div>
+    <div class="loginCard"><h2>${esc(title)}</h2>
+      <div class="authNotice">${esc(text)}</div>
+      <button id="successBack" class="primary">TORNA ALL’ACCESSO</button>
+      <div class="loginFoot">${esc(email)}</div>
+    </div></div></div>`;
+  document.getElementById('successBack').onclick=()=>login('',email);
+}
+
+function newPasswordScreen(){
+  app.innerHTML=`<div class="loginPage"><div class="loginShell">
+    <div class="brandLogo"><img src="../visualcare-logo.svg?v=3" alt="Ottica Visual Care"></div>
+    <div class="brandTitle">Optyker</div><div class="brandSub">OTTICA VISUAL CARE · AREA CLIENTE</div>
+    <div class="loginCard"><h2>Crea nuova password</h2>
+      <label class="label">Nuova password</label><input id="newPwd1" class="input" type="password" autocomplete="new-password" placeholder="Minimo 6 caratteri">
+      <label class="label">Ripeti password</label><input id="newPwd2" class="input" type="password" autocomplete="new-password" placeholder="Ripeti la password">
+      <button id="newPwdGo" class="primary">SALVA NUOVA PASSWORD</button>
+      <div id="newPwdErr" class="error"></div>
+    </div></div></div>`;
+  document.getElementById('newPwdGo').onclick=async(e)=>{
+    const btn=e.currentTarget,err=document.getElementById('newPwdErr');
+    const p1=document.getElementById('newPwd1').value,p2=document.getElementById('newPwd2').value;
+    if(p1.length<6){err.textContent='La password deve avere almeno 6 caratteri.';return}
+    if(p1!==p2){err.textContent='Le due password non coincidono.';return}
+    btn.disabled=true;btn.textContent='SALVATAGGIO…';
+    const {error}=await sb.auth.updateUser({password:p1});
+    if(error){err.textContent=error.message;btn.disabled=false;btn.textContent='SALVA NUOVA PASSWORD';return}
+    authSuccess('Password aggiornata','La nuova password è stata salvata. Ora puoi accedere all’app.');
+  };
+}
+
+function gonio(axis,eye,intl){
+  const n=Number(String(axis??'').replace(',','.'));if(!Number.isFinite(n))return '<div class="tiny">Asse non disponibile</div>';
+  const v=Math.max(0,Math.min(180,Math.abs(n))),d=intl?180-v:v,rad=d*Math.PI/180,cx=100,cy=83,r=66,x=cx+52*Math.cos(rad),y=cy-52*Math.sin(rad);
+  const ticks=[0,45,90,135,180].map(t=>{const a=t*Math.PI/180,x1=cx+r*Math.cos(a),y1=cy-r*Math.sin(a),x2=cx+(r-8)*Math.cos(a),y2=cy-(r-8)*Math.sin(a),lx=cx+(r-18)*Math.cos(a),ly=cy-(r-18)*Math.sin(a)+3,lab=intl?180-t:t;return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#8a9ba8"/><text x="${lx}" y="${ly}" font-size="8" text-anchor="middle" fill="#6d8291">${lab}</text>`}).join('');
+  return `<svg class="gonio" viewBox="0 0 200 118"><path d="M34 83 A66 66 0 0 1 166 83" fill="none" stroke="#657d8f" stroke-width="1.5"/><line x1="31" y1="83" x2="169" y2="83" stroke="#657d8f"/>${ticks}<circle cx="100" cy="83" r="3.5" fill="#fff" stroke="#657d8f"/><line x1="100" y1="83" x2="${x}" y2="${y}" stroke="#1769aa" stroke-width="4" stroke-linecap="round"/><circle cx="${x}" cy="${y}" r="3" fill="#1769aa"/><text x="100" y="109" font-size="10" font-weight="800" text-anchor="middle" fill="#1769aa">${eye} AX ${Math.round(v)}°</text></svg>`;
+}
+function eyeBlock(eye,d,intl){d=d||{};return `<div class="eye"><div class="eyeTitle">${eye}</div>
+  <div class="field"><b>SF</b><span>${esc(d.sf||'—')}</span></div>
+  <div class="field"><b>CIL</b><span>${esc(d.cil||'—')}</span></div>
+  <div class="field"><b>ASSE</b><span>${d.axis?esc(d.axis)+'°':'—'}</span></div>
+  <div class="field"><b>ADD</b><span>${esc(d.add||'—')}</span></div>${gonio(d.axis,eye,intl)}</div>`}
+function prescription(){
+  const p=state.home?.prescription||{},rows=Array.isArray(p.rows)?p.rows:[];
+  if(!p.visible||!rows.length)return '<div class="empty">Nessuna prescrizione disponibile.</div>';
+  return (p.updated_at?`<div class="tiny">Ultima prescrizione aggiornata il ${fmtDate(p.updated_at)}</div>`:'')+rows.map((r,i)=>`<div class="rxSet"><div class="rxTitle">Diottrie ${esc(r.row||i+1)}</div><div class="eyeGrid">${eyeBlock('OD',r.od,false)}${eyeBlock('OS',r.os,String(p.axis_mode_os||'').toLowerCase()==='international')}</div></div>`).join('');
+}
+function appointments(){
+  const now=Date.now(),rows=(state.appointments||[]).filter(a=>a.status!=='cancelled'&&new Date(a.ends_at||a.starts_at).getTime()>now).sort((a,b)=>new Date(a.starts_at)-new Date(b.starts_at));
+  return rows.length?rows.map(a=>`<div class="appt"><div class="apptTop"><div class="apptTime">${fmtDate(a.starts_at)} · ${fmtTime(a.starts_at)}</div><div class="apptStatus">${status(a.status)}</div></div><div class="apptTitle">${esc(a.service_name||'Appuntamento')}</div><div class="apptMeta">${esc([a.operator_username,a.studio_name].filter(Boolean).join(' · '))}</div><div class="apptActions"><button class="apptBtn primary" onclick="modifyAppointment('${esc(a.manage_token||'')}')">Modifica</button><button class="apptBtn danger" onclick="deleteAppointment('${esc(a.manage_token||'')}')">Elimina</button></div></div>`).join(''):'<div class="empty">Non hai appuntamenti futuri.</div>';
+}
+function page(tab){
+  const c=state.home?.customer||state.me?.customer||{},name=(c.name||'').trim();
+  if(tab==='shop')return shopMarkup();
+  if(tab==='rx')return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>La mia prescrizione</h1><div class="sub">Ultima prescrizione disponibile</div></div><div class="card"><h2>Sfero · Cilindro · Asse · Addizione</h2>${prescription()}</div></div>`;
+  if(tab==='agenda')return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>Agenda</h1><div class="sub">I tuoi appuntamenti e nuove prenotazioni</div></div><div class="card"><h2>Prossimi appuntamenti</h2>${appointments()}</div><button class="action" onclick="openBooking()">Prenota un appuntamento</button></div>`;
+  return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>${esc(name?'Ciao '+name:'Il mio profilo')}</h1><div class="sub">Account cliente Optyker</div></div><div class="card"><h2>Dati cliente</h2>
+    <div class="profileRow"><b>Nome</b><span>${esc(c.name||'—')}</span></div><div class="profileRow"><b>Cognome</b><span>${esc(c.surname||'—')}</span></div><div class="profileRow"><b>Email</b><span>${esc(c.email||state.me?.email||'—')}</span></div><div class="profileRow"><b>Telefono</b><span>${esc(c.phone||'—')}</span></div>
+    <div class="profileRow"><b>Shopify</b><span>${c.shopify_customer_id?'Collegato tramite email':'Collegamento automatico via email'}</span></div></div><button class="action secondary" onclick="logout()">Esci</button></div>`;
+}
+function shell(){
+  app.innerHTML=`<div class="shell"><main id="content" class="content"></main><nav class="tabs">
+    <button class="tab" data-tab="shop"><span class="ico">▣</span>Shop</button>
+    <button class="tab" data-tab="rx"><span class="ico">◉</span>Prescrizione</button>
+    <button class="tab" data-tab="agenda"><span class="ico">◫</span>Agenda</button>
+    <button class="tab" data-tab="profile"><span class="ico">●</span>Profilo</button>
+  </nav></div>`;
+  document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;state.frame=null;render()});
+  render();
+}
+function render(){
+  const content=document.getElementById('content');if(!content)return;
+  content.innerHTML=page(state.tab);
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===state.tab));
+}
+window.chooseShopParent=(key)=>{state.shopParent=key;state.shopCategory=null;state.shopProducts=[];state.shopPageInfo=null;state.shopError='';render()};
+window.shopBackRoot=()=>{state.shopParent=null;state.shopCategory=null;state.shopProducts=[];state.shopPageInfo=null;state.shopError='';render()};
+window.shopBackParent=()=>{state.shopCategory=null;state.shopProducts=[];state.shopPageInfo=null;state.shopError='';render()};
+window.chooseShopCategory=async(key)=>{state.shopCategory=key;state.shopProducts=[];state.shopPageInfo=null;state.shopError='';state.shopLoading=true;render();try{const x=await call(CATALOG,'products',{category_key:key,first:24});state.shopProducts=x.data?.products||[];state.shopPageInfo=x.data?.pageInfo||null}catch(e){state.shopError=e?.message||'Impossibile caricare i prodotti.'}finally{state.shopLoading=false;render()}};
+window.loadMoreShop=async()=>{if(!state.shopCategory||!state.shopPageInfo?.hasNextPage||state.shopLoading)return;state.shopLoading=true;render();try{const x=await call(CATALOG,'products',{category_key:state.shopCategory,first:24,after:state.shopPageInfo.endCursor});state.shopProducts=[...(state.shopProducts||[]),...(x.data?.products||[])];state.shopPageInfo=x.data?.pageInfo||null}catch(e){state.shopError=e?.message||'Impossibile caricare altri prodotti.'}finally{state.shopLoading=false;render()}};
+window.openProduct=(encodedUrl,encodedTitle)=>{const url=decodeURIComponent(encodedUrl||'');const title=decodeURIComponent(encodedTitle||'Prodotto');if(!url)return;state.frame='product';app.insertAdjacentHTML('beforeend',`<div id="frameLayer"><div class="frameBar"><button onclick="closeFrame()">‹ Prodotti</button><b style="flex:1;color:#11395d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(title)}</b><span style="font-size:10px;font-weight:850;color:#1769aa">SHOP</span></div><iframe class="shopFrame framePad" src="${esc(url)}" title="${esc(title)}"></iframe></div>`) };
+window.openShop=()=>{state.frame='shop';app.insertAdjacentHTML('beforeend',`<div id="frameLayer"><div class="frameBar"><button onclick="closeFrame()">‹ Indietro</button><b style="flex:1;color:#11395d">Shop</b><a href="${SHOP}" target="_blank" rel="noopener">Safari</a></div><iframe class="shopFrame framePad" src="${SHOP}" title="Shop Ottica Visual Care"></iframe></div>`)};
+window.modifyAppointment=(token)=>{if(!token)return;const c=state.home?.customer||state.me?.customer||{},url=BOOK+'&manage_token='+encodeURIComponent(token)+'&action=reschedule&first_name='+encodeURIComponent(c.name||'')+'&last_name='+encodeURIComponent(c.surname||'')+'&email='+encodeURIComponent(c.email||state.me?.email||'')+'&phone='+encodeURIComponent(c.phone||'');state.frame='booking';app.insertAdjacentHTML('beforeend',`<div id="frameLayer"><div class="frameBar"><button onclick="closeFrame()">‹ Agenda</button><b style="flex:1;color:#11395d">Modifica appuntamento</b></div><iframe class="bookingFrame framePad" src="${url}" title="Modifica appuntamento"></iframe></div>`)};
+window.deleteAppointment=async(token)=>{if(!token)return;if(!confirm('Vuoi eliminare questo appuntamento?'))return;try{const r=await fetch(BOOKING_API+'?api=manage&token='+encodeURIComponent(token),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'cancel',payload:{}})});const x=await r.json().catch(()=>({ok:false,error:'Risposta non valida'}));if(!r.ok||x?.ok===false)throw Error(x?.error||'Impossibile eliminare l’appuntamento');const h=await call(APPT,'history');state.appointments=Array.isArray(h.data)?h.data:[];render()}catch(e){alert(e?.message||'Impossibile eliminare l’appuntamento')}};
+window.openBooking=()=>{const c=state.home?.customer||state.me?.customer||{},url=BOOK+'&first_name='+encodeURIComponent(c.name||'')+'&last_name='+encodeURIComponent(c.surname||'')+'&email='+encodeURIComponent(c.email||state.me?.email||'')+'&phone='+encodeURIComponent(c.phone||'');state.frame='booking';app.insertAdjacentHTML('beforeend',`<div id="frameLayer"><div class="frameBar"><button onclick="closeFrame()">‹ Agenda</button><b style="flex:1;color:#11395d">Prenota appuntamento</b></div><iframe class="bookingFrame framePad" src="${url}" title="Prenotazione appuntamento"></iframe></div>`)};
+window.closeFrame=async()=>{document.getElementById('frameLayer')?.remove();state.frame=null;if(state.tab==='agenda'){try{const x=await call(APPT,'history');state.appointments=Array.isArray(x.data)?x.data:[];render()}catch{}}};
+window.logout=async()=>{await sb.auth.signOut();state={session:null,me:null,home:null,appointments:[],tab:'shop',frame:null,shopCategories:[],shopParent:null,shopCategory:null,shopProducts:[],shopPageInfo:null,shopLoading:false,shopError:''};login()};
+
+async function boot(){
+  const {data}=await sb.auth.getSession();state.session=data.session||null;if(!state.session){login();return}
+  app.innerHTML='<div class="center"><div class="spinner"></div></div>';
+  try{
+    const [meX,homeX,apptX]=await Promise.all([call(API,'me'),call(API,'customer_home'),call(APPT,'history')]);
+    state.me=meX.data||null;
+    if(state.me?.role!=='customer')throw Error('Questa app è riservata ai clienti Ottica Visual Care.');
+    state.home=homeX.data||null;state.appointments=Array.isArray(apptX.data)?apptX.data:[];
+    try{const catX=await call(CATALOG,'categories');state.shopCategories=Array.isArray(catX.data)?catX.data:[]}catch(e){state.shopCategories=[];state.shopError='Catalogo temporaneamente non disponibile.'}
+    shell();
+  }catch(e){
+    if(/AUTH_|session/i.test(String(e.message))){await sb.auth.signOut();login('Sessione scaduta. Accedi di nuovo.')}else login(e.message||'Accesso non disponibile');
+  }
+}
+sb.auth.onAuthStateChange((event,session)=>{
+  if(event==='PASSWORD_RECOVERY'){newPasswordScreen();return}
+  if(event==='SIGNED_OUT'){login();return}
+  if(event==='SIGNED_IN'&&session&&!state.me)setTimeout(boot,0);
+});
+boot();
+</script>
+</body></html>
