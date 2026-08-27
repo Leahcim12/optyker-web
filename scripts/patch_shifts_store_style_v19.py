@@ -191,9 +191,9 @@ function enhance(){
   if(users)users.classList.add('oa16StoreVisualBase');
   if(store)store.classList.add('oa16StoreVisualBase');
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(enhance,250)});else setTimeout(enhance,250);
-window.addEventListener('pageshow',function(){setTimeout(enhance,180)});
-new MutationObserver(function(){setTimeout(enhance,30)}).observe(document.documentElement,{subtree:true,childList:true});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(enhance,120)});else setTimeout(enhance,120);
+window.addEventListener('pageshow',function(){setTimeout(enhance,80)});
+document.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('#oaModeShiftV7,#oa16Prev,#oa16Next,#oa16Refresh'):null;if(b)setTimeout(enhance,80)},true);
 })();</script>'''
 
 h=s.find('</head>')
