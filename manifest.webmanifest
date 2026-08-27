@@ -1,0 +1,17 @@
+{
+  "name": "Optyker - Ottica Visual Care",
+  "short_name": "Optyker",
+  "start_url": "/optyker-web/",
+  "scope": "/optyker-web/",
+  "display": "standalone",
+  "background_color": "#f4f7fa",
+  "theme_color": "#1769aa",
+  "icons": [
+    {
+      "src": "/optyker-web/visualcare-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
