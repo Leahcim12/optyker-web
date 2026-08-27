@@ -48,11 +48,11 @@ function fire(ev,b){
   ev.preventDefault();ev.stopPropagation();if(ev.stopImmediatePropagation)ev.stopImmediatePropagation();route(b.id)
 }
 function bind(){
-  IDS.forEach(function(id){var b=E(id);if(!b)return;b.removeAttribute('disabled');b.style.setProperty('pointer-events','auto','important');b.onpointerdown=function(ev){fire(ev,b)};b.onclick=function(ev){fire(ev,b)};});
+  IDS.forEach(function(id){var b=E(id);if(!b)return;b.removeAttribute('disabled');b.style.setProperty('pointer-events','auto','important');b.onpointerdown=null;b.onclick=null;});
   var n=E('moduleNav');if(n){n.style.setProperty('pointer-events','auto','important');n.style.setProperty('z-index','2147483000','important')}
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
-window.addEventListener('pageshow',bind);setTimeout(bind,100);setTimeout(bind,700);setTimeout(bind,1600);setInterval(bind,2500);
+window.addEventListener('pageshow',bind);setTimeout(bind,100);setTimeout(bind,700);
 })();</script>'''
 
 h=s.find('</head>')
