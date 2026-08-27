@@ -8,6 +8,19 @@ if MARK in s:
 if 'id="optykerLoginOperator"' not in s or 'optykerLoginCard' not in s:
     raise SystemExit('Login Optyker non trovato')
 
+import re
+legacy_pat=r"function optykerLogin\(\)\{[\s\S]*?\n\}\nfunction showDashboard\(\)\{"
+m=re.search(legacy_pat,s)
+if not m:
+    raise SystemExit('Login legacy Optyker non trovato')
+s=re.sub(
+    legacy_pat,
+    "function optykerLogin(){if(window.optykerSecureLogin)return window.optykerSecureLogin();return false;}\nfunction showDashboard(){",
+    s,
+    count=1
+)
+s=s.replace('onsubmit="return optykerLogin();"','onsubmit="return false;"')
+
 css=r'''<style id="optykerStaffAuthCss">/* OPTYKER_STAFF_AUTH_V1 */
 .optykerAuthFields{display:none;margin-top:12px}.optykerAuthFields.show{display:block}
 .optykerAuthField{margin-top:10px}.optykerAuthField label{display:block;font-size:12px;font-weight:800;color:#40566a;margin-bottom:5px}
