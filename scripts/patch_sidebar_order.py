@@ -31,6 +31,7 @@ nav='''
 {sub}
     </div>
     {orders}
+    {whatsapp}
     {settings}
   '''.format(
     dashboard=buttons['navDashboard'],agenda=buttons['navAppointments'],clients=buttons['navClients'],chat=buttons['navChat'],
