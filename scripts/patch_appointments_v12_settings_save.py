@@ -128,13 +128,7 @@ document.addEventListener('change',function(ev){
 },true);
 document.addEventListener('input',function(ev){var pane=E('optykerSettingsAgendaPane'),t=ev.target;if(pane&&t&&pane.contains(t)&&t.matches('input,select,textarea'))markDirty()},true);
 
-/* Il pulsante Agenda apre direttamente la sezione corretta, non la vecchia modale. */
-document.addEventListener('click',function(ev){
-  var t=ev.target&&ev.target.closest?ev.target.closest('#oaSettings'):null;
-  if(t){ev.preventDefault();ev.stopImmediatePropagation();openAgendaSettings();return}
-  var a=ev.target&&ev.target.closest?ev.target.closest('#optykerSettingsAgenda'):null;
-  if(a)setTimeout(function(){showAgendaPane();ensureSaveBar()},0)
-},true);
+/* V13 gestisce direttamente l'apertura delle impostazioni Agenda. */
 
 function boot(){
   ensureSaveBar();
