@@ -31,6 +31,7 @@ const OPTYKER_MOBILE_APPOINTMENTS_V3 = true;
 const OPTYKER_MOBILE_APPOINTMENTS_V4_STYLES = true;
 const SHOP_URL = 'https://otticavisualcare.it';
 const BOOKING_URL = 'https://leahcim12.github.io/optyker-web/booking/?source=app';
+const SHOPIFY_BOOKING_URL = 'https://otticavisualcare.it/pages/prenota-il-tuo-appuntamento-a-lallio';
 const OPTYKER_MOBILE_BOOKING_CALENDAR_V2 = true;
 
 const C = {
@@ -476,33 +477,91 @@ function AuthScreen({ onSignedIn }) {
     }
   }
 
+  async function forgotPassword() {
+    const e = email.trim().toLowerCase();
+    if (!e) {
+      Alert.alert('Password dimenticata', 'Inserisci prima la tua email.');
+      return;
+    }
+    try {
+      setBusy(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(e, {
+        redirectTo: 'https://leahcim12.github.io/optyker-web/iphone/',
+      });
+      if (error) throw error;
+      Alert.alert('Email inviata', 'Controlla la posta per reimpostare la password.');
+    } catch (e2) {
+      Alert.alert('Password dimenticata', e2.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <SafeAreaView style={styles.authBg}>
-      <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
-      <ScrollView contentContainerStyle={styles.authWrap} keyboardShouldPersistTaps="handled">
-        <View style={styles.logoMark}><Text style={styles.logoMarkText}>OVC</Text></View>
-        <Text style={styles.authBrand}>OTTICA VISUAL CARE</Text>
-        <Text style={styles.authTitle}>{mode === 'login' ? 'Accedi' : 'Crea il tuo account'}</Text>
-        <Text style={styles.authSub}>Appuntamenti, shop, prescrizioni, LAC, ordini e chat in un’unica app.</Text>
+      <StatusBar barStyle="dark-content" backgroundColor="#eef3f7" />
+      <ScrollView contentContainerStyle={styles.siteLoginScreen} keyboardShouldPersistTaps="handled">
+        <View style={styles.siteLoginShell}>
+          <View style={styles.siteLoginLogo}>
+            <Text style={styles.siteLoginLogoText}>OVC</Text>
+          </View>
+          <Text style={styles.siteLoginBrand}>Optyker</Text>
+          <Text style={styles.siteLoginProperty}>OTTICA VISUAL CARE · AREA CLIENTE</Text>
 
-        <View style={styles.authCard}>
-          <Text style={styles.inputLabel}>Email</Text>
-          <TextInput autoCapitalize="none" autoCorrect={false} keyboardType="email-address" value={email} onChangeText={setEmail} style={styles.input} placeholder="nome@email.it" />
-          <Text style={styles.inputLabel}>Password</Text>
-          <TextInput secureTextEntry value={password} onChangeText={setPassword} style={styles.input} placeholder="Minimo 6 caratteri" />
-          <Button title={busy ? 'Attendi…' : mode === 'login' ? 'Accedi' : 'Registrati'} onPress={submit} disabled={busy} />
-          <Pressable onPress={() => setMode(mode === 'login' ? 'register' : 'login')} style={{ padding: 12 }}>
-            <Text style={styles.linkText}>{mode === 'login' ? 'Non hai ancora un account? Registrati' : 'Hai già un account? Accedi'}</Text>
-          </Pressable>
+          <View style={styles.siteLoginCard}>
+            <Text style={styles.siteLoginTitle}>{mode === 'login' ? 'Accesso cliente' : 'Crea il tuo account'}</Text>
+
+            <Text style={styles.siteLoginLabel}>Email</Text>
+            <TextInput
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              value={email}
+              onChangeText={setEmail}
+              style={styles.siteLoginInput}
+              placeholder="nome@email.it"
+              placeholderTextColor="#8797a4"
+              textContentType="emailAddress"
+              autoComplete="email"
+            />
+
+            <Text style={styles.siteLoginLabel}>Password</Text>
+            <TextInput
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+              style={styles.siteLoginInput}
+              placeholder="Password"
+              placeholderTextColor="#8797a4"
+              textContentType="password"
+              autoComplete="password"
+              onSubmitEditing={submit}
+            />
+
+            <Pressable disabled={busy} onPress={submit} style={({ pressed }) => [styles.siteLoginButton, pressed && { opacity: 0.82 }, busy && { opacity: 0.55 }]}>
+              <Text style={styles.siteLoginButtonText}>{busy ? 'ATTENDI…' : mode === 'login' ? 'ENTRA' : 'CREA ACCOUNT'}</Text>
+            </Pressable>
+
+            {mode === 'login' && (
+              <Pressable disabled={busy} onPress={forgotPassword} style={styles.siteLoginLinkButton}>
+                <Text style={styles.siteLoginLink}>Password dimenticata?</Text>
+              </Pressable>
+            )}
+
+            <Pressable disabled={busy} onPress={() => setMode(mode === 'login' ? 'register' : 'login')} style={styles.siteLoginLinkButton}>
+              <Text style={styles.siteLoginLink}>{mode === 'login' ? 'Non hai ancora un account? Registrati' : 'Hai già un account? Accedi'}</Text>
+            </Pressable>
+
+            <Text style={styles.siteLoginFoot}>Accesso riservato ai clienti · Ottica Visual Care</Text>
+          </View>
         </View>
-        <Text style={styles.privacyNote}>L’accesso ai dati sanitari è consentito solo all’email associata alla tua anagrafica o a un operatore autorizzato.</Text>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 function CustomerApp({ me, onLogout }) {
-  const [tab, setTab] = useState('home');
+  const [tab, setTab] = useState('shop');
   const [home, setHome] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -558,14 +617,12 @@ function CustomerApp({ me, onLogout }) {
   const appointmentHistory = appointments
     .filter((a) => !futureAppointments.some((f) => f.id === a.id))
     .sort((a, b) => new Date(b.starts_at) - new Date(a.starts_at));
-  const newBookingUrl = `${BOOKING_URL}&first_name=${encodeURIComponent(customer.name || '')}&last_name=${encodeURIComponent(customer.surname || '')}&email=${encodeURIComponent(customer.email || me.email || '')}&phone=${encodeURIComponent(customer.phone || '')}`;
+  const newBookingUrl = `${SHOPIFY_BOOKING_URL}?source=app&first_name=${encodeURIComponent(customer.name || '')}&last_name=${encodeURIComponent(customer.surname || '')}&email=${encodeURIComponent(customer.email || me.email || '')}&phone=${encodeURIComponent(customer.phone || '')}`;
   const moveBookingUrl = (a) => `${BOOKING_URL}&manage_token=${encodeURIComponent(a.manage_token || '')}&action=reschedule`;
   const items = [
-    { key: 'home', label: 'Home', icon: '⌂' },
-    { key: 'booking', label: 'Appuntamenti', icon: '◫' },
     { key: 'shop', label: 'Shop', icon: '▣' },
-    { key: 'reorder', label: 'Riordina', icon: '↻' },
-    { key: 'chat', label: 'Chat', icon: '◌', badge: home?.unread_chat || 0 },
+    { key: 'rx', label: 'Prescrizione', icon: '◉' },
+    { key: 'booking', label: 'Agenda', icon: '◫' },
     { key: 'profile', label: 'Profilo', icon: '●' },
   ];
 
@@ -575,23 +632,17 @@ function CustomerApp({ me, onLogout }) {
     <SafeAreaView style={styles.app}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       <View style={{ flex: 1 }}>
-        {tab === 'home' && (
+        {tab === 'rx' && (
           <ScrollView
             style={styles.screen}
             contentContainerStyle={styles.screenContent}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(true); }} />}
           >
-            <AppHeader title={`Ciao ${customer.name || ''}`.trim()} subtitle="La tua area Ottica Visual Care" />
-            <View style={styles.heroCard}>
-              <Text style={styles.heroTitle}>La tua vista, sempre con te.</Text>
-              <Text style={styles.heroText}>Consulta la prescrizione, riordina le tue LAC e scrivici direttamente dall’app.</Text>
-            </View>
-            <Section title="Prescrizione">
+            <AppHeader title="La mia prescrizione" subtitle="Ultima prescrizione disponibile" />
+            <Section title="Sfero · Cilindro · Asse · Addizione">
               <PrescriptionCard prescription={home?.prescription} compact />
             </Section>
-            <Section title="Ultimi ordini">
-              {home?.orders?.length ? home.orders.slice(0, 5).map((o) => <OrderCard key={o.id} order={o} />) : <Empty title="Nessun ordine online" />}
-            </Section>
+            <Text style={styles.privacyNote}>I dati mostrati sono quelli associati alla tua ultima prescrizione presente in Optyker.</Text>
           </ScrollView>
         )}
 
@@ -600,7 +651,7 @@ function CustomerApp({ me, onLogout }) {
             <View style={{ flex: 1 }}>
               <View style={styles.webHeader}>
                 <Pressable onPress={() => { setBookingMode(''); loadAppointments(true); }}>
-                  <Text style={styles.back}>‹ I miei appuntamenti</Text>
+                  <Text style={styles.back}>‹ Agenda</Text>
                 </Pressable>
               </View>
               <WebView
@@ -623,7 +674,7 @@ function CustomerApp({ me, onLogout }) {
             </View>
           ) : (
             <ScrollView style={styles.screen} contentContainerStyle={styles.screenContent}>
-              <AppHeader title="I miei appuntamenti" subtitle="Visualizza, sposta o aggiungi una nuova prenotazione" />
+              <AppHeader title="Agenda" subtitle="I tuoi appuntamenti e nuove prenotazioni" />
               {appointmentsLoading ? <Loading label="Carico gli appuntamenti…" /> : (
                 <>
                   <Section title="Prossimi appuntamenti">
@@ -1448,6 +1499,21 @@ const styles = StyleSheet.create({
   buttonSecondaryText: { color: C.navy },
   input: { minHeight: 47, borderWidth: 1, borderColor: '#cbd9e4', borderRadius: 11, backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 10, color: C.text, fontSize: 14 },
   inputLabel: { color: C.navy, fontSize: 12, fontWeight: '800', marginBottom: 6, marginTop: 10 },
+  siteLoginScreen: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#eef3f7' },
+  siteLoginShell: { width: '100%', maxWidth: 430, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#d6e0e8', borderRadius: 16, paddingHorizontal: 34, paddingTop: 32, paddingBottom: 27, alignItems: 'center', shadowColor: '#17324a', shadowOpacity: 0.16, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 8 },
+  siteLoginLogo: { width: 112, height: 88, borderRadius: 12, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#dbe4eb', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  siteLoginLogoText: { color: C.blue, fontSize: 25, fontWeight: '900', letterSpacing: 1.5 },
+  siteLoginBrand: { fontSize: 31, fontWeight: '800', color: '#122e47', letterSpacing: -0.4 },
+  siteLoginProperty: { marginTop: 8, marginBottom: 19, fontSize: 9, fontWeight: '800', color: '#708194', letterSpacing: 0.8, textAlign: 'center' },
+  siteLoginCard: { width: '100%', borderTopWidth: 1, borderTopColor: '#e0e7ef', paddingTop: 21 },
+  siteLoginTitle: { textAlign: 'center', fontSize: 17, fontWeight: '800', color: '#173b58', marginBottom: 17 },
+  siteLoginLabel: { fontSize: 11, fontWeight: '700', color: '#52677a', marginBottom: 6 },
+  siteLoginInput: { width: '100%', height: 42, borderWidth: 1, borderColor: '#c7d4e1', borderRadius: 8, paddingHorizontal: 12, backgroundColor: '#fbfdff', color: C.text, fontSize: 14, marginBottom: 12 },
+  siteLoginButton: { width: '100%', height: 42, borderRadius: 9, backgroundColor: C.blue, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+  siteLoginButtonText: { color: '#fff', fontSize: 12, fontWeight: '900', letterSpacing: 0.4 },
+  siteLoginLinkButton: { paddingVertical: 10, alignItems: 'center' },
+  siteLoginLink: { color: C.blue, fontSize: 11, fontWeight: '800', textAlign: 'center' },
+  siteLoginFoot: { textAlign: 'center', color: '#81909d', fontSize: 10, marginTop: 10 },
   authBg: { flex: 1, backgroundColor: C.bg },
   authWrap: { flexGrow: 1, justifyContent: 'center', padding: 24, maxWidth: 520, width: '100%', alignSelf: 'center' },
   logoMark: { width: 72, height: 72, borderRadius: 20, backgroundColor: C.blue, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 14 },
