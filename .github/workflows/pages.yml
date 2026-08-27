@@ -63,7 +63,8 @@ jobs:
             scripts/patch_sidebar_pointer_nav.py \
             scripts/patch_whatsapp_nav_final.py \
             scripts/patch_hide_whatsapp_sidebar.py \
-            scripts/patch_staff_auth.py; do python "$f"; done
+            scripts/patch_staff_auth.py \
+            scripts/patch_agenda_v15_active_color.py; do python "$f"; done
 
           mkdir -p _site/staff-embed _site/booking
           cp staff-embed/index.html _site/staff-embed/index.html
