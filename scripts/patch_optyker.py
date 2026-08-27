@@ -129,6 +129,112 @@ setInterval(function(){wrapDashboard();if(isOpen())load(false)},60000);
 })();
 </script>\n''')
 
+
+SHOPDASH='OPTYKER_DASHBOARD_SHOPIFY_ORDERS_V1'
+if SHOPDASH not in s:
+    target='''        <button class="dashboardTodayOpenAgenda" type="button" onclick="optykerOpenAppointments()">Apri agenda</button>
+      </div>
+    </div>'''
+    replacement='''        <button class="dashboardTodayOpenAgenda" type="button" onclick="optykerOpenAppointments()">Apri agenda</button>
+      </div>
+
+      <div class="dashboardCard dashboardShopifyCard">
+        <div class="dashboardShopifyHead">
+          <div>
+            <div class="dashboardCardTitle">Ordini Shopify</div>
+            <div class="dashboardCardText">Ordini online ancora da gestire.</div>
+          </div>
+          <div id="dashboardShopifyCount" class="dashboardShopifyCount">—</div>
+        </div>
+        <div id="dashboardShopifyOrders" class="dashboardShopifyOrders">
+          <div class="dashboardShopifyEmpty">Caricamento ordini Shopify…</div>
+        </div>
+        <button class="dashboardShopifyOpen" type="button" onclick="openOnlineOrders()">Apri ordini</button>
+      </div>
+    </div>'''
+    if target not in s:
+        raise SystemExit('Scheda appuntamenti dashboard non trovata')
+    s=s.replace(target,replacement,1)
+
+    add_head('''\n<style id="optykerDashboardShopifyOrdersCss">/* OPTYKER_DASHBOARD_SHOPIFY_ORDERS_V1 */
+.dashboardMainRow{flex-wrap:wrap!important}
+.dashboardSearchCard{flex:1.45 1 430px!important}
+.dashboardTodayAppointmentsCard,.dashboardShopifyCard{flex:.8 1 320px!important;min-width:320px!important}
+.dashboardShopifyCard{display:flex!important;flex-direction:column!important;justify-content:flex-start!important;background:#fbfcff!important;border-color:#d9e2ec!important}
+.dashboardShopifyHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.dashboardShopifyCount{flex:0 0 auto;min-width:38px;height:38px;padding:0 10px;border-radius:12px;background:#eef4f8;color:#244c67;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;box-sizing:border-box}
+.dashboardShopifyOrders{border:1px solid #dce5ee;border-radius:11px;background:#fff;max-height:248px;overflow:auto;min-height:124px}
+.dashboardShopifyEmpty{min-height:122px;padding:18px;display:flex;align-items:center;justify-content:center;text-align:center;color:#748293;font-size:12px;line-height:1.45;box-sizing:border-box}
+.dashboardShopifyItem{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;border:0;border-bottom:1px solid #edf1f5;background:#fff;padding:11px 10px;text-align:left;color:#172b4d;cursor:pointer;font:inherit}
+.dashboardShopifyItem:last-child{border-bottom:0}.dashboardShopifyItem:hover{background:#f5f9fc}
+.dashboardShopifyInfo{min-width:0}.dashboardShopifyName{display:block;font-size:12px;font-weight:900;color:#17324a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dashboardShopifyMeta{display:block;margin-top:3px;font-size:9px;color:#6f7f8d;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dashboardShopifyDate{display:block;margin-top:3px;font-size:8px;color:#8a98a5}
+.dashboardShopifyAmount{text-align:right;font-size:12px;font-weight:900;color:#1769aa;white-space:nowrap}.dashboardShopifyStatus{display:block;margin-top:5px;font-size:8px;font-weight:900;color:#9b6820;background:#fff6e8;border:1px solid #f0dfbd;border-radius:999px;padding:4px 6px}
+.dashboardShopifyOpen{width:100%;border:0;border-radius:9px;background:#1769aa;color:#fff;padding:12px 15px;font-weight:850;cursor:pointer;margin-top:12px}.dashboardShopifyOpen:hover{background:#12598f}
+@media(max-width:850px){.dashboardShopifyCard,.dashboardTodayAppointmentsCard{min-width:0!important}.dashboardShopifyOrders{max-height:280px}}
+</style>\n''')
+
+    add_body_end('''\n<script id="optykerDashboardShopifyOrdersJs">
+(function(){/* OPTYKER_DASHBOARD_SHOPIFY_ORDERS_V1 */
+var S={busy:false,last:0};
+function E(i){return document.getElementById(i)}
+function X(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function money(v,c){var n=parseFloat(v||0);if(isNaN(n))n=0;try{return new Intl.NumberFormat('it-IT',{style:'currency',currency:c||'EUR'}).format(n)}catch(e){return '€ '+n.toFixed(2).replace('.',',')}}
+function dt(v){if(!v)return'';try{return new Date(v).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}catch(e){return String(v)}}
+function customer(o){var d=o&&o.data||{};if(typeof d==='string'){try{d=JSON.parse(d)}catch(e){d={}}}var c=d.customer||{};return o.client_name||d.customerName||[c.firstName||c.first_name,c.lastName||c.last_name].filter(Boolean).join(' ')||d.email||'Cliente online'}
+function isOpen(){var p=E('dashboardPanel');return !!(p&&getComputedStyle(p).display!=='none')}
+function render(rows){
+  rows=Array.isArray(rows)?rows:[];
+  var pending=rows.filter(function(o){return String(o.management_status||'new')==='new'}).sort(function(a,b){return new Date(b.order_date||0)-new Date(a.order_date||0)});
+  var box=E('dashboardShopifyOrders'),count=E('dashboardShopifyCount');if(!box)return;
+  if(count)count.textContent=String(pending.length);
+  if(!pending.length){box.innerHTML='<div class="dashboardShopifyEmpty">Nessun ordine Shopify da gestire.</div>';return}
+  box.innerHTML=pending.slice(0,6).map(function(o){
+    var fin=String(o.financial_status||'').toUpperCase(),ful=String(o.fulfillment_status||'').toUpperCase();
+    var state=fin==='PAID'?(ful==='FULFILLED'?'Pagato · evaso':'Pagato · da evadere'):(fin||'Da verificare');
+    return '<button type="button" class="dashboardShopifyItem" data-dashboard-shopify="'+X(o.order_name||o.shopify_order_id||'')+'"><span class="dashboardShopifyInfo"><span class="dashboardShopifyName">'+X(o.order_name||'Ordine Shopify')+' · '+X(customer(o))+'</span><span class="dashboardShopifyMeta">'+X(state)+'</span><span class="dashboardShopifyDate">'+X(dt(o.order_date))+'</span></span><span class="dashboardShopifyAmount">'+X(money(o.total,o.currency))+'<span class="dashboardShopifyStatus">DA FARE</span></span></button>'
+  }).join('');
+  box.querySelectorAll('[data-dashboard-shopify]').forEach(function(b){b.onclick=function(){openOrder(b.getAttribute('data-dashboard-shopify'))}})
+}
+function openOrder(key){
+  try{if(window.openOnlineOrders)window.openOnlineOrders()}catch(e){}
+  setTimeout(function(){
+    try{
+      if(window.onlineSwitchTab)window.onlineSwitchTab('new');
+      var q=E('onlineSearch');if(q)q.value=key||'';
+      if(window.onlineRenderCurrent)window.onlineRenderCurrent();
+    }catch(e){}
+  },120)
+}
+window.optykerDashboardOpenShopifyOrder=openOrder;
+function load(force){
+  var box=E('dashboardShopifyOrders');if(!box)return Promise.resolve();
+  if(S.busy)return Promise.resolve();
+  if(!window.OPTYKER_CLOUD||!OPTYKER_CLOUD.username||!OPTYKER_CLOUD.password){box.innerHTML='<div class="dashboardShopifyEmpty">Accedi per visualizzare gli ordini Shopify.</div>';var c=E('dashboardShopifyCount');if(c)c.textContent='—';return Promise.resolve()}
+  if(typeof window.optykerShopifyApi!=='function'){box.innerHTML='<div class="dashboardShopifyEmpty">Collegamento Shopify in caricamento…</div>';return Promise.resolve()}
+  if(!force&&Date.now()-S.last<30000)return Promise.resolve();
+  S.busy=true;box.innerHTML='<div class="dashboardShopifyEmpty">Caricamento ordini Shopify…</div>';
+  return window.optykerShopifyApi('list_orders',{}).then(function(x){S.last=Date.now();render(x&&x.data||[])}).catch(function(e){box.innerHTML='<div class="dashboardShopifyEmpty">'+X(e.message||'Impossibile caricare gli ordini Shopify.')+'</div>'}).finally(function(){S.busy=false})
+}
+window.optykerDashboardLoadShopify=function(force){return load(!!force)};
+function wrapDashboard(){
+  var old=window.showDashboard;if(typeof old!=='function'||old.__dashboardShopify)return;
+  var w=function(){var r=old.apply(this,arguments);setTimeout(function(){load(true)},40);return r};
+  w.__dashboardShopify=true;window.showDashboard=w
+}
+function wrapOrders(){
+  var old=window.onlineReload;if(typeof old!=='function'||old.__dashboardShopify)return;
+  var w=function(){var r=old.apply(this,arguments);setTimeout(function(){if(isOpen())load(true)},1400);return r};
+  w.__dashboardShopify=true;window.onlineReload=w
+}
+function boot(){wrapDashboard();wrapOrders();if(isOpen()){setTimeout(function(){load(true)},350);setTimeout(function(){load(true)},2800)}}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+window.addEventListener('pageshow',function(){setTimeout(boot,100)});
+document.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('#navDashboard,#optykerTopDashboardBtn'):null;if(b)setTimeout(function(){load(true)},120)},true);
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&isOpen())load(true)});
+setInterval(function(){wrapDashboard();wrapOrders();if(isOpen())load(false)},60000);
+})();
+</script>\n''')
+
 CHAT='OPTYKER_CUSTOMER_CHAT_UI_V3'
 if CHAT not in s:
     anchor='<button id="navClients" class="moduleBtn" type="button" onclick="showModule(\'clients\')">Clienti</button>'
@@ -174,7 +280,7 @@ function boot(){var t=E('optykerChatText');if(t)t.addEventListener('keydown',fun
 })();
 </script>\n''')
 
-for m in [DASH,TODAY,CHAT,'id="navChat"','id="optykerChatPanel"','optyker_chat_api','id="dashboardTodayAppointments"']:
+for m in [DASH,TODAY,SHOPDASH,CHAT,'id="navChat"','id="optykerChatPanel"','optyker_chat_api','id="dashboardTodayAppointments"','id="dashboardShopifyOrders"']:
     if m not in s: raise SystemExit('Patch incompleta: '+m)
 p.write_text(s,encoding='utf-8')
 print('Patch Optyker applicata:',len(s),'bytes')
