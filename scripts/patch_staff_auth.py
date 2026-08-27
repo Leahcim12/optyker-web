@@ -43,9 +43,10 @@ function err(t,ok){var e=E('optykerLoginError');if(!e)return;e.textContent=t||''
 function api(action,data,token){data=data||{};data.action=action;var h={'Content-Type':'application/json'};if(token)h.Authorization='Bearer '+token;return fetch(AUTH,{method:'POST',headers:h,cache:'no-store',body:JSON.stringify(data)}).then(function(r){return r.json().catch(function(){return{ok:false,error:'Risposta non valida'}}).then(function(x){if(!r.ok||!x||x.ok===false)throw Error(x&&x.error||'Operazione non riuscita');return x})})}
 function build(){
   var form=document.querySelector('.optykerLoginCard'),sel=E('optykerLoginOperator');if(!form||!sel||E('optykerAuthFields'))return;
-  try{form.removeAttribute('onsubmit');form.onsubmit=null}catch(e){}
-  form.addEventListener('submit',function(ev){ev.preventDefault();ev.stopImmediatePropagation();return secureLogin()},true);
+  try{form.removeAttribute('onsubmit');form.onsubmit=function(){return false}}catch(e){}
   var submit=form.querySelector('.optykerLoginButton');if(!submit)return;
+  submit.type='button';
+  submit.onclick=function(ev){if(ev){ev.preventDefault();ev.stopPropagation()}return secureLogin()};
   var box=document.createElement('div');box.id='optykerAuthFields';box.className='optykerAuthFields';box.innerHTML=
     '<div id="optykerAuthMode" class="optykerAuthMode"></div>'+
     '<div id="optykerAuthEmailWrap" class="optykerAuthField" style="display:none"><label for="optykerAuthEmail">Email associata</label><input id="optykerAuthEmail" type="email" autocomplete="email" spellcheck="false"><div id="optykerAuthEmailHint" class="optykerAuthHint"></div></div>'+
@@ -59,8 +60,8 @@ function build(){
   sel.addEventListener('change',checkUser);
   forgot.onclick=forgotPassword;
   change.onclick=forgetUser;
-  E('optykerAuthPassword').addEventListener('keydown',function(ev){if(ev.key==='Enter'){ev.preventDefault();window.optykerLogin()}});
-  E('optykerAuthPassword2').addEventListener('keydown',function(ev){if(ev.key==='Enter'){ev.preventDefault();window.optykerLogin()}});
+  E('optykerAuthPassword').addEventListener('keydown',function(ev){if(ev.key==='Enter'){ev.preventDefault();secureLogin()}});
+  E('optykerAuthPassword2').addEventListener('keydown',function(ev){if(ev.key==='Enter'){ev.preventDefault();secureLogin()}});
   detectRecovery();
   if(!S.recovery)setTimeout(restoreRemembered,0);
 }
@@ -163,6 +164,6 @@ b=s.rfind('</body>')
 if b<0: raise SystemExit('body non trovato')
 s=s[:b]+js+s[b:]
 p.write_text(s,encoding='utf-8')
-if MARK not in s or 'optyker-staff-auth' not in s or 'Password dimenticata?' not in s:
+if MARK not in s or 'optyker-staff-auth' not in s or 'Password dimenticata?' not in s or "submit.type='button'" not in s or 'return secureLogin()' not in s:
     raise SystemExit('Patch autenticazione incompleta')
 print('Optyker staff auth V1 OK')
