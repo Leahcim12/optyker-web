@@ -1,0 +1,47 @@
+name: Allinea app mobile
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/patch_mobile_staff_dashboard_v5.py'
+      - 'scripts/patch_mobile_appointments_v3.py'
+      - 'scripts/patch_mobile_appointments_v4_styles.py'
+      - '.github/workflows/patch-mobile-staff-dashboard.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: patch-mobile-staff-dashboard
+  cancel-in-progress: true
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Applica aggiornamenti app
+        run: |
+          set -e
+          python scripts/patch_mobile_appointments_v3.py
+          python scripts/patch_mobile_appointments_v4_styles.py
+          python scripts/patch_mobile_staff_dashboard_v5.py
+          grep -q 'OPTYKER_MOBILE_APPOINTMENTS_V3' mobile-app/App.js
+          grep -q 'OPTYKER_MOBILE_APPOINTMENTS_V4_STYLES' mobile-app/App.js
+          grep -q 'OPTYKER_MOBILE_STAFF_DASHBOARD_V5' mobile-app/App.js
+
+      - name: Salva App.js aggiornato
+        run: |
+          if git diff --quiet -- mobile-app/App.js; then
+            echo "App già aggiornata"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mobile-app/App.js
+          git commit -m "Allinea app mobile alla dashboard web"
+          git push
