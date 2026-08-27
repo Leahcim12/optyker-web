@@ -65,19 +65,20 @@ function directAgenda(){
   try{if(window.optykerAgendaBoot)Promise.resolve(window.optykerAgendaBoot(false)).then(function(){var b=E('oaReload');if(b)b.click()})}catch(e){console.error(e)}
   return false;
 }
+function defer(fn){setTimeout(function(){try{fn()}catch(e){console.error(e)}},0);return false}
 function route(id){
   installWrappers();
-  if(id==='navDashboard'&&window.showDashboard)return window.showDashboard();
-  if(id==='navAnalysis'&&window.showModule)return window.showModule('analysis');
-  if(id==='navPrescription'&&window.showModule)return window.showModule('prescription');
-  if(id==='navVisualExam'&&window.showModule)return window.showModule('visualexam');
-  if(id==='navIndications'&&window.showModule)return window.showModule('indications');
-  if(id==='navHearing'&&window.showModule)return window.showModule('hearing');
-  if(id==='navClients'&&window.showModule)return window.showModule('clients');
-  if(id==='navChat'&&window.optykerOpenChat)return window.optykerOpenChat();
-  if(id==='navAppointments')return directAgenda();
-  if(id==='navOrders'&&window.openOnlineOrders)return window.openOnlineOrders();
-  if(id==='navSettings'&&window.optykerOpenSettings)return window.optykerOpenSettings();
+  if(id==='navDashboard'){only('dashboardPanel','navDashboard');if(window.showDashboard)defer(function(){window.showDashboard()});return false}
+  if(id==='navAnalysis'){only('analysisPanel','navAnalysis');if(window.showModule)defer(function(){window.showModule('analysis')});return false}
+  if(id==='navPrescription'){only('prescriptionPanel','navPrescription');if(window.showModule)defer(function(){window.showModule('prescription')});return false}
+  if(id==='navVisualExam'){only('visualExamPanel','navVisualExam');if(window.showModule)defer(function(){window.showModule('visualexam')});return false}
+  if(id==='navIndications'){only('indicationsPanel','navIndications');if(window.showModule)defer(function(){window.showModule('indications')});return false}
+  if(id==='navHearing'){only('hearingPanel','navHearing');if(window.showModule)defer(function(){window.showModule('hearing')});return false}
+  if(id==='navClients'){only('clientsPanel','navClients');if(window.showModule)defer(function(){window.showModule('clients')});return false}
+  if(id==='navChat'){only('optykerChatPanel','navChat');if(window.optykerOpenChat)defer(function(){window.optykerOpenChat()});return false}
+  if(id==='navAppointments'){only('optykerAppointmentsPanel','navAppointments');defer(directAgenda);return false}
+  if(id==='navOrders'){only('onlineOrdersPanel','navOrders');if(window.openOnlineOrders)defer(function(){window.openOnlineOrders()});return false}
+  if(id==='navSettings'){only('optykerSettingsPanel','navSettings');if(window.optykerOpenSettings)defer(function(){window.optykerOpenSettings()});return false}
   return false;
 }
 function bindCapture(){
