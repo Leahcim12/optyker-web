@@ -90,7 +90,7 @@ function bindCapture(){
 }
 function boot(){installWrappers();bindCapture();var a=E('navAppointments');if(a){a.style.setProperty('pointer-events','auto','important');a.removeAttribute('disabled')}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
-setTimeout(boot,60);setTimeout(boot,700);setTimeout(boot,1500);setInterval(installWrappers,2500);
+setTimeout(boot,60);setTimeout(boot,700);
 })();</script>'''
 
 h=s.find('</head>')
