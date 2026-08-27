@@ -56,21 +56,6 @@ const app=document.getElementById('app');
 let state={session:null,me:null,home:null,appointments:[],tab:'shop',frame:null};
 
 function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-function authErrorText(error,kind=''){
-  const raw=String(error?.message||error||'').trim();
-  const code=String(error?.code||'').toLowerCase();
-  if(code==='over_email_send_rate_limit'||/email rate limit exceeded|security purposes.*after|rate limit/i.test(raw)){
-    return kind==='register'
-      ? 'È già stata richiesta una registrazione o una email di conferma. Non premere di nuovo: controlla Posta in arrivo e Spam. L’invio email è temporaneamente limitato.'
-      : 'È già stata richiesta una email per la nuova password. Non premere di nuovo: controlla Posta in arrivo e Spam. L’invio email è temporaneamente limitato.';
-  }
-  if(/email not confirmed/i.test(raw)) return 'Account creato: devi prima aprire l’email di conferma ricevuta.';
-  if(/invalid login credentials/i.test(raw)) return 'Email o password non corrette.';
-  return raw||'Operazione non riuscita.';
-}
-function cooldownKey(kind,email){return 'optyker_auth_'+kind+'_'+String(email||'').trim().toLowerCase()}
-function setAuthCooldown(kind,email,ms=15*60*1000){try{localStorage.setItem(cooldownKey(kind,email),String(Date.now()+ms))}catch(_){}}
-function authCooldownLeft(kind,email){try{return Math.max(0,Number(localStorage.getItem(cooldownKey(kind,email))||0)-Date.now())}catch(_){return 0}}
 function fmtDate(v){try{return new Intl.DateTimeFormat('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(v))}catch{return''}}
 function fmtTime(v){try{return new Intl.DateTimeFormat('it-IT',{hour:'2-digit',minute:'2-digit'}).format(new Date(v))}catch{return''}}
 function status(v){return v==='cancelled'?'Annullato':v==='completed'?'Completato':v==='no_show'?'Assente':'Confermato'}
@@ -97,7 +82,7 @@ function login(message='', presetEmail=''){
     if(!email||password.length<6){err.textContent='Inserisci email e password valide.';e.currentTarget.disabled=false;return}
     err.textContent='Accesso in corso…';
     const {error}=await sb.auth.signInWithPassword({email,password});
-    if(error){err.textContent=authErrorText(error,'login');e.currentTarget.disabled=false;return}
+    if(error){err.textContent=error.message;e.currentTarget.disabled=false;return}
     await boot();
   };
   document.getElementById('register').onclick=()=>{
@@ -130,19 +115,12 @@ function registerScreen(presetEmail=''){
     const p1=document.getElementById('regPassword').value,p2=document.getElementById('regPassword2').value;
     if(!email||p1.length<6){err.textContent='Inserisci una email valida e una password di almeno 6 caratteri.';return}
     if(p1!==p2){err.textContent='Le due password non coincidono.';return}
-    const wait=authCooldownLeft('register',email);
-    if(wait>0){err.textContent='Hai già richiesto la registrazione. Controlla l’email di conferma e lo Spam; non serve premere di nuovo.';return}
     btn.disabled=true;btn.textContent='REGISTRAZIONE…';err.textContent='';
     const redirect=location.origin+location.pathname;
     const {data,error}=await sb.auth.signUp({email,password:p1,options:{emailRedirectTo:redirect}});
-    if(error){
-      const msg=authErrorText(error,'register');
-      if(/temporaneamente limitato|già stata richiesta/i.test(msg)) setAuthCooldown('register',email);
-      err.textContent=msg;btn.disabled=false;btn.textContent='REGISTRATI';return
-    }
-    setAuthCooldown('register',email);
+    if(error){err.textContent=error.message;btn.disabled=false;btn.textContent='REGISTRATI';return}
     if(data.session){await boot();return}
-    authSuccess('Registrazione inviata','Ti abbiamo inviato una email di conferma. Aprila per attivare il tuo account Optyker. Non premere Registrati una seconda volta.',email);
+    authSuccess('Registrazione inviata','Ti abbiamo inviato una email di conferma. Aprila per attivare il tuo account Optyker.',email);
   };
 }
 
@@ -162,17 +140,16 @@ function forgotScreen(presetEmail=''){
     const btn=e.currentTarget,err=document.getElementById('forgotErr');
     const email=document.getElementById('forgotEmail').value.trim().toLowerCase();
     if(!email){err.textContent='Inserisci la tua email.';return}
-    const wait=authCooldownLeft('recovery',email);
-    if(wait>0){err.textContent='Hai già richiesto il recupero password. Controlla Posta in arrivo e Spam; non serve inviare altre richieste.';return}
     btn.disabled=true;btn.textContent='INVIO…';err.textContent='';
     const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
     if(error){
-      const msg=authErrorText(error,'recovery');
-      if(/temporaneamente limitato|già stata richiesta/i.test(msg)) setAuthCooldown('recovery',email);
-      err.textContent=msg;btn.disabled=false;btn.textContent='INVIA EMAIL';return;
+      if(/security purposes|rate limit|after/i.test(error.message||'')){
+        authSuccess('Email già richiesta','Per sicurezza puoi richiedere una nuova email tra circa un minuto. Controlla intanto la posta e anche lo spam.',email);
+        return;
+      }
+      err.textContent=error.message;btn.disabled=false;btn.textContent='INVIA EMAIL';return;
     }
-    setAuthCooldown('recovery',email);
-    authSuccess('Email inviata','Controlla la posta e anche lo Spam: troverai il link per creare una nuova password Optyker. Non richiederne un’altra.',email);
+    authSuccess('Email inviata','Controlla la posta: troverai il link per creare una nuova password Optyker.',email);
   };
 }
 
