@@ -28,15 +28,27 @@ function enforce(id){
     IDS.forEach(function(x){var b=E(x);if(b)b.classList.toggle('active',x===current)})
   }finally{guard=false}
 }
+function cleanupFor(id){
+  var report=E('reportSectionTop');
+  if(report){
+    var keep=id==='navClients'||id==='navAnalysis'||id==='navPrescription'||id==='navVisualExam'||id==='navIndications'||id==='navHearing';
+    if(!keep)report.style.display='none'
+  }
+}
+function selectId(id){
+  if(!id||IDS.indexOf(id)<0)return;
+  current=id;enforce(current);cleanupFor(current);
+  setTimeout(function(){enforce(current);cleanupFor(current)},0);
+  setTimeout(function(){enforce(current);cleanupFor(current)},80);
+  setTimeout(function(){enforce(current);cleanupFor(current)},250)
+}
 function clicked(ev){
   var t=ev.target&&ev.target.closest?ev.target.closest('#moduleNav .moduleBtn'):null;
-  if(!t||IDS.indexOf(t.id)<0)return;
-  current=t.id;
-  enforce(current);
-  setTimeout(function(){enforce(current)},0);
-  setTimeout(function(){enforce(current)},80);
-  setTimeout(function(){enforce(current)},250)
+  if(t&&IDS.indexOf(t.id)>=0){selectId(t.id);return}
+  var d=ev.target&&ev.target.closest?ev.target.closest('.topHomeBtn,[onclick*="showDashboard()"]'):null;
+  if(d){selectId('navDashboard');return}
 }
+document.addEventListener('pointerdown',clicked,true);
 document.addEventListener('click',clicked,true);
 function boot(){
   var nav=E('moduleNav');if(!nav)return;
