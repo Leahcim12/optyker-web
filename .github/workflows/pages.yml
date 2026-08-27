@@ -71,7 +71,7 @@ jobs:
             scripts/patch_single_active_nav_v18.py \
             scripts/patch_ios_pwa.py; do python "$f"; done
 
-          mkdir -p _site/staff-embed _site/booking _site/iphone _site/iphone-app _site/iphone-app-v2 _site/iphone-app-v3
+          mkdir -p _site/staff-embed _site/booking _site/iphone _site/iphone-app _site/iphone-app-v2 _site/iphone-app-v3 _site/iphone-app-v4
           cp staff-embed/index.html _site/staff-embed/index.html
           python scripts/patch_staff_whatsapp.py
           python scripts/patch_staff_appointments.py
@@ -83,6 +83,8 @@ jobs:
           cp iphone-app-v2/manifest.webmanifest _site/iphone-app-v2/manifest.webmanifest
           cp iphone-app-v3/index.html _site/iphone-app-v3/index.html
           cp iphone-app-v3/manifest.webmanifest _site/iphone-app-v3/manifest.webmanifest
+          cp iphone-app-v4/index.html _site/iphone-app-v4/index.html
+          cp iphone-app-v4/manifest.webmanifest _site/iphone-app-v4/manifest.webmanifest
           cp manifest.webmanifest _site/manifest.webmanifest
           cp visualcare-logo.svg _site/visualcare-logo.svg
           test -s _site/staff-embed/index.html
@@ -94,6 +96,8 @@ jobs:
           test -s _site/iphone-app-v2/manifest.webmanifest
           test -s _site/iphone-app-v3/index.html
           test -s _site/iphone-app-v3/manifest.webmanifest
+          test -s _site/iphone-app-v4/index.html
+          test -s _site/iphone-app-v4/manifest.webmanifest
           test -s _site/manifest.webmanifest
           test -s _site/visualcare-logo.svg
 
