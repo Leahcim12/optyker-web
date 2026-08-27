@@ -43,7 +43,7 @@ function build(){
   E('optykerAuthPassword2').addEventListener('keydown',function(ev){if(ev.key==='Enter'){ev.preventDefault();window.optykerLogin()}});
   detectRecovery();
 }
-function setBusy(on){S.busy=!!on;var b=document.querySelector('.optykerLoginButton'),sel=E('optykerLoginOperator');if(b)b.disabled=!!on||(S.mode==='initial'&&S.status&&!S.status.has_email);if(sel)sel.disabled=!!on}
+function setBusy(on){S.busy=!!on;var b=document.querySelector('.optykerLoginButton'),sel=E('optykerLoginOperator');if(b)b.disabled=!!on;if(sel)sel.disabled=!!on}
 function clearPw(){if(E('optykerAuthPassword'))E('optykerAuthPassword').value='';if(E('optykerAuthPassword2'))E('optykerAuthPassword2').value=''}
 function applyStatus(x){
   S.status=x||null;S.mode=x&&x.needs_password?'initial':'login';
@@ -53,13 +53,13 @@ function applyStatus(x){
     if(mode)mode.textContent='Primo accesso · crea la password';
     if(passWrap)passWrap.style.display='block';
     if(confirm)confirm.style.display='block';
-    if(emailWrap)emailWrap.style.display=x.has_email?'block':'none';
+    if(emailWrap)emailWrap.style.display='none';
     if(pass)pass.autocomplete='new-password';
     if(E('optykerAuthEmail'))E('optykerAuthEmail').value='';
-    if(E('optykerAuthEmailHint'))E('optykerAuthEmailHint').textContent=x.has_email?'Inserisci l’email associata ('+(x.email_masked||'')+').':'';
-    if(hint)hint.textContent=x.has_email?'Scegli almeno 8 caratteri. La password verrà richiesta a ogni nuovo accesso.':'Email non configurata per questo username.';
+    if(E('optykerAuthEmailHint'))E('optykerAuthEmailHint').textContent='';
+    if(hint)hint.textContent='Scegli almeno 8 caratteri. La password verrà richiesta a ogni nuovo accesso.';
     if(forgot)forgot.classList.remove('show');
-    if(btn)btn.textContent=x.has_email?'CREA PASSWORD E ACCEDI':'EMAIL DA CONFIGURARE';
+    if(btn)btn.textContent='CREA PASSWORD E ACCEDI';
   }else{
     if(mode)mode.textContent='Inserisci la password';
     if(passWrap)passWrap.style.display='block';
@@ -96,13 +96,11 @@ function doLogin(){
   if(!S.status){checkUser();return false}
   var p=String(E('optykerAuthPassword')&&E('optykerAuthPassword').value||'');
   if(S.mode==='initial'){
-    var p2=String(E('optykerAuthPassword2')&&E('optykerAuthPassword2').value||''),email=T(E('optykerAuthEmail')&&E('optykerAuthEmail').value);
-    if(!S.status.has_email){err('Email non configurata per questo username.');return false}
-    if(!email){err('Inserisci l’email associata allo username.');return false}
+    var p2=String(E('optykerAuthPassword2')&&E('optykerAuthPassword2').value||'');
     if(p.length<8){err('La password deve avere almeno 8 caratteri.');return false}
     if(p!==p2){err('Le due password non coincidono.');return false}
     setBusy(true);err('');
-    api('initial',{username:u,email:email,password:p}).then(function(){return api('login',{username:u,password:p})}).then(function(x){enterApp(x.username||u,p)}).catch(function(e){err(e.message);clearPw()}).finally(function(){setBusy(false)});
+    api('initial',{username:u,email:'',password:p}).then(function(){return api('login',{username:u,password:p})}).then(function(x){enterApp(x.username||u,p)}).catch(function(e){err(e.message);clearPw()}).finally(function(){setBusy(false)});
     return false;
   }
   if(p.length<8){err('Inserisci una password di almeno 8 caratteri.');return false}
