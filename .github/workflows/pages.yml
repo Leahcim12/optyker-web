@@ -55,6 +55,7 @@ jobs:
             scripts/patch_whatsapp_qr_connect.py \
             scripts/patch_whatsapp_qr_meta_fix.py \
             scripts/patch_whatsapp_simple_connect.py \
+            scripts/patch_whatsapp_meta_block_help.py \
             scripts/patch_exclusive_navigation.py \
             scripts/patch_sidebar_order.py \
             scripts/patch_sidebar_order_v2.py \
