@@ -38,7 +38,7 @@ function makeSheetsButton(){
   return b
 }
 function makeSub(){var a=E('sheetsSubmenu');if(a)return a;a=document.createElement('div');a.id='sheetsSubmenu';a.className='sheetsSubmenu';a.setAttribute('aria-hidden','true');return a}
-function move(nav,node){if(node&&node.parentNode!==nav)nav.appendChild(node);else if(node)nav.appendChild(node)}
+function move(nav,node){if(node&&node.parentNode!==nav)nav.appendChild(node)}
 function enforce(){
   if(working)return;working=true;
   try{
@@ -63,11 +63,10 @@ if(typeof oldInit==='function'&&!oldInit.__optykerSidebarV2){
   var wrapped=function(){var r=oldInit.apply(this,arguments);setTimeout(enforce,0);setTimeout(enforce,60);return r};
   wrapped.__optykerSidebarV2=true;wrapped.__original=oldInit;window.clientSidebarInit=wrapped;
 }
-function boot(){enforce();setTimeout(enforce,80);setTimeout(enforce,450);setTimeout(enforce,1200)}
+function watch(){var nav=E('moduleNav');if(!nav||nav.__optykerSidebarV2Watch)return;nav.__optykerSidebarV2Watch=true;new MutationObserver(function(){if(!working)requestAnimationFrame(enforce)}).observe(nav,{childList:true})}
+function boot(){enforce();watch();setTimeout(enforce,80);setTimeout(enforce,450)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 window.addEventListener('pageshow',boot);
-new MutationObserver(function(){setTimeout(enforce,0)}).observe(document.documentElement,{childList:true,subtree:true});
-setInterval(enforce,1200);
 })();</script>'''
 
 h=s.find('</head>')
