@@ -120,7 +120,11 @@ style=r'''<style id="optykerShiftsStoreStyleV19Css">/* OPTYKER_SHIFTS_STORE_STYL
   margin-top:3px!important;
 }
 
-/* hover identico ma discreto */
+/* cursore e hover identici sopra e sotto */
+#oa16UsersWrap .oa16Cell.clickable,
+#oa16StoreWrap .oa16Cell.storeClickable{
+  cursor:pointer!important;
+}
 #oa16UsersWrap .oa16Cell.clickable:hover,
 #oa16StoreWrap .oa16Cell.storeClickable:hover{
   outline:2px solid #79a7d8!important;
