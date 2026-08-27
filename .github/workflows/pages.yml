@@ -53,7 +53,8 @@ jobs:
             scripts/patch_sidebar_order.py \
             scripts/patch_sidebar_order_v2.py \
             scripts/patch_sidebar_clicks.py \
-            scripts/patch_sidebar_pointer_nav.py; do python "$f"; done
+            scripts/patch_sidebar_pointer_nav.py \
+            scripts/patch_staff_auth.py; do python "$f"; done
 
           mkdir -p _site/staff-embed _site/booking
           cp staff-embed/index.html _site/staff-embed/index.html
@@ -73,7 +74,7 @@ jobs:
                   if code.strip(): Path(f'_jscheck/{n}-{i}.js').write_text(code,encoding='utf-8')
           main=Path('_site/index.html').read_text(encoding='utf-8')
           booking=Path('_site/booking/index.html').read_text(encoding='utf-8')
-          required_main=['OPTYKER_APPOINTMENTS_UI_V9_GRAPHICS','OPTYKER_APPOINTMENTS_UI_V10_MANAGE','OPTYKER_APPOINTMENTS_UI_V11_SECURE','id="oaManageModal"','oaV10Save','oaV10Cancel','optyker-appointments-staff','id="navAppointments"']
+          required_main=['OPTYKER_APPOINTMENTS_UI_V9_GRAPHICS','OPTYKER_APPOINTMENTS_UI_V10_MANAGE','OPTYKER_APPOINTMENTS_UI_V11_SECURE','id="oaManageModal"','oaV10Save','oaV10Cancel','optyker-appointments-staff','id="navAppointments"','OPTYKER_STAFF_AUTH_V1','optyker-staff-auth','Password dimenticata?','optykerAuthPassword']
           required_booking=['I tuoi appuntamenti','Sposta','Aggiungi un altro','optyker_appointment_tokens_v2','Scegli lo studio disponibile']
           missing=[x for x in required_main if x not in main]+[x for x in required_booking if x not in booking]
           if missing: raise SystemExit('Mancano: '+', '.join(missing))
