@@ -184,11 +184,11 @@ function saveEdit(){
   if(!S.editing||S.busy)return;var status=E('oa16Status').value,p={date:S.editing.date,operator_username:S.editing.op,status:status,start_time:E('oa16S1').value,end_time:E('oa16E1').value,start_time_2:E('oa16S2').value,end_time_2:E('oa16E2').value,notes:E('oa16Notes').value};
   if(status==='work'&&((p.start_time&&!p.end_time)||(!p.start_time&&p.end_time)||((p.start_time_2&&!p.end_time_2)||(!p.start_time_2&&p.end_time_2)))){editMsg('Completa inizio e fine di ogni fascia.',true);return}
   S.busy=true;E('oa16Save').disabled=true;editMsg('Salvataggio…');
-  api('day_save',p).then(function(){clearCached(S.month)closeEdit();return load(true)}).catch(function(e){editMsg(e.message,true)}).finally(function(){S.busy=false;E('oa16Save').disabled=false})
+  api('day_save',p).then(function(){clearCached(S.month);closeEdit();return load(true)}).catch(function(e){editMsg(e.message,true)}).finally(function(){S.busy=false;E('oa16Save').disabled=false})
 }
 function clearEdit(){
   if(!S.editing||S.busy)return;S.busy=true;E('oa16Clear').disabled=true;editMsg('Ripristino…');
-  api('day_clear',{date:S.editing.date,operator_username:S.editing.op}).then(function(){clearCached(S.month)closeEdit();return load(true)}).catch(function(e){editMsg(e.message,true)}).finally(function(){S.busy=false;E('oa16Clear').disabled=false})
+  api('day_clear',{date:S.editing.date,operator_username:S.editing.op}).then(function(){clearCached(S.month);closeEdit();return load(true)}).catch(function(e){editMsg(e.message,true)}).finally(function(){S.busy=false;E('oa16Clear').disabled=false})
 }
 function exportRows(){
   if(!S.data)return[];var days=daysInMonth(S.month),rows=[['Utente']];for(var i=1;i<=days;i++)rows[0].push(i+' '+WD[new Date(parseMonth(S.month).getFullYear(),parseMonth(S.month).getMonth(),i).getDay()]);
@@ -214,10 +214,10 @@ function closeStoreEdit(){E('oa16StoreEdit').classList.remove('open');S.storeEdi
 function saveStoreEdit(){
   if(!S.storeEditing||S.busy)return;var p={date:S.storeEditing.date,active:E('oa16StoreActive').value==='true',start_time:E('oa16StoreS1').value,end_time:E('oa16StoreE1').value,start_time_2:E('oa16StoreS2').value,end_time_2:E('oa16StoreE2').value,notes:E('oa16StoreNotes').value};
   if(p.active&&((p.start_time&&!p.end_time)||(!p.start_time&&p.end_time)||((p.start_time_2&&!p.end_time_2)||(!p.start_time_2&&p.end_time_2)))){storeEditMsg('Completa inizio e fine di ogni fascia.',true);return}
-  S.busy=true;E('oa16StoreSave').disabled=true;storeEditMsg('Salvataggio…');api('store_day_save',p).then(function(){clearCached(S.month)closeStoreEdit();return load(true)}).catch(function(e){storeEditMsg(e.message,true)}).finally(function(){S.busy=false;E('oa16StoreSave').disabled=false})
+  S.busy=true;E('oa16StoreSave').disabled=true;storeEditMsg('Salvataggio…');api('store_day_save',p).then(function(){clearCached(S.month);closeStoreEdit();return load(true)}).catch(function(e){storeEditMsg(e.message,true)}).finally(function(){S.busy=false;E('oa16StoreSave').disabled=false})
 }
 function clearStoreEdit(){
-  if(!S.storeEditing||S.busy)return;S.busy=true;E('oa16StoreClear').disabled=true;storeEditMsg('Ripristino…');api('store_day_clear',{date:S.storeEditing.date}).then(function(){clearCached(S.month)closeStoreEdit();return load(true)}).catch(function(e){storeEditMsg(e.message,true)}).finally(function(){S.busy=false;E('oa16StoreClear').disabled=false})
+  if(!S.storeEditing||S.busy)return;S.busy=true;E('oa16StoreClear').disabled=true;storeEditMsg('Ripristino…');api('store_day_clear',{date:S.storeEditing.date}).then(function(){clearCached(S.month);closeStoreEdit();return load(true)}).catch(function(e){storeEditMsg(e.message,true)}).finally(function(){S.busy=false;E('oa16StoreClear').disabled=false})
 }
 function bindEditor(){
   E('oa16Status').onchange=toggleTimes;E('oa16Save').onclick=saveEdit;E('oa16Clear').onclick=clearEdit;E('oa16Cancel').onclick=closeEdit;E('oa16EditClose').onclick=closeEdit;E('oa16Edit').addEventListener('click',function(ev){if(ev.target===E('oa16Edit'))closeEdit()});
