@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Visual Care">
+  <title>Ottica Visual Care</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="../visualcare-logo.svg">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    :root{--blue:#1769aa;--navy:#11395d;--bg:#f4f7fa;--line:#dce6ee;--text:#19384d;--muted:#6d8291;--card:#fff;--danger:#b42318}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+    button,input{font:inherit}.hidden{display:none!important}
+    #app{height:100%;min-height:100dvh}
+    .center{height:100%;display:flex;align-items:center;justify-content:center;padding:24px}.spinner{width:34px;height:34px;border:3px solid #d7e4ee;border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+    .loginPage{min-height:100%;display:flex;align-items:center;justify-content:center;padding:28px 20px;background:#eef3f7}
+    .loginShell{width:100%;max-width:430px;background:#fff;border:1px solid #d6e0e8;border-radius:18px;padding:30px 28px 24px;box-shadow:0 18px 45px #17324a20;text-align:center}
+    .brandLogo{width:108px;height:82px;margin:0 auto 15px;border:1px solid #dbe4eb;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden}
+    .brandLogo img{width:82%;height:82%;object-fit:contain}.brandTitle{font-size:29px;font-weight:850;color:#122e47}.brandSub{margin-top:7px;color:#708194;font-size:10px;font-weight:800;letter-spacing:.8px}
+    .loginCard{border-top:1px solid #e0e7ef;margin-top:20px;padding-top:20px;text-align:left}.loginCard h2{text-align:center;margin:0 0 18px;font-size:18px;color:#173b58}
+    .label{display:block;font-size:11px;font-weight:750;color:#52677a;margin:12px 0 6px}.input{width:100%;height:44px;border:1px solid #c7d4e1;border-radius:9px;padding:0 12px;background:#fbfdff;color:var(--text)}
+    .primary{width:100%;height:44px;border:0;border-radius:10px;background:var(--blue);color:#fff;font-weight:900;margin-top:16px}.linkBtn{border:0;background:none;color:var(--blue);font-size:12px;font-weight:800;padding:11px;width:100%}
+    .loginFoot{font-size:10px;color:#81909d;margin-top:9px;text-align:center}.error{font-size:12px;color:var(--danger);text-align:center;margin-top:10px;min-height:17px}
+    .shell{height:100%;min-height:100dvh;display:flex;flex-direction:column;background:var(--bg)}.content{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch}
+    .page{padding:16px 15px 92px;max-width:760px;margin:auto}.header{padding:8px 0 12px}.eyebrow{font-size:10px;letter-spacing:1.3px;font-weight:900;color:var(--blue)}h1{font-size:27px;line-height:1.1;color:var(--navy);margin:5px 0 3px}.sub{font-size:12px;color:var(--muted)}
+    .card{background:#fff;border:1px solid var(--line);border-radius:17px;padding:15px;margin-bottom:12px}.card h2{font-size:17px;color:var(--navy);margin:0 0 12px}.empty{padding:20px 10px;text-align:center;color:var(--muted);font-size:13px}
+    .tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:#fff;border-top:1px solid var(--line);display:flex;padding:6px 4px calc(6px + env(safe-area-inset-bottom));min-height:70px}
+    .tab{flex:1;border:0;background:none;color:#7a8d9a;font-weight:800;font-size:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}.tab .ico{font-size:21px}.tab.active{color:var(--blue)}
+    .rxSet{border:1px solid #e0e9f0;border-radius:14px;overflow:hidden;margin-top:10px}.rxTitle{padding:8px 12px;background:#edf5fb;color:var(--navy);font-size:11px;font-weight:900}.eyeGrid{display:grid;grid-template-columns:1fr;gap:9px;padding:9px}
+    .eye{border:1px solid #e5ecf1;border-radius:12px;padding:10px}.eyeTitle{color:var(--blue);font-size:15px;font-weight:900;margin-bottom:6px}.field{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #edf1f4;font-size:12px}.field b{color:var(--muted);font-size:11px}.field span{font-weight:800}
+    .gonio{width:100%;height:118px;margin-top:5px}.appt{border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:9px}.apptTop{display:flex;justify-content:space-between;gap:10px}.apptTime{font-weight:900;color:var(--blue)}.apptStatus{font-size:10px;color:var(--muted)}.apptTitle{font-weight:900;margin-top:6px}.apptMeta{font-size:10px;color:var(--muted);margin-top:4px}
+    .action{display:block;width:100%;border:0;border-radius:12px;background:var(--blue);color:#fff;font-weight:900;padding:13px 15px;text-align:center;text-decoration:none}.secondary{background:#fff;color:var(--navy);border:1px solid #b9ccda}
+    .bookingFrame,.shopFrame{position:fixed;inset:0 0 calc(70px + env(safe-area-inset-bottom)) 0;width:100%;height:auto;border:0;background:#fff;z-index:5}.frameBar{position:fixed;z-index:8;top:0;left:0;right:0;height:54px;padding:8px 12px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}.frameBar button,.frameBar a{border:0;background:none;color:var(--blue);font-weight:850;text-decoration:none}.framePad{padding-top:54px}
+    .profileRow{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #edf1f4;font-size:12px}.profileRow b{color:var(--muted)}.profileRow span{text-align:right;font-weight:800}
+    .shopIntro{background:linear-gradient(135deg,#11395d,#1769aa);color:white;border-radius:18px;padding:18px;margin-bottom:12px}.shopIntro h2{margin:0 0 6px;font-size:22px}.shopIntro p{margin:0;color:#e3edf5;font-size:13px;line-height:1.5}
+    .tiny{font-size:10px;color:var(--muted);line-height:1.45}.installNote{background:#fff7db;border:1px solid #f0df9a;border-radius:12px;padding:10px 12px;font-size:11px;color:#6c5a15;margin-bottom:12px}
+    @media(min-width:640px){.eyeGrid{grid-template-columns:1fr 1fr}}
+  </style>
+</head>
+<body>
+<div id="app"><div class="center"><div class="spinner"></div></div></div>
+<script>
+const U='https://whgziwaegjzqsgcntesr.supabase.co';
+const K='sb_publishable_DndhLvY32YeCmqWMNRi30g_dEDm8upv';
+const API=U+'/functions/v1/optyker-mobile-api';
+const APPT=U+'/functions/v1/optyker-mobile-appointments';
+const SHOP='https://otticavisualcare.it';
+const BOOK='../booking/?source=iphone-app';
+const sb=window.supabase.createClient(U,K,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const app=document.getElementById('app');
+let state={session:null,me:null,home:null,appointments:[],tab:'shop',frame:null};
+
+function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function fmtDate(v){try{return new Intl.DateTimeFormat('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(v))}catch{return''}}
+function fmtTime(v){try{return new Intl.DateTimeFormat('it-IT',{hour:'2-digit',minute:'2-digit'}).format(new Date(v))}catch{return''}}
+function status(v){return v==='cancelled'?'Annullato':v==='completed'?'Completato':v==='no_show'?'Assente':'Confermato'}
+async function token(){const {data}=await sb.auth.getSession();return data?.session?.access_token||''}
+async function call(url,action,payload={}){const t=await token();const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','apikey':K,'Authorization':'Bearer '+t},body:JSON.stringify({action,payload})});const x=await r.json().catch(()=>({ok:false,error:'Risposta non valida'}));if(!r.ok||x?.ok===false)throw Error(x?.error||'Operazione non riuscita');return x}
+
+function login(message=''){
+  app.innerHTML=`<div class="loginPage"><div class="loginShell">
+    <div class="brandLogo"><img src="../visualcare-logo.svg" alt="Visual Care"></div>
+    <div class="brandTitle">Optyker</div><div class="brandSub">OTTICA VISUAL CARE · AREA CLIENTE</div>
+    <div class="loginCard"><h2>Accesso cliente</h2>
+      <label class="label">Email</label><input id="email" class="input" type="email" autocomplete="email" placeholder="nome@email.it">
+      <label class="label">Password</label><input id="password" class="input" type="password" autocomplete="current-password" placeholder="Password">
+      <button id="enter" class="primary">ENTRA</button>
+      <button id="forgot" class="linkBtn">Password dimenticata?</button>
+      <button id="register" class="linkBtn">Non hai ancora un account? Registrati</button>
+      <div id="err" class="error">${esc(message)}</div>
+      <div class="loginFoot">Accesso con account Optyker · nessuna password Shopify richiesta</div>
+    </div></div></div>`;
+  const err=document.getElementById('err');
+  document.getElementById('enter').onclick=async()=>{
+    const email=document.getElementById('email').value.trim().toLowerCase(),password=document.getElementById('password').value;
+    if(!email||password.length<6){err.textContent='Inserisci email e password valide.';return}
+    err.textContent='Accesso…';
+    const {error}=await sb.auth.signInWithPassword({email,password});
+    if(error){err.textContent=error.message;return}
+    await boot();
+  };
+  document.getElementById('register').onclick=async()=>{
+    const email=document.getElementById('email').value.trim().toLowerCase(),password=document.getElementById('password').value;
+    if(!email||password.length<6){err.textContent='Inserisci email e una password di almeno 6 caratteri.';return}
+    err.textContent='Registrazione…';
+    const {data,error}=await sb.auth.signUp({email,password});
+    if(error){err.textContent=error.message;return}
+    err.textContent=data.session?'Account creato.':'Controlla la tua email per confermare l’account.';
+    if(data.session)await boot();
+  };
+  document.getElementById('forgot').onclick=async()=>{
+    const email=document.getElementById('email').value.trim().toLowerCase();
+    if(!email){err.textContent='Inserisci prima la tua email.';return}
+    const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+    err.textContent=error?error.message:'Email per il recupero password inviata.';
+  };
+}
+
+function gonio(axis,eye,intl){
+  const n=Number(String(axis??'').replace(',','.'));if(!Number.isFinite(n))return '<div class="tiny">Asse non disponibile</div>';
+  const v=Math.max(0,Math.min(180,Math.abs(n))),d=intl?180-v:v,rad=d*Math.PI/180,cx=100,cy=83,r=66,x=cx+52*Math.cos(rad),y=cy-52*Math.sin(rad);
+  const ticks=[0,45,90,135,180].map(t=>{const a=t*Math.PI/180,x1=cx+r*Math.cos(a),y1=cy-r*Math.sin(a),x2=cx+(r-8)*Math.cos(a),y2=cy-(r-8)*Math.sin(a),lx=cx+(r-18)*Math.cos(a),ly=cy-(r-18)*Math.sin(a)+3,lab=intl?180-t:t;return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#8a9ba8"/><text x="${lx}" y="${ly}" font-size="8" text-anchor="middle" fill="#6d8291">${lab}</text>`}).join('');
+  return `<svg class="gonio" viewBox="0 0 200 118"><path d="M34 83 A66 66 0 0 1 166 83" fill="none" stroke="#657d8f" stroke-width="1.5"/><line x1="31" y1="83" x2="169" y2="83" stroke="#657d8f"/>${ticks}<circle cx="100" cy="83" r="3.5" fill="#fff" stroke="#657d8f"/><line x1="100" y1="83" x2="${x}" y2="${y}" stroke="#1769aa" stroke-width="4" stroke-linecap="round"/><circle cx="${x}" cy="${y}" r="3" fill="#1769aa"/><text x="100" y="109" font-size="10" font-weight="800" text-anchor="middle" fill="#1769aa">${eye} AX ${Math.round(v)}°</text></svg>`;
+}
+function eyeBlock(eye,d,intl){d=d||{};return `<div class="eye"><div class="eyeTitle">${eye}</div>
+  <div class="field"><b>SF</b><span>${esc(d.sf||'—')}</span></div>
+  <div class="field"><b>CIL</b><span>${esc(d.cil||'—')}</span></div>
+  <div class="field"><b>ASSE</b><span>${d.axis?esc(d.axis)+'°':'—'}</span></div>
+  <div class="field"><b>ADD</b><span>${esc(d.add||'—')}</span></div>${gonio(d.axis,eye,intl)}</div>`}
+function prescription(){
+  const p=state.home?.prescription||{},rows=Array.isArray(p.rows)?p.rows:[];
+  if(!p.visible||!rows.length)return '<div class="empty">Nessuna prescrizione disponibile.</div>';
+  return (p.updated_at?`<div class="tiny">Ultima prescrizione aggiornata il ${fmtDate(p.updated_at)}</div>`:'')+rows.map((r,i)=>`<div class="rxSet"><div class="rxTitle">Diottrie ${esc(r.row||i+1)}</div><div class="eyeGrid">${eyeBlock('OD',r.od,false)}${eyeBlock('OS',r.os,String(p.axis_mode_os||'').toLowerCase()==='international')}</div></div>`).join('');
+}
+function appointments(){
+  const now=Date.now(),rows=(state.appointments||[]).filter(a=>a.status!=='cancelled'&&new Date(a.ends_at||a.starts_at).getTime()>now).sort((a,b)=>new Date(a.starts_at)-new Date(b.starts_at));
+  return rows.length?rows.map(a=>`<div class="appt"><div class="apptTop"><div class="apptTime">${fmtDate(a.starts_at)} · ${fmtTime(a.starts_at)}</div><div class="apptStatus">${status(a.status)}</div></div><div class="apptTitle">${esc(a.service_name||'Appuntamento')}</div><div class="apptMeta">${esc([a.operator_username,a.studio_name].filter(Boolean).join(' · '))}</div></div>`).join(''):'<div class="empty">Non hai appuntamenti futuri.</div>';
+}
+function page(tab){
+  const c=state.home?.customer||state.me?.customer||{},name=(c.name||'').trim();
+  if(tab==='shop')return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>Shop</h1><div class="sub">Acquista direttamente dal nostro negozio online</div></div>
+    <div class="shopIntro"><h2>Il nostro Shop</h2><p>Occhiali, lenti a contatto, accessori e prodotti Ottica Visual Care.</p></div>
+    <button class="action" onclick="openShop()">Apri lo Shop</button><div class="tiny" style="margin-top:10px;text-align:center">Lo Shop ufficiale viene aperto all’interno dell’app quando possibile.</div></div>`;
+  if(tab==='rx')return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>La mia prescrizione</h1><div class="sub">Ultima prescrizione disponibile</div></div><div class="card"><h2>Sfero · Cilindro · Asse · Addizione</h2>${prescription()}</div></div>`;
+  if(tab==='agenda')return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>Agenda</h1><div class="sub">I tuoi appuntamenti e nuove prenotazioni</div></div><div class="card"><h2>Prossimi appuntamenti</h2>${appointments()}</div><button class="action" onclick="openBooking()">Prenota un appuntamento</button></div>`;
+  return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>${esc(name?'Ciao '+name:'Il mio profilo')}</h1><div class="sub">Account cliente Optyker</div></div><div class="card"><h2>Dati cliente</h2>
+    <div class="profileRow"><b>Nome</b><span>${esc([c.name,c.surname].filter(Boolean).join(' ')||'—')}</span></div><div class="profileRow"><b>Email</b><span>${esc(c.email||state.me?.email||'—')}</span></div><div class="profileRow"><b>Telefono</b><span>${esc(c.phone||'—')}</span></div>
+    <div class="profileRow"><b>Shopify</b><span>${c.shopify_customer_id?'Collegato tramite email':'Collegamento automatico via email'}</span></div></div><button class="action secondary" onclick="logout()">Esci</button></div>`;
+}
+function shell(){
+  app.innerHTML=`<div class="shell"><main id="content" class="content"></main><nav class="tabs">
+    <button class="tab" data-tab="shop"><span class="ico">▣</span>Shop</button>
+    <button class="tab" data-tab="rx"><span class="ico">◉</span>Prescrizione</button>
+    <button class="tab" data-tab="agenda"><span class="ico">◫</span>Agenda</button>
+    <button class="tab" data-tab="profile"><span class="ico">●</span>Profilo</button>
+  </nav></div>`;
+  document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;state.frame=null;render()});
+  render();
+}
+function render(){
+  const content=document.getElementById('content');if(!content)return;
+  content.innerHTML=page(state.tab);
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===state.tab));
+}
+window.openShop=()=>{state.frame='shop';app.insertAdjacentHTML('beforeend',`<div id="frameLayer"><div class="frameBar"><button onclick="closeFrame()">‹ Indietro</button><b style="flex:1;color:#11395d">Shop</b><a href="${SHOP}" target="_blank" rel="noopener">Safari</a></div><iframe class="shopFrame framePad" src="${SHOP}" title="Shop Ottica Visual Care"></iframe></div>`)};
+window.openBooking=()=>{const c=state.home?.customer||state.me?.customer||{},url=BOOK+'&first_name='+encodeURIComponent(c.name||'')+'&last_name='+encodeURIComponent(c.surname||'')+'&email='+encodeURIComponent(c.email||state.me?.email||'')+'&phone='+encodeURIComponent(c.phone||'');state.frame='booking';app.insertAdjacentHTML('beforeend',`<div id="frameLayer"><div class="frameBar"><button onclick="closeFrame()">‹ Agenda</button><b style="flex:1;color:#11395d">Prenota appuntamento</b></div><iframe class="bookingFrame framePad" src="${url}" title="Prenotazione appuntamento"></iframe></div>`)};
+window.closeFrame=async()=>{document.getElementById('frameLayer')?.remove();state.frame=null;if(state.tab==='agenda'){try{const x=await call(APPT,'history');state.appointments=Array.isArray(x.data)?x.data:[];render()}catch{}}};
+window.logout=async()=>{await sb.auth.signOut();state={session:null,me:null,home:null,appointments:[],tab:'shop',frame:null};login()};
+
+async function boot(){
+  const {data}=await sb.auth.getSession();state.session=data.session||null;if(!state.session){login();return}
+  app.innerHTML='<div class="center"><div class="spinner"></div></div>';
+  try{
+    const [meX,homeX,apptX]=await Promise.all([call(API,'me'),call(API,'customer_home'),call(APPT,'history')]);
+    state.me=meX.data||null;
+    if(state.me?.role!=='customer')throw Error('Questa app è riservata ai clienti Ottica Visual Care.');
+    state.home=homeX.data||null;state.appointments=Array.isArray(apptX.data)?apptX.data:[];shell();
+  }catch(e){
+    if(/AUTH_|session/i.test(String(e.message))){await sb.auth.signOut();login('Sessione scaduta. Accedi di nuovo.')}else login(e.message||'Accesso non disponibile');
+  }
+}
+sb.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT')login();else if(event==='SIGNED_IN'&&session&&!state.me)setTimeout(boot,0)});
+boot();
+</script>
+</body></html>
