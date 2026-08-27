@@ -33,6 +33,7 @@ jobs:
           for f in \
             scripts/patch_optyker.py \
             scripts/patch_orders_auto_refresh.py \
+            scripts/patch_label_scope_message.py \
             scripts/remove_login_store_user.py \
             scripts/patch_profile.py \
             scripts/patch_client_chat_tab.py \
