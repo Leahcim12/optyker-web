@@ -61,7 +61,7 @@ style=r'''<style id="optykerShiftsMonthlyV16Css">/* OPTYKER_SHIFTS_MONTHLY_V16 *
 html=r'''<div id="oa16Edit" class="oaModal"><div class="oa16EditCard"><div class="oa16EditHead"><div><div class="oa16EditTitle">Modifica turno</div><div id="oa16EditSub" class="oa16EditSub"></div></div><button id="oa16EditClose" class="oa16EditClose" type="button">×</button></div><div class="oa16EditBody"><div class="oa16EditGrid"><label class="oa16EditF full"><span>Stato</span><select id="oa16Status"><option value="work">Turno di lavoro</option><option value="vacation">Ferie</option><option value="permission">Permesso</option><option value="sick">Malattia</option><option value="rest">Giorno di riposo</option><option value="other">Altro</option></select></label><div id="oa16Times" class="oa16EditTimes"><label class="oa16EditF"><span>Inizio 1</span><input id="oa16S1" type="time"></label><label class="oa16EditF"><span>Fine 1</span><input id="oa16E1" type="time"></label><label class="oa16EditF"><span>Inizio 2</span><input id="oa16S2" type="time"></label><label class="oa16EditF"><span>Fine 2</span><input id="oa16E2" type="time"></label></div><label class="oa16EditF full"><span>Note</span><textarea id="oa16Notes" placeholder="Nota facoltativa"></textarea></label></div></div><div id="oa16EditMsg" class="oa16EditMsg"></div><div class="oa16EditActions"><div class="left"><button id="oa16Clear" class="oa16Clear" type="button">Ripristina predefinito</button></div><div class="right"><button id="oa16Cancel" class="oa16Cancel" type="button">Annulla</button><button id="oa16Save" class="oa16Save" type="button">Salva</button></div></div></div></div><div id="oa16StoreEdit" class="oaModal"><div class="oa16EditCard"><div class="oa16EditHead"><div><div class="oa16EditTitle">Orari punto vendita</div><div id="oa16StoreSub" class="oa16EditSub"></div></div><button id="oa16StoreClose" class="oa16EditClose" type="button">×</button></div><div class="oa16EditBody"><div class="oa16EditGrid"><label class="oa16EditF full"><span>Stato</span><select id="oa16StoreActive"><option value="true">Aperto</option><option value="false">Chiuso</option></select></label><div id="oa16StoreTimes" class="oa16EditTimes"><label class="oa16EditF"><span>Inizio 1</span><input id="oa16StoreS1" type="time"></label><label class="oa16EditF"><span>Fine 1</span><input id="oa16StoreE1" type="time"></label><label class="oa16EditF"><span>Inizio 2</span><input id="oa16StoreS2" type="time"></label><label class="oa16EditF"><span>Fine 2</span><input id="oa16StoreE2" type="time"></label></div><label class="oa16EditF full"><span>Note</span><textarea id="oa16StoreNotes" placeholder="Nota facoltativa"></textarea></label></div></div><div id="oa16StoreMsg" class="oa16EditMsg"></div><div class="oa16EditActions"><div class="left"><button id="oa16StoreClear" class="oa16Clear" type="button">Ripristina orario predefinito</button></div><div class="right"><button id="oa16StoreCancel" class="oa16Cancel" type="button">Annulla</button><button id="oa16StoreSave" class="oa16Save" type="button">Salva</button></div></div></div></div>'''
 
 script=r'''<script id="optykerShiftsMonthlyV16Js">(function(){/* OPTYKER_SHIFTS_MONTHLY_V16 */
-var S={month:'',data:null,editing:null,busy:false,cache:{},loadedAt:{}};
+var S={month:'',data:null,editing:null,busy:false,cache:{},loadedAt:{},prefetch:{},scheduleIndex:{},overrideIndex:{},storeHourIndex:{}};
 var API='optyker_staff_schedule_api';
 var MONTHS=['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
 var WD=['dom','lun','mar','mer','gio','ven','sab'];
@@ -74,29 +74,47 @@ function parseMonth(v){var a=String(v||'').split('-');return new Date(+a[0],Math
 function addMonth(v,n){var d=parseMonth(v);d.setMonth(d.getMonth()+n);return monthKey(d)}
 function daysInMonth(v){var d=parseMonth(v);return new Date(d.getFullYear(),d.getMonth()+1,0).getDate()}
 function cacheKey(m){return 'optyker_shifts_month_v16_'+m}
+function readStored(storage,m){
+  try{
+    var raw=storage.getItem(cacheKey(m));if(!raw)return null;
+    var x=JSON.parse(raw);if(!x||!x.data)return null;
+    if(Date.now()-(x.ts||0)>10*60*1000)return null;
+    return x
+  }catch(e){return null}
+}
 function getCached(m){
   if(S.cache[m])return S.cache[m];
-  try{
-    var raw=sessionStorage.getItem(cacheKey(m));
-    if(!raw)return null;
-    var x=JSON.parse(raw);
-    if(!x||!x.data)return null;
-    if(Date.now()-(x.ts||0)>10*60*1000)return null;
-    S.cache[m]=x.data;S.loadedAt[m]=x.ts||Date.now();return x.data
-  }catch(e){return null}
+  var x=readStored(sessionStorage,m)||readStored(localStorage,m);
+  if(!x)return null;
+  S.cache[m]=x.data;S.loadedAt[m]=x.ts||Date.now();
+  try{sessionStorage.setItem(cacheKey(m),JSON.stringify(x))}catch(e){}
+  return x.data
 }
 function setCached(m,data){
   S.cache[m]=data;S.loadedAt[m]=Date.now();
-  try{sessionStorage.setItem(cacheKey(m),JSON.stringify({ts:S.loadedAt[m],data:data}))}catch(e){}
+  var raw=JSON.stringify({ts:S.loadedAt[m],data:data});
+  try{sessionStorage.setItem(cacheKey(m),raw)}catch(e){}
+  try{localStorage.setItem(cacheKey(m),raw)}catch(e){}
+}
+function clearCached(m){
+  delete S.cache[m];delete S.loadedAt[m];
+  try{sessionStorage.removeItem(cacheKey(m))}catch(e){}
+  try{localStorage.removeItem(cacheKey(m))}catch(e){}
+}
+function prepareData(data){
+  S.scheduleIndex={};S.overrideIndex={};S.storeHourIndex={};
+  (data&&data.schedules||[]).forEach(function(x){S.scheduleIndex[String(x.operator_username||'').toUpperCase()+'|'+String(x.schedule_date||'')]=x});
+  (data&&data.store_overrides||[]).forEach(function(x){S.overrideIndex[String(x.schedule_date||'')]=x});
+  (data&&data.store_hours||[]).forEach(function(x){S.storeHourIndex[String(+x.weekday)]=x});
 }
 function cloud(){if(!window.OPTYKER_CLOUD||!OPTYKER_CLOUD.username||!OPTYKER_CLOUD.password)throw Error('Sessione non autenticata');return OPTYKER_CLOUD}
 function api(action,payload){var c=cloud();return fetch(c.root+'/rest/v1/rpc/'+API,{method:'POST',headers:{'Content-Type':'application/json','apikey':c.key,'Authorization':'Bearer '+c.key},body:JSON.stringify({p_username:c.username,p_password:c.password,p_action:action,p_payload:payload||{}})}).then(function(r){if(!r.ok)throw Error('Server '+r.status);return r.json()}).then(function(x){if(!x||x.ok===false)throw Error(x&&x.error||'Errore turni');return x})}
 function stat(t,b){var e=E('oa16StatusText');if(e){e.textContent=t||'';e.className='oa16Status'+(b?' bad':'')}}
 function editMsg(t,b){var e=E('oa16EditMsg');if(e){e.textContent=t||'';e.className='oa16EditMsg'+(b?' bad':'')}}
-function storeOverride(date){return (S.data.store_overrides||[]).find(function(x){return String(x.schedule_date)===String(date)})||null}
-function storeForDate(d){var date=ymd(d),ov=storeOverride(date);if(ov)return Object.assign({_override:true},ov);var wd=((d.getDay()+6)%7)+1,h=(S.data.store_hours||[]).find(function(x){return +x.weekday===wd})||{weekday:wd,active:false};return Object.assign({_override:false},h)}
+function storeOverride(date){return S.overrideIndex[String(date)]||null}
+function storeForDate(d){var date=ymd(d),ov=storeOverride(date);if(ov)return Object.assign({_override:true},ov);var wd=((d.getDay()+6)%7)+1,h=S.storeHourIndex[String(wd)]||{weekday:wd,active:false};return Object.assign({_override:false},h)}
 function fmtStore(h){if(!h||h.active===false)return '×';var a=[];if(h.start_time&&h.end_time)a.push(h.start_time+' - '+h.end_time);if(h.start_time_2&&h.end_time_2)a.push(h.start_time_2+' - '+h.end_time_2);return a.length?a.join('<br>'):'×'}
-function schedule(op,date){return (S.data.schedules||[]).find(function(x){return String(x.operator_username).toUpperCase()===String(op).toUpperCase()&&String(x.schedule_date)===String(date)})||null}
+function schedule(op,date){return S.scheduleIndex[String(op||'').toUpperCase()+'|'+String(date||'')]||null}
 function defaultTimes(d){var h=storeForDate(d);return h&&h.active!==false?{s1:h.start_time||'',e1:h.end_time||'',s2:h.start_time_2||'',e2:h.end_time_2||''}:{s1:'',e1:'',s2:'',e2:''}}
 function cellClass(sc,h){if(!sc)return h&&h.active!==false?'default':'closed';if(sc.status==='work')return 'extra';return sc.status||'other'}
 function statusName(s){return s==='vacation'?'Ferie':s==='permission'?'Permesso':s==='sick'?'Malattia':s==='rest'?'Riposo':s==='other'?'Altro':'Turno'}
@@ -120,15 +138,29 @@ function mount(){
   E('oa16Excel').onclick=exportExcel;
   return true
 }
-function render(){if(!S.data)return;E('oa16StoreWrap').innerHTML=storeGrid();E('oa16UsersWrap').innerHTML=userGrid();E('oa16StoreWrap').querySelectorAll('.oa16Cell[data-store-date]').forEach(function(c){c.onclick=function(){openStoreEdit(c.dataset.storeDate)}});E('oa16UsersWrap').querySelectorAll('.oa16Cell[data-op]').forEach(function(c){c.onclick=function(){openEdit(c.dataset.op,c.dataset.date)}})}
+function render(){if(!S.data)return;prepareData(S.data);E('oa16StoreWrap').innerHTML=storeGrid();E('oa16UsersWrap').innerHTML=userGrid();E('oa16StoreWrap').querySelectorAll('.oa16Cell[data-store-date]').forEach(function(c){c.onclick=function(){openStoreEdit(c.dataset.storeDate)}});E('oa16UsersWrap').querySelectorAll('.oa16Cell[data-op]').forEach(function(c){c.onclick=function(){openEdit(c.dataset.op,c.dataset.date)}})}
+function fetchMonth(month,force){
+  if(!force&&S.prefetch[month])return S.prefetch[month];
+  var p=api('month_get',{month:month+'-01'}).then(function(x){setCached(month,x);return x}).finally(function(){if(S.prefetch[month]===p)delete S.prefetch[month]});
+  if(!force)S.prefetch[month]=p;
+  return p
+}
+function prefetchMonth(month){
+  if(getCached(month))return Promise.resolve();
+  if(!window.OPTYKER_CLOUD||!OPTYKER_CLOUD.username||!OPTYKER_CLOUD.password)return Promise.resolve();
+  return fetchMonth(month,false).catch(function(){})
+}
+function prefetchAround(){
+  var m=monthKey(new Date());
+  prefetchMonth(m).then(function(){setTimeout(function(){prefetchMonth(addMonth(m,1))},250)}).catch(function(){});
+}
 function load(force){
   if(!S.month)S.month=monthKey(new Date());if(E('oa16Month'))E('oa16Month').value=S.month;
   var month=S.month,cached=getCached(month);
   if(cached){S.data=cached;render();stat('');if(!force&&Date.now()-(S.loadedAt[month]||0)<45000)return}
-  if(S.busy)return;
+  if(S.busy&&!S.prefetch[month])return;
   S.busy=true;if(!cached)stat('Caricamento…');
-  api('month_get',{month:month+'-01'}).then(function(x){
-    setCached(month,x);
+  fetchMonth(month,!!force).then(function(x){
     if(S.month===month){S.data=x;render();stat('')}
   }).catch(function(e){
     if(!cached){stat(e.message,true);if(E('oa16StoreWrap'))E('oa16StoreWrap').innerHTML='<div class="oa16Loading">Impossibile caricare gli orari.</div>';if(E('oa16UsersWrap'))E('oa16UsersWrap').innerHTML='<div class="oa16Loading">Impossibile caricare i turni.</div>'}
@@ -152,11 +184,11 @@ function saveEdit(){
   if(!S.editing||S.busy)return;var status=E('oa16Status').value,p={date:S.editing.date,operator_username:S.editing.op,status:status,start_time:E('oa16S1').value,end_time:E('oa16E1').value,start_time_2:E('oa16S2').value,end_time_2:E('oa16E2').value,notes:E('oa16Notes').value};
   if(status==='work'&&((p.start_time&&!p.end_time)||(!p.start_time&&p.end_time)||((p.start_time_2&&!p.end_time_2)||(!p.start_time_2&&p.end_time_2)))){editMsg('Completa inizio e fine di ogni fascia.',true);return}
   S.busy=true;E('oa16Save').disabled=true;editMsg('Salvataggio…');
-  api('day_save',p).then(function(){delete S.cache[S.month];try{sessionStorage.removeItem(cacheKey(S.month))}catch(z){}closeEdit();return load(true)}).catch(function(e){editMsg(e.message,true)}).finally(function(){S.busy=false;E('oa16Save').disabled=false})
+  api('day_save',p).then(function(){clearCached(S.month)closeEdit();return load(true)}).catch(function(e){editMsg(e.message,true)}).finally(function(){S.busy=false;E('oa16Save').disabled=false})
 }
 function clearEdit(){
   if(!S.editing||S.busy)return;S.busy=true;E('oa16Clear').disabled=true;editMsg('Ripristino…');
-  api('day_clear',{date:S.editing.date,operator_username:S.editing.op}).then(function(){delete S.cache[S.month];try{sessionStorage.removeItem(cacheKey(S.month))}catch(z){}closeEdit();return load(true)}).catch(function(e){editMsg(e.message,true)}).finally(function(){S.busy=false;E('oa16Clear').disabled=false})
+  api('day_clear',{date:S.editing.date,operator_username:S.editing.op}).then(function(){clearCached(S.month)closeEdit();return load(true)}).catch(function(e){editMsg(e.message,true)}).finally(function(){S.busy=false;E('oa16Clear').disabled=false})
 }
 function exportRows(){
   if(!S.data)return[];var days=daysInMonth(S.month),rows=[['Utente']];for(var i=1;i<=days;i++)rows[0].push(i+' '+WD[new Date(parseMonth(S.month).getFullYear(),parseMonth(S.month).getMonth(),i).getDay()]);
@@ -182,10 +214,10 @@ function closeStoreEdit(){E('oa16StoreEdit').classList.remove('open');S.storeEdi
 function saveStoreEdit(){
   if(!S.storeEditing||S.busy)return;var p={date:S.storeEditing.date,active:E('oa16StoreActive').value==='true',start_time:E('oa16StoreS1').value,end_time:E('oa16StoreE1').value,start_time_2:E('oa16StoreS2').value,end_time_2:E('oa16StoreE2').value,notes:E('oa16StoreNotes').value};
   if(p.active&&((p.start_time&&!p.end_time)||(!p.start_time&&p.end_time)||((p.start_time_2&&!p.end_time_2)||(!p.start_time_2&&p.end_time_2)))){storeEditMsg('Completa inizio e fine di ogni fascia.',true);return}
-  S.busy=true;E('oa16StoreSave').disabled=true;storeEditMsg('Salvataggio…');api('store_day_save',p).then(function(){delete S.cache[S.month];try{sessionStorage.removeItem(cacheKey(S.month))}catch(z){}closeStoreEdit();return load(true)}).catch(function(e){storeEditMsg(e.message,true)}).finally(function(){S.busy=false;E('oa16StoreSave').disabled=false})
+  S.busy=true;E('oa16StoreSave').disabled=true;storeEditMsg('Salvataggio…');api('store_day_save',p).then(function(){clearCached(S.month)closeStoreEdit();return load(true)}).catch(function(e){storeEditMsg(e.message,true)}).finally(function(){S.busy=false;E('oa16StoreSave').disabled=false})
 }
 function clearStoreEdit(){
-  if(!S.storeEditing||S.busy)return;S.busy=true;E('oa16StoreClear').disabled=true;storeEditMsg('Ripristino…');api('store_day_clear',{date:S.storeEditing.date}).then(function(){delete S.cache[S.month];try{sessionStorage.removeItem(cacheKey(S.month))}catch(z){}closeStoreEdit();return load(true)}).catch(function(e){storeEditMsg(e.message,true)}).finally(function(){S.busy=false;E('oa16StoreClear').disabled=false})
+  if(!S.storeEditing||S.busy)return;S.busy=true;E('oa16StoreClear').disabled=true;storeEditMsg('Ripristino…');api('store_day_clear',{date:S.storeEditing.date}).then(function(){clearCached(S.month)closeStoreEdit();return load(true)}).catch(function(e){storeEditMsg(e.message,true)}).finally(function(){S.busy=false;E('oa16StoreClear').disabled=false})
 }
 function bindEditor(){
   E('oa16Status').onchange=toggleTimes;E('oa16Save').onclick=saveEdit;E('oa16Clear').onclick=clearEdit;E('oa16Cancel').onclick=closeEdit;E('oa16EditClose').onclick=closeEdit;E('oa16Edit').addEventListener('click',function(ev){if(ev.target===E('oa16Edit'))closeEdit()});
@@ -193,7 +225,8 @@ function bindEditor(){
 }
 function start(){
   if(!S.month)S.month=monthKey(new Date());
-  var tries=0;(function wait(){tries++;if(mount()){bindEditor();var b=E('oaModeShiftV7');if(b&&!b.__v16){b.__v16=true;b.addEventListener('click',function(){setTimeout(function(){load(false)},20)})}if(E('oaShiftCalendarV7').classList.contains('open'))load(false);return}if(tries<40)setTimeout(wait,100)})()
+  var tries=0;(function wait(){tries++;if(mount()){bindEditor();var b=E('oaModeShiftV7');if(b&&!b.__v16){b.__v16=true;b.addEventListener('click',function(){setTimeout(function(){load(false)},0)})}if(E('oaShiftCalendarV7').classList.contains('open'))load(false);return}if(tries<40)setTimeout(wait,100)})();
+  var authTry=0;(function warm(){authTry++;if(window.OPTYKER_CLOUD&&OPTYKER_CLOUD.username&&OPTYKER_CLOUD.password){prefetchAround();return}if(authTry<30)setTimeout(warm,250)})()
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 window.addEventListener('pageshow',function(){setTimeout(start,100)});
