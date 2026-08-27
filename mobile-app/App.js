@@ -25,6 +25,10 @@ import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
 const SUPABASE_URL = 'https://whgziwaegjzqsgcntesr.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_DndhLvY32YeCmqWMNRi30g_dEDm8upv';
 const MOBILE_API = `${SUPABASE_URL}/functions/v1/optyker-mobile-api`;
+const MOBILE_APPOINTMENTS = `${SUPABASE_URL}/functions/v1/optyker-mobile-appointments`;
+const BOOKING_API = `${SUPABASE_URL}/functions/v1/optyker-appointments-booking`;
+const OPTYKER_MOBILE_APPOINTMENTS_V3 = true;
+const OPTYKER_MOBILE_APPOINTMENTS_V4_STYLES = true;
 const SHOP_URL = 'https://otticavisualcare.it';
 const BOOKING_URL = 'https://leahcim12.github.io/optyker-web/booking/?source=app';
 const OPTYKER_MOBILE_BOOKING_CALENDAR_V2 = true;
@@ -104,6 +108,40 @@ async function api(action, payload = {}) {
     throw new Error(map[x?.error] || x?.error || 'Operazione non riuscita');
   }
   return x;
+}
+
+async function appointmentsApi(action, payload = {}) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData?.session?.access_token;
+  if (!token) throw new Error('Sessione scaduta');
+  const r = await fetch(MOBILE_APPOINTMENTS, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      apikey: SUPABASE_KEY,
+    },
+    body: JSON.stringify({ action, payload }),
+  });
+  const x = await r.json().catch(() => ({ ok: false, error: 'Risposta non valida' }));
+  if (!r.ok || x?.ok === false) throw new Error(x?.error || 'Operazione appuntamenti non riuscita');
+  return x;
+}
+
+function dateYmdRome(v) {
+  try {
+    const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(v));
+    const o = {};
+    parts.forEach((x) => { o[x.type] = x.value; });
+    return `${o.year}-${o.month}-${o.day}`;
+  } catch { return ''; }
+}
+
+function appointmentStatus(v) {
+  if (v === 'cancelled') return 'Annullato';
+  if (v === 'completed') return 'Completato';
+  if (v === 'no_show') return 'Assente';
+  return 'Confermato';
 }
 
 function Button({ title, onPress, variant = 'primary', disabled = false, compact = false }) {
@@ -469,6 +507,9 @@ function CustomerApp({ me, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [reorderBusy, setReorderBusy] = useState('');
+  const [appointments, setAppointments] = useState([]);
+  const [appointmentsLoading, setAppointmentsLoading] = useState(false);
+  const [bookingMode, setBookingMode] = useState('');
 
   async function load(silent = false) {
     try {
@@ -483,7 +524,19 @@ function CustomerApp({ me, onLogout }) {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  async function loadAppointments(silent = false) {
+    try {
+      if (!silent) setAppointmentsLoading(true);
+      const x = await appointmentsApi('history');
+      setAppointments(Array.isArray(x.data) ? x.data : []);
+    } catch (e) {
+      if (!silent) Alert.alert('Appuntamenti', e.message);
+    } finally {
+      if (!silent) setAppointmentsLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); loadAppointments(); }, []);
 
   async function reorder(lensId, quantity) {
     try {
@@ -499,9 +552,17 @@ function CustomerApp({ me, onLogout }) {
   }
 
   const customer = home?.customer || me.customer || {};
+  const futureAppointments = appointments
+    .filter((a) => a.status !== 'cancelled' && new Date(a.ends_at || a.starts_at).getTime() > Date.now())
+    .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+  const appointmentHistory = appointments
+    .filter((a) => !futureAppointments.some((f) => f.id === a.id))
+    .sort((a, b) => new Date(b.starts_at) - new Date(a.starts_at));
+  const newBookingUrl = `${BOOKING_URL}&first_name=${encodeURIComponent(customer.name || '')}&last_name=${encodeURIComponent(customer.surname || '')}&email=${encodeURIComponent(customer.email || me.email || '')}&phone=${encodeURIComponent(customer.phone || '')}`;
+  const moveBookingUrl = (a) => `${BOOKING_URL}&manage_token=${encodeURIComponent(a.manage_token || '')}&action=reschedule`;
   const items = [
     { key: 'home', label: 'Home', icon: '⌂' },
-    { key: 'booking', label: 'Prenota', icon: '◫' },
+    { key: 'booking', label: 'Appuntamenti', icon: '◫' },
     { key: 'shop', label: 'Shop', icon: '▣' },
     { key: 'reorder', label: 'Riordina', icon: '↻' },
     { key: 'chat', label: 'Chat', icon: '◌', badge: home?.unread_chat || 0 },
@@ -535,22 +596,73 @@ function CustomerApp({ me, onLogout }) {
         )}
 
         {tab === 'booking' && (
-          <View style={{ flex: 1 }}>
-            <View style={styles.webHeader}><Text style={styles.webHeaderTitle}>Prenota un appuntamento</Text></View>
-            <WebView
-              source={{ uri: BOOKING_URL }}
-              startInLoadingState
-              renderLoading={() => <Loading label="Carico gli appuntamenti…" />}
-              onMessage={(event) => {
-                try {
-                  const message = JSON.parse(event?.nativeEvent?.data || '{}');
-                  const url = String(message?.url || '');
-                  const allowed = /^https:\/\/(calendar\.google\.com\/|whgziwaegjzqsgcntesr\.supabase\.co\/functions\/v1\/optyker-calendar-ics(?:\?|$))/i.test(url);
-                  if (message?.type === 'openExternal' && allowed) Linking.openURL(url);
-                } catch (_) {}
-              }}
-            />
-          </View>
+          bookingMode ? (
+            <View style={{ flex: 1 }}>
+              <View style={styles.webHeader}>
+                <Pressable onPress={() => { setBookingMode(''); loadAppointments(true); }}>
+                  <Text style={styles.back}>‹ I miei appuntamenti</Text>
+                </Pressable>
+              </View>
+              <WebView
+                source={{ uri: bookingMode }}
+                startInLoadingState
+                renderLoading={() => <Loading label="Carico gli appuntamenti…" />}
+                onMessage={(event) => {
+                  try {
+                    const message = JSON.parse(event?.nativeEvent?.data || '{}');
+                    const url = String(message?.url || '');
+                    const allowed = /^https:\/\/(calendar\.google\.com\/|whgziwaegjzqsgcntesr\.supabase\.co\/functions\/v1\/optyker-calendar-ics(?:\?|$))/i.test(url);
+                    if (message?.type === 'openExternal' && allowed) Linking.openURL(url);
+                    if (message?.type === 'appointmentChanged') {
+                      loadAppointments(true);
+                      setBookingMode('');
+                    }
+                  } catch (_) {}
+                }}
+              />
+            </View>
+          ) : (
+            <ScrollView style={styles.screen} contentContainerStyle={styles.screenContent}>
+              <AppHeader title="I miei appuntamenti" subtitle="Visualizza, sposta o aggiungi una nuova prenotazione" />
+              {appointmentsLoading ? <Loading label="Carico gli appuntamenti…" /> : (
+                <>
+                  <Section title="Prossimi appuntamenti">
+                    {futureAppointments.length ? futureAppointments.map((a) => (
+                      <View key={a.id} style={styles.listCard}>
+                        <View style={styles.rowBetween}>
+                          <Text style={styles.listTitle}>{a.service_name || 'Appuntamento'}</Text>
+                          <Text style={[styles.price, { fontSize: 11 }]}>{appointmentStatus(a.status)}</Text>
+                        </View>
+                        <Field label="Data e ora" value={dateTimeIt(a.starts_at)} />
+                        <Field label="Fine" value={dateTimeIt(a.ends_at)} />
+                        <Field label="Studio" value={a.studio_name} />
+                        <Field label="Operatore" value={a.operator_username} />
+                        <View style={styles.inlineActions}>
+                          <View style={{ flex: 1 }}><Button compact title="Sposta" onPress={() => setBookingMode(moveBookingUrl(a))} /></View>
+                          <View style={{ flex: 1 }}><Button compact variant="secondary" title="Aggiungi un altro" onPress={() => setBookingMode(newBookingUrl)} /></View>
+                        </View>
+                      </View>
+                    )) : <Empty title="Nessun appuntamento futuro" text="Puoi prenotarne uno quando vuoi." />}
+                    {!futureAppointments.length && <View style={{ marginTop: 10 }}><Button title="Prenota un appuntamento" onPress={() => setBookingMode(newBookingUrl)} /></View>}
+                  </Section>
+                  {!!appointmentHistory.length && (
+                    <Section title="Storico appuntamenti">
+                      {appointmentHistory.slice(0, 20).map((a) => (
+                        <View key={a.id} style={styles.listCard}>
+                          <View style={styles.rowBetween}>
+                            <Text style={styles.listTitle}>{a.service_name || 'Appuntamento'}</Text>
+                            <Text style={styles.smallMeta}>{appointmentStatus(a.status)}</Text>
+                          </View>
+                          <Text style={styles.smallMeta}>{dateTimeIt(a.starts_at)}{a.studio_name ? ` · ${a.studio_name}` : ''}</Text>
+                        </View>
+                      ))}
+                    </Section>
+                  )}
+                  {!!futureAppointments.length && <Button variant="secondary" title="Aggiungi un altro appuntamento" onPress={() => setBookingMode(newBookingUrl)} />}
+                </>
+              )}
+            </ScrollView>
+          )
         )}
 
         {tab === 'shop' && (
@@ -619,27 +731,175 @@ function SheetCard({ sheet }) {
   );
 }
 
+function StaffAppointmentEditor({ appointment, onBack, onSaved }) {
+  const [boot, setBoot] = useState(null);
+  const [serviceId, setServiceId] = useState(appointment.service_id || '');
+  const [date, setDate] = useState(dateYmdRome(appointment.starts_at));
+  const [operator, setOperator] = useState(appointment.operator_username || '');
+  const [first, setFirst] = useState(appointment.first_name || '');
+  const [last, setLast] = useState(appointment.last_name || '');
+  const [email, setEmail] = useState(appointment.email || '');
+  const [phone, setPhone] = useState(appointment.phone || '');
+  const [notes, setNotes] = useState(appointment.notes || '');
+  const [slots, setSlots] = useState([]);
+  const [selectedTime, setSelectedTime] = useState(appointment.starts_at || '');
+  const [selected, setSelected] = useState(null);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  async function loadBoot() {
+    try {
+      const x = await appointmentsApi('bootstrap');
+      setBoot(x);
+    } catch (e) { Alert.alert('Appuntamento', e.message); }
+  }
+
+  async function loadSlots() {
+    if (!serviceId || !date || !operator) return;
+    try {
+      setLoadingSlots(true);
+      const q = `?api=slots&service_id=${encodeURIComponent(serviceId)}&date=${encodeURIComponent(date)}&operator=${encodeURIComponent(operator)}&ignore_appointment_id=${encodeURIComponent(appointment.id)}`;
+      const r = await fetch(BOOKING_API + q);
+      const x = await r.json();
+      if (!r.ok || x?.ok === false) throw new Error(x?.error || 'Disponibilità non disponibile');
+      const arr = Array.isArray(x.data) ? x.data : [];
+      setSlots(arr);
+      const current = arr.find((s) => String(s.starts_at) === String(appointment.starts_at) && String(s.studio_id || '') === String(appointment.studio_id || ''));
+      if (current) { setSelectedTime(current.starts_at); setSelected(current); }
+      else { setSelectedTime(''); setSelected(null); }
+    } catch (e) { Alert.alert('Disponibilità', e.message); }
+    finally { setLoadingSlots(false); }
+  }
+
+  useEffect(() => { loadBoot(); }, []);
+  useEffect(() => { if (boot) loadSlots(); }, [boot, serviceId, date, operator]);
+
+  const timeGroups = useMemo(() => {
+    const m = new Map();
+    slots.forEach((s) => { const k = String(s.starts_at || ''); if (k) { if (!m.has(k)) m.set(k, []); m.get(k).push(s); } });
+    return [...m.entries()].sort((a, b) => new Date(a[0]) - new Date(b[0]));
+  }, [slots]);
+  const studioRows = selectedTime ? slots.filter((s) => String(s.starts_at) === String(selectedTime)) : [];
+  const studioOptions = useMemo(() => {
+    const m = new Map();
+    studioRows.forEach((s) => { const k = String(s.studio_id || 'none'); if (!m.has(k)) m.set(k, s); });
+    return [...m.values()];
+  }, [selectedTime, slots]);
+  const selectedService = boot?.services?.find((s) => String(s.id) === String(serviceId));
+
+  function chooseTime(t) {
+    setSelectedTime(t);
+    const rows = slots.filter((s) => String(s.starts_at) === String(t));
+    if (selectedService?.requires_studio === false) setSelected(rows[0] || null);
+    else setSelected(null);
+  }
+
+  async function save() {
+    if (!first.trim() || !last.trim() || !email.trim() || !phone.trim()) { Alert.alert('Appuntamento', 'Nome, cognome, email e telefono sono obbligatori.'); return; }
+    if (!selected) { Alert.alert('Appuntamento', 'Seleziona una fascia oraria e lo studio disponibile.'); return; }
+    try {
+      setSaving(true);
+      await appointmentsApi('update', {
+        id: appointment.id,
+        service_id: serviceId,
+        starts_at: selected.starts_at,
+        studio_id: selected.studio_id || null,
+        operator_username: selected.operator_username || operator,
+        first_name: first.trim(), last_name: last.trim(), email: email.trim(), phone: phone.trim(), notes,
+      });
+      Alert.alert('Appuntamento', 'Modifiche salvate.');
+      onSaved?.();
+    } catch (e) { Alert.alert('Appuntamento', e.message); }
+    finally { setSaving(false); }
+  }
+
+  if (!boot) return <Loading label="Carico l’appuntamento…" />;
+  return (
+    <View style={{ flex: 1 }}>
+      <View style={styles.subHeader}>
+        <Pressable onPress={onBack}><Text style={styles.back}>‹ Visite</Text></Pressable>
+        <Text style={styles.subHeaderTitle}>Modifica appuntamento</Text>
+      </View>
+      <ScrollView style={styles.screen} contentContainerStyle={styles.screenContent}>
+        <Section title="Dati visita">
+          <Field label="ID" value={appointment.id} />
+          <Field label="Stato" value={appointmentStatus(appointment.status)} />
+          <Field label="Creato il" value={dateTimeIt(appointment.created_at)} />
+          <Field label="Origine" value={appointment.source} />
+          <Text style={styles.inputLabel}>Servizio</Text>
+          <View style={styles.inlineActions}>
+            {(boot.services || []).map((s) => <Pressable key={s.id} onPress={() => setServiceId(s.id)} style={[{paddingHorizontal:10,paddingVertical:8,borderRadius:10,borderWidth:1,borderColor:'#c7d5df',backgroundColor:'#fff'}, serviceId === s.id && {backgroundColor:C.blue,borderColor:C.blue}]}><Text style={[{fontSize:11,fontWeight:'800',color:C.navy}, serviceId === s.id && {color:'#fff'}]}>{s.name}</Text></Pressable>)}
+          </View>
+          <Text style={styles.inputLabel}>Data</Text><TextInput value={date} onChangeText={setDate} style={styles.input} placeholder="AAAA-MM-GG" />
+          <Text style={styles.inputLabel}>Operatore</Text>
+          <View style={styles.inlineActions}>{(boot.operators || []).map((o) => <Pressable key={o.username} onPress={() => setOperator(o.username)} style={[{paddingHorizontal:10,paddingVertical:8,borderRadius:10,borderWidth:1,borderColor:'#c7d5df',backgroundColor:'#fff'}, operator === o.username && {backgroundColor:C.blue,borderColor:C.blue}]}><Text style={[{fontSize:11,fontWeight:'800',color:C.navy}, operator === o.username && {color:'#fff'}]}>{o.username}</Text></Pressable>)}</View>
+          <Text style={styles.inputLabel}>Nome</Text><TextInput value={first} onChangeText={setFirst} style={styles.input} />
+          <Text style={styles.inputLabel}>Cognome</Text><TextInput value={last} onChangeText={setLast} style={styles.input} />
+          <Text style={styles.inputLabel}>Email</Text><TextInput value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" style={styles.input} />
+          <Text style={styles.inputLabel}>Telefono</Text><TextInput value={phone} onChangeText={setPhone} keyboardType="phone-pad" style={styles.input} />
+          <Text style={styles.inputLabel}>Note</Text><TextInput value={notes} onChangeText={setNotes} multiline style={[styles.input, { minHeight: 80 }]} />
+        </Section>
+        <Section title="Fascia oraria">
+          {loadingSlots ? <Loading label="Verifico disponibilità…" /> : timeGroups.length ? (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
+              {timeGroups.map(([t]) => <Pressable key={t} onPress={() => chooseTime(t)} style={[{paddingHorizontal:12,paddingVertical:9,borderRadius:10,borderWidth:1,borderColor:'#c7d5df',backgroundColor:'#fff'}, selectedTime === t && {backgroundColor:C.blue,borderColor:C.blue}]}><Text style={[{fontSize:12,fontWeight:'900',color:C.navy}, selectedTime === t && {color:'#fff'}]}>{new Intl.DateTimeFormat('it-IT',{timeZone:'Europe/Rome',hour:'2-digit',minute:'2-digit'}).format(new Date(t))}</Text></Pressable>)}
+            </View>
+          ) : <Empty title="Nessun orario disponibile" />}
+          {selectedTime && selectedService?.requires_studio !== false && (
+            <>
+              <Text style={styles.inputLabel}>Studio disponibile</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
+                {studioOptions.map((s) => <Pressable key={`${s.studio_id}-${s.operator_username}`} onPress={() => setSelected(s)} style={[{paddingHorizontal:12,paddingVertical:9,borderRadius:10,borderWidth:1,borderColor:'#c7d5df',backgroundColor:'#fff'}, selected?.studio_id === s.studio_id && {backgroundColor:C.blue,borderColor:C.blue}]}><Text style={[{fontSize:11,fontWeight:'900',color:C.navy}, selected?.studio_id === s.studio_id && {color:'#fff'}]}>{s.studio_name || 'Studio'}</Text></Pressable>)}
+              </View>
+            </>
+          )}
+        </Section>
+        <Button title={saving ? 'Salvataggio…' : 'Salva modifiche'} onPress={save} disabled={saving || !selected} />
+      </ScrollView>
+    </View>
+  );
+}
+
 function StaffClientDetail({ clientId, onBack }) {
   const [data, setData] = useState(null);
   const [tab, setTab] = useState('profile');
   const [loading, setLoading] = useState(true);
+  const [editingAppointment, setEditingAppointment] = useState(null);
 
   async function load() {
     try {
       setLoading(true);
-      const x = await api('client_detail', { client_id: clientId });
-      setData(x.data || null);
+      const [x, ax] = await Promise.all([
+        api('client_detail', { client_id: clientId }),
+        appointmentsApi('list', { from: '2015-01-01T00:00:00Z', to: '2038-01-01T00:00:00Z' }),
+      ]);
+      const base = x.data || null;
+      const all = Array.isArray(ax.data) ? ax.data : [];
+      const email = String(base?.customer?.email || '').trim().toLowerCase();
+      const visits = all.filter((a) => String(a.client_id || '') === String(clientId) || (email && String(a.email || '').trim().toLowerCase() === email));
+      setData(base ? { ...base, appointments: visits.sort((a,b) => new Date(b.starts_at) - new Date(a.starts_at)) } : null);
     } catch (e) {
       Alert.alert('Cliente', e.message);
     } finally {
       setLoading(false);
     }
   }
+  function cancelAppointment(a) {
+    Alert.alert('Annulla appuntamento', `Annullare ${a.service_name || 'questo appuntamento'} del ${dateTimeIt(a.starts_at)}?`, [
+      { text: 'No', style: 'cancel' },
+      { text: 'Annulla appuntamento', style: 'destructive', onPress: async () => {
+        try { await appointmentsApi('status', { id: a.id, status: 'cancelled' }); await load(); }
+        catch (e) { Alert.alert('Appuntamento', e.message); }
+      }},
+    ]);
+  }
+
   useEffect(() => { load(); }, [clientId]);
+  if (editingAppointment) return <StaffAppointmentEditor appointment={editingAppointment} onBack={() => setEditingAppointment(null)} onSaved={() => { setEditingAppointment(null); load(); }} />;
   if (loading || !data) return <Loading label="Carico la scheda cliente…" />;
   const c = data.customer || {};
   const tabs = [
-    ['profile', 'Anagrafica'], ['rx', 'Prescrizioni'], ['lac', 'LAC'], ['orders', 'Ordini'], ['chat', 'Chat'],
+    ['profile', 'Anagrafica'], ['rx', 'Prescrizioni'], ['lac', 'LAC'], ['visits', 'Visite'], ['orders', 'Ordini'], ['chat', 'Chat'],
   ];
   return (
     <View style={{ flex: 1 }}>
@@ -692,6 +952,34 @@ function StaffClientDetail({ clientId, onBack }) {
                 {data.lac_sheets?.length ? data.lac_sheets.map((s) => <SheetCard key={s.id} sheet={s} />) : <Empty title="Nessuna scheda LAC" />}
               </Section>
             </>
+          )}
+          {tab === 'visits' && (
+            <Section title="Visite e appuntamenti">
+              {data.appointments?.length ? data.appointments.map((a) => (
+                <View key={a.id} style={styles.listCard}>
+                  <View style={styles.rowBetween}>
+                    <Text style={styles.listTitle}>{a.service_name || 'Appuntamento'}</Text>
+                    <Text style={styles.smallMeta}>{appointmentStatus(a.status)}</Text>
+                  </View>
+                  <Field label="Data e ora" value={dateTimeIt(a.starts_at)} />
+                  <Field label="Fine" value={dateTimeIt(a.ends_at)} />
+                  <Field label="Studio" value={a.studio_name} />
+                  <Field label="Operatore" value={a.operator_username} />
+                  <Field label="Nome e cognome" value={`${a.first_name || ''} ${a.last_name || ''}`.trim()} />
+                  <Field label="Email" value={a.email} />
+                  <Field label="Telefono" value={a.phone} />
+                  <Field label="Note" value={a.notes} />
+                  <Field label="Origine" value={a.source} />
+                  <Field label="Creato da" value={a.created_by} />
+                  <Field label="Creato il" value={dateTimeIt(a.created_at)} />
+                  <Field label="Ultima modifica" value={dateTimeIt(a.updated_at)} />
+                  <View style={styles.inlineActions}>
+                    <View style={{ flex: 1 }}><Button compact title="Modifica" onPress={() => setEditingAppointment(a)} disabled={a.status === 'cancelled'} /></View>
+                    <View style={{ flex: 1 }}><Button compact variant="danger" title="Annulla" onPress={() => cancelAppointment(a)} disabled={a.status === 'cancelled'} /></View>
+                  </View>
+                </View>
+              )) : <Empty title="Nessuna visita registrata" />}
+            </Section>
           )}
           {tab === 'orders' && (
             <Section title="Ordini cliente">
@@ -796,27 +1084,190 @@ function StaffThreads() {
   );
 }
 
+const OPTYKER_MOBILE_STAFF_DASHBOARD_V5 = true;
+
+function mobileTime(v) {
+  if (!v) return '';
+  try {
+    return new Intl.DateTimeFormat('it-IT', { hour: '2-digit', minute: '2-digit' }).format(new Date(v));
+  } catch { return ''; }
+}
+
+function mobileDay(v) {
+  if (!v) return '';
+  try {
+    return new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: '2-digit', month: '2-digit' }).format(new Date(v));
+  } catch { return ''; }
+}
+
+function orderCustomer(order) {
+  let d = order?.data || {};
+  if (typeof d === 'string') {
+    try { d = JSON.parse(d); } catch { d = {}; }
+  }
+  const c = d?.customer || {};
+  return order?.client_name
+    || d?.customerName
+    || [c?.firstName || c?.first_name, c?.lastName || c?.last_name].filter(Boolean).join(' ')
+    || d?.email
+    || 'Cliente online';
+}
+
+function orderState(order) {
+  const fin = String(order?.financial_status || '').toUpperCase();
+  const ful = String(order?.fulfillment_status || '').toUpperCase();
+  if (fin === 'PAID' && ful === 'FULFILLED') return 'Pagato · evaso';
+  if (fin === 'PAID') return 'Pagato · da evadere';
+  if (fin) return fin;
+  return 'Da verificare';
+}
+
+function StaffAgenda() {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function load(silent = false) {
+    try {
+      if (!silent) setLoading(true);
+      const from = new Date();
+      from.setHours(0, 0, 0, 0);
+      const to = new Date(from);
+      to.setDate(to.getDate() + 7);
+      const x = await appointmentsApi('list', { from: from.toISOString(), to: to.toISOString() });
+      setRows((Array.isArray(x.data) ? x.data : []).sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at)));
+    } catch (e) {
+      Alert.alert('Agenda', e.message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }
+
+  useEffect(() => { load(); }, []);
+  if (loading && !rows.length) return <Loading label="Carico l’agenda…" />;
+
+  return (
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.screenContent}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(true); }} />}
+    >
+      <AppHeader title="Agenda" subtitle="Appuntamenti dei prossimi 7 giorni" />
+      <Section title="Prossimi appuntamenti">
+        {rows.length ? rows.map((a) => (
+          <View key={a.id} style={styles.listCard}>
+            <View style={styles.rowBetween}>
+              <Text style={styles.listTitle}>{mobileDay(a.starts_at)} · {mobileTime(a.starts_at)}</Text>
+              <Text style={styles.smallMeta}>{appointmentStatus(a.status)}</Text>
+            </View>
+            <Text style={[styles.listTitle, { marginTop: 7 }]}>{`${a.last_name || ''} ${a.first_name || ''}`.trim() || 'Cliente'}</Text>
+            <Text style={styles.smallMeta}>{[a.service_name, a.operator_username, a.studio_name].filter(Boolean).join(' · ')}</Text>
+            {!!a.phone && <Text style={styles.smallMeta}>{a.phone}</Text>}
+          </View>
+        )) : <Empty title="Nessun appuntamento" text="Non ci sono appuntamenti nei prossimi 7 giorni." />}
+      </Section>
+    </ScrollView>
+  );
+}
+
+function StaffOrders() {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function load(silent = false) {
+    try {
+      if (!silent) setLoading(true);
+      const x = await api('staff_orders', { limit: 150 });
+      setRows(Array.isArray(x.data) ? x.data : []);
+    } catch (e) {
+      Alert.alert('Ordini Shopify', e.message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }
+
+  useEffect(() => { load(); }, []);
+  if (loading && !rows.length) return <Loading label="Carico gli ordini Shopify…" />;
+
+  const pending = rows.filter((o) => String(o.management_status || 'new') === 'new');
+  return (
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.screenContent}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(true); }} />}
+    >
+      <AppHeader title="Ordini Shopify" subtitle={`${pending.length} da gestire · ${rows.length} visibili`} />
+      <Section title="Da gestire">
+        {pending.length ? pending.map((o) => (
+          <View key={o.id} style={styles.listCard}>
+            <View style={styles.rowBetween}>
+              <Text style={styles.listTitle}>{o.order_name || 'Ordine Shopify'}</Text>
+              <Text style={styles.price}>{money(o.total, o.currency || 'EUR')}</Text>
+            </View>
+            <Text style={[styles.listTitle, { marginTop: 7, fontSize: 12 }]}>{orderCustomer(o)}</Text>
+            <Text style={styles.smallMeta}>{orderState(o)} · {dateTimeIt(o.order_date)}</Text>
+          </View>
+        )) : <Empty title="Nessun ordine da gestire" />}
+      </Section>
+      {!!rows.filter((o) => String(o.management_status || '') !== 'new').length && (
+        <Section title="Altri ordini">
+          {rows.filter((o) => String(o.management_status || '') !== 'new').slice(0, 40).map((o) => (
+            <View key={o.id} style={styles.listCard}>
+              <View style={styles.rowBetween}>
+                <Text style={styles.listTitle}>{o.order_name || 'Ordine'}</Text>
+                <Text style={styles.price}>{money(o.total, o.currency || 'EUR')}</Text>
+              </View>
+              <Text style={styles.smallMeta}>{orderCustomer(o)} · {dateTimeIt(o.order_date)}</Text>
+            </View>
+          ))}
+        </Section>
+      )}
+    </ScrollView>
+  );
+}
+
 function StaffApp({ me, onLogout }) {
   const [tab, setTab] = useState('dashboard');
   const [stats, setStats] = useState(null);
+  const [todayAppointments, setTodayAppointments] = useState([]);
+  const [shopifyOrders, setShopifyOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const operator = me.operator || {};
 
-  async function loadStats() {
+  async function loadDashboard(silent = false) {
     try {
-      setLoading(true);
-      const x = await api('staff_home');
-      setStats(x.data?.stats || null);
+      if (!silent) setLoading(true);
+      const from = new Date();
+      from.setHours(0, 0, 0, 0);
+      const to = new Date(from);
+      to.setDate(to.getDate() + 1);
+      const [homeX, apptX, orderX] = await Promise.all([
+        api('staff_home'),
+        appointmentsApi('list', { from: from.toISOString(), to: to.toISOString() }),
+        api('staff_orders', { limit: 100 }),
+      ]);
+      setStats(homeX.data?.stats || null);
+      setTodayAppointments((Array.isArray(apptX.data) ? apptX.data : []).sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at)));
+      setShopifyOrders(Array.isArray(orderX.data) ? orderX.data : []);
     } catch (e) {
       Alert.alert('Dashboard', e.message);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }
-  useEffect(() => { loadStats(); }, []);
 
+  useEffect(() => { loadDashboard(); }, []);
+
+  const newOrders = shopifyOrders.filter((o) => String(o.management_status || 'new') === 'new');
   const items = [
     { key: 'dashboard', label: 'Dashboard', icon: '▦' },
+    { key: 'agenda', label: 'Agenda', icon: '◫' },
+    { key: 'orders', label: 'Ordini', icon: '▣', badge: newOrders.length || 0 },
     { key: 'clients', label: 'Clienti', icon: '◎' },
     { key: 'chat', label: 'Chat', icon: '◌', badge: stats?.unread_chats || 0 },
     { key: 'profile', label: 'Profilo', icon: '●' },
@@ -827,8 +1278,12 @@ function StaffApp({ me, onLogout }) {
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       <View style={{ flex: 1 }}>
         {tab === 'dashboard' && (
-          loading ? <Loading /> : (
-            <ScrollView style={styles.screen} contentContainerStyle={styles.screenContent} refreshControl={<RefreshControl refreshing={loading} onRefresh={loadStats} />}>
+          loading && !stats ? <Loading /> : (
+            <ScrollView
+              style={styles.screen}
+              contentContainerStyle={styles.screenContent}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadDashboard(true); }} />}
+            >
               <AppHeader title="Dashboard" subtitle={`Operatore: ${operator.username || me.email}`} />
               <View style={styles.metricGrid}>
                 <Metric label="Clienti" value={stats?.clients || 0} />
@@ -838,12 +1293,44 @@ function StaffApp({ me, onLogout }) {
                 <Metric label="LAC attive" value={stats?.active_lenses || 0} />
                 <Metric label="Chat non lette" value={stats?.unread_chats || 0} />
               </View>
+
+              <Section title="Appuntamenti di oggi" action={<Text style={styles.price}>{todayAppointments.length}</Text>}>
+                {todayAppointments.length ? todayAppointments.slice(0, 6).map((a) => (
+                  <Pressable key={a.id} onPress={() => setTab('agenda')} style={styles.listCard}>
+                    <View style={styles.rowBetween}>
+                      <Text style={styles.price}>{mobileTime(a.starts_at)}</Text>
+                      <Text style={styles.smallMeta}>{appointmentStatus(a.status)}</Text>
+                    </View>
+                    <Text style={[styles.listTitle, { marginTop: 5 }]}>{`${a.last_name || ''} ${a.first_name || ''}`.trim() || 'Cliente'}</Text>
+                    <Text style={styles.smallMeta}>{[a.service_name, a.operator_username, a.studio_name].filter(Boolean).join(' · ')}</Text>
+                  </Pressable>
+                )) : <Empty title="Nessun appuntamento oggi" />}
+                <Button title="Apri agenda" variant="secondary" onPress={() => setTab('agenda')} />
+              </Section>
+
+              <Section title="Ordini Shopify" action={<Text style={styles.price}>{newOrders.length}</Text>}>
+                {newOrders.length ? newOrders.slice(0, 5).map((o) => (
+                  <Pressable key={o.id} onPress={() => setTab('orders')} style={styles.listCard}>
+                    <View style={styles.rowBetween}>
+                      <Text style={styles.listTitle}>{o.order_name || 'Ordine Shopify'}</Text>
+                      <Text style={styles.price}>{money(o.total, o.currency || 'EUR')}</Text>
+                    </View>
+                    <Text style={[styles.smallMeta, { marginTop: 5 }]}>{orderCustomer(o)}</Text>
+                    <Text style={styles.smallMeta}>{orderState(o)} · {dateTimeIt(o.order_date)}</Text>
+                  </Pressable>
+                )) : <Empty title="Nessun ordine Shopify da gestire" />}
+                <Button title="Apri ordini" variant="secondary" onPress={() => setTab('orders')} />
+              </Section>
+
               <Section title="Area operatore">
                 <Text style={styles.bodyText}>Con questa email hai accesso alle statistiche, alle anagrafiche, alle prescrizioni e alle schede LAC dei clienti associati a Optyker.</Text>
               </Section>
             </ScrollView>
           )
         )}
+
+        {tab === 'agenda' && <StaffAgenda />}
+        {tab === 'orders' && <StaffOrders />}
         {tab === 'clients' && <StaffClients />}
         {tab === 'chat' && <StaffThreads />}
         {tab === 'profile' && (
@@ -858,7 +1345,15 @@ function StaffApp({ me, onLogout }) {
           </ScrollView>
         )}
       </View>
-      <TabBar items={items} active={tab} onChange={(k) => { setTab(k); if (k === 'dashboard') loadStats(); }} />
+
+      <TabBar
+        items={items}
+        active={tab}
+        onChange={(k) => {
+          setTab(k);
+          if (k === 'dashboard') loadDashboard(true);
+        }}
+      />
     </SafeAreaView>
   );
 }
