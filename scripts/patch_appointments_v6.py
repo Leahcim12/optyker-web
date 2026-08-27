@@ -31,7 +31,7 @@ function bootstrap(){
 }
 function availApi(action,payload){
   if(!auth())return Promise.reject(Error('Sessione non autenticata'));
-  return fetch(OPTYKER_CLOUD.root+'/rest/v1/rpc/optyker_availability_admin',{method:'POST',headers:{'Content-Type':'application/json','apikey':OPTYKER_CLOUD.key,'Authorization':'Bearer '+OPTYKER_CLOUD.key},body:JSON.stringify({p_username:OPTYKER_CLOUD.username,p_password:OPTYKER_CLOUD.password||'',p_action:action,p_payload:payload||{}})}).then(function(r){if(!r.ok)throw Error('Server '+r.status);return r.json()}).then(function(x){if(!x||x.ok===false)throw Error(x&&x.error||'Errore disponibilità');return x})
+  if(!OPTYKER_CLOUD.username||!OPTYKER_CLOUD.password){try{if(window.optykerShowLogin)window.optykerShowLogin()}catch(z){}return Promise.reject(Error('Sessione scaduta: accedi di nuovo con la password'))}return fetch(OPTYKER_CLOUD.root+'/rest/v1/rpc/optyker_availability_admin',{method:'POST',headers:{'Content-Type':'application/json','apikey':OPTYKER_CLOUD.key,'Authorization':'Bearer '+OPTYKER_CLOUD.key},body:JSON.stringify({p_username:OPTYKER_CLOUD.username,p_password:OPTYKER_CLOUD.password,p_action:action,p_payload:payload||{}})}).then(function(r){if(!r.ok)throw Error('Server '+r.status);return r.json()}).then(function(x){if(!x||x.ok===false){if(/non autorizzato/i.test(String(x&&x.error||''))){try{if(window.optykerShowLogin)window.optykerShowLogin()}catch(z){}}throw Error(x&&x.error||'Errore disponibilità')}return x})
 }
 function msg(t,b){var e=E('oaSettingsStatus');if(e){e.textContent=t||'';e.className='oaStatus'+(b?' bad':'')}}
 function services(){return CFG&&(CFG.settings_services||CFG.services)||[]}
