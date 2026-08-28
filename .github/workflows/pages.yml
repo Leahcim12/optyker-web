@@ -69,6 +69,7 @@ jobs:
             scripts/patch_sidebar_pointer_nav.py \
             scripts/patch_whatsapp_nav_final.py \
             scripts/patch_hide_whatsapp_sidebar.py \
+            scripts/remove_legacy_login_fixes.py \
             scripts/patch_dom_ready_boot.py \
             scripts/patch_staff_auth.py \
             scripts/patch_agenda_v15_active_color.py \
@@ -189,6 +190,8 @@ jobs:
           if missing: raise SystemExit('Mancano: '+', '.join(missing))
           if 'id="forceClosed"' in booking or 'id="useManualTime"' in booking:
               raise SystemExit('La forzatura pubblica o il vecchio pulsante orario sono ancora presenti')
+          if 'OPTYKER_OPERATOR_DIRECT_LOGIN_FIX_V2' in main or 'OPTYKER_UI_CLICK_FIX_V1' in main:
+              raise SystemExit('Fix login legacy ancora presenti nella build')
           print('Build verificata',len(main),len(booking))
           PY
           for f in _jscheck/*.js; do node --check "$f"; done
