@@ -81,7 +81,7 @@ function fix(){
 function boot(){fix();setTimeout(fix,80);setTimeout(fix,350);setTimeout(fix,1000)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 window.addEventListener('resize',fix);window.addEventListener('pageshow',boot);
-new MutationObserver(function(){setTimeout(fix,25)}).observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
+new MutationObserver(function(){setTimeout(fix,25)}).observe(document.documentElement,{subtree:true,childList:true});
 setInterval(fix,2000);
 })();</script>'''
 
