@@ -72,6 +72,7 @@ jobs:
             scripts/patch_staff_auth.py \
             scripts/patch_agenda_v15_active_color.py \
             scripts/patch_single_active_nav_v18.py \
+            scripts/patch_operator_name_panseri.py \
             scripts/patch_ios_pwa.py; do python "$f"; done
 
           mkdir -p _site/staff-embed _site/booking _site/iphone _site/reset-password _site/iphone-app _site/iphone-app-v2 _site/iphone-app-v3 _site/iphone-app-v4 _site/iphone-app-v5 _site/iphone-app-v6 _site/iphone-app-v7 _site/iphone-app-v8 _site/iphone-app-v9 _site/iphone-app-v10 _site/iphone-app-v11 _site/iphone-app-v12
@@ -169,7 +170,7 @@ jobs:
                   if code.strip(): Path(f'_jscheck/{n}-{i}.js').write_text(code,encoding='utf-8')
           main=Path('_site/index.html').read_text(encoding='utf-8')
           booking=Path('_site/booking/index.html').read_text(encoding='utf-8')
-          required_main=['DOCUMENTI DA STAMPARE MANUTENZIONE LAC','DOCUMENTI DA STAMPARE VISUAL TRAINING','OPTYKER_VISUAL_TRAINING_DOCUMENTS_V1','visual-training/Motorio.pdf','OPTYKER_APPOINTMENTS_UI_V9_GRAPHICS','OPTYKER_APPOINTMENTS_UI_V10_MANAGE','OPTYKER_APPOINTMENTS_UI_V11_SECURE','OPTYKER_APPOINTMENTS_UI_V12_SETTINGS_SAVE','OPTYKER_APPOINTMENTS_UI_V13_SINGLE_SETTINGS','OPTYKER_APPOINTMENTS_FORCE_TIME_V20','id="oaManageModal"','oaV10Save','oaV10Cancel','optyker-appointments-staff','id="navAppointments"','OPTYKER_STAFF_AUTH_V1','optyker-staff-auth','Password dimenticata?','optykerAuthPassword']
+          required_main=['DOCUMENTI DA STAMPARE MANUTENZIONE LAC','DOCUMENTI DA STAMPARE VISUAL TRAINING','OPTYKER_VISUAL_TRAINING_DOCUMENTS_V1','visual-training/Motorio.pdf','OPTYKER_APPOINTMENTS_UI_V9_GRAPHICS','OPTYKER_APPOINTMENTS_UI_V10_MANAGE','OPTYKER_APPOINTMENTS_UI_V11_SECURE','OPTYKER_APPOINTMENTS_UI_V12_SETTINGS_SAVE','OPTYKER_APPOINTMENTS_UI_V13_SINGLE_SETTINGS','OPTYKER_APPOINTMENTS_FORCE_TIME_V20','id="oaManageModal"','oaV10Save','oaV10Cancel','optyker-appointments-staff','id="navAppointments"','OPTYKER_STAFF_AUTH_V1','optyker-staff-auth','Password dimenticata?','optykerAuthPassword','OPTYKER_DIEGO_PANSERI_NAME_FIX_V1','DIEGO PANSERI']
           reset=Path('_site/reset-password/index.html').read_text(encoding='utf-8')
           required_reset=['Recupero password','SALVA NUOVA PASSWORD','updateUser','exchangeCodeForSession']
           required_booking=['I tuoi appuntamenti','Sposta','Aggiungi un altro','optyker_appointment_tokens_v2','Scegli lo studio disponibile','Inserisci un orario manuale','Forza appuntamento','force_time']
