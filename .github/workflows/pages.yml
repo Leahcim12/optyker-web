@@ -192,6 +192,10 @@ jobs:
               raise SystemExit('La forzatura pubblica o il vecchio pulsante orario sono ancora presenti')
           if 'OPTYKER_OPERATOR_DIRECT_LOGIN_FIX_V2' in main or 'OPTYKER_UI_CLICK_FIX_V1' in main:
               raise SystemExit('Fix login legacy ancora presenti nella build')
+          if "toUpperCase()==='Diego Panseri'" in main or 'toUpperCase()==="Diego Panseri"' in main:
+              raise SystemExit('Confronto Diego Panseri non idempotente: rischio loop MutationObserver')
+          if "attributes:true,attributeFilter:['class','style']" in main and 'optykerAppointmentsV8Js' in main:
+              raise SystemExit('Observer Agenda V8 ancora autoreferenziale')
           print('Build verificata',len(main),len(booking))
           PY
           for f in _jscheck/*.js; do node --check "$f"; done
