@@ -108,7 +108,7 @@ function prepareData(data){
   (data&&data.store_hours||[]).forEach(function(x){S.storeHourIndex[String(+x.weekday)]=x});
 }
 function cloud(){if(!window.OPTYKER_CLOUD||!OPTYKER_CLOUD.username||!OPTYKER_CLOUD.password)throw Error('Sessione non autenticata');return OPTYKER_CLOUD}
-function api(action,payload){var c=cloud();return fetch(c.root+'/rest/v1/rpc/'+API,{method:'POST',headers:{'Content-Type':'application/json','apikey':c.key,'Authorization':'Bearer '+c.key},body:JSON.stringify({p_username:c.username,p_password:c.password,p_action:action,p_payload:payload||{}})}).then(function(r){if(!r.ok)throw Error('Server '+r.status);return r.json()}).then(function(x){if(!x||x.ok===false)throw Error(x&&x.error||'Errore turni');return x})}
+function api(action,payload){var c=cloud(),ctl=new AbortController(),tm=setTimeout(function(){try{ctl.abort()}catch(e){}},15000);return fetch(c.root+'/rest/v1/rpc/'+API,{method:'POST',headers:{'Content-Type':'application/json','apikey':c.key,'Authorization':'Bearer '+c.key},body:JSON.stringify({p_username:c.username,p_password:c.password,p_action:action,p_payload:payload||{}}),signal:ctl.signal}).then(function(r){if(!r.ok)throw Error('Server '+r.status);return r.json()}).then(function(x){if(!x||x.ok===false)throw Error(x&&x.error||'Errore turni');return x}).catch(function(e){if(e&&e.name==='AbortError')throw Error('Caricamento turni troppo lento. Premi Aggiorna e riprova.');throw e}).finally(function(){clearTimeout(tm)})}
 function stat(t,b){var e=E('oa16StatusText');if(e){e.textContent=t||'';e.className='oa16Status'+(b?' bad':'')}}
 function editMsg(t,b){var e=E('oa16EditMsg');if(e){e.textContent=t||'';e.className='oa16EditMsg'+(b?' bad':'')}}
 function storeOverride(date){return S.overrideIndex[String(date)]||null}
@@ -226,7 +226,7 @@ function bindEditor(){
 function start(){
   if(!S.month)S.month=monthKey(new Date());
   var tries=0;(function wait(){tries++;if(mount()){bindEditor();var b=E('oaModeShiftV7');if(b&&!b.__v16){b.__v16=true;b.addEventListener('click',function(){setTimeout(function(){load(false)},0)})}if(E('oaShiftCalendarV7').classList.contains('open'))load(false);return}if(tries<40)setTimeout(wait,100)})();
-  var authTry=0;(function warm(){authTry++;if(window.OPTYKER_CLOUD&&OPTYKER_CLOUD.username&&OPTYKER_CLOUD.password){prefetchAround();return}if(authTry<30)setTimeout(warm,250)})()
+  /* Turni: nessun pre-caricamento in background. Il caricamento parte solo all'apertura esplicita di Turni e orari. */
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 window.addEventListener('pageshow',function(){setTimeout(start,100)});
