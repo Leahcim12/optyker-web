@@ -486,7 +486,7 @@ function AuthScreen({ onSignedIn }) {
     try {
       setBusy(true);
       const { error } = await supabase.auth.resetPasswordForEmail(e, {
-        redirectTo: 'https://leahcim12.github.io/optyker-web/iphone/',
+        redirectTo: 'https://leahcim12.github.io/optyker-web/reset-password/',
       });
       if (error) throw error;
       Alert.alert('Email inviata', 'Controlla la posta per reimpostare la password.');
