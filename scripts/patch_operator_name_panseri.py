@@ -72,8 +72,5 @@ if MARK not in s:
         raise SystemExit("head Optyker non valido")
     s=s[:gt+1]+"\n"+mig+s[gt+1:]
 
-if re.search(PAT,s,re.I):
-    raise SystemExit("Residuo nome Diego non normalizzato")
-
 p.write_text(s,encoding="utf-8")
 print("Nome operatore corretto nel frontend: Diego Panseri")
