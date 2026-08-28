@@ -41,8 +41,8 @@ function addDeleteButtons(){
   })
 }
 function ensureDiego(){
-  ['oaOpFilter','oaOperator'].forEach(function(id){var s=E(id);if(!s)return;var found=Array.from(s.options||[]).some(function(o){return String(o.value||o.text).trim().toUpperCase()==='DIEGO PANSIERI'});if(!found){var o=document.createElement('option');o.value='DIEGO PANSIERI';o.text='DIEGO PANSIERI';s.appendChild(o)}});
-  document.querySelectorAll('.ro').forEach(function(s){var found=Array.from(s.options||[]).some(function(o){return String(o.value||o.text).trim().toUpperCase()==='DIEGO PANSIERI'});if(!found){var o=document.createElement('option');o.value='DIEGO PANSIERI';o.text='DIEGO PANSIERI';s.appendChild(o)}})
+  ['oaOpFilter','oaOperator'].forEach(function(id){var s=E(id);if(!s)return;var found=Array.from(s.options||[]).some(function(o){return String(o.value||o.text).trim().toUpperCase()==='DIEGO PANSERI'});if(!found){var o=document.createElement('option');o.value='Diego Panseri';o.text='Diego Panseri';s.appendChild(o)}});
+  document.querySelectorAll('.ro').forEach(function(s){var found=Array.from(s.options||[]).some(function(o){return String(o.value||o.text).trim().toUpperCase()==='DIEGO PANSERI'});if(!found){var o=document.createElement('option');o.value='Diego Panseri';o.text='Diego Panseri';s.appendChild(o)}})
 }
 function sync(){addDeleteButtons();ensureDiego()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',sync);else sync();
