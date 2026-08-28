@@ -48,7 +48,7 @@ function setState(cfg){
   var st=E('optykerWaSimpleState'),title=E('optykerWaSimpleTitle'),text=E('optykerWaSimpleText'),btn=E('optykerWaSimpleConnect');
   if(st){st.textContent=connected?'COLLEGATO':'NON COLLEGATO';st.className='optykerWaSimpleState'+(connected?' ok':'')}
   if(title)title.textContent=connected?'WhatsApp collegato':'Collega WhatsApp';
-  if(text)text.textContent=connected?([S.cfg.verified_name,S.cfg.display_phone_number].filter(Boolean).join(' · ')||'Il collegamento WhatsApp Business è attivo in Optyker.'):'Accedi a Meta e completa il collegamento guidato. Non servono impostazioni tecniche durante l’uso normale.';
+  if(text){if(connected)text.textContent=([S.cfg.verified_name,S.cfg.display_phone_number].filter(Boolean).join(' · ')||'Il collegamento WhatsApp Business è attivo in Optyker.');else if(S.cfg.meta_app_id&&S.cfg.meta_config_id&&!S.cfg.oauth_exchange_ready&&!S.cfg.token_configured)text.textContent='L’app Meta è configurata, ma manca ancora l’autorizzazione server. Apri Avanzate e inserisci un Access Token permanente Meta, oppure configura META_APP_SECRET in Supabase.';else text.textContent='Accedi a Meta e completa il collegamento guidato.'}
   if(btn)btn.textContent=connected?'RICOLLEGA WHATSAPP':'COLLEGA WHATSAPP';
   if(E('optykerWaEnabled'))E('optykerWaEnabled').checked=connected;
   syncMeta(S.cfg)
@@ -90,6 +90,11 @@ function triggerQr(){
 function connect(){
   if(S.busy)return;
   if(!hasMeta()){E('optykerWaSimpleSetup').classList.add('open');status('Inserisci i due codici Meta una sola volta, poi premi Salva e collega.',true);return}
+  if(S.cfg&&!S.cfg.oauth_exchange_ready&&!S.cfg.token_configured){
+    var p=E('optykerSettingsWhatsAppPane')||E('optykerSettingsPanel');if(p)p.classList.add('waSimpleAdvanced');
+    status('Manca l’autorizzazione server Meta: inserisci un Access Token permanente nel campo Access Token oppure configura META_APP_SECRET in Supabase, poi riprova.',true);
+    return;
+  }
   try{triggerQr()}catch(e){status(e.message,true)}
 }
 function saveAndConnect(){
