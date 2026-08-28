@@ -33,6 +33,7 @@ jobs:
           for f in \
             scripts/patch_optyker.py \
             scripts/patch_usage_documents_label.py \
+            scripts/patch_visual_training_documents.py \
             scripts/patch_orders_auto_refresh.py \
             scripts/patch_label_scope_message.py \
             scripts/remove_login_store_user.py \
@@ -102,6 +103,12 @@ jobs:
           cp iphone-app-v9/visualcare-app-logo-fixed.jpg _site/iphone-app-v9/visualcare-app-logo-fixed.jpg
           cp manifest.webmanifest _site/manifest.webmanifest
           cp visualcare-logo.svg _site/visualcare-logo.svg
+          mkdir -p _site/visual-training
+          cp visual-training/Tridimensionalita.pdf _site/visual-training/Tridimensionalita.pdf
+          cp visual-training/Accomodazione.pdf _site/visual-training/Accomodazione.pdf
+          cp visual-training/Convergenza.pdf _site/visual-training/Convergenza.pdf
+          cp visual-training/Motorio.pdf _site/visual-training/Motorio.pdf
+          cp visual-training/Sport.pdf _site/visual-training/Sport.pdf
           test -s _site/staff-embed/index.html
           test -s _site/booking/index.html
           test -s _site/iphone/index.html
@@ -129,6 +136,11 @@ jobs:
           test -s _site/iphone-app-v9/visualcare-app-logo-fixed.jpg
           test -s _site/manifest.webmanifest
           test -s _site/visualcare-logo.svg
+          test -s _site/visual-training/Tridimensionalita.pdf
+          test -s _site/visual-training/Accomodazione.pdf
+          test -s _site/visual-training/Convergenza.pdf
+          test -s _site/visual-training/Motorio.pdf
+          test -s _site/visual-training/Sport.pdf
 
           python - <<'PY'
           from pathlib import Path
@@ -140,7 +152,7 @@ jobs:
                   if code.strip(): Path(f'_jscheck/{n}-{i}.js').write_text(code,encoding='utf-8')
           main=Path('_site/index.html').read_text(encoding='utf-8')
           booking=Path('_site/booking/index.html').read_text(encoding='utf-8')
-          required_main=['DOCUMENTI DA STAMPARE MANUTENZIONE LAC','OPTYKER_APPOINTMENTS_UI_V9_GRAPHICS','OPTYKER_APPOINTMENTS_UI_V10_MANAGE','OPTYKER_APPOINTMENTS_UI_V11_SECURE','OPTYKER_APPOINTMENTS_UI_V12_SETTINGS_SAVE','OPTYKER_APPOINTMENTS_UI_V13_SINGLE_SETTINGS','id="oaManageModal"','oaV10Save','oaV10Cancel','optyker-appointments-staff','id="navAppointments"','OPTYKER_STAFF_AUTH_V1','optyker-staff-auth','Password dimenticata?','optykerAuthPassword']
+          required_main=['DOCUMENTI DA STAMPARE MANUTENZIONE LAC','DOCUMENTI DA STAMPARE VISUAL TRAINING','OPTYKER_VISUAL_TRAINING_DOCUMENTS_V1','visual-training/Motorio.pdf','OPTYKER_APPOINTMENTS_UI_V9_GRAPHICS','OPTYKER_APPOINTMENTS_UI_V10_MANAGE','OPTYKER_APPOINTMENTS_UI_V11_SECURE','OPTYKER_APPOINTMENTS_UI_V12_SETTINGS_SAVE','OPTYKER_APPOINTMENTS_UI_V13_SINGLE_SETTINGS','id="oaManageModal"','oaV10Save','oaV10Cancel','optyker-appointments-staff','id="navAppointments"','OPTYKER_STAFF_AUTH_V1','optyker-staff-auth','Password dimenticata?','optykerAuthPassword']
           required_booking=['I tuoi appuntamenti','Sposta','Aggiungi un altro','optyker_appointment_tokens_v2','Scegli lo studio disponibile']
           missing=[x for x in required_main if x not in main]+[x for x in required_booking if x not in booking]
           if missing: raise SystemExit('Mancano: '+', '.join(missing))
