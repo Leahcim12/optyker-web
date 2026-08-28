@@ -10,6 +10,11 @@ PAT=r"DIEGO\s+PANSIERI|DIEGO\s+PANSERI"
 # Corregge qualsiasi residuo statico nella base HTML pubblicata.
 s=re.sub(PAT, "Diego Panseri", s, flags=re.I)
 
+# I confronti tecnici che usano toUpperCase() devono restare in maiuscolo,
+# altrimenti ensureDiego() aggiunge opzioni all'infinito tramite MutationObserver.
+s=s.replace("toUpperCase()==='Diego Panseri'", "toUpperCase()==='DIEGO PANSERI'")
+s=s.replace('toUpperCase()==="Diego Panseri"', 'toUpperCase()==="DIEGO PANSERI"')
+
 if MARK not in s:
     mig=r'''<script id="optykerDiegoPanseriFix">/* OPTYKER_DIEGO_PANSERI_NAME_FIX_V1 */
 (function(){
