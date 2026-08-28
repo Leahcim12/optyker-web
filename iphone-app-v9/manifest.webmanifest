@@ -1,0 +1,19 @@
+{
+  "name": "Ottica Visual Care",
+  "short_name": "Visual Care",
+  "id": "/optyker-web/iphone-app-v9/",
+  "start_url": "/optyker-web/iphone-app-v9/?app=9",
+  "scope": "/optyker-web/",
+  "display": "standalone",
+  "background_color": "#eef3f7",
+  "theme_color": "#ffffff",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/optyker-web/iphone-app-v9/visualcare-app-logo-fixed.jpg?v=9",
+      "sizes": "96x96",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ]
+}
