@@ -77,7 +77,7 @@ jobs:
             scripts/patch_operator_name_panseri.py \
             scripts/patch_ios_pwa.py; do python "$f"; done
 
-          mkdir -p _site/staff-embed _site/booking _site/iphone _site/reset-password _site/accesso _site/gestionale-v2 _site/iphone-app _site/iphone-app-v2 _site/iphone-app-v3 _site/iphone-app-v4 _site/iphone-app-v5 _site/iphone-app-v6 _site/iphone-app-v7 _site/iphone-app-v8 _site/iphone-app-v9 _site/iphone-app-v10 _site/iphone-app-v11 _site/iphone-app-v12
+          mkdir -p _site/staff-embed _site/booking _site/iphone _site/reset-password _site/accesso _site/gestionale-v2 _site/gestionale-v3 _site/iphone-app _site/iphone-app-v2 _site/iphone-app-v3 _site/iphone-app-v4 _site/iphone-app-v5 _site/iphone-app-v6 _site/iphone-app-v7 _site/iphone-app-v8 _site/iphone-app-v9 _site/iphone-app-v10 _site/iphone-app-v11 _site/iphone-app-v12
           cp staff-embed/index.html _site/staff-embed/index.html
           python scripts/patch_staff_whatsapp.py
           python scripts/patch_staff_appointments.py
@@ -121,6 +121,11 @@ jobs:
           cp visualcare-logo.svg _site/gestionale-v2/visualcare-logo.svg
           mkdir -p _site/gestionale-v2/visual-training
           cp visual-training/*.pdf _site/gestionale-v2/visual-training/
+          cp _site/index.html _site/gestionale-v3/index.html
+          cp manifest.webmanifest _site/gestionale-v3/manifest.webmanifest
+          cp visualcare-logo.svg _site/gestionale-v3/visualcare-logo.svg
+          mkdir -p _site/gestionale-v3/visual-training
+          cp visual-training/*.pdf _site/gestionale-v3/visual-training/
           mkdir -p _site/visual-training
           cp visual-training/Tridimensionalita.pdf _site/visual-training/Tridimensionalita.pdf
           cp visual-training/Accomodazione.pdf _site/visual-training/Accomodazione.pdf
@@ -166,6 +171,9 @@ jobs:
           test -s _site/gestionale-v2/index.html
           test -s _site/gestionale-v2/manifest.webmanifest
           test -s _site/gestionale-v2/visualcare-logo.svg
+          test -s _site/gestionale-v3/index.html
+          test -s _site/gestionale-v3/manifest.webmanifest
+          test -s _site/gestionale-v3/visualcare-logo.svg
           test -s _site/visual-training/Tridimensionalita.pdf
           test -s _site/visual-training/Accomodazione.pdf
           test -s _site/visual-training/Convergenza.pdf
