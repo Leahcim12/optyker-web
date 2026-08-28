@@ -40,15 +40,15 @@ if old_slots not in s:
 s=s.replace(old_slots,new_slots,1)
 
 # Al bootstrap lo studio non deve essere preselezionabile.
-old_fill="E('oaStudio').innerHTML='<option value="">Qualsiasi studio</option>'+S.boot.studios.map(function(x){return'<option value="'+X(x.id)+'">'+X(x.name)+'</option>'}).join('');"
-new_fill="E('oaStudio').innerHTML='<option value="">Seleziona prima un orario</option>';E('oaStudio').disabled=true;"
+old_fill='''E('oaStudio').innerHTML='<option value="">Qualsiasi studio</option>'+S.boot.studios.map(function(x){return'<option value="'+X(x.id)+'">'+X(x.name)+'</option>'}).join('');'''
+new_fill='''E('oaStudio').innerHTML='<option value="">Seleziona prima un orario</option>';E('oaStudio').disabled=true;'''
 if old_fill not in s:
     raise SystemExit('fill studio non trovato')
 s=s.replace(old_fill,new_fill,1)
 
 # Nuovo appuntamento: orario vuoto e forzatura mostrata solo agli user con email.
 old_open='''E('oaDate').value=ds(d);['oaFirst','oaLast','oaEmail','oaPhone','oaNotes'].forEach(function(i){E(i).value=''});E('oaClient').value=E('oaService').value=E('oaOperator').value=E('oaStudio').value='';E('oaSlots').innerHTML='<span class="oaEmpty">Seleziona servizio e data.</span>';E('oaCreate').disabled=true;'''
-new_open="E('oaDate').value=ds(d);E('oaManualTime').value='';E('oaForceClosed').checked=false;E('oaForceBox').style.display=S.boot&&S.boot.can_force_appointment?'block':'none';['oaFirst','oaLast','oaEmail','oaPhone','oaNotes'].forEach(function(i){E(i).value=''});E('oaClient').value=E('oaService').value=E('oaOperator').value='';E('oaStudio').innerHTML='<option value="">Seleziona prima un orario</option>';E('oaStudio').disabled=true;E('oaSlots').innerHTML='<span class="oaEmpty">Seleziona servizio e data.</span>';E('oaCreate').disabled=true;"
+new_open='''E('oaDate').value=ds(d);E('oaManualTime').value='';E('oaForceClosed').checked=false;E('oaForceBox').style.display=S.boot&&S.boot.can_force_appointment?'block':'none';['oaFirst','oaLast','oaEmail','oaPhone','oaNotes'].forEach(function(i){E(i).value=''});E('oaClient').value=E('oaService').value=E('oaOperator').value='';E('oaStudio').innerHTML='<option value="">Seleziona prima un orario</option>';E('oaStudio').disabled=true;E('oaSlots').innerHTML='<span class="oaEmpty">Seleziona servizio e data.</span>';E('oaCreate').disabled=true;'''
 if old_open not in s:
     raise SystemExit('openNew non trovato')
 s=s.replace(old_open,new_open,1)
