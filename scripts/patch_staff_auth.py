@@ -40,7 +40,7 @@ var S={mode:'idle',status:null,busy:false,recoveryToken:'',recovery:false};
 function E(i){return document.getElementById(i)}
 function T(v){return String(v==null?'':v).trim()}
 function err(t,ok){var e=E('optykerLoginError');if(!e)return;e.textContent=t||'';e.classList.toggle('optykerAuthSuccess',!!ok)}
-function api(action,data,token){data=data||{};data.action=action;var h={'Content-Type':'application/json'};if(token)h.Authorization='Bearer '+token;return fetch(AUTH,{method:'POST',headers:h,cache:'no-store',body:JSON.stringify(data)}).then(function(r){return r.json().catch(function(){return{ok:false,error:'Risposta non valida'}}).then(function(x){if(!r.ok||!x||x.ok===false)throw Error(x&&x.error||'Operazione non riuscita');return x})})}
+function api(action,data,token){data=data||{};data.action=action;var h={'Content-Type':'application/json'},c=new AbortController(),tm=setTimeout(function(){try{c.abort()}catch(e){}},8000);if(token)h.Authorization='Bearer '+token;return fetch(AUTH,{method:'POST',headers:h,cache:'no-store',signal:c.signal,body:JSON.stringify(data)}).then(function(r){return r.json().catch(function(){return{ok:false,error:'Risposta non valida'}}).then(function(x){if(!r.ok||!x||x.ok===false)throw Error(x&&x.error||'Operazione non riuscita');return x})}).catch(function(e){if(e&&e.name==='AbortError')throw Error('Il server sta impiegando troppo tempo. Riprova.');throw e}).finally(function(){clearTimeout(tm)})}
 function build(){
   var form=document.querySelector('.optykerLoginCard'),sel=E('optykerLoginOperator');if(!form||!sel||E('optykerAuthFields'))return;
   try{form.removeAttribute('onsubmit');form.onsubmit=function(){return false}}catch(e){}
@@ -65,7 +65,7 @@ function build(){
   detectRecovery();
   if(!S.recovery)setTimeout(restoreRemembered,0);
 }
-function setBusy(on){S.busy=!!on;var b=document.querySelector('.optykerLoginButton'),sel=E('optykerLoginOperator');if(b)b.disabled=!!on;if(sel)sel.disabled=!!on}
+function setBusy(on){S.busy=!!on;var b=document.querySelector('.optykerLoginButton');if(b)b.disabled=!!on}
 function clearPw(){if(E('optykerAuthPassword'))E('optykerAuthPassword').value='';if(E('optykerAuthPassword2'))E('optykerAuthPassword2').value=''}
 function savedUser(){try{return T(localStorage.getItem('optyker_login_username')||'')}catch(e){return''}}
 function setSavedUser(u){try{if(u)localStorage.setItem('optyker_login_username',u);else localStorage.removeItem('optyker_login_username')}catch(e){}}
@@ -92,7 +92,7 @@ function checkUser(){
   var u=T(E('optykerLoginOperator')&&E('optykerLoginOperator').value),box=E('optykerAuthFields'),forgot=E('optykerForgot');
   err('');S.status=null;S.mode='idle';clearPw();
   if(!u){if(box)box.classList.remove('show');if(forgot)forgot.classList.remove('show');return}
-  setBusy(true);api('status',{username:u}).then(applyStatus).catch(function(e){err(e.message)}).finally(function(){setBusy(false)});
+  api('status',{username:u}).then(applyStatus).catch(function(e){err(e.message)});
 }
 function enterApp(username,password){
   setSavedUser(username);
