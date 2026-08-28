@@ -73,7 +73,7 @@ jobs:
             scripts/patch_single_active_nav_v18.py \
             scripts/patch_ios_pwa.py; do python "$f"; done
 
-          mkdir -p _site/staff-embed _site/booking _site/iphone _site/reset-password _site/iphone-app _site/iphone-app-v2 _site/iphone-app-v3 _site/iphone-app-v4 _site/iphone-app-v5 _site/iphone-app-v6 _site/iphone-app-v7 _site/iphone-app-v8 _site/iphone-app-v9
+          mkdir -p _site/staff-embed _site/booking _site/iphone _site/reset-password _site/iphone-app _site/iphone-app-v2 _site/iphone-app-v3 _site/iphone-app-v4 _site/iphone-app-v5 _site/iphone-app-v6 _site/iphone-app-v7 _site/iphone-app-v8 _site/iphone-app-v9 _site/iphone-app-v10
           cp staff-embed/index.html _site/staff-embed/index.html
           python scripts/patch_staff_whatsapp.py
           python scripts/patch_staff_appointments.py
@@ -102,6 +102,9 @@ jobs:
           cp iphone-app-v9/index.html _site/iphone-app-v9/index.html
           cp iphone-app-v9/manifest.webmanifest _site/iphone-app-v9/manifest.webmanifest
           cp iphone-app-v9/visualcare-app-logo-fixed.jpg _site/iphone-app-v9/visualcare-app-logo-fixed.jpg
+          cp iphone-app-v10/index.html _site/iphone-app-v10/index.html
+          cp iphone-app-v10/manifest.webmanifest _site/iphone-app-v10/manifest.webmanifest
+          cp iphone-app-v10/visualcare-app-logo-fixed.jpg _site/iphone-app-v10/visualcare-app-logo-fixed.jpg
           cp manifest.webmanifest _site/manifest.webmanifest
           cp visualcare-logo.svg _site/visualcare-logo.svg
           mkdir -p _site/visual-training
@@ -136,6 +139,9 @@ jobs:
           test -s _site/iphone-app-v9/index.html
           test -s _site/iphone-app-v9/manifest.webmanifest
           test -s _site/iphone-app-v9/visualcare-app-logo-fixed.jpg
+          test -s _site/iphone-app-v10/index.html
+          test -s _site/iphone-app-v10/manifest.webmanifest
+          test -s _site/iphone-app-v10/visualcare-app-logo-fixed.jpg
           test -s _site/manifest.webmanifest
           test -s _site/visualcare-logo.svg
           test -s _site/visual-training/Tridimensionalita.pdf
