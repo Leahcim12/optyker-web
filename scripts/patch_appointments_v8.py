@@ -22,12 +22,12 @@ function apply(){
   var studio=E('oaStudio');if(studio){studio.value='';var f=studio.closest('.oaF');if(f)f.classList.add('oaUnifiedStudioHidden')}
   document.querySelectorAll('#oaRules .avStudio').forEach(function(sel){sel.value='';var f=sel.closest('.oaAvailField');if(f)f.classList.add('oaUnifiedRuleStudioHidden')});
   var panel=E('optykerAppointmentsPanel');if(panel&&!E('oaUnifiedAgendaNoteV8')){var mode=E('oaCalendarModeV7')||panel.querySelector('.oaToolbar');if(mode){var n=document.createElement('div');n.id='oaUnifiedAgendaNoteV8';n.className='oaUnifiedAgendaNoteV8';n.textContent='Agenda unica: per i servizi che richiedono uno studio, Optyker assegna automaticamente Studio 1 o Studio 2. Quando entrambi sono occupati, quella fascia non accetta altri appuntamenti.';mode.insertAdjacentElement('afterend',n)}}
-  var rules=E('oaRules');if(rules){var h=rules.previousElementSibling;if(h&&h.classList.contains('oaHelp'))h.textContent='Scegli servizio, uno o più giorni della settimana, orario e intervallo. L’agenda è unica e usa automaticamente il primo studio libero tra Studio 1 e Studio 2.'}
+  var rules=E('oaRules');if(rules){var h=rules.previousElementSibling,txt='Scegli servizio, uno o più giorni della settimana, orario e intervallo. L’agenda è unica e usa automaticamente il primo studio libero tra Studio 1 e Studio 2.';if(h&&h.classList.contains('oaHelp')&&h.textContent!==txt)h.textContent=txt}
 }
 function boot(){apply();setTimeout(apply,80);setTimeout(apply,350);setTimeout(apply,1000)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 window.addEventListener('pageshow',boot);
-new MutationObserver(function(){setTimeout(apply,20)}).observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['class','style']});
+new MutationObserver(function(){setTimeout(apply,20)}).observe(document.documentElement,{subtree:true,childList:true});
 setInterval(apply,1800);
 })();</script>'''
 
