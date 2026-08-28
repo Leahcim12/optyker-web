@@ -170,12 +170,14 @@ jobs:
                   if code.strip(): Path(f'_jscheck/{n}-{i}.js').write_text(code,encoding='utf-8')
           main=Path('_site/index.html').read_text(encoding='utf-8')
           booking=Path('_site/booking/index.html').read_text(encoding='utf-8')
-          required_main=['DOCUMENTI DA STAMPARE MANUTENZIONE LAC','DOCUMENTI DA STAMPARE VISUAL TRAINING','OPTYKER_VISUAL_TRAINING_DOCUMENTS_V1','visual-training/Motorio.pdf','OPTYKER_APPOINTMENTS_UI_V9_GRAPHICS','OPTYKER_APPOINTMENTS_UI_V10_MANAGE','OPTYKER_APPOINTMENTS_UI_V11_SECURE','OPTYKER_APPOINTMENTS_UI_V12_SETTINGS_SAVE','OPTYKER_APPOINTMENTS_UI_V13_SINGLE_SETTINGS','OPTYKER_APPOINTMENTS_FORCE_TIME_V20','id="oaManageModal"','oaV10Save','oaV10Cancel','optyker-appointments-staff','id="navAppointments"','OPTYKER_STAFF_AUTH_V1','optyker-staff-auth','Password dimenticata?','optykerAuthPassword','OPTYKER_DIEGO_PANSERI_NAME_FIX_V1','DIEGO PANSERI']
+          required_main=['DOCUMENTI DA STAMPARE MANUTENZIONE LAC','DOCUMENTI DA STAMPARE VISUAL TRAINING','OPTYKER_VISUAL_TRAINING_DOCUMENTS_V1','visual-training/Motorio.pdf','OPTYKER_APPOINTMENTS_UI_V9_GRAPHICS','OPTYKER_APPOINTMENTS_UI_V10_MANAGE','OPTYKER_APPOINTMENTS_UI_V11_SECURE','OPTYKER_APPOINTMENTS_UI_V12_SETTINGS_SAVE','OPTYKER_APPOINTMENTS_UI_V13_SINGLE_SETTINGS','OPTYKER_APPOINTMENTS_FORCE_TIME_V20','id="oaManageModal"','oaV10Save','oaV10Cancel','optyker-appointments-staff','id="navAppointments"','OPTYKER_STAFF_AUTH_V1','optyker-staff-auth','Password dimenticata?','optykerAuthPassword','OPTYKER_DIEGO_PANSERI_NAME_FIX_V1','Diego Panseri','can_force_appointment','force_studios']
           reset=Path('_site/reset-password/index.html').read_text(encoding='utf-8')
           required_reset=['Recupero password','SALVA NUOVA PASSWORD','updateUser','exchangeCodeForSession']
-          required_booking=['I tuoi appuntamenti','Sposta','Aggiungi un altro','optyker_appointment_tokens_v2','Scegli lo studio disponibile','Inserisci un orario manuale','Forza appuntamento','force_time']
+          required_booking=['I tuoi appuntamenti','Sposta','Aggiungi un altro','optyker_appointment_tokens_v2','Scegli lo studio disponibile','Inserisci l’orario','studio_id:S.candidate.studio_id||null']
           missing=[x for x in required_main if x not in main]+[x for x in required_booking if x not in booking]+[x for x in required_reset if x not in reset]
           if missing: raise SystemExit('Mancano: '+', '.join(missing))
+          if 'id="forceClosed"' in booking or 'id="useManualTime"' in booking:
+              raise SystemExit('La forzatura pubblica o il vecchio pulsante orario sono ancora presenti')
           print('Build verificata',len(main),len(booking))
           PY
           for f in _jscheck/*.js; do node --check "$f"; done
