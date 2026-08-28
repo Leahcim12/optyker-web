@@ -76,4 +76,4 @@ if re.search(r"DIEGO\s+PANSIERI",s,re.I):
     raise SystemExit("Residuo DIEGO PANSIERI ancora presente")
 
 p.write_text(s,encoding="utf-8")
-print("Nome operatore corretto nel frontend: DIEGO PANSERI")
+print("Nome operatore corretto nel frontend: Diego Panseri")
