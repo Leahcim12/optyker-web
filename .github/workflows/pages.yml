@@ -77,7 +77,7 @@ jobs:
             scripts/patch_operator_name_panseri.py \
             scripts/patch_ios_pwa.py; do python "$f"; done
 
-          mkdir -p _site/staff-embed _site/booking _site/iphone _site/reset-password _site/accesso _site/gestionale-v2 _site/gestionale-v3 _site/iphone-app _site/iphone-app-v2 _site/iphone-app-v3 _site/iphone-app-v4 _site/iphone-app-v5 _site/iphone-app-v6 _site/iphone-app-v7 _site/iphone-app-v8 _site/iphone-app-v9 _site/iphone-app-v10 _site/iphone-app-v11 _site/iphone-app-v12
+          mkdir -p _site/staff-embed _site/booking _site/iphone _site/reset-password _site/accesso _site/gestionale-v2 _site/gestionale-v3 _site/iphone-app _site/iphone-app-v2 _site/iphone-app-v3 _site/iphone-app-v4 _site/iphone-app-v5 _site/iphone-app-v6 _site/iphone-app-v7 _site/iphone-app-v8 _site/iphone-app-v9 _site/iphone-app-v10 _site/iphone-app-v11 _site/iphone-app-v12 _site/iphone-app-v13
           cp staff-embed/index.html _site/staff-embed/index.html
           python scripts/patch_staff_whatsapp.py
           python scripts/patch_staff_appointments.py
@@ -114,6 +114,9 @@ jobs:
           cp iphone-app-v11/manifest.webmanifest _site/iphone-app-v11/manifest.webmanifest
           cp iphone-app-v12/index.html _site/iphone-app-v12/index.html
           cp iphone-app-v12/manifest.webmanifest _site/iphone-app-v12/manifest.webmanifest
+          cp iphone-app-v13/index.html _site/iphone-app-v13/index.html
+          cp iphone-app-v13/manifest.webmanifest _site/iphone-app-v13/manifest.webmanifest
+          cp iphone-app-v13/sw.js _site/iphone-app-v13/sw.js
           cp manifest.webmanifest _site/manifest.webmanifest
           cp visualcare-logo.svg _site/visualcare-logo.svg
           cp _site/index.html _site/gestionale-v2/index.html
@@ -166,6 +169,9 @@ jobs:
           test -s _site/iphone-app-v11/manifest.webmanifest
           test -s _site/iphone-app-v12/index.html
           test -s _site/iphone-app-v12/manifest.webmanifest
+          test -s _site/iphone-app-v13/index.html
+          test -s _site/iphone-app-v13/manifest.webmanifest
+          test -s _site/iphone-app-v13/sw.js
           test -s _site/manifest.webmanifest
           test -s _site/visualcare-logo.svg
           test -s _site/gestionale-v2/index.html
@@ -183,7 +189,7 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           import re
-          files=['_site/index.html','_site/staff-embed/index.html','_site/booking/index.html']
+          files=['_site/index.html','_site/staff-embed/index.html','_site/booking/index.html','_site/iphone-app-v13/index.html']
           for n,path in enumerate(files):
               text=Path(path).read_text(encoding='utf-8')
               for i,code in enumerate(re.findall(r'<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>',text,re.I)):
@@ -192,9 +198,11 @@ jobs:
           booking=Path('_site/booking/index.html').read_text(encoding='utf-8')
           required_main=['DOCUMENTI DA STAMPARE MANUTENZIONE LAC','DOCUMENTI DA STAMPARE VISUAL TRAINING','OPTYKER_VISUAL_TRAINING_DOCUMENTS_V1','visual-training/Motorio.pdf','OPTYKER_APPOINTMENTS_UI_V9_GRAPHICS','OPTYKER_APPOINTMENTS_UI_V10_MANAGE','OPTYKER_APPOINTMENTS_UI_V11_SECURE','OPTYKER_APPOINTMENTS_UI_V12_SETTINGS_SAVE','OPTYKER_APPOINTMENTS_UI_V13_SINGLE_SETTINGS','OPTYKER_APPOINTMENTS_FORCE_TIME_V20','id="oaManageModal"','oaV10Save','oaV10Cancel','optyker-appointments-staff','id="navAppointments"','OPTYKER_DOM_READY_BOOT_V1','OPTYKER_STAFF_AUTH_V1','optyker-staff-auth','Password dimenticata?','optykerAuthPassword','OPTYKER_DIEGO_PANSERI_NAME_FIX_V1','Diego Panseri','can_force_appointment','force_studios']
           reset=Path('_site/reset-password/index.html').read_text(encoding='utf-8')
+          app13=Path('_site/iphone-app-v13/index.html').read_text(encoding='utf-8')
           required_reset=['Recupero password','SALVA NUOVA PASSWORD','updateUser','exchangeCodeForSession']
+          required_app13=['<h1>Orari</h1>','data-nav="hours"','data-nav="timer"','push_subscribe','timer_create','APP 13.0','sw.js?v=13']
           required_booking=['I tuoi appuntamenti','Sposta','Aggiungi un altro','optyker_appointment_tokens_v2','Scegli lo studio disponibile','Inserisci l’orario','studio_id:S.candidate.studio_id||null']
-          missing=[x for x in required_main if x not in main]+[x for x in required_booking if x not in booking]+[x for x in required_reset if x not in reset]
+          missing=[x for x in required_main if x not in main]+[x for x in required_booking if x not in booking]+[x for x in required_reset if x not in reset]+[x for x in required_app13 if x not in app13]
           if missing: raise SystemExit('Mancano: '+', '.join(missing))
           if 'id="forceClosed"' in booking or 'id="useManualTime"' in booking:
               raise SystemExit('La forzatura pubblica o il vecchio pulsante orario sono ancora presenti')
@@ -204,8 +212,9 @@ jobs:
               raise SystemExit('Confronto Diego Panseri non idempotente: rischio loop MutationObserver')
           if "attributes:true,attributeFilter:['class','style']" in main and 'optykerAppointmentsV8Js' in main:
               raise SystemExit('Observer Agenda V8 ancora autoreferenziale')
-          print('Build verificata',len(main),len(booking))
+          print('Build verificata',len(main),len(booking),len(app13))
           PY
+          cp _site/iphone-app-v13/sw.js _jscheck/iphone-app-v13-sw.js
           for f in _jscheck/*.js; do node --check "$f"; done
           touch _site/.nojekyll
 
