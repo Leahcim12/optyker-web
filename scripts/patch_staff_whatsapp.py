@@ -5,7 +5,7 @@ s=p.read_text(encoding='utf-8')
 MARK='OPTYKER_STAFF_WHATSAPP_V1'
 if MARK in s:
     raise SystemExit(0)
-if 'OPTYKER_STAFF_STATIC_UI_V2' not in s or 'optyker-shopify-staff-embed' not in s:
+if ('OPTYKER_STAFF_STATIC_UI_V2' not in s and 'OPTYKER_STAFF_STATIC_UI_V3' not in s) or 'optyker-shopify-staff-embed' not in s:
     raise SystemExit('Renderer staff Shopify non pronto')
 
 def once(old,new,label):
@@ -26,11 +26,11 @@ once(old_panel,new_panel,'Barra canali chat')
 
 old_head="""const API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-shopify-staff-embed';
 const TOKEN=new URLSearchParams(location.search).get('t')||'';
-let operator='Operatore',threads=[],selectedThread='',messages=[],clients=[];"""
+let operator='Operatore',threads=[],selectedThread='',messages=[],clients=[],shiftLoadedMonth='';"""
 new_head="""const API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-shopify-staff-embed';
 const WA_API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-shopify-staff-whatsapp';
 const TOKEN=new URLSearchParams(location.search).get('t')||'';
-let operator='Operatore',threads=[],selectedThread='',messages=[],clients=[],chatMode='web',waAvailable=false;"""
+let operator='Operatore',threads=[],selectedThread='',messages=[],clients=[],shiftLoadedMonth='',chatMode='web',waAvailable=false;"""
 once(old_head,new_head,'Endpoint WhatsApp')
 
 old_api="async function api(action,payload={}){const r=await fetch(API+'?api=1&t='+encodeURIComponent(TOKEN),{method:'POST',headers:{'content-type':'application/json'},cache:'no-store',body:JSON.stringify({action,payload})});const x=await r.json().catch(()=>({ok:false,error:'Risposta server non valida'}));if(!r.ok||x?.ok===false)throw new Error(x?.error||'Errore');return x}"
@@ -59,8 +59,8 @@ async function initWhatsApp(){try{const x=await waApi('status'),d=x.data||{};waA
 async function boot(){if(!TOKEN){showFatal('Collegamento non valido.');return}try{const me=await api('me');operator=me?.data?.username||'Operatore';const photo=me?.data?.photo_data||'';$('operatorName').textContent=operator;$('replyAs').textContent='Risposta come '+operator;$('avatar').innerHTML=photo?'<img src=\"'+esc(photo)+'\" alt=\"\">':'<span>'+esc((operator.trim().charAt(0)||'O').toUpperCase())+'</span>';$('boot').classList.add('hidden');$('app').classList.remove('hidden');await initWhatsApp();await loadThreads()}catch(e){showFatal(e.message)}}"""
 once(old_boot,new_boot,'Bootstrap WhatsApp')
 
-old_events="$('tabChat').onclick=()=>showTab('chat');$('tabClients').onclick=()=>showTab('clients');$('chatSearch').addEventListener('input',renderThreads);$('clientSearch').addEventListener('input',renderClients);$('sendBtn').onclick=sendMsg;$('msgText').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg()}});setInterval(()=>{if(document.visibilityState==='visible'&&!$('app').classList.contains('hidden')){loadThreads();if(selectedThread)api('get_thread',{client_id:selectedThread}).then(x=>{messages=x.data||[];renderMessages()}).catch(()=>{})}},5000);boot();"
-new_events="$('tabChat').onclick=()=>showTab('chat');$('tabClients').onclick=()=>showTab('clients');$('channelWeb').onclick=()=>setChatMode('web');$('channelWa').onclick=()=>setChatMode('whatsapp');$('chatSearch').addEventListener('input',renderThreads);$('clientSearch').addEventListener('input',renderClients);$('sendBtn').onclick=sendMsg;$('msgText').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg()}});setInterval(()=>{if(document.visibilityState==='visible'&&!$('app').classList.contains('hidden')){loadThreads();if(selectedThread){const q=chatMode==='whatsapp'?waApi('get_thread',{client_id:selectedThread}):api('get_thread',{client_id:selectedThread});q.then(x=>{messages=chatMode==='whatsapp'?(x.data||[]).map(normalizeWaMessage):(x.data||[]);renderMessages()}).catch(()=>{})}}},5000);boot();"
+old_events="$('tabChat').onclick=()=>showTab('chat');$('tabClients').onclick=()=>showTab('clients');$('tabShifts').onclick=()=>showTab('shifts');$('shiftMonth').value=monthKey(new Date());$('shiftPrev').onclick=()=>{$('shiftMonth').value=monthAdd($('shiftMonth').value,-1);loadShifts(true)};$('shiftNext').onclick=()=>{$('shiftMonth').value=monthAdd($('shiftMonth').value,1);loadShifts(true)};$('shiftRefresh').onclick=()=>loadShifts(true);$('shiftMonth').onchange=()=>loadShifts(true);$('chatSearch').addEventListener('input',renderThreads);$('clientSearch').addEventListener('input',renderClients);$('sendBtn').onclick=sendMsg;$('msgText').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg()}});setInterval(()=>{if(document.visibilityState==='visible'&&!$('app').classList.contains('hidden')){loadThreads();if(selectedThread)api('get_thread',{client_id:selectedThread}).then(x=>{messages=x.data||[];renderMessages()}).catch(()=>{})}},5000);boot();"
+new_events="$('tabChat').onclick=()=>showTab('chat');$('tabClients').onclick=()=>showTab('clients');$('tabShifts').onclick=()=>showTab('shifts');$('shiftMonth').value=monthKey(new Date());$('shiftPrev').onclick=()=>{$('shiftMonth').value=monthAdd($('shiftMonth').value,-1);loadShifts(true)};$('shiftNext').onclick=()=>{$('shiftMonth').value=monthAdd($('shiftMonth').value,1);loadShifts(true)};$('shiftRefresh').onclick=()=>loadShifts(true);$('shiftMonth').onchange=()=>loadShifts(true);$('channelWeb').onclick=()=>setChatMode('web');$('channelWa').onclick=()=>setChatMode('whatsapp');$('chatSearch').addEventListener('input',renderThreads);$('clientSearch').addEventListener('input',renderClients);$('sendBtn').onclick=sendMsg;$('msgText').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg()}});setInterval(()=>{if(document.visibilityState==='visible'&&!$('app').classList.contains('hidden')){loadThreads();if(selectedThread){const q=chatMode==='whatsapp'?waApi('get_thread',{client_id:selectedThread}):api('get_thread',{client_id:selectedThread});q.then(x=>{messages=chatMode==='whatsapp'?(x.data||[]).map(normalizeWaMessage):(x.data||[]);renderMessages()}).catch(()=>{})}}},5000);boot();"
 once(old_events,new_events,'Eventi WhatsApp')
 
 p.write_text(s,encoding='utf-8')
