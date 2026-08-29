@@ -487,6 +487,7 @@ function shell(){
         <button class="drawerBtn" data-nav="home" onclick="goTab('home')">Dashboard</button>
         <button class="drawerBtn" data-nav="shop" onclick="goTab('shop')">Shop</button>
         <div class="drawerSubNav">
+          <button class="drawerSubBtn" data-nav="contacts-shop" onclick="openContactLensShop()">Acquista LAC</button>
           <button class="drawerSubBtn" data-nav="cart" onclick="goTab('cart')">Carrello <span id="cartBadge" class="drawerBadge ${cartCount()>0?'':'hidden'}">${cartCount()}</span></button>
           <button class="drawerSubBtn" data-nav="recent" onclick="goTab('recent')">Acquistati di recente</button>
         </div>
@@ -514,6 +515,7 @@ function render(){
   document.querySelectorAll('.drawerBtn,.drawerSubBtn').forEach(b=>b.classList.toggle('active',b.dataset.nav===state.tab||(b.dataset.nav==='shop'&&(state.tab==='cart'||state.tab==='recent'))));updateCartBadge();
   if(state.tab==='chat')setTimeout(()=>{const b=document.getElementById('chatMessages');if(b)b.scrollTop=b.scrollHeight},30);
 }
+window.openContactLensShop=()=>{state.tab='shop';state.drawer=false;state.frame=null;state.shopParent='contacts';state.shopCategory=null;state.shopProducts=[];state.shopPageInfo=null;state.shopError='';toggleDrawer(false);render()};
 window.chooseShopParent=(key)=>{state.shopParent=key;state.shopCategory=null;state.shopProducts=[];state.shopPageInfo=null;state.shopError='';render()};
 window.shopBackRoot=()=>{state.shopParent=null;state.shopCategory=null;state.shopProducts=[];state.shopPageInfo=null;state.shopError='';render()};
 window.shopBackParent=()=>{state.shopCategory=null;state.shopProducts=[];state.shopPageInfo=null;state.shopError='';render()};
