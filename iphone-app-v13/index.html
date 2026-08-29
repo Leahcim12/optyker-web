@@ -13,7 +13,6 @@
   <title>Ottica Visual Care</title>
   <link rel="manifest" href="./manifest.webmanifest?v=13">
   <link rel="apple-touch-icon" href="https://cdn.shopify.com/s/files/1/0917/4289/6503/files/visual-care-logo-app-original.png?v=1787903859">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
     :root{--blue:#1769aa;--navy:#11395d;--bg:#f4f7fa;--line:#dce6ee;--text:#19384d;--muted:#6d8291;--card:#fff;--danger:#b42318}
     *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -88,7 +87,7 @@
 </style>\n</head>
 <body>
 <div id="app"><div class="center"><div class="spinner"></div></div></div>
-<script>
+<script type="text/plain" id="optykerAppCode">
 const U='https://whgziwaegjzqsgcntesr.supabase.co';
 const K='sb_publishable_DndhLvY32YeCmqWMNRi30g_dEDm8upv';
 const API=U+'/functions/v1/optyker-mobile-api';
@@ -97,8 +96,8 @@ const CUSTOMER_AUTH=U+'/functions/v1/optyker-customer-auth';
 const BOOKING_API=U+'/functions/v1/optyker-appointments-booking';
 const CATALOG=U+'/functions/v1/optyker-shop-catalog';
 const SHOP='https://otticavisualcare.it';
-const OPTYKER_BUILD='20260829-1941';
-const BOOK='../booking/?source=iphone-app&build=20260829-1941';
+const OPTYKER_BUILD='20260829-1945';
+const BOOK='../booking/?source=iphone-app&build=20260829-1945';
 const sb=window.supabase.createClient(U,K,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const app=document.getElementById('app');
 let state={session:null,me:null,home:null,appointments:[],tab:'home',frame:null,drawer:false,shopCategories:[],shopParent:null,shopCategory:null,shopProducts:[],shopPageInfo:null,shopLoading:false,shopError:'',cart:[],chatMessages:[],chatLoading:false,chatSending:false,chatError:'',chatTimer:null,chatAttachment:null,timers:[],timerLoading:false,timerError:''};
@@ -603,5 +602,39 @@ sb.auth.onAuthStateChange((event,session)=>{
 });
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js?v=13').catch(()=>{});
 boot();
+</script>
+<script>
+(function(){
+  const app=document.getElementById('app');
+  let started=false;
+  function fail(){
+    if(!app)return;
+    app.innerHTML='<div class="center"><div style="max-width:360px;text-align:center;background:#fff;border:1px solid #dce6ee;border-radius:16px;padding:22px"><b style="display:block;color:#11395d;font-size:18px;margin-bottom:7px">Optyker non riesce a collegarsi</b><span style="font-size:12px;color:#6d8291;line-height:1.5">Chiudi e riapri la pagina. Se il problema continua, aprila direttamente in Safari.</span></div></div>';
+  }
+  function boot(){
+    if(started||!window.supabase)return;
+    started=true;
+    try{
+      const code=document.getElementById('optykerAppCode')?.textContent||'';
+      (0,eval)(code);
+    }catch(e){
+      console.error('Optyker boot error',e);
+      fail();
+    }
+  }
+  function load(url,next){
+    if(window.supabase){boot();return}
+    const s=document.createElement('script');
+    let done=false;
+    const timer=setTimeout(()=>{if(done)return;done=true;try{s.remove()}catch{};next()},3500);
+    s.src=url;
+    s.onload=()=>{if(done)return;done=true;clearTimeout(timer);window.supabase?boot():next()};
+    s.onerror=()=>{if(done)return;done=true;clearTimeout(timer);next()};
+    document.head.appendChild(s);
+  }
+  load('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js',()=>{
+    load('https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js',fail);
+  });
+})();
 </script>
 </body></html>
