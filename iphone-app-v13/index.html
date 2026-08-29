@@ -222,11 +222,12 @@ const K='sb_publishable_DndhLvY32YeCmqWMNRi30g_dEDm8upv';
 const API=U+'/functions/v1/optyker-mobile-api';
 const APPT=U+'/functions/v1/optyker-mobile-appointments';
 const CUSTOMER_AUTH=U+'/functions/v1/optyker-customer-auth';
+const STAFF_LOGIN=U+'/functions/v1/optyker-mobile-staff-login';
 const BOOKING_API=U+'/functions/v1/optyker-appointments-booking';
 const CATALOG=U+'/functions/v1/optyker-shop-catalog';
 const SHOP='https://otticavisualcare.it';
-const OPTYKER_BUILD='20260829-2315';
-const BOOK='../booking/?source=iphone-app&build=20260829-2315';
+const OPTYKER_BUILD='20260829-2320';
+const BOOK='../booking/?source=iphone-app&build=20260829-2320';
 const sb=window.supabase.createClient(U,K,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const app=document.getElementById('app');
 let state={session:null,me:null,home:null,appointments:[],tab:'home',frame:null,drawer:false,shopCategories:[],shopParent:null,shopCategory:null,shopProducts:[],shopPageInfo:null,shopLoading:false,shopError:'',cart:[],chatMessages:[],chatLoading:false,chatSending:false,chatError:'',chatTimer:null,chatAttachment:null,timers:[],timerLoading:false,timerError:'',staffHome:null,staffAgenda:[],staffAgendaStart:'',staffShifts:null,staffShiftMonth:'',staffClients:[],staffClientDetail:null,staffClientSearch:'',staffOrders:null,staffThreads:[],staffSelectedThread:'',staffMessages:[],staffLoading:false,staffError:''};
@@ -430,6 +431,12 @@ window.buyNativeProduct=()=>{const v=window.__optykerVariant||nativeVariant(),p=
 async function token(){const {data}=await sb.auth.getSession();return data?.session?.access_token||''}
 async function call(url,action,payload={}){const t=await token();const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','apikey':K,'Authorization':'Bearer '+t},body:JSON.stringify({action,payload})});const x=await r.json().catch(()=>({ok:false,error:'Risposta non valida'}));if(!r.ok||x?.ok===false)throw Error(x?.error||'Operazione non riuscita');return x}
 async function customerAuth(action,payload={}){const r=await fetch(CUSTOMER_AUTH,{method:'POST',headers:{'Content-Type':'application/json','apikey':K},body:JSON.stringify({action,...payload})});const x=await r.json().catch(()=>({ok:false,error:'Risposta non valida'}));if(!r.ok||x?.ok===false)throw Error(x?.error||'Operazione non riuscita');return x}
+async function staffLoginSync(email,password){
+  const r=await fetch(STAFF_LOGIN,{method:'POST',headers:{'Content-Type':'application/json','apikey':K},body:JSON.stringify({email,password})});
+  const x=await r.json().catch(()=>({ok:false,error:'Risposta non valida'}));
+  if(!r.ok||x?.ok===false)throw Object.assign(Error(x?.error||'Accesso operatore non riuscito'),{code:x?.error||'',needs_password:!!x?.needs_password});
+  return x;
+}
 
 function login(message='', presetEmail=''){
   app.innerHTML=`<div class="loginPage"><div class="loginShell">
@@ -450,8 +457,19 @@ function login(message='', presetEmail=''){
     const email=document.getElementById('email').value.trim().toLowerCase(),password=document.getElementById('password').value;
     if(!email||password.length<6){err.textContent='Inserisci email e password valide.';e.currentTarget.disabled=false;return}
     err.textContent='Accesso in corso…';
-    const {error}=await sb.auth.signInWithPassword({email,password});
-    if(error){err.textContent=error.message;e.currentTarget.disabled=false;return}
+    let loginResult=await sb.auth.signInWithPassword({email,password});
+    if(loginResult.error){
+      try{
+        await staffLoginSync(email,password);
+        loginResult=await sb.auth.signInWithPassword({email,password});
+      }catch(staffErr){
+        if(staffErr?.code==='NOT_STAFF'){err.textContent=loginResult.error.message}
+        else if(staffErr?.needs_password){err.textContent='Password operatore Optyker da configurare prima dell’accesso all’app.'}
+        else{err.textContent=staffErr?.message||loginResult.error.message}
+        e.currentTarget.disabled=false;return
+      }
+    }
+    if(loginResult.error){err.textContent=loginResult.error.message;e.currentTarget.disabled=false;return}
     await boot();
   };
   document.getElementById('register').onclick=()=>{
