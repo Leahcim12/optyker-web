@@ -1,0 +1,41 @@
+name: Inspect Optyker source
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/inspect-optyker-source.yml'
+permissions:
+  contents: write
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect public bundle
+        run: |
+          python - <<'PY'
+          import urllib.request,re,pathlib
+          url='https://whgziwaegjzqsgcntesr.supabase.co/storage/v1/object/public/optyker-web/index.html?v=20260824-search1'
+          html=urllib.request.urlopen(url,timeout=30).read().decode('utf-8','replace')
+          terms=['lacSwitchTab','lac','busta','preventivo','riepilogo','clientId','client_id','currentClient','selectedClient','openOnlineOrders','moduleNav','navClients','lacProduct','prodotto','finale','stampa busta','print']
+          out=[f'LENGTH {len(html)}']
+          low=html.lower()
+          for term in terms:
+              out.append('\n\n===== '+term+' =====')
+              pos=0
+              n=0
+              while n<12:
+                  i=low.find(term.lower(),pos)
+                  if i<0: break
+                  out.append(f'--- {i} ---\n'+html[max(0,i-900):min(len(html),i+3500)])
+                  pos=i+len(term);n+=1
+          pathlib.Path('debug').mkdir(exist_ok=True)
+          pathlib.Path('debug/optyker-source-snippets.txt').write_text('\n'.join(out),encoding='utf-8')
+          PY
+      - name: Commit snippets
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add debug/optyker-source-snippets.txt
+          git commit -m "Inspect Optyker source structure" || exit 0
+          git push
