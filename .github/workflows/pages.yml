@@ -122,6 +122,7 @@ jobs:
           cp iphone-app-v13/index.html _site/iphone-app-v13/index.html
           cp iphone-app-v13/manifest.webmanifest _site/iphone-app-v13/manifest.webmanifest
           cp iphone-app-v13/sw.js _site/iphone-app-v13/sw.js
+          python scripts/patch_apple_app_redirects_v13.py
           cp manifest.webmanifest _site/manifest.webmanifest
           cp visualcare-logo.svg _site/visualcare-logo.svg
           cp optyker-logo.svg _site/optyker-logo.svg
