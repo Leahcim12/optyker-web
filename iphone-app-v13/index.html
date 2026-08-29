@@ -81,7 +81,11 @@
     .tiny{font-size:10px;color:var(--muted);line-height:1.45}.installNote{background:#fff7db;border:1px solid #f0df9a;border-radius:12px;padding:10px 12px;font-size:11px;color:#6c5a15;margin-bottom:12px}
     @media(min-width:640px){.eyeGrid{grid-template-columns:1fr 1fr}}
   </style>
-</head>
+<style id="optykerHoursOverrideCss">
+.hoursDate{display:inline-block;margin-left:5px;font-size:9px;font-weight:700;color:#8798a5}
+.hoursChanged{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:999px;background:#e8f3fb;color:#1769aa;font-size:8px;font-weight:900;vertical-align:1px}
+.hoursOverrideNote{margin-top:3px;font-size:9px;font-weight:700;color:#7a8c99}
+</style>\n</head>
 <body>
 <div id="app"><div class="center"><div class="spinner"></div></div></div>
 <script>
@@ -151,11 +155,29 @@ function hourText(h){
 }
 function hoursMarkup(){
   const rows=Array.isArray(state.home?.store_hours)?state.home.store_hours:[];
+  const overrides=(Array.isArray(state.home?.store_overrides)?state.home.store_overrides:[]).filter(x=>x&&x.schedule_date);
   const idx={};rows.forEach(x=>idx[Number(x.weekday)]=x);
-  const weekly=[1,2,3,4,5,6,7].map(d=>{const h=idx[d];const closed=!h||h.active===false;return `<div class="hoursRow"><div class="hoursDay">${weekNames[d]}</div><div class="hoursTime ${closed?'hoursClosed':''}">${esc(hourText(h))}</div></div>`}).join('');
-  const specials=(Array.isArray(state.home?.store_overrides)?state.home.store_overrides:[]).filter(x=>x&&x.schedule_date);
-  const specialHtml=specials.length?specials.map(x=>{const closed=x.active===false;return `<div class="specialHour"><div class="specialHourTop"><div class="specialHourDate">${esc(fmtFullDate(String(x.schedule_date)+'T12:00:00'))}</div><div class="specialHourType ${closed?'closed':''}">${closed?'Chiusura straordinaria':'Orario straordinario'}</div></div><div class="specialHourNote">${closed?'Negozio chiuso':esc(hourText(x))}${x.notes?' · '+esc(x.notes):''}</div></div>`}).join(''):'<div class="empty">Nessuna chiusura o variazione straordinaria programmata.</div>';
-  return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>Orari</h1><div class="sub">Orari del punto vendita e chiusure straordinarie</div></div><div class="card"><h2>Orari settimanali</h2><div class="hoursList">${weekly}</div></div><div class="card"><h2>Chiusure e variazioni straordinarie</h2><div class="specialHours">${specialHtml}</div></div></div>`;
+  const byDate={};overrides.forEach(x=>byDate[String(x.schedule_date).slice(0,10)]=x);
+
+  const romeParts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+  const yy=Number(romeParts.find(x=>x.type==='year')?.value),mm=Number(romeParts.find(x=>x.type==='month')?.value),dd=Number(romeParts.find(x=>x.type==='day')?.value);
+  const today=new Date(Date.UTC(yy,mm-1,dd,12,0,0));
+  const isoDow=((today.getUTCDay()+6)%7)+1;
+  const monday=new Date(today);monday.setUTCDate(today.getUTCDate()-(isoDow-1));
+  const pad=n=>String(n).padStart(2,'0');
+  const keyOf=d=>d.getUTCFullYear()+'-'+pad(d.getUTCMonth()+1)+'-'+pad(d.getUTCDate());
+
+  const weekly=[1,2,3,4,5,6,7].map(d=>{
+    const date=new Date(monday);date.setUTCDate(monday.getUTCDate()+(d-1));
+    const dateKey=keyOf(date),ov=byDate[dateKey],base=idx[d],h=ov||base;
+    const closed=!h||h.active===false;
+    const changed=!!ov;
+    const dateLabel=new Intl.DateTimeFormat('it-IT',{day:'2-digit',month:'2-digit',timeZone:'UTC'}).format(date);
+    const note=changed&&ov?.notes?'<div class="hoursOverrideNote">'+esc(ov.notes)+'</div>':'';
+    return `<div class="hoursRow"><div class="hoursDay">${weekNames[d]} <span class="hoursDate">${dateLabel}</span>${changed?'<span class="hoursChanged">Aggiornato</span>':''}</div><div class="hoursTime ${closed?'hoursClosed':''}">${closed?'Chiuso':esc(hourText(h))}${note}</div></div>`;
+  }).join('');
+
+  return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>Orari</h1><div class="sub">Gli orari vengono aggiornati automaticamente in caso di variazioni o chiusure.</div></div><div class="card"><h2>Orari di questa settimana</h2><div class="hoursList">${weekly}</div></div></div>`;
 }
 function lensesMarkup(){
   const lenses=Array.isArray(state.home?.lenses)?state.home.lenses:[];
