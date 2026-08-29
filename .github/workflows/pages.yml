@@ -74,6 +74,7 @@ jobs:
             scripts/remove_legacy_login_fixes.py \
             scripts/patch_dom_ready_boot.py \
             scripts/patch_staff_auth.py \
+            scripts/patch_password_recovery_redirect.py \
             scripts/patch_agenda_v15_active_color.py \
             scripts/patch_single_active_nav_v18.py \
             scripts/patch_operator_name_panseri.py \
