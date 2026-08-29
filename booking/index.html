@@ -205,9 +205,14 @@ function chooseStudioAfterTime(rows,manual){
   if(!rows.length){E('slotMsg').className='msg bad';E('slotMsg').textContent='Questo orario non è disponibile.';return}
   const svc=service();
   if(svc?.requires_studio===false){S.candidate={...rows[0],manual_time:!!manual,force_time:false};renderSummary();go(4);return}
+  const seen=new Set(),uniqueRows=[];
+  rows.forEach(r=>{
+    const key=String(r.studio_id||'').trim()||String(r.studio_name||studioName(r.studio_id)||'Studio').trim().toLowerCase();
+    if(!seen.has(key)){seen.add(key);uniqueRows.push(r)}
+  });
   E('studioBox').classList.add('show');
-  E('studios').innerHTML=rows.map((r,i)=>'<button type="button" class="studioBtn" data-i="'+i+'">'+esc(r.studio_name||studioName(r.studio_id)||'Studio')+'</button>').join('');
-  E('studios').querySelectorAll('.studioBtn').forEach(b=>b.onclick=()=>{E('studios').querySelectorAll('.studioBtn').forEach(x=>x.classList.toggle('on',x===b));S.candidate={...rows[+b.dataset.i],manual_time:!!manual,force_time:false};renderSummary();go(4)});
+  E('studios').innerHTML=uniqueRows.map((r,i)=>'<button type="button" class="studioBtn" data-i="'+i+'">'+esc(r.studio_name||studioName(r.studio_id)||'Studio')+'</button>').join('');
+  E('studios').querySelectorAll('.studioBtn').forEach(b=>b.onclick=()=>{E('studios').querySelectorAll('.studioBtn').forEach(x=>x.classList.toggle('on',x===b));S.candidate={...uniqueRows[+b.dataset.i],manual_time:!!manual,force_time:false};renderSummary();go(4)});
 }
 function chooseTime(k,button){E('slots').querySelectorAll('.slot').forEach(x=>x.classList.toggle('on',x===button));E('manualTime').value=timeIt(k);const rows=S.rawSlots.filter(s=>String(s.starts_at)===String(k));chooseStudioAfterTime(rows,false)}
 function studioName(id){return S.cfg?.studios?.find(x=>String(x.id)===String(id))?.name||''}
