@@ -39,6 +39,7 @@ jobs:
             scripts/remove_login_store_user.py \
             scripts/patch_profile.py \
             scripts/patch_client_chat_tab.py \
+            scripts/patch_chat_images_v2.py \
             scripts/patch_whatsapp_channel.py \
             scripts/patch_appointments.py \
             scripts/patch_appointments_v2.py \
@@ -56,6 +57,7 @@ jobs:
             scripts/patch_appointments_v14_week_timeline.py \
             scripts/patch_appointments_v17_search.py \
             scripts/patch_appointments_force_time_v20.py \
+            scripts/patch_appointments_operator_v21.py \
             scripts/patch_shifts_v16_monthly.py \
             scripts/patch_shifts_store_style_v19.py \
             scripts/patch_whatsapp_qr_connect.py \
@@ -196,11 +198,11 @@ jobs:
                   if code.strip(): Path(f'_jscheck/{n}-{i}.js').write_text(code,encoding='utf-8')
           main=Path('_site/index.html').read_text(encoding='utf-8')
           booking=Path('_site/booking/index.html').read_text(encoding='utf-8')
-          required_main=['DOCUMENTI DA STAMPARE MANUTENZIONE LAC','DOCUMENTI DA STAMPARE VISUAL TRAINING','OPTYKER_VISUAL_TRAINING_DOCUMENTS_V1','visual-training/Motorio.pdf','OPTYKER_APPOINTMENTS_UI_V9_GRAPHICS','OPTYKER_APPOINTMENTS_UI_V10_MANAGE','OPTYKER_APPOINTMENTS_UI_V11_SECURE','OPTYKER_APPOINTMENTS_UI_V12_SETTINGS_SAVE','OPTYKER_APPOINTMENTS_UI_V13_SINGLE_SETTINGS','OPTYKER_APPOINTMENTS_FORCE_TIME_V20','id="oaManageModal"','oaV10Save','oaV10Cancel','optyker-appointments-staff','id="navAppointments"','OPTYKER_DOM_READY_BOOT_V1','OPTYKER_STAFF_AUTH_V1','optyker-staff-auth','Password dimenticata?','optykerAuthPassword','OPTYKER_DIEGO_PANSERI_NAME_FIX_V1','Diego Panseri','can_force_appointment','force_studios']
+          required_main=['DOCUMENTI DA STAMPARE MANUTENZIONE LAC','DOCUMENTI DA STAMPARE VISUAL TRAINING','OPTYKER_VISUAL_TRAINING_DOCUMENTS_V1','visual-training/Motorio.pdf','OPTYKER_APPOINTMENTS_UI_V9_GRAPHICS','OPTYKER_APPOINTMENTS_UI_V10_MANAGE','OPTYKER_APPOINTMENTS_UI_V11_SECURE','OPTYKER_APPOINTMENTS_UI_V12_SETTINGS_SAVE','OPTYKER_APPOINTMENTS_UI_V13_SINGLE_SETTINGS','OPTYKER_APPOINTMENTS_FORCE_TIME_V20','OPTYKER_APPOINTMENT_OPERATOR_AVAILABILITY_V21','OPTYKER_CHAT_IMAGES_CUSTOMER_AVATAR_V2','id="oaManageModal"','oaV10Save','oaV10Cancel','optyker-appointments-staff','id="navAppointments"','OPTYKER_DOM_READY_BOOT_V1','OPTYKER_STAFF_AUTH_V1','optyker-staff-auth','Password dimenticata?','optykerAuthPassword','OPTYKER_DIEGO_PANSERI_NAME_FIX_V1','Diego Panseri','can_force_appointment','force_studios']
           reset=Path('_site/reset-password/index.html').read_text(encoding='utf-8')
           app13=Path('_site/iphone-app-v13/index.html').read_text(encoding='utf-8')
           required_reset=['Recupero password','SALVA NUOVA PASSWORD','updateUser','exchangeCodeForSession']
-          required_app13=['<h1>Orari</h1>','data-nav="hours"','data-nav="timer"','push_subscribe','timer_create','APP 13.0','sw.js?v=13']
+          required_app13=['<h1>Orari</h1>','data-nav="hours"','data-nav="timer"','push_subscribe','timer_create','APP 13.0','sw.js?v=13','profile_photo_save','chooseChatProfilePhoto','attachment_data','chatImageModal']
           required_booking=['I tuoi appuntamenti','Sposta','Aggiungi un altro','optyker_appointment_tokens_v2','Scegli lo studio disponibile','Inserisci l’orario','studio_id:S.candidate.studio_id||null']
           missing=[x for x in required_main if x not in main]+[x for x in required_booking if x not in booking]+[x for x in required_reset if x not in reset]+[x for x in required_app13 if x not in app13]
           if missing: raise SystemExit('Mancano: '+', '.join(missing))
