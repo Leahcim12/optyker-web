@@ -80,7 +80,7 @@ jobs:
             scripts/patch_operator_name_panseri.py \
             scripts/patch_ios_pwa.py; do python "$f"; done
 
-          mkdir -p _site/staff-embed _site/booking _site/iphone _site/reset-password _site/admin-reset-passwords _site/accesso _site/gestionale-v2 _site/gestionale-v3 _site/iphone-app _site/iphone-app-v2 _site/iphone-app-v3 _site/iphone-app-v4 _site/iphone-app-v5 _site/iphone-app-v6 _site/iphone-app-v7 _site/iphone-app-v8 _site/iphone-app-v9 _site/iphone-app-v10 _site/iphone-app-v11 _site/iphone-app-v12 _site/iphone-app-v13
+          mkdir -p _site/staff-embed _site/booking _site/iphone _site/reset-password _site/admin-reset-passwords _site/staff-recovery _site/accesso _site/gestionale-v2 _site/gestionale-v3 _site/iphone-app _site/iphone-app-v2 _site/iphone-app-v3 _site/iphone-app-v4 _site/iphone-app-v5 _site/iphone-app-v6 _site/iphone-app-v7 _site/iphone-app-v8 _site/iphone-app-v9 _site/iphone-app-v10 _site/iphone-app-v11 _site/iphone-app-v12 _site/iphone-app-v13
           cp staff-embed/index.html _site/staff-embed/index.html
           python scripts/patch_staff_whatsapp.py
           python scripts/patch_staff_appointments.py
@@ -88,6 +88,7 @@ jobs:
           cp iphone/index.html _site/iphone/index.html
           cp reset-password/index.html _site/reset-password/index.html
           cp admin-reset-passwords/index.html _site/admin-reset-passwords/index.html
+          cp staff-recovery/index.html _site/staff-recovery/index.html
           cp accesso/index.html _site/accesso/index.html
           cp iphone-app/index.html _site/iphone-app/index.html
           cp iphone-app/manifest.webmanifest _site/iphone-app/manifest.webmanifest
@@ -145,6 +146,7 @@ jobs:
           test -s _site/iphone/index.html
           test -s _site/reset-password/index.html
           test -s _site/admin-reset-passwords/index.html
+          test -s _site/staff-recovery/index.html
           test -s _site/accesso/index.html
           test -s _site/iphone-app/index.html
           test -s _site/iphone-app/manifest.webmanifest
