@@ -494,7 +494,7 @@ function shell(){
         <button class="drawerBtn" data-nav="rx" onclick="goTab('rx')">Prescrizione</button>
         <button class="drawerBtn" data-nav="agenda" onclick="goTab('agenda')">Agenda</button>
         <button class="drawerBtn" data-nav="hours" onclick="goTab('hours')">Orari</button>
-        ${Array.isArray(state.home?.lenses)&&state.home.lenses.length?'<button class="drawerBtn" data-nav="lac" onclick="goTab(\'lac\')">LAC</button>':''}
+        <button class="drawerBtn" data-nav="lac" onclick="goTab('lac')">LAC</button>
         <button class="drawerBtn" data-nav="timer" onclick="goTab('timer')">Timer</button>
         <button class="drawerBtn" data-nav="chat" onclick="goTab('chat')">Chat <span id="chatBadge" class="drawerBadge ${Number(state.home?.unread_chat||0)>0?'':'hidden'}">${Number(state.home?.unread_chat||0)}</span></button>
         <button class="drawerBtn" data-nav="profile" onclick="goTab('profile')">Profilo</button>
