@@ -36,6 +36,21 @@
     <div><h1>Reset password utenti</h1><div class="sub">Area amministratore · Optyker</div></div>
   </div>
 
+  <div class="card" id="singleCard">
+    <h2 style="margin-top:0">Cambia password singolo utente</h2>
+    <div class="muted">Modifica solo l’utente selezionato. Gli altri account non vengono toccati.</div>
+    <label>Amministratore</label>
+    <input id="singleAdmin" value="MICHAEL MOLOGNI" readonly>
+    <label>Password amministratore attuale</label>
+    <input id="singleCurrentPassword" type="password" autocomplete="current-password" placeholder="Inserisci la password attuale">
+    <label>Utente da modificare</label>
+    <input id="singleTarget" value="MICHAEL MOLOGNI" readonly>
+    <label>Nuova password</label>
+    <input id="singleNewPassword" type="password" autocomplete="new-password" placeholder="Minimo 8 caratteri">
+    <button id="singleBtn" class="copy" type="button" style="width:100%;margin-top:16px">CAMBIA PASSWORD</button>
+    <div id="singleStatus" class="status"></div>
+  </div>
+
   <div class="card" id="authCard">
     <div class="warn"><b>Attenzione:</b> questa operazione cambia la password di tutti gli utenti Optyker. Ogni account riceverà una password diversa. Le nuove password non vengono salvate in chiaro e saranno mostrate solo nel risultato di questa operazione.</div>
     <label>Amministratore</label>
@@ -69,6 +84,37 @@ let lastCredentials=[];
 
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function setStatus(text,bad=false){$('status').textContent=text||'';$('status').className='status '+(bad?'bad':'')}
+
+$('singleBtn').onclick=async()=>{
+  const current=$('singleCurrentPassword').value;
+  const next=$('singleNewPassword').value;
+  const st=$('singleStatus');
+  st.className='status';st.textContent='';
+  if(current.length<8){st.className='status bad';st.textContent='Inserisci la password amministratore attuale.';return}
+  if(next.length<8){st.className='status bad';st.textContent='La nuova password deve avere almeno 8 caratteri.';return}
+  const btn=$('singleBtn');btn.disabled=true;btn.textContent='SALVATAGGIO…';
+  try{
+    const r=await fetch(ENDPOINT,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':PUBLISHABLE},
+      body:JSON.stringify({
+        action:'set_one',
+        username:$('singleAdmin').value,
+        current_password:current,
+        target_username:$('singleTarget').value,
+        new_password:next
+      })
+    });
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok||!data.ok) throw new Error(data.error||'Modifica non riuscita');
+    st.className='status ok';st.textContent='Password aggiornata correttamente per '+(data.username||$('singleTarget').value)+'.';
+    $('singleCurrentPassword').value='';$('singleNewPassword').value='';
+  }catch(e){
+    st.className='status bad';st.textContent=e?.message||'Errore durante la modifica.';
+  }finally{
+    btn.disabled=false;btn.textContent='CAMBIA PASSWORD';
+  }
+};
 
 $('resetBtn').onclick=async()=>{
   const password=$('currentPassword').value;
