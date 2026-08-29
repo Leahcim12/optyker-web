@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<title>Recupero accesso Optyker</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100dvh;background:#f4f7fb;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:#173b5b;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{width:min(520px,100%);background:#fff;border:1px solid #d9e2ea;border-radius:20px;padding:24px;box-shadow:0 18px 50px rgba(23,59,91,.12)}
+.logo{width:64px;height:64px;object-fit:contain;display:block;margin:0 auto 10px}
+h1{font-size:24px;text-align:center;margin:0 0 6px;color:#163b65}.sub{text-align:center;color:#728395;font-size:13px;margin-bottom:20px}
+label{display:block;font-weight:800;font-size:12px;margin:12px 0 6px;color:#53687a}
+input{width:100%;height:48px;border:1px solid #c9d5df;border-radius:11px;padding:0 12px;font-size:17px}
+button{width:100%;height:48px;margin-top:16px;border:0;border-radius:11px;background:#1769aa;color:white;font-weight:900;font-size:15px;cursor:pointer}
+button:disabled{opacity:.55}.msg{margin-top:14px;font-size:13px;line-height:1.45}.ok{color:#247047}.bad{color:#b42318}
+.note{background:#fff8e6;border:1px solid #efd999;border-radius:12px;padding:12px 14px;color:#765c16;font-size:12px;line-height:1.5;margin-bottom:16px}
+</style>
+</head>
+<body>
+<div class="card">
+<img class="logo" src="../visualcare-logo.svg" alt="Optyker">
+<h1>Recupero accesso</h1>
+<div class="sub">MICHAEL MOLOGNI</div>
+<div class="note">Questo link è monouso e temporaneo. Dopo il salvataggio non potrà essere riutilizzato.</div>
+<label>Nuova password</label>
+<input id="pw" type="password" value="12345678" autocomplete="new-password">
+<label>Conferma nuova password</label>
+<input id="pw2" type="password" value="12345678" autocomplete="new-password">
+<button id="btn">IMPOSTA NUOVA PASSWORD</button>
+<div id="msg" class="msg"></div>
+</div>
+<script>
+const ENDPOINT='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-staff-token-reset';
+const KEY='sb_publishable_DndhLvY32YeCmqWMNRi30g_dEDm8upv';
+const q=new URLSearchParams(location.search);
+const token=q.get('t')||'';
+const btn=document.getElementById('btn'), msg=document.getElementById('msg');
+function show(s,bad=false){msg.textContent=s;msg.className='msg '+(bad?'bad':'ok')}
+if(!token){btn.disabled=true;show('Link di recupero non valido.',true)}
+btn.onclick=async()=>{
+ const a=document.getElementById('pw').value,b=document.getElementById('pw2').value;
+ if(a.length<8){show('La password deve avere almeno 8 caratteri.',true);return}
+ if(a!==b){show('Le due password non coincidono.',true);return}
+ btn.disabled=true;btn.textContent='SALVATAGGIO…';show('');
+ try{
+  const r=await fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY},body:JSON.stringify({token,password:a})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok||!d.ok) throw new Error(d.error||'Reset non riuscito');
+  show('Password aggiornata correttamente. Ora puoi accedere a Optyker con la nuova password.');
+  btn.textContent='PASSWORD AGGIORNATA';
+  setTimeout(()=>{location.href='../'},2500);
+ }catch(e){
+  show(e?.message||'Errore durante il reset.',true);btn.disabled=false;btn.textContent='IMPOSTA NUOVA PASSWORD';
+ }
+};
+</script>
+</body>
+</html>
