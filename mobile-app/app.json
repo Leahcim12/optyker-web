@@ -2,7 +2,7 @@
   "expo": {
     "name": "OTTICA VISUAL CARE",
     "slug": "ottica-visual-care",
-    "version": "1.0.0",
+    "version": "13.0.0",
     "orientation": "portrait",
     "scheme": "otticavisualcare",
     "userInterfaceStyle": "light",
@@ -15,7 +15,15 @@
       "package": "it.otticavisualcare.app",
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
-      }
+      },
+      "versionCode": 13,
+      "permissions": [
+        "INTERNET",
+        "CAMERA",
+        "RECORD_AUDIO",
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO"
+      ]
     },
     "extra": {
       "shopUrl": "https://otticavisualcare.it",
