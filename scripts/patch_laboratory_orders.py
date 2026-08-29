@@ -212,6 +212,9 @@ js=r'''
 </script>
 '''
 
-s=s.replace("</body>",css+js+"</body>",1)
+pos=s.lower().rfind("</body>")
+if pos<0:
+    raise SystemExit("Tag </body> finale non trovato")
+s=s[:pos]+css+js+s[pos:]
 p.write_text(s,encoding="utf-8")
 print("patched", MARK)
