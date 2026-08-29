@@ -159,9 +159,9 @@ function hoursMarkup(){
 }
 function lensesMarkup(){
   const lenses=Array.isArray(state.home?.lenses)?state.home.lenses:[];
-  if(!lenses.length)return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>LAC</h1><div class="sub">Lenti a contatto specialistiche</div></div><div class="card"><div class="empty">Non risultano lenti a contatto specialistiche collegate al tuo profilo Optyker.</div></div></div>`;
+  if(!lenses.length)return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>LAC</h1><div class="sub">Lenti a contatto</div></div><div class="card"><h2>Acquista LAC</h2><div class="sub" style="margin-bottom:12px">Scegli giornaliere, settimanali, quindicinali, mensili, colorate, soluzioni o accessori.</div><button class="action" onclick="openContactLensShop()">ACQUISTA LAC</button></div><div class="card"><div class="empty">Non risultano lenti a contatto specialistiche collegate al tuo profilo Optyker.</div></div></div>`;
   const rows=lenses.map(l=>`<div class="lacCard"><div class="lacHead"><div class="lacEye">${esc(l.eye||'LAC')}</div><div class="lacTitle"><b>${esc(l.product_name||l.brand||'Lente specialistica')}</b><span>${esc(l.brand||'Ottica Visual Care')}</span></div><div class="lacPrice">${money(l.unit_price,l.currency||'EUR')}</div></div><div class="lacMeta">Collegata a Optyker${l.purchased_at?' · '+esc(fmtDate(l.purchased_at)):''}</div></div>`).join('');
-  return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>LAC</h1><div class="sub">Le tue lenti a contatto specialistiche collegate a Optyker</div></div><div class="lacList">${rows}</div></div>`;
+  return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>LAC</h1><div class="sub">Le tue lenti a contatto specialistiche collegate a Optyker</div></div><div class="card"><h2>Acquista LAC</h2><button class="action" onclick="openContactLensShop()">APRI SHOP LAC</button></div><div class="lacList">${rows}</div></div>`;
 }
 function timerStatusLabel(v){return v==='sent'?'Notifica inviata':v==='cancelled'?'Annullato':v==='error'?'Non inviato':'Attivo'}
 function timerMarkup(){
