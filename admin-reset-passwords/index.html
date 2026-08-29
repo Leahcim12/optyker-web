@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#f4f7fb">
+  <title>Reset password utenti · Optyker</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100dvh;background:#f4f7fb;color:#18364d;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;padding:28px 18px}
+    .wrap{max-width:980px;margin:0 auto}
+    .top{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+    .logo{width:58px;height:58px;object-fit:contain}
+    h1{margin:0;font-size:26px;color:#163b65}.sub{margin-top:4px;color:#728395;font-size:13px}
+    .card{background:#fff;border:1px solid #d9e2ea;border-radius:18px;box-shadow:0 16px 40px rgba(29,55,79,.10);padding:22px;margin-bottom:18px}
+    label{display:block;font-size:12px;font-weight:800;margin:12px 0 6px;color:#53687a}
+    input{width:100%;height:46px;border:1px solid #c9d5df;border-radius:10px;padding:0 12px;font-size:16px;color:#18364d;background:#fbfdff}
+    button{border:0;border-radius:11px;min-height:46px;padding:0 18px;font-weight:900;cursor:pointer}
+    .danger{width:100%;margin-top:16px;background:#a82424;color:#fff}.danger:disabled{opacity:.55;cursor:not-allowed}
+    .copy{background:#1769aa;color:#fff}.back{background:#e8eef4;color:#173b5b}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    .status{margin-top:13px;min-height:20px;font-size:13px}.bad{color:#b42318}.ok{color:#247047}
+    .warn{background:#fff8e6;border:1px solid #efd999;border-radius:12px;padding:12px 14px;color:#765c16;font-size:12px;line-height:1.5}
+    table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}th,td{text-align:left;border-bottom:1px solid #e6edf2;padding:11px 8px;vertical-align:top}
+    th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#6c7f8f}
+    code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;background:#f3f6f9;padding:4px 7px;border-radius:7px;word-break:break-all}
+    .hidden{display:none}.muted{color:#7a8d9d;font-size:12px}
+    @media(max-width:700px){table,thead,tbody,tr,th,td{display:block}thead{display:none}tr{padding:10px 0;border-bottom:1px solid #e6edf2}td{border:0;padding:5px 0}td:before{content:attr(data-label);display:block;font-size:10px;font-weight:800;text-transform:uppercase;color:#7a8d9d;margin-bottom:3px}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <img class="logo" src="../optyker-logo.svg" alt="Optyker">
+    <div><h1>Reset password utenti</h1><div class="sub">Area amministratore · Optyker</div></div>
+  </div>
+
+  <div class="card" id="authCard">
+    <div class="warn"><b>Attenzione:</b> questa operazione cambia la password di tutti gli utenti Optyker. Ogni account riceverà una password diversa. Le nuove password non vengono salvate in chiaro e saranno mostrate solo nel risultato di questa operazione.</div>
+    <label>Amministratore</label>
+    <input id="username" value="MICHAEL MOLOGNI" readonly>
+    <label>Password amministratore attuale</label>
+    <input id="currentPassword" type="password" autocomplete="current-password" placeholder="Inserisci la password attuale">
+    <button id="resetBtn" class="danger" type="button">RESETTA TUTTE LE PASSWORD</button>
+    <div id="status" class="status"></div>
+  </div>
+
+  <div class="card hidden" id="resultCard">
+    <h2 style="margin-top:0">Nuove password generate</h2>
+    <div class="warn">Copia queste credenziali prima di chiudere o ricaricare la pagina. Non vengono conservate qui.</div>
+    <div class="actions">
+      <button id="copyBtn" class="copy" type="button">COPIA TUTTO</button>
+      <button id="backBtn" class="back" type="button">TORNA A OPTYKER</button>
+    </div>
+    <div id="summary" class="status ok"></div>
+    <table>
+      <thead><tr><th>Tipo</th><th>Utente</th><th>Email</th><th>Nuova password</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const ENDPOINT='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-admin-password-reset';
+const PUBLISHABLE='sb_publishable_DndhLvY32YeCmqWMNRi30g_dEDm8upv';
+const $=id=>document.getElementById(id);
+let lastCredentials=[];
+
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function setStatus(text,bad=false){$('status').textContent=text||'';$('status').className='status '+(bad?'bad':'')}
+
+$('resetBtn').onclick=async()=>{
+  const password=$('currentPassword').value;
+  if(password.length<8){setStatus('Inserisci la password amministratore attuale.',true);return}
+  if(!confirm('Confermi il reset della password di TUTTI gli utenti Optyker?')) return;
+  const btn=$('resetBtn');btn.disabled=true;btn.textContent='RESET IN CORSO…';setStatus('');
+  try{
+    const r=await fetch(ENDPOINT,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':PUBLISHABLE},
+      body:JSON.stringify({
+        username:$('username').value,
+        current_password:password,
+        confirm:'RESET_ALL_OPTYKER_PASSWORDS'
+      })
+    });
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok||!data.ok) throw new Error(data.error||'Reset non riuscito');
+    lastCredentials=Array.isArray(data.credentials)?data.credentials:[];
+    $('rows').innerHTML=lastCredentials.map(x=>`<tr>
+      <td data-label="Tipo">${esc(x.system)}</td>
+      <td data-label="Utente">${esc(x.username||'—')}</td>
+      <td data-label="Email">${esc(x.email||'—')}</td>
+      <td data-label="Nuova password"><code>${esc(x.password)}</code></td>
+    </tr>`).join('');
+    $('summary').textContent=`${lastCredentials.length} password aggiornate correttamente.`;
+    $('currentPassword').value='';
+    $('authCard').classList.add('hidden');$('resultCard').classList.remove('hidden');
+  }catch(e){
+    setStatus(e?.message||'Errore durante il reset.',true);
+  }finally{
+    btn.disabled=false;btn.textContent='RESETTA TUTTE LE PASSWORD';
+  }
+};
+
+$('copyBtn').onclick=async()=>{
+  const text=lastCredentials.map(x=>`${x.system} | ${x.username||''} | ${x.email||''} | ${x.password}`).join('\n');
+  try{await navigator.clipboard.writeText(text);$('summary').textContent='Credenziali copiate negli appunti.'}
+  catch{ $('summary').textContent='Copia manualmente le credenziali dalla tabella.' }
+};
+$('backBtn').onclick=()=>location.href='../';
+</script>
+</body>
+</html>
