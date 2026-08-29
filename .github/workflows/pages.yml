@@ -80,7 +80,7 @@ jobs:
             scripts/patch_operator_name_panseri.py \
             scripts/patch_ios_pwa.py; do python "$f"; done
 
-          mkdir -p _site/staff-embed _site/booking _site/iphone _site/reset-password _site/admin-reset-passwords _site/staff-recovery _site/accesso _site/gestionale-v2 _site/gestionale-v3 _site/iphone-app _site/iphone-app-v2 _site/iphone-app-v3 _site/iphone-app-v4 _site/iphone-app-v5 _site/iphone-app-v6 _site/iphone-app-v7 _site/iphone-app-v8 _site/iphone-app-v9 _site/iphone-app-v10 _site/iphone-app-v11 _site/iphone-app-v12 _site/iphone-app-v13
+          mkdir -p _site/staff-embed _site/booking _site/iphone _site/reset-password _site/admin-reset-passwords _site/staff-recovery _site/accesso _site/gestionale-v2 _site/gestionale-v3 _site/iphone-app _site/iphone-app-v2 _site/iphone-app-v3 _site/iphone-app-v4 _site/iphone-app-v5 _site/iphone-app-v6 _site/iphone-app-v7 _site/iphone-app-v8 _site/iphone-app-v9 _site/iphone-app-v10 _site/iphone-app-v11 _site/iphone-app-v12 _site/iphone-app-v13 _site/orari
           cp staff-embed/index.html _site/staff-embed/index.html
           python scripts/patch_staff_whatsapp.py
           python scripts/patch_staff_appointments.py
@@ -122,6 +122,7 @@ jobs:
           cp iphone-app-v13/index.html _site/iphone-app-v13/index.html
           cp iphone-app-v13/manifest.webmanifest _site/iphone-app-v13/manifest.webmanifest
           cp iphone-app-v13/sw.js _site/iphone-app-v13/sw.js
+          cp orari/index.html _site/orari/index.html
           python scripts/patch_apple_app_redirects_v13.py
           cp manifest.webmanifest _site/manifest.webmanifest
           cp visualcare-logo.svg _site/visualcare-logo.svg
@@ -181,6 +182,7 @@ jobs:
           test -s _site/iphone-app-v13/index.html
           test -s _site/iphone-app-v13/manifest.webmanifest
           test -s _site/iphone-app-v13/sw.js
+          test -s _site/orari/index.html
           test -s _site/manifest.webmanifest
           test -s _site/visualcare-logo.svg
           test -s _site/optyker-logo.svg
