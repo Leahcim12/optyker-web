@@ -73,6 +73,27 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
 .optykerActiveUserBadge{height:30px;display:flex;align-items:center;padding:0 10px;border:1px solid #cbd8e4;border-radius:8px;background:#fff;color:#34495e;font-size:10px;font-weight:800;white-space:nowrap}
 @media(max-width:980px){.optykerGlobalTools{min-width:240px}.optykerGlobalSearchWrap{min-width:160px}.cloudBadge{display:none!important}}
 @media(max-width:720px){.topbarRight{display:flex!important}.topShortcutBtn.topHomeBtn{display:none!important}.optykerGlobalTools{min-width:0}.optykerGlobalSearchWrap{min-width:120px}#optykerQuickNewClient{padding:0 9px!important}.topbar{padding-right:8px!important}}
+
+.optykerLaboratoryPanel{grid-column:2!important;min-width:0}
+.optykerLabHead{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px}
+.optykerLabEyebrow{font-size:9px;font-weight:900;letter-spacing:.12em;color:#1769aa}
+.optykerLabTitle{font-size:24px;font-weight:900;color:#17334b;margin-top:3px}
+.optykerLabSub{font-size:11px;color:#718493;margin-top:4px}
+.optykerLabToolbar{display:flex;gap:9px;margin-bottom:12px}.optykerLabToolbar input{flex:1}
+.optykerLabLegend{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:9px 11px;border:1px solid #dde6ed;border-radius:10px;background:#f8fbfd;margin-bottom:12px;font-size:10px;font-weight:800;color:#536a7c}
+.optykerLabLegend b{color:#9aacba}
+.optykerLabList{display:grid;gap:10px}
+.optykerLabCard{border:1px solid #dce5ec;border-radius:13px;background:#fff;padding:13px 14px;box-shadow:0 2px 8px rgba(27,54,80,.035)}
+.optykerLabCardTop{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.optykerLabRef{font-size:16px;font-weight:950;color:#1769aa}.optykerLabClient{font-size:12px;font-weight:850;color:#253f56;margin-top:3px}.optykerLabMeta{font-size:9px;color:#7b8d9c;margin-top:3px}
+.optykerLabProduct{margin-top:10px;padding-top:9px;border-top:1px solid #edf1f4;font-size:11px;font-weight:750;color:#344f64}
+.optykerLabStatusBox{min-width:180px}.optykerLabStatusBox label{display:block;font-size:9px;font-weight:900;color:#718493;margin-bottom:4px}.optykerLabStatusBox select{width:100%}
+.optykerLabDue{margin-top:8px;border-radius:8px;background:#eef6fc;padding:8px 9px;font-size:9px;color:#4f677a}
+.optykerLabEmpty{padding:25px;border:1px dashed #cad6df;border-radius:12px;text-align:center;color:#748697;font-size:11px}.optykerLabEmpty.error{color:#a13b3b}
+.optykerClientReferenceBadge{display:inline-flex;align-items:center;margin-top:6px;padding:4px 8px;border-radius:999px;background:#eaf4fb;color:#1769aa;font-size:9px;font-weight:900;letter-spacing:.03em}
+.lacSendOrderBtn{background:#1769aa!important;color:#fff!important}
+@media(max-width:900px){.optykerLaboratoryPanel{grid-column:1!important}.optykerLabCardTop,.optykerLabHead{flex-direction:column}.optykerLabStatusBox{width:100%;min-width:0}.optykerLabToolbar{flex-direction:column}}
+
 </style>`;
 
     const enhancer=`<scr`+`ipt id="optykerGlobalSearchJs">
@@ -88,7 +109,7 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
     {title:"Indicazioni d'uso",meta:'Prodotti e documenti di pulizia',keys:'indicazioni prodotti pulizia',run:function(){if(window.showModule)showModule('indications')}},
     {title:'UDITO',meta:'Esame audiometrico',keys:'udito audiometria audiogramma',run:function(){if(window.showModule)showModule('hearing')}},
     {title:'Clienti',meta:'Archivio clienti',keys:'cliente anagrafica archivio',run:function(){if(window.showModule)showModule('clients')}},
-    {title:'Ordini',meta:'Ordini online Shopify',keys:'ordine shopify spedizione brt',run:function(){if(window.openOnlineOrders)openOnlineOrders()}},
+    {title:'Laboratorio',meta:'Ordini LAC in lavorazione',keys:'laboratorio ordine lac busta costruzione spedizione',run:function(){if(window.openLaboratory)openLaboratory()}},
     {title:'LAC · Dati',meta:'Lenti a contatto · scheda dati',keys:'lac lente contatto dati diottrie',run:function(){if(window.openLacDevice)openLacDevice();setTimeout(function(){if(window.lacSwitchTab)lacSwitchTab('data')},20)}},
     {title:'LAC · Prodotto',meta:'Lenti a contatto · prodotto',keys:'lac lente contatto prodotto esoform preventivo busta',run:function(){if(window.openLacDevice)openLacDevice();setTimeout(function(){if(window.lacSwitchTab)lacSwitchTab('product')},20)}}
   ];
@@ -195,7 +216,217 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
   setInterval(function(){installUserLogin();if(window.optykerAuthenticated)syncActiveOperator();var wc=E('winWindowControls');if(wc&&wc.parentNode)wc.parentNode.removeChild(wc);if(window.optykerAuthenticated&&!E('optykerGlobalTools'))install()},700);
 })();
 </scr`+`ipt>`;
-    html=html.replace('</body>',css+enhancer+'</body>');
+
+
+    const laboratoryPatch=`<scr`+`ipt id="optykerLaboratoryPatch">
+(function(){
+  if(window.__optykerLaboratoryPatch)return;
+  window.__optykerLaboratoryPatch=true;
+
+  var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-laboratory-api';
+  var state={orders:[],clientRefId:'',clientRef:''};
+  var docRefs={B:'',P:''};
+
+  function E(id){return document.getElementById(id)}
+  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]})}
+  function operator(){return String(window.OPTYKER_ACTIVE_USER||(window.OPTYKER_CLOUD&&OPTYKER_CLOUD.username)||'').trim()}
+  function call(action,payload){
+    var body=payload||{};body.action=action;body.operator=operator();
+    return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){
+      return r.json().catch(function(){return {}}).then(function(x){if(!r.ok||x&&x.ok===false)throw new Error((x&&x.error)||('HTTP '+r.status));return x});
+    });
+  }
+  function dt(v){
+    if(!v)return '—';
+    try{return new Date(v).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}catch(z){return String(v)}
+  }
+  function statusLabel(v){
+    return {da_fare:'Da fare',in_preparazione:'In preparazione',in_costruzione:'In costruzione',in_spedizione:'In spedizione'}[v]||v||'—';
+  }
+  function hideLaboratory(){var p=E('optykerLaboratoryPanel');if(p)p.style.display='none'}
+  function hideOtherPanels(){
+    var ids=['dashboardPanel','analysisPanel','prescriptionPanel','visualExamPanel','indicationsPanel','hearingPanel','clientsPanel','onlineOrdersPanel','lacPanel','analysisTabs'];
+    for(var i=0;i<ids.length;i++){var x=E(ids[i]);if(x)x.style.display='none'}
+    var report=E('reportSectionTop');if(report)report.style.display='none';
+  }
+  function setNavActive(){
+    var nav=E('moduleNav');if(nav)nav.style.display='flex';
+    var btns=nav?nav.querySelectorAll('.moduleBtn'):[];
+    for(var i=0;i<btns.length;i++)btns[i].className='moduleBtn';
+    var b=E('navOrders');if(b)b.className='moduleBtn active';
+  }
+  function ensurePanel(){
+    if(E('optykerLaboratoryPanel'))return E('optykerLaboratoryPanel');
+    var p=document.createElement('div');
+    p.id='optykerLaboratoryPanel';
+    p.className='panel optykerLaboratoryPanel';
+    p.style.display='none';
+    p.innerHTML='<div class="optykerLabHead"><div><div class="optykerLabEyebrow">OPTYKER · PRODUZIONE</div><div class="optykerLabTitle">Laboratorio</div><div class="optykerLabSub">Ordini LAC inviati dalle buste. Aggiorna lo stato della lavorazione da qui.</div></div><button class="secondary" type="button" onclick="showDashboard()">Torna alla Dashboard</button></div><div class="optykerLabToolbar"><input id="optykerLabSearch" type="search" placeholder="Cerca riferimento, cliente o prodotto..."><button class="secondary" id="optykerLabReload" type="button">Aggiorna elenco</button></div><div class="optykerLabLegend"><span>Da fare</span><b>›</b><span>In preparazione</span><b>›</b><span>In costruzione</span><b>›</b><span>In spedizione</span></div><div id="optykerLabList" class="optykerLabList"><div class="optykerLabEmpty">Caricamento ordini laboratorio…</div></div>';
+    var anchor=E('onlineOrdersPanel')||E('lacPanel')||E('clientsPanel');
+    if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(p,anchor.nextSibling);
+    else (E('mainApp')||document.body).appendChild(p);
+    E('optykerLabSearch').oninput=render;
+    E('optykerLabReload').onclick=load;
+    return p;
+  }
+  function orderProducts(o){
+    var d=o&&o.order_data||{},st=d.lacState||{},a=[];
+    if(st.odProductName)a.push('OD · '+st.odProductName);
+    if(st.osProductName)a.push('OS · '+st.osProductName);
+    if(!a.length){
+      var els=d.elements||{};
+      var od=els.lacOdProduct&&els.lacOdProduct.value,os=els.lacOsProduct&&els.lacOsProduct.value;
+      if(od)a.push('OD · '+od);if(os)a.push('OS · '+os);
+    }
+    return a.join(' | ')||'Ordine LAC';
+  }
+  function render(){
+    var holder=E('optykerLabList');if(!holder)return;
+    var q=String((E('optykerLabSearch')&&E('optykerLabSearch').value)||'').toLowerCase().trim();
+    var rows=state.orders.filter(function(o){
+      if(!q)return true;
+      var c=o.client||{},hay=[o.reference_no,c.reference_no,c.name,c.surname,c.email,orderProducts(o),statusLabel(o.status)].join(' ').toLowerCase();
+      return hay.indexOf(q)>=0;
+    });
+    if(!rows.length){holder.innerHTML='<div class="optykerLabEmpty">Nessun ordine laboratorio.</div>';return}
+    holder.innerHTML=rows.map(function(o){
+      var c=o.client||{},name=((c.surname||'')+' '+(c.name||'')).trim()||'Cliente';
+      var due=o.status==='in_preparazione'&&o.construction_due_at?'<div class="optykerLabDue">Passaggio automatico a <b>In costruzione</b>: '+esc(dt(o.construction_due_at))+'</div>':'';
+      return '<div class="optykerLabCard"><div class="optykerLabCardTop"><div><div class="optykerLabRef">'+esc(o.reference_no||'—')+'</div><div class="optykerLabClient">'+esc(name)+(c.reference_no?' · '+esc(c.reference_no):'')+'</div><div class="optykerLabMeta">'+esc(dt(o.submitted_at))+' · '+esc(o.order_type||'LAC')+' · '+esc(o.document_type||'Busta')+'</div></div><div class="optykerLabStatusBox"><label>Stato</label><select data-lab-status="'+esc(o.id)+'"><option value="da_fare"'+(o.status==='da_fare'?' selected':'')+'>Da fare</option><option value="in_preparazione"'+(o.status==='in_preparazione'?' selected':'')+'>In preparazione</option><option value="in_costruzione"'+(o.status==='in_costruzione'?' selected':'')+'>In costruzione</option><option value="in_spedizione"'+(o.status==='in_spedizione'?' selected':'')+'>In spedizione</option></select></div></div><div class="optykerLabProduct">'+esc(orderProducts(o))+'</div>'+due+'</div>';
+    }).join('');
+    var ss=holder.querySelectorAll('[data-lab-status]');
+    for(var i=0;i<ss.length;i++)ss[i].onchange=function(){
+      var id=this.getAttribute('data-lab-status'),v=this.value,sel=this;sel.disabled=true;
+      call('update_status',{id:id,status:v}).then(load).catch(function(err){alert('Impossibile aggiornare lo stato: '+err.message);load()}).finally(function(){sel.disabled=false});
+    };
+  }
+  function load(){
+    var holder=E('optykerLabList');if(holder)holder.innerHTML='<div class="optykerLabEmpty">Aggiornamento laboratorio…</div>';
+    return call('list',{}).then(function(x){state.orders=Array.isArray(x.data)?x.data:[];render()}).catch(function(err){if(holder)holder.innerHTML='<div class="optykerLabEmpty error">Errore: '+esc(err.message)+'</div>'});
+  }
+  window.openLaboratory=function(){
+    hideOtherPanels();
+    var p=ensurePanel();p.style.display='block';setNavActive();load();
+    try{window.scrollTo(0,0)}catch(z){}
+  };
+
+  function installNav(){
+    var b=E('navOrders');if(!b)return;
+    b.textContent='Laboratorio';
+    b.onclick=function(){window.openLaboratory()};
+  }
+
+  function referenceInput(){return E('lacReference')}
+  function currentDoc(){
+    var d=E('lacSelectedDocType');
+    return String(d&&d.textContent||'').trim();
+  }
+  function refTypeForDoc(doc){return doc==='Busta'?'B':(doc==='Preventivo'?'P':'')}
+  function validRefForType(v,t){
+    v=String(v||'').trim().toUpperCase();
+    return t==='B'?/^\d+B\d{2}$/.test(v):(t==='P'?/^\d+P\d{2}$/.test(v):false);
+  }
+  function setReference(v){
+    var r=referenceInput();if(r){r.value=v;r.readOnly=true;r.setAttribute('data-auto-reference','1')}
+    var i=E('lacInStoreOrderRef');if(i&&!String(i.value||'').trim())i.value=v;
+  }
+  function ensureDocumentReference(){
+    var doc=currentDoc(),t=refTypeForDoc(doc),r=referenceInput(),v=String(r&&r.value||'').trim();
+    if(!t)return Promise.resolve('');
+    if(validRefForType(v,t)){docRefs[t]=v;setReference(v);return Promise.resolve(v)}
+    if(docRefs[t]){setReference(docRefs[t]);return Promise.resolve(docRefs[t])}
+    return call('reserve_reference',{ref_type:t}).then(function(x){
+      var ref=String(x.reference_no||'');docRefs[t]=ref;setReference(ref);return ref;
+    });
+  }
+
+  function configureSummaryOrderButton(){
+    var actions=document.querySelector('.lacSummaryModalActions');if(!actions)return;
+    var b=E('lacSendOrderBtn');
+    if(!b){b=document.createElement('button');b.id='lacSendOrderBtn';b.className='primary lacSendOrderBtn';b.type='button';b.textContent="Invia l'ordine";b.onclick=function(){window.lacSendLaboratoryOrder()};actions.appendChild(b)}
+    b.style.display=currentDoc()==='Busta'?'inline-flex':'none';
+    if(currentDoc()==='Busta')b.disabled=false;
+  }
+
+  window.lacSendLaboratoryOrder=function(){
+    if(currentDoc()!=='Busta'){alert("Il pulsante Invia l'ordine è disponibile per le Buste LAC.");return}
+    var cid=window.clientCurrentId||'';
+    if(!cid){alert('Prima carica la busta su un cliente specifico oppure apri la scheda del cliente.');return}
+    var b=E('lacSendOrderBtn');if(b){b.disabled=true;b.textContent='Invio…'}
+    ensureDocumentReference().then(function(ref){
+      var snap=typeof window.lacCaptureClientSheet==='function'?window.lacCaptureClientSheet():{};
+      snap.documentReference=ref;
+      if(snap.lacState)snap.lacState.document='Busta';
+      return call('create',{client_id:cid,reference_no:ref,order_data:snap});
+    }).then(function(x){
+      if(b){b.textContent='Ordine inviato';b.disabled=true}
+      alert('Ordine '+String(x.reference_no||'')+' inviato al Laboratorio.');
+    }).catch(function(err){
+      if(b){b.textContent="Invia l'ordine";b.disabled=false}
+      alert("Impossibile inviare l'ordine: "+err.message);
+    });
+  };
+
+  function hookLac(){
+    if(typeof window.lacOpenSummary==='function'&&!window.lacOpenSummary.__labHook){
+      var oldOpen=window.lacOpenSummary;
+      var wrapped=function(){
+        var args=arguments,self=this;
+        var doc=currentDoc();
+        if(doc==='Busta'||doc==='Preventivo'){
+          ensureDocumentReference().then(function(){oldOpen.apply(self,args);setTimeout(configureSummaryOrderButton,0)}).catch(function(err){alert('Impossibile creare il numero di riferimento: '+err.message)});
+          return;
+        }
+        var r=oldOpen.apply(self,args);setTimeout(configureSummaryOrderButton,0);return r;
+      };
+      wrapped.__labHook=true;window.lacOpenSummary=wrapped;
+    }
+    if(typeof window.lacProductSetDocument==='function'&&!window.lacProductSetDocument.__refHook){
+      var oldDoc=window.lacProductSetDocument;
+      var wd=function(doc){
+        var r=oldDoc.apply(this,arguments),t=refTypeForDoc(doc),inp=referenceInput();
+        if(t&&docRefs[t])setReference(docRefs[t]);
+        else if(inp){inp.value='';inp.readOnly=true;inp.setAttribute('placeholder','Generato automaticamente al riepilogo')}
+        return r;
+      };
+      wd.__refHook=true;window.lacProductSetDocument=wd;
+    }
+  }
+
+  function refreshClientReference(){
+    var cid=window.clientCurrentId||'';
+    if(!cid){
+      state.clientRefId='';state.clientRef='';
+      var old=E('optykerClientReferenceBadge');if(old)old.remove();
+      return;
+    }
+    if(cid===state.clientRefId&&state.clientRef)return;
+    state.clientRefId=cid;
+    call('client_ref',{client_id:cid}).then(function(x){
+      if(cid!==(window.clientCurrentId||''))return;
+      state.clientRef=String(x.reference_no||'');
+      var name=E('clientWorkspaceName');if(!name||!name.parentNode)return;
+      var badge=E('optykerClientReferenceBadge');
+      if(!badge){badge=document.createElement('div');badge.id='optykerClientReferenceBadge';badge.className='optykerClientReferenceBadge';name.parentNode.appendChild(badge)}
+      badge.textContent=state.clientRef?'Rif. cliente · '+state.clientRef:'';
+    }).catch(function(){});
+  }
+
+  var oldDash=window.showDashboard;if(typeof oldDash==='function')window.showDashboard=function(){hideLaboratory();return oldDash.apply(this,arguments)};
+  var oldMod=window.showModule;if(typeof oldMod==='function')window.showModule=function(){hideLaboratory();return oldMod.apply(this,arguments)};
+  var oldOnline=window.openOnlineOrders;if(typeof oldOnline==='function')window.openOnlineOrders=function(){hideLaboratory();return oldOnline.apply(this,arguments)};
+  var oldLac=window.openLacDevice;if(typeof oldLac==='function')window.openLacDevice=function(){hideLaboratory();return oldLac.apply(this,arguments)};
+
+  function install(){
+    installNav();ensurePanel();hookLac();refreshClientReference();
+    var ref=referenceInput();if(ref){ref.readOnly=true;if(!ref.placeholder)ref.placeholder='Generato automaticamente'}
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
+  setInterval(install,900);
+})();
+</scr`+`ipt>`;
+
+    html=html.replace('</body>',css+enhancer+laboratoryPatch+'</body>');
     document.open();document.write(html);document.close();
   }catch(e){
     document.querySelector('.spin').style.display='none';const m=document.getElementById('msg');m.className='err';m.textContent='Impossibile avviare Optyker.\n'+(e&&e.message?e.message:e);
