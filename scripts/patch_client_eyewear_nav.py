@@ -25,7 +25,6 @@ css=r'''
 .clientEyewearMeta{font-size:8px;color:#7a8d9b;margin-top:3px}
 .clientEyewearTotal{font-size:11px;font-weight:950;color:#17334b;white-space:nowrap}
 .clientEyewearEmpty{padding:14px 0;color:#7a8b98;font-size:10px}
-.clientPageIntroActions .clientDirectEyewearBtn{background:#fff!important;color:#1769aa!important;border:1px solid #b9d2e4!important}
 @media(max-width:650px){.clientEyewearRow{grid-template-columns:1fr auto}.clientEyewearType{grid-column:1/-1}}
 </style>
 '''
@@ -112,12 +111,28 @@ js=r'''
   }
   window.optykerClientOpenEyewearPage=openEyewearPage;
 
-  function addCreateEyewear(){
-    var nav=E('clientPageNav'),act=E('clientPageIntroActions');if(!nav||!act)return;
-    var active=nav.querySelector('[data-client-page].active'),page=active?active.getAttribute('data-client-page'):'';
-    if(page!=='schede')return;
-    if(act.querySelector('.clientDirectEyewearBtn'))return;
-    var b=document.createElement('button');b.type='button';b.className='secondary clientDirectEyewearBtn';b.textContent='+ Occhiali';b.onclick=function(){if(window.openEyewearSheet)openEyewearSheet('quote',clientId())};act.appendChild(b)
+  function ensureCreateSheetOption(){
+    var act=E('clientPageIntroActions');if(act){var direct=act.querySelector('.clientDirectEyewearBtn');if(direct)direct.remove()}
+    var dock=document.querySelector('.clientNewSheetDock');if(!dock)return;
+    var existing=E('clientCreateEyewearOption');if(existing&&dock.contains(existing))return;
+    var buttons=dock.querySelectorAll('button,a,[role="button"]'),lac=null;
+    for(var i=0;i<buttons.length;i++){
+      var t=text(buttons[i].textContent).replace(/\s+/g,' ').trim().toLowerCase();
+      if(t==='lac'||t.indexOf('lenti a contatto')>=0||t.indexOf('scheda lac')>=0){lac=buttons[i];break}
+    }
+    var b=lac?lac.cloneNode(true):document.createElement('button');
+    b.id='clientCreateEyewearOption';b.type='button';
+    if(!lac)b.className='secondary';
+    b.removeAttribute('onclick');b.removeAttribute('href');
+    b.querySelectorAll('[id]').forEach(function(x){x.removeAttribute('id')});
+    var changed=false,nodes=b.querySelectorAll('span,b,strong,div');
+    for(i=0;i<nodes.length;i++){
+      var s=text(nodes[i].textContent).replace(/\s+/g,' ').trim().toLowerCase();
+      if(s==='lac'||s.indexOf('lenti a contatto')>=0||s.indexOf('scheda lac')>=0){nodes[i].textContent='Occhiali';changed=true;break}
+    }
+    if(!changed)b.textContent='Occhiali';
+    b.onclick=function(ev){if(ev){ev.preventDefault();ev.stopPropagation()}if(window.openEyewearSheet)openEyewearSheet('quote',clientId())};
+    if(lac&&lac.parentNode)lac.insertAdjacentElement('afterend',b);else dock.appendChild(b)
   }
   function wrapOpenPage(){
     if(typeof window.optykerClientOpenPage!=='function'||window.optykerClientOpenPage.__eyewearWrapped)return;
@@ -127,14 +142,14 @@ js=r'''
       var r=old.apply(this,arguments);
       setTimeout(function(){
         var ep=E('clientEyewearPage');if(ep){ep.style.display='none';ep.classList.remove('visible')}
-        updateVisibility();addCreateEyewear()
+        updateVisibility();ensureCreateSheetOption()
       },0);
       return r
     };
     w.__eyewearWrapped=true;w.__eyewearOriginal=old;window.optykerClientOpenPage=w
   }
   function tick(){
-    ensureTab();ensurePage();wrapOpenPage();updateVisibility();addCreateEyewear();
+    ensureTab();ensurePage();wrapOpenPage();updateVisibility();ensureCreateSheetOption();
     if(currentPage==='occhiali'){renderEyewear();var p=E('clientEyewearPage');if(p){p.style.display='block';p.classList.add('visible')}}
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(tick,100)});else setTimeout(tick,100);
