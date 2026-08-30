@@ -1,0 +1,1 @@
+Trigger Vercel production deployment after Git connection — 2026-08-30 19:48 Europe/Rome
