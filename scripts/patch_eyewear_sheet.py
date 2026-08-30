@@ -43,7 +43,7 @@ body.optykerBillingMode #dashboardEyewearBtn{display:none!important}
 .eyCheck input{width:17px;height:17px;accent-color:#1769aa}
 .eyColorModes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}.eyColorMode{min-height:58px;border:1px solid #d7e2ea;border-radius:10px;background:#fff;color:#536c80;padding:9px;text-align:left;cursor:pointer}
 .eyColorMode b{display:block;font-size:10px;color:#29485f}.eyColorMode small{display:block;font-size:8px;color:#7b8e9d;margin-top:3px}.eyColorMode.active{background:#edf6fc;border-color:#1769aa}.eyColorMode.active b{color:#1769aa}
-.eyCatalogBox{border:1px solid #d7e3eb;border-radius:11px;background:#f7fafc;padding:11px;margin-top:12px}
+.eyFrameSearchBox{border:1px solid #cfe0eb;border-radius:11px;background:#f6fbfe;padding:11px;margin-bottom:13px}.eyFrameSearchTop{display:grid;grid-template-columns:minmax(180px,.65fr) auto minmax(240px,1fr) auto;gap:7px;align-items:end}.eyFrameSearchTop .eyField{min-width:0}.eyFrameSelected{margin-top:9px;border:1px solid #bcd7e9;border-radius:9px;background:#edf7fd;padding:9px 10px;font-size:9px;color:#35576e}.eyFrameSelected b{color:#1769aa}.eyFrameSearchResults{margin-top:9px;display:grid;gap:6px;max-height:220px;overflow:auto}.eyFrameResult{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:9px;align-items:center;border:1px solid #dce5ec;border-radius:9px;background:#fff;padding:8px 9px;cursor:pointer}.eyFrameResult:hover{border-color:#9fc3dd;background:#fbfdff}.eyFrameResult img{width:52px;height:52px;object-fit:contain;border:1px solid #e1e8ed;border-radius:8px;background:#fff}.eyFrameResultNoImg{width:52px;height:52px;border:1px solid #e1e8ed;border-radius:8px;background:#f5f7f9;display:grid;place-items:center;color:#8b9aa6;font-size:7px;text-align:center}.eyFrameResultName{font-size:10px;font-weight:900;color:#26455d}.eyFrameResultMeta{font-size:8px;color:#778b9a;margin-top:3px;line-height:1.4}.eyFrameResultPrice{font-size:12px;font-weight:950;color:#1769aa;white-space:nowrap}.eyCatalogBox{border:1px solid #d7e3eb;border-radius:11px;background:#f7fafc;padding:11px;margin-top:12px}
 .eyCatalogTop{display:flex;gap:7px}.eyCatalogTop input{flex:1;height:36px;border:1px solid #cbd8e2;border-radius:8px;padding:0 9px;font-size:10px;font-weight:750}
 .eyBtn{min-height:36px;border:1px solid #c8d7e2;border-radius:8px;background:#fff;color:#1769aa;padding:0 11px;font-size:9px;font-weight:900;cursor:pointer}.eyBtn:hover{background:#edf7fd}.eyBtn.primary{background:#1769aa;color:#fff;border-color:#1769aa}.eyBtn.primary:hover{background:#135a92}
 .eyCatalogResults{margin-top:9px;display:grid;gap:6px;max-height:250px;overflow:auto}.eyCatalogEmpty{padding:16px;text-align:center;color:#7a8c9a;font-size:9px}
@@ -57,7 +57,7 @@ body.optykerBillingMode #dashboardEyewearBtn{display:none!important}
 .eyRecent{margin-top:14px;border-top:1px solid #dde6ed;padding-top:13px}.eyRecentTitle{font-size:11px;font-weight:950;color:#17334b;margin-bottom:8px}.eyRecentList{display:grid;gap:7px}.eyRecentRow{display:grid;grid-template-columns:110px minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid #dce5ec;border-radius:9px;background:#fff;padding:9px 10px}.eyRecentType{font-size:8px;font-weight:950;color:#1769aa}.eyRecentMain{font-size:9px;font-weight:850;color:#36546b}.eyRecentMeta{font-size:8px;color:#81919e;margin-top:2px}.eyRecentTotal{font-size:10px;font-weight:950;color:#17334b}
 .eyToast{position:fixed;z-index:240000;right:20px;bottom:20px;max-width:420px;border-radius:10px;background:#17334b;color:#fff;padding:11px 13px;box-shadow:0 14px 36px rgba(18,42,63,.25);font-size:11px;font-weight:750;display:none}.eyToast.error{background:#8f2f2f}.eyToast.ok{background:#25693b}
 @media(max-width:950px){.eyHead{flex-direction:column}.eyModeSwitch{width:100%;min-width:0}.eyWizard{grid-template-columns:1fr}.eySteps{display:grid;grid-template-columns:repeat(5,1fr)}.eyStepBtn{justify-content:center;text-align:center}.eyStepBtn b,.eyStepBtn small{display:none}}
-@media(max-width:700px){#eyewearPanel{grid-column:1!important;padding:12px}.eyTopLine,.eyGrid2,.eyGrid3,.eyColorModes,.eyTreatments{grid-template-columns:1fr}.eySteps{grid-template-columns:repeat(5,1fr);gap:4px}.eyStepBtn{padding:5px;min-height:38px}.eyRecentRow{grid-template-columns:1fr auto}.eyRecentType{grid-column:1/-1}}
+@media(max-width:700px){#eyewearPanel{grid-column:1!important;padding:12px}.eyFrameSearchTop{grid-template-columns:1fr}.eyTopLine,.eyGrid2,.eyGrid3,.eyColorModes,.eyTreatments{grid-template-columns:1fr}.eySteps{grid-template-columns:repeat(5,1fr);gap:4px}.eyStepBtn{padding:5px;min-height:38px}.eyRecentRow{grid-template-columns:1fr auto}.eyRecentType{grid-column:1/-1}}
 </style>
 '''
 
@@ -66,12 +66,14 @@ js=r'''
 (function(){/* OPTYKER_EYEWEAR_SHEET_V2 */
   if(window.__optykerEyewearV1)return;window.__optykerEyewearV1=true;
   var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-eyewear-api';
-  var S={mode:'quote',step:1,catalog:[],selected:null,recent:[],saving:false};
+  var INV_API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-inventory-api';
+  var S={mode:'quote',step:1,catalog:[],selected:null,recent:[],saving:false,frameResults:[],selectedFrame:null};
 
   function E(id){return document.getElementById(id)}
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function creds(){var c=window.OPTYKER_CLOUD||{};return {username:String(c.username||window.OPTYKER_ACTIVE_USER||'').trim(),password:String(c.password||'')}}
   function api(action,payload){var c=creds();if(!c.username||!c.password)return Promise.reject(new Error('Sessione operatore non disponibile. Esci e accedi nuovamente.'));return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:action,username:c.username,password:c.password,payload:payload||{}})}).then(function(r){return r.json().catch(function(){return {}}).then(function(x){if(!r.ok||!x||x.ok===false)throw new Error(x&&x.error||('HTTP '+r.status));return x})})}
+  function invApi(action,payload){var cc=creds();if(!cc.username||!cc.password)return Promise.reject(new Error('Sessione operatore non disponibile.'));return fetch(INV_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:action,username:cc.username,password:cc.password,payload:payload||{}})}).then(function(r){return r.json().catch(function(){return {}}).then(function(x){if(!r.ok||!x||x.ok===false)throw new Error(x&&x.error||('HTTP '+r.status));return x})})}
   function euro(v){try{return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(Number(v||0))}catch(e){return Number(v||0).toFixed(2)+' €'}}
   function toast(m,t){var x=E('eyToast');if(!x){x=document.createElement('div');x.id='eyToast';x.className='eyToast';document.body.appendChild(x)}x.className='eyToast '+(t||'');x.textContent=m;x.style.display='block';clearTimeout(x.__tm);x.__tm=setTimeout(function(){x.style.display='none'},3900)}
   function clientsLocal(){var a=window.OPTYKER_CLOUD&&Array.isArray(OPTYKER_CLOUD.clients)?OPTYKER_CLOUD.clients:[];return a.slice().sort(function(a,b){return String((a.surname||'')+' '+(a.name||'')).localeCompare(String((b.surname||'')+' '+(b.name||'')),'it')})}
@@ -127,11 +129,13 @@ js=r'''
         '<button class="eyStepBtn" data-ey-step="4" type="button"><span class="eyStepNo">4</span><span><b>Colore</b><small>Sole / fotocromatico</small></span></button>'+
         '<button class="eyStepBtn" data-ey-step="5" type="button"><span class="eyStepNo">5</span><span><b>Prezzo e sconto</b><small>Sconto solo sulle lenti</small></span></button>'+
       '</div><div>'+
-        '<section class="eyStage active" data-ey-stage="1"><div class="eyStageHead"><div><div class="eyStageTitle">Montatura</div><div class="eyStageHint">La montatura viene richiesta sempre, sia per Preventivo sia per Busta.</div></div></div><div class="eyGrid2">'+
+        '<section class="eyStage active" data-ey-stage="1"><div class="eyStageHead"><div><div class="eyStageTitle">Montatura</div><div class="eyStageHint">La montatura viene richiesta sempre, sia per Preventivo sia per Busta. Puoi leggerne il barcode o cercarla direttamente in Magazzino.</div></div></div><div class="eyFrameSearchBox"><div class="eyFrameSearchTop"><div class="eyField"><label>Barcode montatura</label><input id="eyFrameBarcodeSearch" placeholder="Leggi o digita barcode"></div><button id="eyFrameBarcodeGo" class="eyBtn" type="button">Cerca barcode</button><div class="eyField"><label>Cerca in magazzino</label><input id="eyFrameWarehouseSearch" placeholder="Marca, modello, SKU o barcode…"></div><button id="eyFrameWarehouseGo" class="eyBtn" type="button">Cerca montatura</button></div><div id="eyFrameSelected"></div><div id="eyFrameSearchResults" class="eyFrameSearchResults"></div></div><div class="eyGrid2">'+
           '<div class="eyField"><label class="eyRequired">Marca montatura</label><input id="eyFrameBrand" placeholder="Es. Ray-Ban"></div>'+
           '<div class="eyField"><label class="eyRequired">Modello / riferimento</label><input id="eyFrameModel" placeholder="Modello o codice"></div>'+
           '<div class="eyField"><label>Colore montatura</label><input id="eyFrameColor" placeholder="Colore"></div>'+
           '<div class="eyField"><label>Prezzo montatura</label><input id="eyFramePrice" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00"></div>'+
+          '<div class="eyField"><label>Barcode selezionato</label><input id="eyFrameBarcode" readonly placeholder="Nessun barcode"></div>'+
+          '<div class="eyField"><label>SKU montatura</label><input id="eyFrameSku" readonly placeholder="Nessuno SKU"></div>'+
           '<div class="eyField eyWide"><label>Descrizione / note montatura</label><textarea id="eyFrameDescription" placeholder="Misura, calibro, ponte, aste o altre note…"></textarea></div>'+
         '</div><div class="eyStageActions"><span></span><div class="eyStageActionsRight"><button class="eyBtn primary" data-ey-next="2" type="button">Avanti · Tipo lenti →</button></div></div></section>'+
         '<section class="eyStage" data-ey-stage="2"><div class="eyStageHead"><div><div class="eyStageTitle">Tipo di lenti oftalmiche</div><div class="eyStageHint">Puoi compilare manualmente oppure cercare nel listino che verrà caricato successivamente.</div></div></div><div class="eyGrid3">'+
@@ -182,6 +186,8 @@ js=r'''
     var prev=document.querySelectorAll('[data-ey-prev]');for(i=0;i<prev.length;i++)prev[i].onclick=function(){goStep(Number(this.getAttribute('data-ey-prev')))};
     var cm=document.querySelectorAll('[data-ey-color]');for(i=0;i<cm.length;i++)cm[i].onclick=function(){setColor(this.getAttribute('data-ey-color'))};
     E('eyCatalogGo').onclick=searchCatalog;E('eyCatalogSearch').onkeydown=function(ev){if(ev.key==='Enter'){ev.preventDefault();searchCatalog()}};
+    E('eyFrameWarehouseGo').onclick=function(){searchFrames(E('eyFrameWarehouseSearch').value||'')};E('eyFrameWarehouseSearch').onkeydown=function(ev){if(ev.key==='Enter'){ev.preventDefault();searchFrames(this.value||'')}};
+    E('eyFrameBarcodeGo').onclick=function(){searchFrames(E('eyFrameBarcodeSearch').value||'',true)};E('eyFrameBarcodeSearch').onkeydown=function(ev){if(ev.key==='Enter'){ev.preventDefault();searchFrames(this.value||'',true)}};
     ['eyFramePrice','eyLensPrice','eyLensQty','eyDiscount'].forEach(function(id){E(id).oninput=renderSummary;E(id).onchange=renderSummary});
     E('eySave').onclick=save;E('eyPrint').onclick=printSummary;E('eyReset').onclick=function(){if(confirm('Azzero la scheda occhiali corrente?'))resetForm()};
   }
@@ -229,6 +235,38 @@ js=r'''
       '<div class="eySummaryRow"><span>Totale lenti dopo sconto</span><b>'+esc(euro(p.net))+'</b></div>'+
       '<div class="eySummaryRow total"><span>Totale '+(S.mode==='quote'?'preventivo':'busta')+'</span><b>'+esc(euro(p.total))+'</b></div>'
   }
+  function frameOptionText(r){var inf=r&&r.infinite_options||{},a=[];var vo=Array.isArray(inf.variant_options)?inf.variant_options:[];vo.forEach(function(x){if(x&&x.value)a.push((x.name?x.name+': ':'')+x.value)});if(!a.length&&r&&r.variant_title&&r.variant_title!=='Default Title')a.push(r.variant_title);return a.join(' · ')}
+  function searchFrames(query,barcodeOnly){
+    query=String(query||'').trim();var box=E('eyFrameSearchResults');if(!query){box.innerHTML='<div class="eyCatalogEmpty">Inserisci un barcode oppure cerca marca/modello.</div>';return}
+    box.innerHTML='<div class="eyCatalogEmpty">Ricerca montatura in magazzino…</div>';
+    Promise.all([
+      invApi('list',{category:'frames',search:query,page:1,limit:120}),
+      invApi('list',{category:'sunglasses',search:query,page:1,limit:120})
+    ]).then(function(all){
+      var rows=[];all.forEach(function(x){var d=x&&x.data||{},a=Array.isArray(d.rows)?d.rows:[];rows=rows.concat(a)});
+      var seen={},uniq=[];rows.forEach(function(r){var k=String(r.id||r.barcode||r.sku||Math.random());if(!seen[k]){seen[k]=1;uniq.push(r)}});
+      if(barcodeOnly)uniq=uniq.filter(function(r){return String(r.barcode||'').trim()===query});
+      S.frameResults=uniq;renderFrameResults()
+    }).catch(function(e){box.innerHTML='<div class="eyCatalogEmpty">Errore ricerca magazzino: '+esc(e.message)+'</div>'})
+  }
+  function renderFrameResults(){
+    var box=E('eyFrameSearchResults');if(!box)return;
+    if(!S.frameResults.length){box.innerHTML='<div class="eyCatalogEmpty">Nessuna montatura trovata in magazzino.</div>';return}
+    box.innerHTML=S.frameResults.map(function(r,i){var img=r.image_url?'<img src="'+esc(r.image_url)+'" alt="">':'<div class="eyFrameResultNoImg">Nessuna<br>immagine</div>';return '<div class="eyFrameResult" data-ey-frame="'+i+'>'+img+'<div><div class="eyFrameResultName">'+esc([r.vendor,r.title].filter(Boolean).join(' · ')||'Montatura')+'</div><div class="eyFrameResultMeta">'+esc([frameOptionText(r),r.sku?('SKU '+r.sku):'',r.barcode?('Barcode '+r.barcode):'',('Giacenza '+Number(r.inventory_quantity||0))].filter(Boolean).join(' · '))+'</div></div><div class="eyFrameResultPrice">'+esc(euro(r.price))+'</div></div>'}).join('');
+    var a=box.querySelectorAll('[data-ey-frame]');for(var i=0;i<a.length;i++)a[i].onclick=function(){selectFrame(Number(this.getAttribute('data-ey-frame')))}
+  }
+  function selectFrame(i){
+    var r=S.frameResults[i];if(!r)return;S.selectedFrame=r;
+    E('eyFrameBrand').value=r.vendor||'';
+    E('eyFrameModel').value=r.title||'';
+    E('eyFrameColor').value=frameOptionText(r)||'';
+    E('eyFramePrice').value=Number(r.price||0).toFixed(2);
+    E('eyFrameBarcode').value=r.barcode||'';
+    E('eyFrameSku').value=r.sku||'';
+    E('eyFrameBarcodeSearch').value=r.barcode||'';
+    E('eyFrameSelected').innerHTML='<div class="eyFrameSelected"><b>Montatura selezionata dal magazzino:</b> '+esc([r.vendor,r.title,frameOptionText(r)].filter(Boolean).join(' · '))+' · '+esc(euro(r.price))+' · giacenza '+esc(r.inventory_quantity)+'</div>';
+    renderSummary()
+  }
   function searchCatalog(){
     var box=E('eyCatalogResults');box.innerHTML='<div class="eyCatalogEmpty">Ricerca nel listino…</div>';
     api('lens_catalog',{search:E('eyCatalogSearch').value||'',lens_type:E('eyLensType').value||''}).then(function(x){S.catalog=Array.isArray(x.data)?x.data:[];renderCatalog()}).catch(function(e){box.innerHTML='<div class="eyCatalogEmpty">Errore listino: '+esc(e.message)+'</div>'})
@@ -249,7 +287,7 @@ js=r'''
   }
   function payload(){
     var p=price(),cm=colorMode();
-    return {mode:S.mode,client_id:E('eyClient').value||'',frame:{brand:E('eyFrameBrand').value,model:E('eyFrameModel').value,color:E('eyFrameColor').value,description:E('eyFrameDescription').value,price:p.frame},lens:{catalog_id:S.selected&&S.selected.id||'',code:S.selected&&S.selected.code||'',supplier:S.selected&&S.selected.supplier||'',brand:E('eyLensBrand').value,lens_name:E('eyLensName').value,lens_type:E('eyLensType').value,design:E('eyLensDesign').value,material:E('eyLensMaterial').value,refractive_index:E('eyLensIndex').value,treatments:treatments(),color_mode:cm,color:cm==='clear'?'':E('eyLensColor').value,polarized:treatments().indexOf('Polarizzato')>=0,photochromic:cm==='photochromic',quantity:p.qty,unit_price:p.unit},discount_percent:p.discount,notes:E('eyNotes').value||''}
+    return {mode:S.mode,client_id:E('eyClient').value||'',frame:{brand:E('eyFrameBrand').value,model:E('eyFrameModel').value,color:E('eyFrameColor').value,description:E('eyFrameDescription').value,price:p.frame,warehouse_item_id:S.selectedFrame&&S.selectedFrame.id||'',barcode:E('eyFrameBarcode').value||'',sku:E('eyFrameSku').value||'',stock_quantity:S.selectedFrame?Number(S.selectedFrame.inventory_quantity||0):null},lens:{catalog_id:S.selected&&S.selected.id||'',code:S.selected&&S.selected.code||'',supplier:S.selected&&S.selected.supplier||'',brand:E('eyLensBrand').value,lens_name:E('eyLensName').value,lens_type:E('eyLensType').value,design:E('eyLensDesign').value,material:E('eyLensMaterial').value,refractive_index:E('eyLensIndex').value,treatments:treatments(),color_mode:cm,color:cm==='clear'?'':E('eyLensColor').value,polarized:treatments().indexOf('Polarizzato')>=0,photochromic:cm==='photochromic',quantity:p.qty,unit_price:p.unit},discount_percent:p.discount,notes:E('eyNotes').value||''}
   }
   function save(){
     if(S.saving)return;if(!validateTo(5))return;var p=payload();
@@ -259,14 +297,14 @@ js=r'''
       .catch(function(e){toast('Salvataggio non riuscito: '+e.message,'error')}).finally(function(){S.saving=false;E('eySave').disabled=false;E('eySave').textContent=S.mode==='quote'?'Salva Preventivo':'Salva Busta'})
   }
   function resetForm(){
-    ['eyFrameBrand','eyFrameModel','eyFrameColor','eyFrameDescription','eyFramePrice','eyLensDesign','eyLensMaterial','eyLensBrand','eyLensName','eyLensPrice','eyLensColor','eyLensColorNotes','eyNotes','eyCatalogSearch','eyReference'].forEach(function(id){if(E(id))E(id).value=''});
-    E('eyLensType').value='';E('eyLensIndex').value='';E('eyLensQty').value='2';E('eyDiscount').value='0';document.querySelectorAll('[data-ey-treatment]').forEach(function(x){x.checked=false});S.selected=null;E('eyCatalogSelected').innerHTML='';E('eyCatalogResults').innerHTML='<div class="eyCatalogEmpty">Il listino potrà essere caricato qui appena me lo fornisci.</div>';setColor('clear');goStep(1);renderSummary()
+    ['eyFrameBrand','eyFrameModel','eyFrameColor','eyFrameDescription','eyFramePrice','eyFrameBarcode','eyFrameSku','eyFrameBarcodeSearch','eyFrameWarehouseSearch','eyLensDesign','eyLensMaterial','eyLensBrand','eyLensName','eyLensPrice','eyLensColor','eyLensColorNotes','eyNotes','eyCatalogSearch','eyReference'].forEach(function(id){if(E(id))E(id).value=''});
+    E('eyLensType').value='';E('eyLensIndex').value='';E('eyLensQty').value='2';E('eyDiscount').value='0';document.querySelectorAll('[data-ey-treatment]').forEach(function(x){x.checked=false});S.selected=null;S.selectedFrame=null;S.frameResults=[];E('eyFrameSelected').innerHTML='';E('eyFrameSearchResults').innerHTML='';E('eyCatalogSelected').innerHTML='';E('eyCatalogResults').innerHTML='<div class="eyCatalogEmpty">Il listino potrà essere caricato qui appena me lo fornisci.</div>';setColor('clear');goStep(1);renderSummary()
   }
   function printSummary(){
     if(!validateTo(5))return;var p=payload(),pr=price(),client=E('eyClient').selectedOptions&&E('eyClient').selectedOptions[0]?E('eyClient').selectedOptions[0].textContent:'',ref=E('eyReference').value||'';
     var w=window.open('','_blank','width=900,height=760');if(!w){toast('Il browser ha bloccato la finestra di stampa.','error');return}
     var title=S.mode==='quote'?'PREVENTIVO OCCHIALI':'BUSTA OCCHIALI';
-    var html='<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>body{font-family:Arial,sans-serif;color:#17334b;padding:34px}h1{font-size:24px}h2{font-size:15px;margin-top:24px;border-bottom:1px solid #ccd8e1;padding-bottom:6px}.row{display:flex;justify-content:space-between;gap:16px;padding:6px 0;font-size:12px}.tot{font-size:17px;font-weight:bold;border-top:2px solid #17334b;margin-top:8px;padding-top:10px}.muted{color:#718493;font-size:10px}.box{border:1px solid #d7e2ea;border-radius:10px;padding:14px;margin-top:10px}@media print{button{display:none}}</style></head><body><div class="muted">OPTYKER · OTTICA VISUAL CARE</div><h1>'+title+'</h1><div class="muted">'+esc(ref)+(client?' · '+esc(client):'')+'</div><h2>Montatura</h2><div class="box"><div class="row"><span>'+esc([p.frame.brand,p.frame.model,p.frame.color].filter(Boolean).join(' · '))+'</span><b>'+esc(euro(pr.frame))+'</b></div></div><h2>Lenti</h2><div class="box"><div class="row"><span>'+esc([p.lens.lens_type,p.lens.brand,p.lens.lens_name,p.lens.refractive_index].filter(Boolean).join(' · '))+'</span><b>'+esc(euro(pr.gross))+'</b></div><div class="row"><span>Trattamenti</span><span>'+esc(p.lens.treatments.join(', ')||'—')+'</span></div><div class="row"><span>Colore</span><span>'+esc(p.lens.color_mode==='clear'?'Trasparente':(p.lens.color||p.lens.color_mode))+'</span></div>'+(pr.discount?'<div class="row"><span>Sconto lenti '+pr.discount+'%</span><b>− '+esc(euro(pr.disc))+'</b></div>':'')+'</div><div class="row tot"><span>Totale</span><span>'+esc(euro(pr.total))+'</span></div>'+(p.notes?'<h2>Note</h2><div class="box">'+esc(p.notes)+'</div>':'')+'<script>window.onload=function(){window.print()}<\/script></body></html>';
+    var html='<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>body{font-family:Arial,sans-serif;color:#17334b;padding:34px}h1{font-size:24px}h2{font-size:15px;margin-top:24px;border-bottom:1px solid #ccd8e1;padding-bottom:6px}.row{display:flex;justify-content:space-between;gap:16px;padding:6px 0;font-size:12px}.tot{font-size:17px;font-weight:bold;border-top:2px solid #17334b;margin-top:8px;padding-top:10px}.muted{color:#718493;font-size:10px}.box{border:1px solid #d7e2ea;border-radius:10px;padding:14px;margin-top:10px}@media print{button{display:none}}</style></head><body><div class="muted">OPTYKER · OTTICA VISUAL CARE</div><h1>'+title+'</h1><div class="muted">'+esc(ref)+(client?' · '+esc(client):'')+'</div><h2>Montatura</h2><div class="box"><div class="row"><span>'+esc([p.frame.brand,p.frame.model,p.frame.color,p.frame.barcode?('Barcode '+p.frame.barcode):''].filter(Boolean).join(' · '))+'</span><b>'+esc(euro(pr.frame))+'</b></div></div><h2>Lenti</h2><div class="box"><div class="row"><span>'+esc([p.lens.lens_type,p.lens.brand,p.lens.lens_name,p.lens.refractive_index].filter(Boolean).join(' · '))+'</span><b>'+esc(euro(pr.gross))+'</b></div><div class="row"><span>Trattamenti</span><span>'+esc(p.lens.treatments.join(', ')||'—')+'</span></div><div class="row"><span>Colore</span><span>'+esc(p.lens.color_mode==='clear'?'Trasparente':(p.lens.color||p.lens.color_mode))+'</span></div>'+(pr.discount?'<div class="row"><span>Sconto lenti '+pr.discount+'%</span><b>− '+esc(euro(pr.disc))+'</b></div>':'')+'</div><div class="row tot"><span>Totale</span><span>'+esc(euro(pr.total))+'</span></div>'+(p.notes?'<h2>Note</h2><div class="box">'+esc(p.notes)+'</div>':'')+'<script>window.onload=function(){window.print()}<\/script></body></html>';
     w.document.open();w.document.write(html);w.document.close()
   }
   function loadRecent(){
