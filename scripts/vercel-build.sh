@@ -54,9 +54,11 @@ for f in \
   scripts/patch_operator_name_panseri.py \
   scripts/patch_laboratory_orders.py \
   scripts/patch_eyewear_sheet.py \
+  scripts/patch_dashboard_quickcards.py \
   scripts/patch_documents_nav.py \
   scripts/patch_lac_warranty_subject.py \
   scripts/patch_client_pages_nav.py \
+  scripts/patch_client_eyewear_nav.py \
   scripts/patch_billing_admin.py \
   scripts/patch_cash_register.py \
   scripts/patch_warehouse.py \
