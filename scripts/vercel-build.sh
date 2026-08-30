@@ -53,6 +53,7 @@ for f in \
   scripts/patch_single_active_nav_v18.py \
   scripts/patch_operator_name_panseri.py \
   scripts/patch_laboratory_orders.py \
+  scripts/patch_documents_nav.py \
   scripts/patch_lac_warranty_subject.py \
   scripts/patch_client_pages_nav.py \
   scripts/patch_billing_admin.py \
