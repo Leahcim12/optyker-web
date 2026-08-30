@@ -231,8 +231,8 @@ const STAFF_LOGIN=U+'/functions/v1/optyker-mobile-staff-login';
 const BOOKING_API=U+'/functions/v1/optyker-appointments-booking';
 const CATALOG=U+'/functions/v1/optyker-shop-catalog';
 const SHOP='https://otticavisualcare.it';
-const OPTYKER_BUILD='20260830-0031';
-const BOOK='../booking/?source=iphone-app&build=20260830-0031';
+const OPTYKER_BUILD='20260830-0032';
+const BOOK='../booking/?source=iphone-app&build=20260830-0032';
 const sb=window.supabase.createClient(U,K,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const app=document.getElementById('app');
 let state={session:null,me:null,home:null,appointments:[],tab:'home',frame:null,drawer:false,shopCategories:[],shopParent:null,shopCategory:null,shopProducts:[],shopPageInfo:null,shopLoading:false,shopError:'',cart:[],chatMessages:[],chatLoading:false,chatSending:false,chatError:'',chatTimer:null,chatAttachment:null,timers:[],timerLoading:false,timerError:'',staffHome:null,staffAgenda:[],staffAgendaStart:'',staffShifts:null,staffShiftMonth:'',staffClients:[],staffClientDetail:null,staffClientSearch:'',staffOrders:null,staffThreads:[],staffSelectedThread:'',staffMessages:[],staffLoading:false,staffError:'',staffProfileDraftPhoto:'',staffChatAttachment:null,documents:null,documentsLoading:false,documentsError:''};
@@ -370,7 +370,7 @@ function shopMarkup(){
   const cats=state.shopCategories||[];
   if(!state.shopParent){
     return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>Shop</h1><div class="sub">Scegli la categoria</div></div>
-      <div class="shopSource">Prodotti, prezzi e disponibilità aggiornati dal sito Shopify · APP 13.2</div>
+      <div class="shopSource">Prodotti, prezzi e disponibilità aggiornati dal sito Shopify · APP 13.3</div>
       <div class="shopRootGrid">${cats.map(c=>`<button class="shopRoot" onclick="chooseShopParent('${esc(c.key)}')"><strong>${esc(c.title)}</strong><span>${esc(c.subtitle||'')}</span><div class="arrow">Scegli →</div></button>`).join('')}</div></div>`;
   }
   const parent=shopParent();
@@ -1112,20 +1112,9 @@ function customerProfileMarkup(){
       profileEditField('cp_phone','Cellulare',c.phone,'tel')+
       profileEditField('cp_home_phone','Telefono fisso',c.home_phone,'tel')+
       profileEditField('cp_email','Email',c.email||state.me?.email,'email')+
-    '</div></div>'+
-    '<div class="card"><div class="profileSectionTitle">Indirizzo e fatturazione</div><div class="profileEditGrid">'+
-      profileEditField('cp_street','Via',c.street)+profileEditField('cp_street_number','Civico',c.street_number)+
-      profileEditField('cp_postal_code','CAP',c.postal_code)+profileEditField('cp_city','Città',c.city)+
-      profileEditField('cp_province','Provincia',c.province)+profileEditField('cp_fiscal','Codice fiscale',c.fiscal)+
-      profileEditField('cp_vat','Partita IVA',c.vat)+profileEditField('cp_pec','PEC',c.pec,'email')+
-    '</div></div>'+
-    '<div class="card"><div class="profileSectionTitle">Altre informazioni</div><div class="profileEditGrid">'+
-      profileEditField('cp_profession','Professione',c.profession)+profileEditField('cp_hobby','Hobby',c.hobby)+
-      profileEditField('cp_referral','Come ci hai conosciuto',c.referral,'text',true)+
-      profileEditArea('cp_notes','Note',c.notes)+
-    '</div><div class="profileSyncNote">Nome, cognome, email e telefono vengono sincronizzati anche con il profilo cliente Shopify. Gli indirizzi modificati dal profilo Shopify vengono riallineati automaticamente in Optyker al prossimo accesso.</div>'+
+    '</div><div class="profileSyncNote">Indirizzo, dati di fatturazione e altre informazioni non sono modificabili dall’app. Per aggiornarli è necessario rivolgersi a Ottica Visual Care.</div>'+
     '<button id="customerProfileSave" class="profileSaveBtn" onclick="saveCustomerProfile()">SALVA MODIFICHE</button>'+
-    '<a class="profileAccountLink" href="https://otticavisualcare.it/account" target="_blank" rel="noopener">Apri anche il profilo sul sito Shopify</a></div>'+
+    '<a class="profileAccountLink" href="https://otticavisualcare.it/account" target="_blank" rel="noopener">Apri il profilo sul sito Shopify</a></div>'+
     '<button class="action secondary" onclick="logout()">Esci</button></div>';
 }
 window.saveCustomerProfile=async()=>{
@@ -1136,19 +1125,7 @@ window.saveCustomerProfile=async()=>{
     birth:document.getElementById('cp_birth')?.value.trim()||'',
     phone:document.getElementById('cp_phone')?.value.trim()||'',
     home_phone:document.getElementById('cp_home_phone')?.value.trim()||'',
-    email:document.getElementById('cp_email')?.value.trim()||'',
-    street:document.getElementById('cp_street')?.value.trim()||'',
-    street_number:document.getElementById('cp_street_number')?.value.trim()||'',
-    postal_code:document.getElementById('cp_postal_code')?.value.trim()||'',
-    city:document.getElementById('cp_city')?.value.trim()||'',
-    province:document.getElementById('cp_province')?.value.trim()||'',
-    fiscal:document.getElementById('cp_fiscal')?.value.trim()||'',
-    vat:document.getElementById('cp_vat')?.value.trim()||'',
-    pec:document.getElementById('cp_pec')?.value.trim()||'',
-    profession:document.getElementById('cp_profession')?.value.trim()||'',
-    hobby:document.getElementById('cp_hobby')?.value.trim()||'',
-    referral:document.getElementById('cp_referral')?.value.trim()||'',
-    notes:document.getElementById('cp_notes')?.value.trim()||''
+    email:document.getElementById('cp_email')?.value.trim()||''
   };
   if(!payload.name||!payload.surname){alert('Inserisci nome e cognome.');return}
   if(btn){btn.disabled=true;btn.textContent='SALVATAGGIO…'}
