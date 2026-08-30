@@ -232,7 +232,7 @@ function ean13Svg(code){
   var R=['1110010','1100110','1101100','1000010','1011100','1001110','1010000','1000100','1001000','1110100'];
   var P=['LLLLLL','LLGLGG','LLGGLG','LLGGGL','LGLLGG','LGGLLG','LGGGLL','LGLGLG','LGLGGL','LGGLGL'];
   var bits='101',par=P[Number(code[0])];
-  for(var i=1;i<=6;i++)bits+=(par[i-1]==='L'?L:Number?L:L)[Number(code[i])];
+  for(var i=1;i<=6;i++)bits+=(par[i-1]==='L'?L:G)[Number(code[i])];
   bits+='01010';for(i=7;i<=12;i++)bits+=R[Number(code[i])];bits+='101';
   var w=2,x=10,rects='';for(i=0;i<bits.length;i++)if(bits[i]==='1')rects+='<rect x="'+(x+i*w)+'" y="4" width="'+w+'" height="54"/>';
   return '<svg xmlns="http://www.w3.org/2000/svg" width="210" height="76" viewBox="0 0 210 76"><rect width="210" height="76" fill="white"/><g fill="black">'+rects+'</g><text x="105" y="72" text-anchor="middle" font-family="Arial" font-size="12">'+esc(code)+'</text></svg>'
