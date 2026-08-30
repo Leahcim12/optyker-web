@@ -47,9 +47,9 @@ css=r'''
 #clientOnlineOrdersSection.clientPageStandalone,
 #clientChatSection.clientPageStandalone,
 #clientSheetsSection.clientPageStandalone{grid-column:1/-1!important;border:0!important;box-shadow:none!important;background:transparent!important;padding:0!important}
-.clientNewSheetDock.clientPageDockHidden{display:none!important}
+.clientNewSheetDock.clientPageDockHidden{display:none!important}.clientMainSheetDates{display:none;margin:0 0 16px;padding:14px 15px;border:1px solid #dce5ec;border-radius:12px;background:#f8fbfd}.clientMainSheetDates.visible{display:block}.clientMainSheetDatesHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:11px}.clientMainSheetDatesTitle{font-size:12px;font-weight:950;color:#24465f}.clientMainSheetDatesHint{font-size:9px;color:#738594;margin-top:2px}.clientMainSheetGroups{display:grid;gap:10px}.clientMainSheetGroup{display:grid;grid-template-columns:minmax(145px,210px) 1fr;gap:12px;align-items:start;padding:10px 0;border-top:1px solid #e5ebf0}.clientMainSheetGroup:first-child{border-top:0;padding-top:0}.clientMainSheetType{font-size:10px;font-weight:950;color:#274b66;padding-top:7px}.clientMainSheetTypeCount{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;margin-left:5px;padding:0 5px;border-radius:999px;background:#eaf4fb;color:#1769aa;font-size:8px}.clientMainSheetDateList{display:flex;gap:7px;flex-wrap:wrap}.clientMainSheetDateBtn{border:1px solid #cfdce6;background:#fff;color:#31516a;border-radius:8px;padding:7px 10px;min-height:32px;font-size:9px;font-weight:900;cursor:pointer}.clientMainSheetDateBtn:hover{border-color:#8fb9d8;background:#f2f8fc;color:#1769aa}.clientMainSheetDateBtn.active{background:#1769aa;border-color:#1769aa;color:#fff}.clientMainSheetEmpty{padding:12px 0;color:#7a8b98;font-size:10px}
 @media(max-width:900px){.clientPageNav{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:560px){.clientPageNav{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.clientPageNavBtn{min-height:40px}.clientPageIntro{flex-direction:column}.clientPageIntroActions{width:100%}.clientPageIntroActions button{flex:1}}
+@media(max-width:560px){.clientMainSheetGroup{grid-template-columns:1fr;gap:5px}.clientPageNav{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.clientPageNavBtn{min-height:40px}.clientPageIntro{flex-direction:column}.clientPageIntroActions{width:100%}.clientPageIntroActions button{flex:1}}
 </style>
 '''
 
@@ -129,6 +129,12 @@ js=r'''
       intro.innerHTML='<div><div class="clientPageIntroKicker">Scheda cliente</div><div id="clientPageIntroTitle" class="clientPageIntroTitle"></div><div id="clientPageIntroSub" class="clientPageIntroSub"></div></div><div id="clientPageIntroActions" class="clientPageIntroActions"></div>';
       nav.parentNode.insertBefore(intro,nav.nextSibling);
     }
+    var dated=E('clientMainSheetDates');
+    if(!dated){
+      dated=document.createElement('section');dated.id='clientMainSheetDates';dated.className='clientMainSheetDates';
+      dated.innerHTML='<div class="clientMainSheetDatesHead"><div><div class="clientMainSheetDatesTitle">Archivio schede per data</div><div class="clientMainSheetDatesHint">Seleziona una data per aprire direttamente la scheda corrispondente.</div></div></div><div id="clientMainSheetGroups" class="clientMainSheetGroups"></div>';
+      intro.parentNode.insertBefore(dated,intro.nextSibling);
+    }
     ensureLacExtras();
     return nav;
   }
@@ -150,6 +156,62 @@ js=r'''
     var warranty=E('clientLacWarrantyPanel');
     if(warranty&&warranty.parentElement!==holder&&!holder.contains(warranty))holder.appendChild(warranty);
   }
+  function rowType(row){return text(row&&((row.sheet_type)||(row.data&&row.data.sheetType))||'visit')}
+  function typeLabel(type){
+    try{if(typeof window.clientWorkspaceTypeLabel==='function')return text(clientWorkspaceTypeLabel(type)||type)}catch(e){}
+    var map={analysis:'Analisi visiva',prescription:'Prescrizione',visualexam:'Esame visivo',indications:"Indicazioni d'uso",hearing:'Udito',visit:'Visita completa'};
+    return map[type]||type;
+  }
+  function rowDateValue(row){
+    var d=row&&row.data||{};
+    return d.examDate||d.savedAt||row.created_at||row.updated_at||'';
+  }
+  function rowDateLabel(row){
+    try{if(typeof window.clientSheetDateOnly==='function')return text(clientSheetDateOnly(row))}catch(e){}
+    var v=rowDateValue(row);if(!v)return 'Senza data';
+    if(/^\d{2}\/\d{2}\/\d{4}$/.test(text(v)))return text(v);
+    try{return new Date(v).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'})}catch(e){return text(v)}
+  }
+  function rowSortValue(row){
+    var v=rowDateValue(row);
+    if(/^\d{2}\/\d{2}\/\d{4}$/.test(text(v))){var p=text(v).split('/');return new Date(Number(p[2]),Number(p[1])-1,Number(p[0])).getTime()}
+    var n=Date.parse(v);return isNaN(n)?0:n;
+  }
+  var mainDatesSignature='';
+  function renderMainSheetDates(){
+    var box=E('clientMainSheetDates'),holder=E('clientMainSheetGroups');if(!box||!holder)return;
+    box.classList.toggle('visible',page==='schede');
+    if(page!=='schede')return;
+    var rows=sheetRows().filter(function(r){var t=rowType(r);return t&&t!=='lac'});
+    rows.sort(function(a,b){return rowSortValue(b)-rowSortValue(a)});
+    var groups={},order=[];
+    for(var i=0;i<rows.length;i++){
+      var t=rowType(rows[i]);if(!groups[t]){groups[t]=[];order.push(t)}groups[t].push(rows[i]);
+    }
+    var sig=order.map(function(t){return t+':'+groups[t].map(function(r){return text(r.id)+'@'+rowDateLabel(r)}).join(',')}).join('|')+'#'+text(window.clientWorkspaceSheetId||'');
+    if(sig===mainDatesSignature)return;mainDatesSignature=sig;
+    if(!rows.length){holder.innerHTML='<div class="clientMainSheetEmpty">Nessuna scheda salvata per questo cliente.</div>';return}
+    holder.innerHTML=order.map(function(t){
+      var a=groups[t];
+      return '<div class="clientMainSheetGroup"><div class="clientMainSheetType">'+text(typeLabel(t))+' <span class="clientMainSheetTypeCount">'+a.length+'</span></div><div class="clientMainSheetDateList">'+a.map(function(r){
+        var active=text(window.clientWorkspaceSheetId||'')===text(r.id);
+        return '<button type="button" class="clientMainSheetDateBtn'+(active?' active':'')+'" data-main-sheet-type="'+text(t).replace(/"/g,'&quot;')+'" data-main-sheet-id="'+text(r.id).replace(/"/g,'&quot;')+'">'+text(rowDateLabel(r))+'</button>';
+      }).join('')+'</div></div>';
+    }).join('');
+    Array.prototype.forEach.call(holder.querySelectorAll('[data-main-sheet-id]'),function(b){
+      b.onclick=function(){window.optykerOpenClientSheetByDate(b.getAttribute('data-main-sheet-type'),b.getAttribute('data-main-sheet-id'))};
+    });
+  }
+  window.optykerOpenClientSheetByDate=function(type,id){
+    if(!selectedClient())return;
+    page='schede';
+    window.clientWorkspaceSection=type;window.clientWorkspaceSheetId=id;
+    nativeOpen(type);
+    try{if(typeof window.clientSelectWorkspaceDate==='function')clientSelectWorkspaceDate(id)}catch(e){}
+    try{if(typeof window.clientRenderFocusedSheet==='function')clientRenderFocusedSheet()}catch(e){}
+    setTimeout(function(){mainDatesSignature='';apply();try{window.scrollTo({top:E('clientSheetsSection')?E('clientSheetsSection').offsetTop-100:0,behavior:'smooth'})}catch(e){}},0);
+  };
+
   function setIntro(){
     var title=E('clientPageIntroTitle'),sub=E('clientPageIntroSub'),act=E('clientPageIntroActions'),intro=E('clientPageIntro');
     if(!title||!sub||!act||!intro)return;
@@ -200,7 +262,7 @@ js=r'''
     if(lac)lac.classList.toggle('visible',page==='lac');
     if(wrap)wrap.style.display=(page==='schede'||page==='lac')?'block':'none';
     if(dock)dock.classList.toggle('clientPageDockHidden',page!=='schede');
-    filterSecondaryTabs();setIntro();updateCounts();
+    filterSecondaryTabs();setIntro();updateCounts();renderMainSheetDates();
     var nav=E('clientPageNav');
     if(nav)Array.prototype.forEach.call(nav.querySelectorAll('[data-client-page]'),function(b){b.classList.toggle('active',b.getAttribute('data-client-page')===page)});
   }
@@ -234,7 +296,7 @@ js=r'''
   if(typeof window.clientSelect==='function'){
     var oldClientSelect=window.clientSelect;
     window.clientSelect=function(id){
-      page='anagrafica';lastClient=text(id||'');
+      page='anagrafica';lastClient=text(id||'');mainDatesSignature='';
       var r=oldClientSelect.apply(this,arguments);
       setTimeout(function(){apply();if(selectedClient()&&typeof window.clientRefreshCommerce==='function')try{clientRefreshCommerce()}catch(e){}},40);
       return r;
@@ -242,7 +304,7 @@ js=r'''
   }
   if(typeof window.clientNew==='function'){
     var oldClientNew=window.clientNew;
-    window.clientNew=function(){page='anagrafica';lastClient='';var r=oldClientNew.apply(this,arguments);setTimeout(apply,0);return r};
+    window.clientNew=function(){page='anagrafica';lastClient='';mainDatesSignature='';var r=oldClientNew.apply(this,arguments);setTimeout(apply,0);return r};
   }
 
   function tick(){
