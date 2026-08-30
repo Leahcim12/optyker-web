@@ -153,7 +153,7 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
   }
   function enterWithUser(user){
     user=String(user||'').trim();
-    var allowed=['Ottica Visual Care','Michael Mologni','Giorgia Bono','Diego Pansieri'];
+    var allowed=['Michael Mologni','Giorgia Bono','Diego Pansieri'];
     if(allowed.indexOf(user)<0)return false;
     window.OPTYKER_ACTIVE_USER=user;
     window.optykerAuthenticated=true;
