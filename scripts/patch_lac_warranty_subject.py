@@ -36,6 +36,7 @@ js=r'''
 (function(){/* OPTYKER_LAC_WARRANTY_SUBJECT_V1 */
   if(window.__optykerLacWarrantySubjectV1)return;window.__optykerLacWarrantySubjectV1=true;
   var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-warranty-api';
+  var WARRANTY_API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-warranty-checkout';
   var W={clientId:'',data:null,loading:false};
 
   function E(id){return document.getElementById(id)}
@@ -47,6 +48,24 @@ js=r'''
     var b=payload||{};b.action=action;b.operator=operator();
     return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json().catch(function(){return {}}).then(function(x){if(!r.ok||!x||x.ok===false)throw new Error((x&&x.error)||('HTTP '+r.status));return x})});
   }
+  function warrantyApi(action,lensId,reason){
+    var body={
+      action:action,
+      actor:'operator',
+      operator:operator(),
+      client_id:String(window.clientCurrentId||''),
+      lens_id:String(lensId||''),
+      reason:String(reason||''),
+      channel:'operator'
+    };
+    return fetch(WARRANTY_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){
+      return r.json().catch(function(){return {}}).then(function(x){
+        if(!r.ok||!x||x.ok===false)throw new Error((x&&x.error)||('HTTP '+r.status));
+        return x;
+      });
+    });
+  }
+
   function currentClient(){
     var id=window.clientCurrentId||'';
     if(!id)return null;
@@ -105,7 +124,7 @@ js=r'''
     var panel=E('clientLacWarrantyPanel');
     if(panel)return panel;
     panel=document.createElement('section');panel.id='clientLacWarrantyPanel';panel.className='clientLacWarrantyPanel';
-    panel.innerHTML='<div class="clientLacWarrantyHead"><div><div class="clientLacWarrantyKicker">LAC DEL CLIENTE</div><div class="clientLacWarrantyTitle">Lenti a contatto e garanzie</div><div class="clientLacWarrantySub">Ogni lente acquistata ha una garanzia individuale. Qui puoi attivarla e preparare la selezione del riordino. Sotto trovi tutte le schede LAC associate al cliente.</div></div><button class="secondary" type="button" id="clientLacWarrantyReload">Aggiorna</button></div><div class="clientLacWarrantyBody"><div><div class="clientLacSectionTitle">Articoli acquistati e garanzia</div><div id="clientLacWarrantyList" class="clientLacWarrantyList"><div class="clientLacEmpty">Caricamento lenti…</div></div></div><div><div class="clientLacSectionTitle">Tutte le schede LAC del cliente</div><div id="clientLacSheetsList" class="clientLacSheetsList"><div class="clientLacEmpty">Caricamento schede…</div></div></div></div>';
+    panel.innerHTML='<div class="clientLacWarrantyHead"><div><div class="clientLacWarrantyKicker">LAC DEL CLIENTE</div><div class="clientLacWarrantyTitle">Lenti a contatto e garanzie</div><div class="clientLacWarrantySub">Ogni lente acquistata ha la garanzia già attiva. Seleziona la causale del riordino; il cambio diottria è disponibile esclusivamente all’operatore. Sotto trovi tutte le schede LAC associate al cliente.</div></div><button class="secondary" type="button" id="clientLacWarrantyReload">Aggiorna</button></div><div class="clientLacWarrantyBody"><div><div class="clientLacSectionTitle">Articoli acquistati e garanzia</div><div id="clientLacWarrantyList" class="clientLacWarrantyList"><div class="clientLacEmpty">Caricamento lenti…</div></div></div><div><div class="clientLacSectionTitle">Tutte le schede LAC del cliente</div><div id="clientLacSheetsList" class="clientLacSheetsList"><div class="clientLacEmpty">Caricamento schede…</div></div></div></div>';
     if(list.parentNode)list.parentNode.insertBefore(panel,list.nextSibling);else list.appendChild(panel);
     var reload=E('clientLacWarrantyReload');if(reload)reload.onclick=function(){refresh(true)};
     return panel;
@@ -126,12 +145,11 @@ js=r'''
     return a.join(' | ')||'Scheda tecnica LAC';
   }
   function bindRenderedActions(){
-    var a=document.querySelectorAll('[data-warranty-activate]'),i,b;
-    for(i=0;i<a.length;i++){b=a[i];b.onclick=function(){window.optykerWarrantyActivate(this.getAttribute('data-warranty-activate'))}}
-    var s=document.querySelectorAll('[data-warranty-save]');
-    for(i=0;i<s.length;i++){b=s[i];b.onclick=function(){window.optykerWarrantySaveSelection(this.getAttribute('data-warranty-save'))}}
+    var i,b;
     var o=document.querySelectorAll('[data-open-lac-sheet]');
     for(i=0;i<o.length;i++){b=o[i];b.onclick=function(){window.optykerOpenClientLacSheet(this.getAttribute('data-open-lac-sheet'))}}
+    var w=document.querySelectorAll('[data-warranty-order]');
+    for(i=0;i<w.length;i++){b=w[i];b.onclick=function(){window.optykerWarrantyCreateOrder(this.getAttribute('data-warranty-order'))}}
   }
 
   function render(){
@@ -140,10 +158,11 @@ js=r'''
     var data=W.data||{},lenses=Array.isArray(data.lenses)?data.lenses:[],sheets=Array.isArray(data.lac_sheets)?data.lac_sheets:[];
     if(!lenses.length)wl.innerHTML='<div class="clientLacEmpty">Nessuna lente acquistata registrata per questo cliente.</div>';
     else wl.innerHTML=lenses.map(function(l){
-      var w=l.warranty||{status:'inactive'},active=w.status==='active'||w.status==='pending_reorder',saved=w.selected_reorder_option||{},opts=Array.isArray(l.reorder_options)?l.reorder_options:[];
-      var options='<option value="">Seleziona cosa riordinare…</option>'+opts.map(function(o){return '<option value="'+esc(o.code)+'"'+(saved.code===o.code?' selected':'')+'>'+esc(o.label)+'</option>'}).join('');
-      var statusClass=w.status==='active'||w.status==='pending_reorder'?' active':(w.status==='used'?' used':'');
-      return '<div class="clientLacWarrantyCard"><div class="clientLacWarrantyTop"><div><div class="clientLacWarrantyName">'+esc((l.brand||'')+' · '+(l.product_name||'Lente a contatto'))+'</div><div class="clientLacWarrantyMeta">'+esc(l.eye||'')+' · acquistata '+esc(dt(l.purchased_at))+(l.in_store_order_ref?' · rif. '+esc(l.in_store_order_ref):'')+'</div></div><div class="clientLacWarrantyPrice">'+esc(eur(l.unit_price,l.currency))+'</div></div><div class="clientLacWarrantyControls"><span class="clientLacWarrantyStatus'+statusClass+'">'+esc(warrantyLabel(w))+'</span>'+(active?'<select id="warrantyReorder_'+esc(l.id)+'">'+options+'</select><button class="primary" type="button" data-warranty-save="'+esc(l.id)+'">Salva selezione riordino</button>':'<button class="primary" type="button" data-warranty-activate="'+esc(l.id)+'">Attiva garanzia</button>')+'</div>'+(saved.label?'<div class="clientLacWarrantySaved">Selezione salvata: <b>'+esc(saved.label)+'</b>. Le regole definitive di garanzia verranno applicate quando saranno configurate.</div>':'')+'</div>';
+      var rules=l.warranty_rules&&Array.isArray(l.warranty_rules.options)?l.warranty_rules.options:[];
+      var options='<option value="">Seleziona causale garanzia…</option>'+rules.map(function(o){
+        return '<option value="'+esc(o.reason)+'">'+esc(o.label||o.reason)+'</option>';
+      }).join('');
+      return '<div class="clientLacWarrantyCard"><div class="clientLacWarrantyTop"><div><div class="clientLacWarrantyName">'+esc((l.brand||'')+' · '+(l.product_name||'Lente a contatto'))+'</div><div class="clientLacWarrantyMeta">'+esc(l.eye||'')+' · acquistata '+esc(dt(l.purchased_at))+(l.in_store_order_ref?' · rif. '+esc(l.in_store_order_ref):'')+'</div></div><div class="clientLacWarrantyPrice">'+esc(eur(l.unit_price,l.currency))+'</div></div><div class="clientLacWarrantyControls"><span class="clientLacWarrantyStatus active">GARANZIA ATTIVA</span>'+(rules.length?'<select id="warrantyReason_'+esc(l.id)+'">'+options+'</select><button class="primary" type="button" data-warranty-order="'+esc(l.id)+'">Crea ordine in garanzia</button>':'<span class="clientLacWarrantySaved">Nessuna regola di garanzia configurata per questo articolo.</span>')+'</div>'+(rules.some(function(o){return o.reason==='diopter'})?'<div class="clientLacWarrantySaved"><b>Cambio diottria</b> disponibile solo da questa area operatore.</div>':'')+'</div>';
     }).join('');
 
     if(!sheets.length)sl.innerHTML='<div class="clientLacEmpty">Nessuna scheda LAC salvata per questo cliente.</div>';
@@ -166,24 +185,46 @@ js=r'''
     if(sl)sl.innerHTML='<div class="clientLacEmpty">Caricamento schede LAC…</div>';
     return api('list',{client_id:id}).then(function(x){
       if(id!==(window.clientCurrentId||''))return;
-      W.data=x;render();
+      var lenses=Array.isArray(x.lenses)?x.lenses:[];
+      return Promise.all(lenses.map(function(l){
+        return warrantyApi('options',l.id,'').then(function(w){l.warranty_rules=w.warranty||{};return l}).catch(function(){l.warranty_rules={options:[]};return l});
+      })).then(function(enriched){
+        x.lenses=enriched;
+        if(id!==(window.clientCurrentId||''))return;
+        W.data=x;render();
+      });
     }).catch(function(err){
       if(wl)wl.innerHTML='<div class="clientLacEmpty">Errore garanzie: '+esc(err.message)+'</div>';
       if(sl)sl.innerHTML='<div class="clientLacEmpty">Errore schede LAC: '+esc(err.message)+'</div>';
     }).finally(function(){W.loading=false});
   }
 
-  window.optykerWarrantyActivate=function(lensId){
-    var id=window.clientCurrentId||'';if(!id)return;
-    api('activate',{client_id:id,specialist_lens_id:lensId}).then(function(){return refresh(true)}).catch(function(err){alert('Impossibile attivare la garanzia: '+err.message)});
-  };
-  window.optykerWarrantySaveSelection=function(lensId){
-    var id=window.clientCurrentId||'',sel=E('warrantyReorder_'+lensId);if(!id||!sel)return;
-    if(!sel.value){alert('Seleziona cosa riordinare.');return}
-    api('save_reorder_selection',{client_id:id,specialist_lens_id:lensId,option_code:sel.value}).then(function(){
-      alert('Selezione di riordino salvata. Applicheremo le regole definitive quando saranno configurate.');
-      return refresh(true);
-    }).catch(function(err){alert('Impossibile salvare la selezione: '+err.message)});
+  window.optykerWarrantyCreateOrder=function(lensId){
+    var id=window.clientCurrentId||'',sel=E('warrantyReason_'+lensId);if(!id||!sel)return;
+    var reason=String(sel.value||'');if(!reason){alert('Seleziona la causale della garanzia.');return;}
+    var lens=null,lenses=W.data&&Array.isArray(W.data.lenses)?W.data.lenses:[];
+    for(var i=0;i<lenses.length;i++)if(String(lenses[i].id)===String(lensId)){lens=lenses[i];break;}
+    var opts=lens&&lens.warranty_rules&&Array.isArray(lens.warranty_rules.options)?lens.warranty_rules.options:[],rule=null;
+    for(var j=0;j<opts.length;j++)if(opts[j].reason===reason){rule=opts[j];break;}
+    if(rule&&rule.message&&!confirm(rule.message+'\n\nConfermare il riordino in garanzia?'))return;
+    var btn=document.querySelector('[data-warranty-order="'+String(lensId).replace(/"/g,'')+'"]');
+    if(btn){btn.disabled=true;btn.textContent='Creazione ordine…';}
+    warrantyApi('checkout',lensId,reason).then(function(out){
+      if(out.completed&&out.free){
+        alert('Ordine '+(out.order_name||'')+' creato a 0,00 €.'+(out.message?'\n\n'+out.message:''));
+        return refresh(true);
+      }
+      if(out.checkout_url){
+        window.open(out.checkout_url,'_blank','noopener,noreferrer');
+        alert('Ordine con franchigia creato. È stato aperto il checkout Shopify per il pagamento.');
+        return refresh(true);
+      }
+      throw new Error('Ordine non disponibile');
+    }).catch(function(err){
+      alert('Impossibile creare l’ordine in garanzia: '+err.message);
+    }).finally(function(){
+      if(btn){btn.disabled=false;btn.textContent='Crea ordine in garanzia';}
+    });
   };
   window.optykerOpenClientLacSheet=function(sheetId){
     if(typeof window.clientOpenVisitInEditor==='function')window.clientOpenVisitInEditor(sheetId);
@@ -223,7 +264,7 @@ if pos<0:
 s=s[:pos]+css+js+s[pos:]
 p.write_text(s,encoding="utf-8")
 
-for req in [MARK,"Attiva garanzia","Salva selezione riordino","Prima seleziona un cliente","Tutte le schede LAC del cliente"]:
+for req in [MARK,"GARANZIA ATTIVA","Crea ordine in garanzia","Cambio diottria","Prima seleziona un cliente","Tutte le schede LAC del cliente"]:
     if req not in s:
         raise SystemExit("Patch LAC garanzia incompleta: "+req)
 print("LAC warranty + subject binding OK")
