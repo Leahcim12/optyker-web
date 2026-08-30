@@ -9,7 +9,7 @@ var CATS={
   accessories:'Accessori',
   services:'Servizi'
 };
-var W={category:'frames',rows:[],count:0,page:1,limit:120,companies:[],loading:false,syncing:false,search:'',firstOpen:true};
+var W={category:'frames',rows:[],count:0,page:1,limit:120,companies:[],loading:false,syncing:false,search:'',firstOpen:true,lastAutoSync:0};
 
 function E(id){return document.getElementById(id)}
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -58,7 +58,7 @@ function installPanel(){
     '<div class="whHeadActions"><button id="whCompaniesBtn" class="whBtn" type="button">Ditte / fornitori</button><button id="whNewBtn" class="whBtn" type="button">+ Inserisci prodotto</button><button id="whSyncBtn" class="whBtn primary" type="button">Sincronizza Shopify</button></div></div>'+
     '<div class="whStats"><div class="whStat"><b id="whCount">0</b><span>Prodotti / varianti</span></div><div class="whStat"><b id="whStockTotal">0</b><span>Giacenza nella pagina</span></div><div class="whStat"><b id="whExpirySoon">0</b><span>Scadenze entro 90 gg</span></div><div class="whStat"><b id="whNoImage">0</b><span>Senza immagine</span></div></div>'+
     '<div class="whToolbar"><input id="whSearch" type="search" placeholder="Cerca prodotto, diottria, Infinite Options, SKU, barcode, lotto, DDT…"><select id="whCategory"></select><select id="whRows"><option value="60">60 righe</option><option value="120" selected>120 righe</option><option value="250">250 righe</option></select><button id="whApply" class="whBtn" type="button">Applica</button></div>'+
-    '<div id="whSyncInfo" class="whSyncInfo">Le giacenze mostrate sono sincronizzate con Shopify.</div>'+
+    '<div id="whSyncInfo" class="whSyncInfo">Sincronizzazione bidirezionale automatica Optyker ↔ Shopify: prodotti, prezzi, giacenze, immagini, SKU e barcode.</div>'+
     '<div id="whTableWrap" class="whTableWrap"><div class="whLoading">Caricamento magazzino…</div></div><div id="whPager" class="whPager"></div>';
   var a=E('labOrdersPanel')||E('onlineOrdersPanel')||E('clientsPanel')||document.querySelector('.panel');
   if(a&&a.parentNode)a.parentNode.insertBefore(p,a.nextSibling);else (E('mainApp')||document.body).appendChild(p);
@@ -67,7 +67,7 @@ function installPanel(){
   E('whApply').onclick=function(){W.search=E('whSearch').value||'';W.category=E('whCategory').value||W.category;W.limit=Number(E('whRows').value||120);W.page=1;setNavActive();loadItems()};
   E('whCategory').onchange=function(){W.category=this.value||'frames';W.page=1;setNavActive();loadItems()};
   E('whRows').onchange=function(){W.limit=Number(this.value||120);W.page=1;loadItems()};
-  E('whSyncBtn').onclick=syncShopify;E('whNewBtn').onclick=function(){openItemModal(null)};E('whCompaniesBtn').onclick=openCompanies;
+  E('whSyncBtn').onclick=function(){syncShopify(false,true)};E('whNewBtn').onclick=function(){openItemModal(null)};E('whCompaniesBtn').onclick=openCompanies;
 }
 function hideOther(){
   var ids=['dashboardPanel','analysisPanel','prescriptionPanel','visualExamPanel','indicationsPanel','hearingPanel','clientsPanel','lacPanel','onlineOrdersPanel','labOrdersPanel','optykerDdtPanel','optykerCustomerInvoicesPanel','eyewearPanel'];
@@ -83,7 +83,7 @@ function setNavActive(){
 function openWarehouse(cat){
   W.category=cat&&CATS[cat]?cat:(W.category||'frames');installPanel();hideOther();var p=E('warehousePanel');if(p)p.style.display='block';setNavActive();
   if(E('whCategory'))E('whCategory').value=W.category;
-  loadCompanies().finally(function(){loadItems(true)});
+  loadCompanies().finally(function(){loadItems(false).finally(function(){autoSyncShopify(true)})});
   try{window.scrollTo(0,0)}catch(e){}
 }
 window.openWarehouse=openWarehouse;
@@ -105,7 +105,7 @@ function render(){
   E('whCount').textContent=String(W.count);
   var stock=0,soon=0,noimg=0;W.rows.forEach(function(r){stock+=Number(r.inventory_quantity||0);if(expiryClass(r.expiry_date)==='soon')soon++;if(!r.image_url)noimg++});
   E('whStockTotal').textContent=String(stock);E('whExpirySoon').textContent=String(soon);E('whNoImage').textContent=String(noimg);
-  if(!W.rows.length){box.innerHTML='<div class="whEmpty">Nessun prodotto in questa sezione.<br>Usa “Sincronizza Shopify” oppure “Inserisci prodotto”.</div>';renderPager();return}
+  if(!W.rows.length){box.innerHTML='<div class="whEmpty">Nessun prodotto in questa sezione.<br>La sincronizzazione con Shopify è automatica; puoi anche inserire un nuovo prodotto.</div>';renderPager();return}
   var h='<table class="whTable"><thead><tr><th>Prodotto</th><th>Diottria / opzioni</th><th>Barcode</th><th>Giacenza</th><th>Prezzo</th><th>Costo conf.</th><th>Ditta / DDT</th><th>Lotto / scadenza</th><th>Azioni</th></tr></thead><tbody>';
   W.rows.forEach(function(r){
     var opt=optionText(r),cmp=companyName(r),exp=expiryClass(r.expiry_date),src=r.source==='shopify'?'Shopify':'Optyker';
@@ -132,14 +132,27 @@ function renderPager(){
 }
 function findRow(id){for(var i=0;i<W.rows.length;i++)if(String(W.rows[i].id)===String(id))return W.rows[i];return null}
 
-function syncShopify(){
-  if(W.syncing)return Promise.resolve();W.syncing=true;var b=E('whSyncBtn');if(b){b.disabled=true;b.textContent='Sincronizzazione…'}var info=E('whSyncInfo');if(info)info.textContent='Sto importando prodotti, varianti, giacenze, immagini e barcode da Shopify…';
-  return api('sync_shopify',{}).then(function(x){
-    var d=x.data||{};toast('Shopify sincronizzato · '+Number(d.products_seen||0)+' prodotti · '+Number(d.variants_seen||0)+' varianti · '+Number(d.barcodes_created||0)+' barcode creati','ok');
-    if(info)info.textContent='Ultima sincronizzazione completata. Barcode mancanti creati automaticamente anche su Shopify.';W.page=1;return loadItems()
-  }).catch(function(e){toast('Sincronizzazione non riuscita: '+e.message,'error');if(info)info.textContent='Sincronizzazione Shopify non riuscita: '+e.message}).finally(function(){W.syncing=false;if(b){b.disabled=false;b.textContent='Sincronizza Shopify'}})
+function syncShopify(quiet,force){
+  if(W.syncing)return Promise.resolve();W.syncing=true;var b=E('whSyncBtn');if(b){b.disabled=true;b.textContent='Sincronizzazione…'}var info=E('whSyncInfo');
+  if(info&&!quiet)info.textContent='Sincronizzazione bidirezionale in corso: Optyker ↔ Shopify…';
+  return api('sync_shopify',{force:!!force}).then(function(x){
+    var d=x.data||{};W.lastAutoSync=Date.now();
+    if(!quiet)toast('Shopify sincronizzato · '+Number(d.products_seen||0)+' prodotti aggiornati · '+Number(d.variants_seen||0)+' varianti · '+Number(d.local_pushed||0)+' prodotti pubblicati online · '+Number(d.barcodes_created||0)+' barcode creati','ok');
+    if(info)info.textContent='Sincronizzato con Shopify · '+new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})+' · aggiornamento automatico attivo.';
+    W.page=1;return loadItems()
+  }).catch(function(e){
+    if(!quiet)toast('Sincronizzazione non riuscita: '+e.message,'error');
+    if(info)info.textContent='Sincronizzazione automatica Shopify temporaneamente non disponibile: '+e.message
+  }).finally(function(){W.syncing=false;if(b){b.disabled=false;b.textContent='Sincronizza ora'}})
 }
-window.syncWarehouseShopify=syncShopify;
+function autoSyncShopify(immediate){
+  var p=E('warehousePanel');if(!p||p.style.display==='none')return;
+  if(W.syncing)return;
+  if(!immediate&&Date.now()-Number(W.lastAutoSync||0)<55000)return;
+  syncShopify(true,false)
+}
+window.syncWarehouseShopify=function(){return syncShopify(false,true)};
+
 
 function modalShell(id,title,sub,body){
   var m=E(id);if(!m){m=document.createElement('div');m.id=id;m.className='whModal';document.body.appendChild(m)}
@@ -173,9 +186,9 @@ function openItemModal(r){
     '<div class="whField wide"><label>Immagine prodotto</label><input id="whfImage" type="file" accept="image/*"><div id="whfImagePreview" class="whImagePreview">'+(r.image_url?'<img src="'+esc(r.image_url)+'" alt="">':'Carica una foto oppure verrà usata quella Shopify')+'</div></div>'+
     '<div class="whField wide"><label>Note</label><textarea id="whfNotes">'+esc(r.notes||'')+'</textarea></div>'+
     '<div class="whField wide"><div class="whSecretNote">Il costo è confidenziale: nel magazzino viene nascosto e può essere rivelato solo cliccando sul campo costo.</div></div>'+
-    (!editing?'<div class="whField wide"><label class="whToggle"><input id="whfPublish" type="checkbox" checked> Crea il prodotto anche su Shopify e sincronizza la giacenza</label></div>':'<div class="whField wide"><label class="whToggle"><input id="whfSync" type="checkbox" checked> Aggiorna anche Shopify (prezzo, SKU, barcode, costo e giacenza)</label></div>')+
+    '<div class="whField wide"><div class="whSecretNote"><b>Sincronizzazione automatica:</b> salvando questo prodotto, Optyker lo crea o lo aggiorna anche su Shopify. Le modifiche fatte su Shopify vengono riportate automaticamente nel Magazzino.</div></div>'+
     '</div><div class="whFormFooter"><button id="whfCompanies" class="whBtn" type="button">Gestisci ditte</button><div class="whFormFooterRight"><button id="whfCancel" class="whBtn" type="button">Annulla</button><button id="whfSave" class="whBtn primary" type="button">'+(editing?'Salva modifiche':'Inserisci prodotto')+'</button></div></div>';
-  var m=modalShell('whItemModal',editing?'Modifica prodotto':'Inserisci prodotto',editing?'Le modifiche ai prodotti Shopify possono essere sincronizzate con il sito.':'Barcode automatico se lasci il campo vuoto.',body);
+  var m=modalShell('whItemModal',editing?'Modifica prodotto':'Inserisci prodotto',editing?'Le modifiche vengono sincronizzate automaticamente anche su Shopify.':'Il prodotto verrà pubblicato automaticamente su Shopify. Barcode automatico se lasci il campo vuoto.',body);
   E('whfCancel').onclick=function(){m.classList.remove('open')};E('whfCompanies').onclick=function(){openCompanies()};
   E('whfImage').onchange=function(ev){var file=ev.target.files&&ev.target.files[0];if(!file)return;readImage(file).then(function(data){m.__imageData=data;E('whfImagePreview').innerHTML='<img src="'+data+'" alt="">' }).catch(function(e){toast(e.message,'error')})};
   E('whfSave').onclick=function(){saveItem(r,m)}
@@ -190,10 +203,9 @@ function saveItem(old,m){
     confidential_cost:E('whfCost').value,company_id:E('whfCompany').value,ddt_reference:E('whfDdt').value,ddt_date:E('whfDdtDate').value,lot_number:E('whfLot').value,
     expiry_date:E('whfExpiry').value,notes:E('whfNotes').value,image_data:m.__imageData||'',image_url:old.image_url||''
   };
-  if(old.id)payload.sync_shopify=!!E('whfSync').checked;else payload.publish_shopify=!!E('whfPublish').checked;
   if(!String(payload.title||'').trim()){toast('Inserisci il nome del prodotto.','error');return}
   var b=E('whfSave');b.disabled=true;b.textContent='Salvataggio…';
-  api(old.id?'update_item':'create_item',payload).then(function(x){toast(old.id?'Prodotto aggiornato':'Prodotto inserito','ok');m.classList.remove('open');W.category=payload.category;W.page=1;setNavActive();return loadItems()}).catch(function(e){toast('Salvataggio non riuscito: '+e.message,'error')}).finally(function(){b.disabled=false;b.textContent=old.id?'Salva modifiche':'Inserisci prodotto'})
+  api(old.id?'update_item':'create_item',payload).then(function(x){toast(old.id?'Prodotto aggiornato anche online':'Prodotto inserito e pubblicato online','ok');m.classList.remove('open');W.category=payload.category;W.page=1;setNavActive();return loadItems()}).catch(function(e){toast('Salvataggio non riuscito: '+e.message,'error')}).finally(function(){b.disabled=false;b.textContent=old.id?'Salva modifiche':'Inserisci prodotto'})
 }
 
 function openCompanies(){
@@ -261,4 +273,5 @@ function install(){installNav();installPanel();installSettingsCompanyCard()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
 document.addEventListener('click',outsideClick,true);
 setInterval(function(){installNav();installPanel();installSettingsCompanyCard()},900);
+setInterval(function(){autoSyncShopify(false)},60000);
 })();
