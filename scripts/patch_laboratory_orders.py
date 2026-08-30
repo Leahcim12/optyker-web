@@ -187,16 +187,17 @@ js=r'''
     if(nav){
       nav.textContent='Ordini';
       nav.setAttribute('title','Ordini Shopify');
-      if(!e('navLaboratory')){
-        var lab=document.createElement('button');
+      var lab=e('navLaboratory');
+      if(!lab){
+        lab=document.createElement('button');
         lab.id='navLaboratory';
         lab.className='moduleBtn';
         lab.type='button';
         lab.textContent='Laboratorio';
         lab.setAttribute('title','Laboratorio · ordini LAC specialistiche');
         lab.onclick=window.openLaboratory;
-        if(nav.parentNode)nav.parentNode.insertBefore(lab,nav.nextSibling);
       }
+      if(nav.parentNode&&lab!==nav.nextElementSibling)nav.parentNode.insertBefore(lab,nav.nextSibling);
     }
     if(typeof window.lacOpenSummary==='function'&&!window.__labSummaryWrapped){
       window.__labSummaryWrapped=true;var oldSummary=window.lacOpenSummary;
