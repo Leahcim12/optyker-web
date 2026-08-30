@@ -15,9 +15,19 @@ function euro(v){try{return new Intl.NumberFormat('it-IT',{style:'currency',curr
 function toast(m,t){var x=E('optykerCashToast');if(!x){x=document.createElement('div');x.id='optykerCashToast';document.body.appendChild(x)}x.className=t||'';x.textContent=m;x.style.display='block';clearTimeout(x.__tm);x.__tm=setTimeout(function(){x.style.display='none'},3600)}
 
 function installTop(){
-  if(window.OPTYKER_BILLING_ADMIN)return;
-  var n=E('optykerQuickNewClient');if(!n||E('optykerCashBtn'))return;
-  var b=document.createElement('button');b.id='optykerCashBtn';b.type='button';b.textContent='Cassa';b.onclick=function(){openCash('')};
+  if(window.OPTYKER_BILLING_ADMIN||E('optykerCashBtn'))return;
+  var n=E('optykerQuickNewClient');
+  if(!n){
+    var all=document.querySelectorAll('button,a');
+    for(var i=0;i<all.length;i++){
+      var t=String(all[i].textContent||'').replace(/\\s+/g,' ').trim().toLowerCase();
+      if(t==='nuovo cliente'||t==='+ nuovo cliente'||t==='+cliente'||t==='+ cliente'){n=all[i];break}
+    }
+  }
+  if(!n)return;
+  var b=document.createElement('button');
+  b.id='optykerCashBtn';b.type='button';b.innerHTML='<span aria-hidden="true">€</span> Cassa';
+  b.title='Cassa per cliente occasionale';b.onclick=function(){openCash('')};
   n.insertAdjacentElement('afterend',b)
 }
 function installClient(){
