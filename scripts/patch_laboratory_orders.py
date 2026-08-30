@@ -35,7 +35,7 @@ css=r'''
 #optykerClientReference{display:inline-flex;margin-left:6px;padding:4px 7px;border-radius:999px;background:#eaf4fb;color:#1769aa;font-size:9px;font-weight:900}
 #lacSendWorkOrderBtn{background:linear-gradient(180deg,#1d70b5,#155f9f)!important;border-color:#11558f!important;color:#fff!important}
 #lacSendWorkOrderBtn[disabled]{opacity:.65;cursor:default}
-#navLaboratory{margin-top:2px!important}
+#moduleNav>#navLaboratory{order:61!important;margin-top:2px!important;flex:0 0 auto!important;flex-shrink:0!important;min-height:46px!important;height:auto!important;padding-top:10px!important;padding-bottom:10px!important}
 @media(max-width:780px){.labHead{flex-direction:column}.labCard{grid-template-columns:1fr}.labStatusBox{border-left:0;border-top:1px solid #e3e9ee;padding-left:0;padding-top:10px}.labToolbar{flex-direction:column;align-items:stretch}}
 </style>
 '''
