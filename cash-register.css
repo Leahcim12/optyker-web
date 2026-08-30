@@ -1,6 +1,6 @@
 /* Optyker Cassa */
-#optykerCashBtn{height:34px;border:1px solid #1769aa;border-radius:8px;background:#fff;color:#1769aa;padding:0 13px;font-size:11px;font-weight:900;cursor:pointer}
-#optykerCashBtn:hover{background:#eef7fd}body.optykerBillingMode #optykerCashBtn{display:none!important}
+#optykerCashBtn{height:42px!important;border:1px solid #1769aa!important;border-radius:11px!important;background:#fff!important;color:#1769aa!important;padding:0 15px!important;font-size:12px!important;font-weight:900!important;white-space:nowrap!important;cursor:pointer!important;display:inline-flex!important;align-items:center!important;gap:6px!important;box-shadow:0 2px 8px rgba(23,105,170,.06)!important}
+#optykerCashBtn:hover{background:#eef7fd!important}body.optykerBillingMode #optykerCashBtn{display:none!important}
 #optykerClientCashBtn{margin-left:10px;border:1px solid #c7d6e2;border-radius:8px;background:#f7fbfe;color:#1769aa;padding:7px 10px;font-size:10px;font-weight:850;cursor:pointer}
 .optykerCashOverlay{position:fixed;z-index:220000;inset:0;background:#eef3f7;display:none;flex-direction:column;font-family:Segoe UI,Arial,sans-serif;color:#17334b}.optykerCashOverlay.open{display:flex}
 .optykerCashHeader{height:66px;background:#102f49;color:#fff;display:flex;align-items:center;gap:14px;padding:0 18px;box-shadow:0 2px 12px #102f4930}
