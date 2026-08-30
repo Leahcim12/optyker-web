@@ -28,6 +28,7 @@ jobs:
         run: |
           set -e
           mkdir -p _site _jscheck
+          cp CNAME _site/CNAME
           curl -fL --retry 3 --retry-delay 2 "https://whgziwaegjzqsgcntesr.supabase.co/storage/v1/object/public/optyker-web/index.html?v=${GITHUB_SHA}" -o _site/index.html
           test -s _site/index.html
           for f in \
