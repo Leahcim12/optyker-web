@@ -96,7 +96,7 @@ function loadItems(autoSync){
   return api('list',{category:W.category,search:W.search,page:W.page,limit:W.limit}).then(function(x){
     var d=x.data||{},rows=Array.isArray(d.rows)?d.rows:[];W.rows=rows;W.count=Number(d.count||0);W.page=Number(d.page||W.page);W.limit=Number(d.limit||W.limit);
     render();
-    if(autoSync&&W.firstOpen&&W.count===0){W.firstOpen=false;return syncShopify()}
+    if(autoSync&&W.firstOpen&&W.count===0){W.firstOpen=false;W.loading=false;return syncShopify()}
     W.firstOpen=false;
   }).catch(function(e){if(box)box.innerHTML='<div class="whEmpty">Impossibile caricare il magazzino: '+esc(e.message)+'</div>'}).finally(function(){W.loading=false})
 }
