@@ -1,0 +1,169 @@
+
+/* Optyker · Ottica Visual Care · Amministrazione fatturazione */
+body.optykerBillingMode #optykerGlobalTools,
+body.optykerBillingMode .topShortcutBtn,
+body.optykerBillingMode .cloudBadge { display:none !important; }
+
+.optykerAdminAccessBox{
+  margin-top:18px;padding-top:18px;border-top:1px solid #dfe7ef;text-align:center
+}
+.optykerAdminAccessLabel{
+  font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#6d7f90;margin-bottom:9px
+}
+#optykerAdminAccessBtn{
+  width:100%;min-height:44px;border:1px solid #1769aa;border-radius:10px;background:#f4f9fd;color:#1769aa;
+  font:900 12px/1.2 "Segoe UI",Arial,sans-serif;cursor:pointer;padding:11px 14px
+}
+#optykerAdminAccessBtn:hover{background:#eaf4fb}
+.optykerAdminLoginCard{max-width:430px;margin:0 auto;text-align:left}
+.optykerAdminLoginHead{text-align:center;margin-bottom:18px}
+.optykerAdminLoginEyebrow{font-size:10px;font-weight:950;letter-spacing:.12em;color:#1769aa;text-transform:uppercase}
+.optykerAdminLoginTitle{font-size:22px;font-weight:950;color:#17334b;margin-top:5px}
+.optykerAdminLoginSub{font-size:11px;color:#718493;margin-top:6px}
+.optykerAdminLoginLabel{display:block;font-size:11px;font-weight:850;color:#40556d;margin:11px 0 6px}
+.optykerAdminLoginInput{
+  width:100%;box-sizing:border-box;height:46px;border:1px solid #c8d5e1;border-radius:10px;padding:0 12px;
+  background:#fff;color:#172b4d;font:700 13px/1.2 "Segoe UI",Arial,sans-serif;outline:none
+}
+.optykerAdminLoginInput:focus{border-color:#1769aa;box-shadow:0 0 0 3px rgba(23,105,170,.12)}
+#optykerAdminLoginSubmit{
+  width:100%;margin-top:14px;border:0;border-radius:10px;background:#1769aa;color:#fff;padding:13px 16px;
+  font-size:13px;font-weight:900;cursor:pointer;box-shadow:0 7px 18px rgba(23,105,170,.18)
+}
+#optykerAdminLoginSubmit:hover{background:#135a92}
+#optykerAdminLoginBack{
+  width:100%;margin-top:8px;border:0;background:transparent;color:#5d7184;font-size:11px;font-weight:800;cursor:pointer;padding:9px
+}
+#optykerAdminLoginError{min-height:17px;margin-top:8px;text-align:center;color:#b42323;font-size:11px;font-weight:700}
+.optykerAdminPasswordHint{font-size:10px;color:#7b8d9d;margin-top:5px}
+
+.optykerBillingNavGroup{width:100%;display:grid;gap:4px}
+#optykerBillingMainNav{
+  width:100%;min-height:42px;border:0;border-radius:8px;background:#1769aa;color:#fff;text-align:left;
+  padding:0 13px;font:900 12px/1.2 "Segoe UI",Arial,sans-serif;cursor:pointer
+}
+.optykerBillingSubnav{display:grid;gap:3px;padding-left:10px}
+.optykerBillingSubnav button{
+  width:100%;min-height:36px;border:0;border-radius:7px;background:transparent;text-align:left;padding:0 11px;
+  color:#4b6174;font:800 11px/1.2 "Segoe UI",Arial,sans-serif;cursor:pointer
+}
+.optykerBillingSubnav button:hover{background:#eef5fa;color:#1769aa}
+.optykerBillingSubnav button.active{background:#e7f2fa;color:#1769aa}
+
+#optykerBillingPanel{
+  grid-column:2!important;min-width:0;display:none;padding-bottom:30px
+}
+.optykerBillingTop{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:15px
+}
+.optykerBillingEyebrow{font-size:9px;font-weight:950;letter-spacing:.12em;color:#1769aa;text-transform:uppercase}
+.optykerBillingTitle{font-size:25px;font-weight:950;color:#17334b;margin-top:3px}
+.optykerBillingSub{font-size:11px;color:#718493;margin-top:4px}
+.optykerBillingTopActions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.optykerBillingStatus{
+  display:inline-flex;align-items:center;min-height:31px;padding:0 10px;border-radius:999px;
+  background:#f1f5f8;color:#50677a;font-size:10px;font-weight:850;border:1px solid #d9e3ea
+}
+.optykerBillingStatus.ok{background:#eef9f1;color:#2c713d;border-color:#cfe7d5}
+.optykerBillingStatus.warn{background:#fff7e8;color:#8a5a00;border-color:#eedab1}
+.optykerBillingBtn{
+  min-height:32px;border:1px solid #c7d5e1;border-radius:8px;background:#fff;color:#35516a;padding:0 11px;
+  font-size:10px;font-weight:850;cursor:pointer
+}
+.optykerBillingBtn:hover{border-color:#1769aa;color:#1769aa}
+.optykerBillingBtn.primary{background:#1769aa;color:#fff;border-color:#1769aa}
+.optykerBillingBtn.primary:hover{background:#135a92}
+
+.optykerBillingToolbar{
+  display:grid;grid-template-columns:minmax(210px,1.6fr) repeat(3,minmax(100px,.65fr)) minmax(150px,1fr);
+  gap:9px;padding:13px;border:1px solid #dbe5ec;border-radius:12px;background:#fff;box-shadow:0 2px 8px rgba(27,54,80,.035)
+}
+.optykerBillingToolbar2{
+  display:grid;grid-template-columns:repeat(2,minmax(135px,.8fr)) minmax(180px,1.3fr) minmax(145px,.8fr) auto auto;
+  gap:9px;margin-top:9px
+}
+.optykerBillingField label{display:block;font-size:9px;font-weight:900;color:#718493;margin-bottom:4px}
+.optykerBillingField input,.optykerBillingField select{
+  width:100%;box-sizing:border-box;height:36px;border:1px solid #cbd7e2;border-radius:8px;background:#fff;
+  color:#223d55;padding:0 9px;font:700 10px/1.2 "Segoe UI",Arial,sans-serif;outline:none
+}
+.optykerBillingField input:focus,.optykerBillingField select:focus{border-color:#1769aa;box-shadow:0 0 0 2px rgba(23,105,170,.1)}
+.optykerBillingActionField{display:flex;align-items:flex-end}
+
+.optykerBillingSummary{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.optykerBillingMetric{
+  min-width:130px;border:1px solid #dbe5ec;border-radius:10px;background:#fff;padding:10px 12px
+}
+.optykerBillingMetricLabel{font-size:8px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#7b8d9c}
+.optykerBillingMetricValue{font-size:17px;font-weight:950;color:#17334b;margin-top:3px}
+
+.optykerBillingTableWrap{
+  border:1px solid #dce5ec;border-radius:12px;background:#fff;overflow:auto;box-shadow:0 2px 8px rgba(27,54,80,.035)
+}
+.optykerBillingTable{width:100%;border-collapse:collapse;min-width:920px}
+.optykerBillingTable th{
+  position:sticky;top:0;z-index:1;background:#f7fafc;border-bottom:1px solid #dde6ed;text-align:left;
+  padding:10px 11px;font-size:8px;font-weight:950;letter-spacing:.08em;text-transform:uppercase;color:#6f8294
+}
+.optykerBillingTable td{
+  border-bottom:1px solid #edf2f5;padding:10px 11px;font-size:10px;color:#304b62;vertical-align:top
+}
+.optykerBillingTable tr:last-child td{border-bottom:0}
+.optykerBillingTable tr[data-invoice-id]{cursor:pointer}
+.optykerBillingTable tr[data-invoice-id]:hover td{background:#f8fbfd}
+.optykerInvoiceMain{font-weight:900;color:#1f3b53}
+.optykerInvoiceMeta{font-size:9px;color:#7b8d9b;margin-top:2px}
+.optykerMoney{font-weight:900;white-space:nowrap}
+.optykerStatusChip{
+  display:inline-flex;align-items:center;padding:4px 7px;border-radius:999px;background:#f0f4f7;color:#536a7d;
+  font-size:8px;font-weight:900;text-transform:uppercase
+}
+.optykerStatusChip.ok{background:#ecf8ef;color:#2d7642}
+.optykerStatusChip.error{background:#fff0f0;color:#a93636}
+.optykerBillingErrorCode{font-weight:950;color:#a93636}
+.optykerBillingEmpty{padding:28px;text-align:center;color:#748697;font-size:11px}
+.optykerBillingLoading{padding:28px;text-align:center;color:#1769aa;font-size:11px;font-weight:850}
+
+#optykerBillingToast{
+  position:fixed;z-index:200000;right:20px;bottom:20px;max-width:420px;border-radius:10px;background:#17334b;color:#fff;
+  padding:11px 13px;box-shadow:0 14px 36px rgba(18,42,63,.25);font-size:11px;font-weight:750;display:none
+}
+#optykerBillingToast.error{background:#8f2f2f}
+#optykerBillingToast.warn{background:#7b580d}
+
+.optykerBillingModal{
+  position:fixed;z-index:190000;inset:0;background:rgba(20,40,58,.38);display:none;align-items:center;justify-content:center;padding:20px
+}
+.optykerBillingModalCard{
+  width:min(680px,96vw);max-height:86vh;overflow:auto;background:#fff;border-radius:14px;border:1px solid #d8e2ea;
+  box-shadow:0 24px 70px rgba(17,38,55,.28);padding:18px
+}
+.optykerBillingModalHead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:13px}
+.optykerBillingModalTitle{font-size:18px;font-weight:950;color:#17334b}
+.optykerBillingDetailGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.optykerBillingDetail{border:1px solid #e0e7ed;border-radius:9px;padding:9px 10px}
+.optykerBillingDetail b{display:block;font-size:8px;text-transform:uppercase;letter-spacing:.07em;color:#7a8b9a;margin-bottom:3px}
+.optykerBillingDetail span{font-size:11px;font-weight:800;color:#2b455d;word-break:break-word}
+.optykerBillingDetail.full{grid-column:1/-1}
+
+.optykerBillingHeaderTools{
+  display:none;align-items:center;gap:8px;margin-left:auto
+}
+body.optykerBillingMode .optykerBillingHeaderTools{display:flex}
+.optykerBillingHeaderBadge{
+  height:30px;display:flex;align-items:center;padding:0 10px;border:1px solid #cbd8e4;border-radius:8px;background:#fff;
+  color:#34495e;font-size:10px;font-weight:850;white-space:nowrap
+}
+
+@media(max-width:1100px){
+  .optykerBillingToolbar{grid-template-columns:1fr 1fr 1fr}
+  .optykerBillingToolbar2{grid-template-columns:1fr 1fr 1fr}
+}
+@media(max-width:760px){
+  #optykerBillingPanel{grid-column:1!important}
+  .optykerBillingTop{flex-direction:column}
+  .optykerBillingTopActions{justify-content:flex-start}
+  .optykerBillingToolbar,.optykerBillingToolbar2{grid-template-columns:1fr}
+  .optykerBillingDetailGrid{grid-template-columns:1fr}
+  .optykerBillingDetail.full{grid-column:auto}
+}
