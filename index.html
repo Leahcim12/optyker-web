@@ -426,7 +426,7 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
 })();
 </scr`+`ipt>`;
 
-    html=html.replace('</body>',css+enhancer+laboratoryPatch+'</body>');
+    html=html.replace('</body>',css+enhancer+laboratoryPatch+'<link rel="stylesheet" href="/billing-admin.css?v=20260830-1"><script src="/billing-admin.js?v=20260830-1"><\\/script></body>');
     document.open();document.write(html);document.close();
   }catch(e){
     document.querySelector('.spin').style.display='none';const m=document.getElementById('msg');m.className='err';m.textContent='Impossibile avviare Optyker.\n'+(e&&e.message?e.message:e);
