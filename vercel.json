@@ -1,0 +1,6 @@
+{
+  "buildCommand": "bash scripts/vercel-build.sh",
+  "outputDirectory": "_site",
+  "framework": null,
+  "cleanUrls": false
+}
