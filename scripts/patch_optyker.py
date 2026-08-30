@@ -28,9 +28,11 @@ if DASH not in s:
     add_head('''\n<style id="optykerTopDashboardCss">/* OPTYKER_TOP_DASHBOARD_NEXT_TO_NEW_CLIENT_V3 */
 #optykerTopDashboardBtn{height:42px!important;border:1px solid #cdd9e4!important;border-radius:11px!important;background:#fff!important;color:#17324a!important;padding:0 15px!important;font-size:12px!important;font-weight:800!important;white-space:nowrap!important;cursor:pointer!important}
 #optykerTopDashboardBtn:hover{background:#f4f8fb!important}
+#optykerCashBtn{height:42px!important;min-width:88px!important;flex:0 0 auto!important;border:1px solid #1769aa!important;border-radius:11px!important;background:#fff!important;color:#1769aa!important;padding:0 14px!important;font-size:12px!important;font-weight:900!important;white-space:nowrap!important;cursor:pointer!important}
+#optykerCashBtn:hover{background:#eef7fd!important}
 </style>\n''')
     add_body_end('''\n<script id="optykerTopDashboardJs">
-(function(){function fix(){var r=document.querySelector('.topbarRight'),n=document.getElementById('optykerTopNewClientBtn');if(!r||!n)return;var d=document.getElementById('optykerTopDashboardBtn');if(!d){d=document.createElement('button');d.id='optykerTopDashboardBtn';d.type='button';d.textContent='Dashboard';d.onclick=function(){if(window.showDashboard)showDashboard()};}if(d.parentNode!==r||d.nextElementSibling!==n)r.insertBefore(d,n)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',fix);else fix();setInterval(fix,2000)})();
+(function(){function fix(){var r=document.querySelector('.topbarRight'),n=document.getElementById('optykerTopNewClientBtn');if(!r||!n)return;var d=document.getElementById('optykerTopDashboardBtn');if(!d){d=document.createElement('button');d.id='optykerTopDashboardBtn';d.type='button';d.textContent='Dashboard';d.onclick=function(){if(window.showDashboard)showDashboard()};}var c=document.getElementById('optykerCashBtn');if(!c){c=document.createElement('button');c.id='optykerCashBtn';c.type='button';c.innerHTML='<span aria-hidden="true">€</span> Cassa';c.title='Cassa per vendite occasionali';c.onclick=function(){if(window.openOptykerCash)window.openOptykerCash('')};}if(d.parentNode!==r)r.insertBefore(d,n);if(c.parentNode!==r||c.nextElementSibling!==n)r.insertBefore(c,n);if(d.nextElementSibling!==c)r.insertBefore(d,c)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',fix);else fix();setInterval(fix,700)})();
 </script>\n''')
 
 
