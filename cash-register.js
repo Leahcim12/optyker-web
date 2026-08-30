@@ -31,7 +31,7 @@ function installTop(){
     b.id='optykerCashBtn';b.type='button';b.innerHTML='<span aria-hidden="true">€</span> Cassa';
     b.title='Cassa per vendite occasionali';b.onclick=function(){openCash('')};
   }
-  if(b.parentNode!==n.parentNode||n.nextElementSibling!==b)n.insertAdjacentElement('afterend',b)
+  if(b.parentNode!==n.parentNode||b.nextElementSibling!==n)n.parentNode.insertBefore(b,n)
 }
 function installClient(){
   if(window.OPTYKER_BILLING_ADMIN)return;
