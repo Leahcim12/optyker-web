@@ -144,8 +144,6 @@ jobs:
           cp cash-register.css _site/cash-register.css
           cp warehouse.js _site/warehouse.js
           cp warehouse.css _site/warehouse.css
-cp warehouse.js _site/warehouse.js
-cp warehouse.css _site/warehouse.css
           cp _site/index.html _site/gestionale-v2/index.html
           cp manifest.webmanifest _site/gestionale-v2/manifest.webmanifest
           cp visualcare-logo.svg _site/gestionale-v2/visualcare-logo.svg
@@ -211,8 +209,6 @@ cp warehouse.css _site/warehouse.css
           test -s _site/cash-register.css
           test -s _site/warehouse.js
           test -s _site/warehouse.css
-test -s _site/warehouse.js
-test -s _site/warehouse.css
           test -s _site/gestionale-v2/index.html
           test -s _site/gestionale-v2/manifest.webmanifest
           test -s _site/gestionale-v2/visualcare-logo.svg
@@ -257,8 +253,6 @@ test -s _site/warehouse.css
           for f in _jscheck/*.js; do node --check "$f"; done
           node --check _site/cash-register.js
           node --check _site/warehouse.js
-node --check _site/warehouse.js
-node --check _site/cash-register.js
           touch _site/.nojekyll
 
       - name: Abilita e configura GitHub Pages
