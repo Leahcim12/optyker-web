@@ -76,6 +76,8 @@ css=r'''
   font-weight:900!important;
   color:#34495c!important
 }
+#optykerDashboardClinicalCards [data-optyker-card="occhiali"] .optykerDashboardQuickCardTitle{font-weight:950!important;color:#20384d!important}
+#optykerDashboardClinicalCards [data-optyker-card="occhiali"] .optykerDashboardQuickCardSub{font-weight:800!important;color:#667d8f!important}
 .optykerDashboardQuickCardSub{
   display:block!important;
   margin-top:4px!important;
@@ -105,7 +107,7 @@ js=r'''
   function subtitle(kind){
     if(kind==='anamnesi')return 'Dati iniziali e anamnesi';
     if(kind==='lac')return 'Scheda lenti a contatto';
-    return 'Preventivo e busta occhiali'
+    return 'Preventivi, buste e montature'
   }
   function title(kind){return kind==='anamnesi'?'Scheda anamnestica':(kind==='lac'?'LAC':'Occhiali')}
   function kindFor(el){
