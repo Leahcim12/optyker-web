@@ -13,8 +13,9 @@ if 'id="optykerBillingAdminCss"' not in text:
         text = css + "\n" + text
 
 if 'id="optykerBillingAdminScript"' not in text:
-    if "</body>" in text:
-        text = text.replace("</body>", js + "\n</body>", 1)
+    pos = text.rfind("</body>")
+    if pos >= 0:
+        text = text[:pos] + js + "\n" + text[pos:]
     else:
         text += "\n" + js
 
