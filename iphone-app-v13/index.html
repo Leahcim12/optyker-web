@@ -52,6 +52,9 @@
     .action{display:block;width:100%;border:0;border-radius:12px;background:var(--blue);color:#fff;font-weight:900;padding:13px 15px;text-align:center;text-decoration:none}.secondary{background:#fff;color:var(--navy);border:1px solid #b9ccda}
     #frameLayer{position:fixed;inset:0;width:100vw;height:100dvh;background:#fff;z-index:9999;overflow:hidden}.frameBar{position:absolute;z-index:10002;top:0;left:0;right:0;height:calc(56px + env(safe-area-inset-top));padding:calc(8px + env(safe-area-inset-top)) 12px 8px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}.frameBar button,.frameBar a{border:0;background:none;color:var(--blue);font-weight:850;text-decoration:none}.bookingFrame,.shopFrame{position:absolute;z-index:10001;left:0;right:0;top:calc(56px + env(safe-area-inset-top));bottom:0;width:100vw;height:calc(100dvh - 56px - env(safe-area-inset-top));border:0;background:#fff}.framePad{padding-top:0}
     .profileRow{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #edf1f4;font-size:12px}.profileRow b{color:var(--muted)}.profileRow span{text-align:right;font-weight:800}
+
+    .profileEditGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.profileEditField{display:flex;flex-direction:column;gap:5px}.profileEditField.wide{grid-column:1/-1}.profileEditField label{font-size:9px;font-weight:850;color:#62788a}.profileEditField input,.profileEditField textarea{width:100%;border:1px solid #c9d7e2;border-radius:10px;background:#fbfdff;color:var(--text);padding:0 11px;outline:none;font-size:12px}.profileEditField input{height:42px}.profileEditField textarea{min-height:76px;padding-top:10px;resize:vertical}.profileEditField input:focus,.profileEditField textarea:focus{border-color:var(--blue);box-shadow:0 0 0 2px #1769aa15}.profileSaveBtn{width:100%;height:44px;border:0;border-radius:11px;background:var(--blue);color:#fff;font-weight:900;margin-top:12px}.profileSaveBtn:disabled{opacity:.55}.profileSyncNote{margin-top:10px;border:1px solid #d6e4ee;background:#f4f9fd;border-radius:11px;padding:10px 11px;color:#5e7485;font-size:9px;line-height:1.5}.profileSectionTitle{font-size:13px;font-weight:900;color:var(--navy);margin:0 0 11px}.profileAccountLink{display:block;text-align:center;margin-top:8px;border:1px solid #c8d7e2;border-radius:10px;padding:11px;color:var(--blue);font-size:10px;font-weight:900;text-decoration:none;background:#fff}
+    @media(max-width:620px){.profileEditGrid{grid-template-columns:1fr}.profileEditField.wide{grid-column:auto}}
     .shopIntro{background:linear-gradient(135deg,#11395d,#1769aa);color:white;border-radius:18px;padding:18px;margin-bottom:12px}.shopIntro h2{margin:0 0 6px;font-size:22px}.shopIntro p{margin:0;color:#e3edf5;font-size:13px;line-height:1.5}
     .shopSource{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--muted);margin:4px 0 14px}.shopSource:before{content:"";width:7px;height:7px;border-radius:50%;background:#2f9e62}
     .shopRootGrid{display:grid;grid-template-columns:1fr;gap:12px}.shopRoot{border:0;border-radius:18px;padding:22px 18px;text-align:left;background:#fff;box-shadow:0 8px 24px #14375212;border:1px solid var(--line);min-height:126px}.shopRoot strong{display:block;color:var(--navy);font-size:21px;margin-bottom:7px}.shopRoot span{display:block;color:var(--muted);font-size:12px;line-height:1.4}.shopRoot .arrow{margin-top:17px;color:var(--blue);font-weight:900;font-size:12px}
@@ -228,8 +231,8 @@ const STAFF_LOGIN=U+'/functions/v1/optyker-mobile-staff-login';
 const BOOKING_API=U+'/functions/v1/optyker-appointments-booking';
 const CATALOG=U+'/functions/v1/optyker-shop-catalog';
 const SHOP='https://otticavisualcare.it';
-const OPTYKER_BUILD='20260830-0030';
-const BOOK='../booking/?source=iphone-app&build=20260830-0030';
+const OPTYKER_BUILD='20260830-0031';
+const BOOK='../booking/?source=iphone-app&build=20260830-0031';
 const sb=window.supabase.createClient(U,K,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const app=document.getElementById('app');
 let state={session:null,me:null,home:null,appointments:[],tab:'home',frame:null,drawer:false,shopCategories:[],shopParent:null,shopCategory:null,shopProducts:[],shopPageInfo:null,shopLoading:false,shopError:'',cart:[],chatMessages:[],chatLoading:false,chatSending:false,chatError:'',chatTimer:null,chatAttachment:null,timers:[],timerLoading:false,timerError:'',staffHome:null,staffAgenda:[],staffAgendaStart:'',staffShifts:null,staffShiftMonth:'',staffClients:[],staffClientDetail:null,staffClientSearch:'',staffOrders:null,staffThreads:[],staffSelectedThread:'',staffMessages:[],staffLoading:false,staffError:'',staffProfileDraftPhoto:'',staffChatAttachment:null,documents:null,documentsLoading:false,documentsError:''};
@@ -367,7 +370,7 @@ function shopMarkup(){
   const cats=state.shopCategories||[];
   if(!state.shopParent){
     return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>Shop</h1><div class="sub">Scegli la categoria</div></div>
-      <div class="shopSource">Prodotti, prezzi e disponibilità aggiornati dal sito Shopify · APP 13.1</div>
+      <div class="shopSource">Prodotti, prezzi e disponibilità aggiornati dal sito Shopify · APP 13.2</div>
       <div class="shopRootGrid">${cats.map(c=>`<button class="shopRoot" onclick="chooseShopParent('${esc(c.key)}')"><strong>${esc(c.title)}</strong><span>${esc(c.subtitle||'')}</span><div class="arrow">Scegli →</div></button>`).join('')}</div></div>`;
   }
   const parent=shopParent();
@@ -1092,6 +1095,78 @@ async function loadCustomerDocuments(force){
   finally{state.documentsLoading=false;if(state.tab==='documents')render()}
 }
 window.loadCustomerDocuments=loadCustomerDocuments;
+
+function profileEditField(id,label,value,type='text',wide=false){
+  return '<div class="profileEditField '+(wide?'wide':'')+'"><label for="'+id+'">'+esc(label)+'</label><input id="'+id+'" type="'+type+'" value="'+esc(value||'')+'"></div>';
+}
+function profileEditArea(id,label,value){
+  return '<div class="profileEditField wide"><label for="'+id+'">'+esc(label)+'</label><textarea id="'+id+'">'+esc(value||'')+'</textarea></div>';
+}
+function customerProfileMarkup(){
+  const c=state.home?.customer||state.me?.customer||{},name=(c.name||'').trim();
+  return '<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>'+esc(name?'Ciao '+name:'Il mio profilo')+'</h1><div class="sub">Modifica i tuoi dati personali e di contatto</div></div>'+
+    '<div class="card"><h2>Foto profilo</h2><div class="chatProfile">'+chatAvatar(c.photo_data||'',(c.name||'Cliente'),'chatProfileAvatar')+'<div class="chatProfileText">La foto profilo viene mostrata accanto ai tuoi messaggi nella chat con Ottica Visual Care.</div><button class="chatPhotoBtn" onclick="chooseChatProfilePhoto()">'+(c.photo_data?'Cambia foto':'Carica foto')+'</button></div></div>'+
+    '<div class="card"><div class="profileSectionTitle">Dati personali</div><div class="profileEditGrid">'+
+      profileEditField('cp_name','Nome',c.name)+profileEditField('cp_surname','Cognome',c.surname)+
+      profileEditField('cp_birth','Data di nascita',c.birth,'date')+
+      profileEditField('cp_phone','Cellulare',c.phone,'tel')+
+      profileEditField('cp_home_phone','Telefono fisso',c.home_phone,'tel')+
+      profileEditField('cp_email','Email',c.email||state.me?.email,'email')+
+    '</div></div>'+
+    '<div class="card"><div class="profileSectionTitle">Indirizzo e fatturazione</div><div class="profileEditGrid">'+
+      profileEditField('cp_street','Via',c.street)+profileEditField('cp_street_number','Civico',c.street_number)+
+      profileEditField('cp_postal_code','CAP',c.postal_code)+profileEditField('cp_city','Città',c.city)+
+      profileEditField('cp_province','Provincia',c.province)+profileEditField('cp_fiscal','Codice fiscale',c.fiscal)+
+      profileEditField('cp_vat','Partita IVA',c.vat)+profileEditField('cp_pec','PEC',c.pec,'email')+
+    '</div></div>'+
+    '<div class="card"><div class="profileSectionTitle">Altre informazioni</div><div class="profileEditGrid">'+
+      profileEditField('cp_profession','Professione',c.profession)+profileEditField('cp_hobby','Hobby',c.hobby)+
+      profileEditField('cp_referral','Come ci hai conosciuto',c.referral,'text',true)+
+      profileEditArea('cp_notes','Note',c.notes)+
+    '</div><div class="profileSyncNote">Nome, cognome, email e telefono vengono sincronizzati anche con il profilo cliente Shopify. Gli indirizzi modificati dal profilo Shopify vengono riallineati automaticamente in Optyker al prossimo accesso.</div>'+
+    '<button id="customerProfileSave" class="profileSaveBtn" onclick="saveCustomerProfile()">SALVA MODIFICHE</button>'+
+    '<a class="profileAccountLink" href="https://otticavisualcare.it/account" target="_blank" rel="noopener">Apri anche il profilo sul sito Shopify</a></div>'+
+    '<button class="action secondary" onclick="logout()">Esci</button></div>';
+}
+window.saveCustomerProfile=async()=>{
+  const btn=document.getElementById('customerProfileSave');
+  const payload={
+    name:document.getElementById('cp_name')?.value.trim()||'',
+    surname:document.getElementById('cp_surname')?.value.trim()||'',
+    birth:document.getElementById('cp_birth')?.value.trim()||'',
+    phone:document.getElementById('cp_phone')?.value.trim()||'',
+    home_phone:document.getElementById('cp_home_phone')?.value.trim()||'',
+    email:document.getElementById('cp_email')?.value.trim()||'',
+    street:document.getElementById('cp_street')?.value.trim()||'',
+    street_number:document.getElementById('cp_street_number')?.value.trim()||'',
+    postal_code:document.getElementById('cp_postal_code')?.value.trim()||'',
+    city:document.getElementById('cp_city')?.value.trim()||'',
+    province:document.getElementById('cp_province')?.value.trim()||'',
+    fiscal:document.getElementById('cp_fiscal')?.value.trim()||'',
+    vat:document.getElementById('cp_vat')?.value.trim()||'',
+    pec:document.getElementById('cp_pec')?.value.trim()||'',
+    profession:document.getElementById('cp_profession')?.value.trim()||'',
+    hobby:document.getElementById('cp_hobby')?.value.trim()||'',
+    referral:document.getElementById('cp_referral')?.value.trim()||'',
+    notes:document.getElementById('cp_notes')?.value.trim()||''
+  };
+  if(!payload.name||!payload.surname){alert('Inserisci nome e cognome.');return}
+  if(btn){btn.disabled=true;btn.textContent='SALVATAGGIO…'}
+  try{
+    const x=await call(API,'customer_profile_update',payload),d=x.data||{},updated=d.customer||{};
+    if(state.home)state.home.customer={...(state.home.customer||{}),...updated};
+    if(state.me)state.me.customer={...(state.me.customer||{}),...updated};
+    if(updated.email)state.me.email=updated.email;
+    render();
+    let msg='Profilo aggiornato.';
+    if(d.email_changed)msg+=' Da ora usa la nuova email per i prossimi accessi.';
+    if(d.shopify_warning)msg+=' I dati Optyker sono salvati, ma la sincronizzazione Shopify segnala: '+d.shopify_warning;
+    if(d.auth_warning)msg+=' Attenzione email accesso: '+d.auth_warning;
+    alert(msg);
+  }catch(e){alert(e?.message||'Aggiornamento profilo non riuscito')}
+  finally{const b=document.getElementById('customerProfileSave');if(b){b.disabled=false;b.textContent='SALVA MODIFICHE'}}
+};
+
 function page(tab){
   const c=state.home?.customer||state.me?.customer||{},name=(c.name||'').trim();
   if(tab==='home')return dashboardMarkup();
@@ -1105,9 +1180,7 @@ function page(tab){
   if(tab==='lac')return lensesMarkup();
   if(tab==='timer')return timerMarkup();
   if(tab==='chat')return chatMarkup();
-  return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>${esc(name?'Ciao '+name:'Il mio profilo')}</h1><div class="sub">Account cliente Optyker</div></div><div class="card"><h2>Foto profilo</h2><div class="chatProfile">${chatAvatar(c.photo_data||'',(c.name||'Cliente'),'chatProfileAvatar')}<div class="chatProfileText">La foto profilo viene mostrata accanto ai tuoi messaggi nella chat con Ottica Visual Care.</div><button class="chatPhotoBtn" onclick="chooseChatProfilePhoto()">${c.photo_data?'Cambia foto':'Carica foto'}</button></div></div><div class="card"><h2>Dati cliente</h2>
-    <div class="profileRow"><b>Nome</b><span>${esc(c.name||'—')}</span></div><div class="profileRow"><b>Cognome</b><span>${esc(c.surname||'—')}</span></div><div class="profileRow"><b>Email</b><span>${esc(c.email||state.me?.email||'—')}</span></div><div class="profileRow"><b>Telefono</b><span>${esc(c.phone||'—')}</span></div>
-    <div class="profileRow"><b>Shopify</b><span>${c.shopify_customer_id?'Collegato tramite email':'Collegamento automatico via email'}</span></div></div><button class="action secondary" onclick="logout()">Esci</button></div>`;
+  return customerProfileMarkup();
 }
 function shell(){
   app.innerHTML=`<div class="shell">
@@ -1129,7 +1202,7 @@ function shell(){
         <button class="drawerBtn" data-nav="lac" onclick="goTab('lac')">LAC</button>
         <button class="drawerBtn" data-nav="timer" onclick="goTab('timer')">Timer</button>
         <button class="drawerBtn" data-nav="chat" onclick="goTab('chat')">Chat <span id="chatBadge" class="drawerBadge ${Number(state.home?.unread_chat||0)>0?'':'hidden'}">${Number(state.home?.unread_chat||0)}</span></button>
-        <button class="drawerBtn" data-nav="profile" onclick="goTab('profile')">Profilo</button>
+        <button class="drawerBtn" data-nav="profile" onclick="goTab('profile')">Profilo e dati</button>
       </nav>
       <div class="drawerFoot">Ottica Visual Care · Area cliente Optyker</div>
     </aside>
