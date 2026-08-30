@@ -178,7 +178,7 @@ js=r'''
     var id=window.clientCurrentId||'';
     if(!id){W.clientId='';W.data=null;render();return Promise.resolve()}
     if(W.loading)return Promise.resolve();
-    if(!force&&W.clientId===id&&W.data){render();return Promise.resolve(W.data)}
+    if(!force&&W.clientId===id&&W.data){return Promise.resolve(W.data)}
     W.loading=true;W.clientId=id;
     var wl=E('clientLacWarrantyList'),sl=E('clientLacSheetsList');
     if(wl)wl.innerHTML='<div class="clientLacEmpty">Caricamento lenti e garanzie…</div>';
@@ -250,7 +250,7 @@ js=r'''
 
   function install(){
     hookLacAccess();hookClient();ensureSubjectBanner();ensureClientPanel();
-    if(window.clientCurrentId)refresh(false);
+    if(window.clientCurrentId&&!W.data)refresh(false);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
   setInterval(install,1000);
