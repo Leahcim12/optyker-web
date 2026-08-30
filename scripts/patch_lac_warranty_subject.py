@@ -125,6 +125,15 @@ js=r'''
     if(st.osProductName)a.push('OS · '+st.osProductName);
     return a.join(' | ')||'Scheda tecnica LAC';
   }
+  function bindRenderedActions(){
+    var a=document.querySelectorAll('[data-warranty-activate]'),i,b;
+    for(i=0;i<a.length;i++){b=a[i];b.onclick=function(){window.optykerWarrantyActivate(this.getAttribute('data-warranty-activate'))}}
+    var s=document.querySelectorAll('[data-warranty-save]');
+    for(i=0;i<s.length;i++){b=s[i];b.onclick=function(){window.optykerWarrantySaveSelection(this.getAttribute('data-warranty-save'))}}
+    var o=document.querySelectorAll('[data-open-lac-sheet]');
+    for(i=0;i<o.length;i++){b=o[i];b.onclick=function(){window.optykerOpenClientLacSheet(this.getAttribute('data-open-lac-sheet'))}}
+  }
+
   function render(){
     ensureClientPanel();
     var wl=E('clientLacWarrantyList'),sl=E('clientLacSheetsList');if(!wl||!sl)return;
@@ -134,14 +143,15 @@ js=r'''
       var w=l.warranty||{status:'inactive'},active=w.status==='active'||w.status==='pending_reorder',saved=w.selected_reorder_option||{},opts=Array.isArray(l.reorder_options)?l.reorder_options:[];
       var options='<option value="">Seleziona cosa riordinare…</option>'+opts.map(function(o){return '<option value="'+esc(o.code)+'"'+(saved.code===o.code?' selected':'')+'>'+esc(o.label)+'</option>'}).join('');
       var statusClass=w.status==='active'||w.status==='pending_reorder'?' active':(w.status==='used'?' used':'');
-      return '<div class="clientLacWarrantyCard"><div class="clientLacWarrantyTop"><div><div class="clientLacWarrantyName">'+esc((l.brand||'')+' · '+(l.product_name||'Lente a contatto'))+'</div><div class="clientLacWarrantyMeta">'+esc(l.eye||'')+' · acquistata '+esc(dt(l.purchased_at))+(l.in_store_order_ref?' · rif. '+esc(l.in_store_order_ref):'')+'</div></div><div class="clientLacWarrantyPrice">'+esc(eur(l.unit_price,l.currency))+'</div></div><div class="clientLacWarrantyControls"><span class="clientLacWarrantyStatus'+statusClass+'">'+esc(warrantyLabel(w))+'</span>'+(active?'<select id="warrantyReorder_'+esc(l.id)+'">'+options+'</select><button class="primary" type="button" onclick="optykerWarrantySaveSelection(\\''+esc(l.id)+'\\')">Salva selezione riordino</button>':'<button class="primary" type="button" onclick="optykerWarrantyActivate(\\''+esc(l.id)+'\\')">Attiva garanzia</button>')+'</div>'+(saved.label?'<div class="clientLacWarrantySaved">Selezione salvata: <b>'+esc(saved.label)+'</b>. Le regole definitive di garanzia verranno applicate quando saranno configurate.</div>':'')+'</div>';
+      return '<div class="clientLacWarrantyCard"><div class="clientLacWarrantyTop"><div><div class="clientLacWarrantyName">'+esc((l.brand||'')+' · '+(l.product_name||'Lente a contatto'))+'</div><div class="clientLacWarrantyMeta">'+esc(l.eye||'')+' · acquistata '+esc(dt(l.purchased_at))+(l.in_store_order_ref?' · rif. '+esc(l.in_store_order_ref):'')+'</div></div><div class="clientLacWarrantyPrice">'+esc(eur(l.unit_price,l.currency))+'</div></div><div class="clientLacWarrantyControls"><span class="clientLacWarrantyStatus'+statusClass+'">'+esc(warrantyLabel(w))+'</span>'+(active?'<select id="warrantyReorder_'+esc(l.id)+'">'+options+'</select><button class="primary" type="button" data-warranty-save="'+esc(l.id)+'">Salva selezione riordino</button>':'<button class="primary" type="button" data-warranty-activate="'+esc(l.id)+'">Attiva garanzia</button>')+'</div>'+(saved.label?'<div class="clientLacWarrantySaved">Selezione salvata: <b>'+esc(saved.label)+'</b>. Le regole definitive di garanzia verranno applicate quando saranno configurate.</div>':'')+'</div>';
     }).join('');
 
     if(!sheets.length)sl.innerHTML='<div class="clientLacEmpty">Nessuna scheda LAC salvata per questo cliente.</div>';
     else sl.innerHTML=sheets.map(function(row){
       var ref=row.reference_no||row.reference_code||'',d=row.data||{},date=d.examDate||d.savedAt||row.created_at,title=row.title||d.sheetLabel||'Scheda LAC';
-      return '<div class="clientLacSheetCard"><div class="clientLacSheetTop"><div><div class="clientLacSheetRef">'+esc(ref||'LAC')+'</div><div class="clientLacSheetTitle">'+esc(title)+'</div><div class="clientLacSheetMeta">'+esc(dt(date))+(row.operator?' · '+esc(row.operator):'')+(row.document_type?' · '+esc(row.document_type):'')+'</div></div><span class="clientLacWarrantyStatus active">Associata al cliente</span></div><div class="clientLacSheetProduct">'+esc(productSummary(row))+'</div><div class="clientLacSheetActions"><button class="secondary" type="button" onclick="optykerOpenClientLacSheet(\\''+esc(row.id)+'\\')">Apri scheda LAC</button></div></div>';
+      return '<div class="clientLacSheetCard"><div class="clientLacSheetTop"><div><div class="clientLacSheetRef">'+esc(ref||'LAC')+'</div><div class="clientLacSheetTitle">'+esc(title)+'</div><div class="clientLacSheetMeta">'+esc(dt(date))+(row.operator?' · '+esc(row.operator):'')+(row.document_type?' · '+esc(row.document_type):'')+'</div></div><span class="clientLacWarrantyStatus active">Associata al cliente</span></div><div class="clientLacSheetProduct">'+esc(productSummary(row))+'</div><div class="clientLacSheetActions"><button class="secondary" type="button" data-open-lac-sheet="'+esc(row.id)+'">Apri scheda LAC</button></div></div>';
     }).join('');
+    bindRenderedActions();
   }
 
   function refresh(force){
