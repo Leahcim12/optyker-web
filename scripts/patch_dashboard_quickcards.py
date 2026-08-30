@@ -159,7 +159,7 @@ if pos<0:
     raise SystemExit("Tag </body> non trovato")
 s=s[:pos]+css+js+s[pos:]
 p.write_text(s,encoding="utf-8")
-for req in [MARK,'optykerDashboardClinicalCards','Scheda anamnestica','Preventivo e busta occhiali']:
+for req in [MARK,'optykerDashboardClinicalCards','Scheda anamnestica','Preventivi, buste e montature']:
     if req not in s:
         raise SystemExit("Patch dashboard cards incompleta: "+req)
 print("Dashboard quick cards OK")
