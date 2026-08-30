@@ -6,6 +6,8 @@ MARK="OPTYKER_LABORATORY_V1"
 if MARK in s:
     raise SystemExit(0)
 
+s=s.replace("Dati personali, recapiti e informazioni fiscali organizzati in una vista più chiara.","")
+
 css=r'''
 <style id="optykerLaboratoryStyles">
 #labOrdersPanel{display:none;padding:18px;border:1px solid #d5e0e9;border-radius:14px;background:#f8fbfd;box-shadow:0 4px 18px rgba(23,50,74,.04)}
@@ -32,6 +34,7 @@ css=r'''
 #optykerClientReference{display:inline-flex;margin-left:6px;padding:4px 7px;border-radius:999px;background:#eaf4fb;color:#1769aa;font-size:9px;font-weight:900}
 #lacSendWorkOrderBtn{background:linear-gradient(180deg,#1d70b5,#155f9f)!important;border-color:#11558f!important;color:#fff!important}
 #lacSendWorkOrderBtn[disabled]{opacity:.65;cursor:default}
+#navLaboratory{margin-top:2px!important}
 @media(max-width:780px){.labHead{flex-direction:column}.labCard{grid-template-columns:1fr}.labStatusBox{border-left:0;border-top:1px solid #e3e9ee;padding-left:0;padding-top:10px}.labToolbar{flex-direction:column;align-items:stretch}}
 </style>
 '''
@@ -64,12 +67,11 @@ js=r'''
   function ensurePanel(){
     if(e('labOrdersPanel'))return;
     var p=document.createElement('div');p.id='labOrdersPanel';p.className='panel';
-    p.innerHTML='<div class="labHead"><div><div class="labEyebrow">Ottica Visual Care</div><div class="labTitle">Laboratorio</div><div class="labSub">Ordini LAC inviati dalle buste. Lo stato parte da Da fare; quando passa a In preparazione, dopo 24 ore diventa automaticamente Costruzione.</div></div><div class="labHeadActions"><button class="secondary" type="button" id="labOnlineOrdersBtn">Ordini online / app</button><button class="secondary" type="button" onclick="showDashboard()">Dashboard</button></div></div><div class="labToolbar"><input id="labSearch" type="search" placeholder="Cerca riferimento, cliente, prodotto..."><button class="secondary" id="labRefresh" type="button">Aggiorna</button></div><div id="labOrdersList" class="labList"><div class="labEmpty">Caricamento laboratorio…</div></div>';
+    p.innerHTML='<div class="labHead"><div><div class="labEyebrow">Ottica Visual Care</div><div class="labTitle">Laboratorio</div><div class="labSub">Ordini LAC inviati dalle buste. Lo stato parte da Da fare; quando passa a In preparazione, dopo 24 ore diventa automaticamente Costruzione.</div></div><div class="labHeadActions"><button class="secondary" type="button" onclick="showDashboard()">Dashboard</button></div></div><div class="labToolbar"><input id="labSearch" type="search" placeholder="Cerca riferimento, cliente, prodotto..."><button class="secondary" id="labRefresh" type="button">Aggiorna</button></div><div id="labOrdersList" class="labList"><div class="labEmpty">Caricamento laboratorio…</div></div>';
     var a=e('onlineOrdersPanel')||e('lacPanel')||e('clientsPanel');
     if(a&&a.parentNode)a.parentNode.insertBefore(p,a.nextSibling);else document.body.appendChild(p);
     e('labSearch').oninput=function(){labState.query=this.value||'';render();};
     e('labRefresh').onclick=load;
-    e('labOnlineOrdersBtn').onclick=function(){if(typeof window.openOnlineOrders==='function')window.openOnlineOrders();};
   }
   function hideLab(){var p=e('labOrdersPanel');if(p)p.style.display='none';}
   function hideMain(){
@@ -81,7 +83,8 @@ js=r'''
     ensurePanel();hideMain();
     if(typeof window.dashboardSetWorkAreaVisible==='function')dashboardSetWorkAreaVisible(false);
     var p=e('labOrdersPanel');if(p)p.style.display='block';
-    try{if(typeof window.cloudNavActive==='function')cloudNavActive('navOrders');}catch(z){}
+    try{if(typeof window.cloudNavActive==='function')cloudNavActive('');}catch(z){}
+    var navLab=e('navLaboratory');if(navLab)navLab.className='moduleBtn active';
     load();try{window.scrollTo(0,0);}catch(z2){}
   };
   function productsFor(o){
@@ -181,7 +184,20 @@ js=r'''
   function install(){
     ensurePanel();
     var nav=e('navOrders');
-    if(nav){nav.textContent='Laboratorio';nav.onclick=window.openLaboratory;nav.setAttribute('title','Laboratorio');}
+    if(nav){
+      nav.textContent='Ordini';
+      nav.setAttribute('title','Ordini Shopify');
+      if(!e('navLaboratory')){
+        var lab=document.createElement('button');
+        lab.id='navLaboratory';
+        lab.className='moduleBtn';
+        lab.type='button';
+        lab.textContent='Laboratorio';
+        lab.setAttribute('title','Laboratorio · ordini LAC specialistiche');
+        lab.onclick=window.openLaboratory;
+        if(nav.parentNode)nav.parentNode.insertBefore(lab,nav.nextSibling);
+      }
+    }
     if(typeof window.lacOpenSummary==='function'&&!window.__labSummaryWrapped){
       window.__labSummaryWrapped=true;var oldSummary=window.lacOpenSummary;
       window.lacOpenSummary=function(){var r=oldSummary.apply(this,arguments);setTimeout(ensureSendButton,0);return r;};
