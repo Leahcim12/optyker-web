@@ -2,16 +2,17 @@ from pathlib import Path
 
 p=Path("_site/index.html")
 s=p.read_text(encoding="utf-8")
-MARK="OPTYKER_EYEWEAR_SHEET_V1"
+MARK="OPTYKER_EYEWEAR_SHEET_V2"
 if MARK in s:
     raise SystemExit(0)
 
 css=r'''
 <style id="optykerEyewearCss">
-/* OPTYKER_EYEWEAR_SHEET_V1 */
-#navEyewear{min-height:42px!important;height:auto!important;padding-top:8px!important;padding-bottom:8px!important}
+/* OPTYKER_EYEWEAR_SHEET_V2 */
+#navEyewear{display:none!important}
 #eyewearPanel{display:none;grid-column:2!important;min-width:0;padding:18px;border:1px solid #d7e3eb;border-radius:14px;background:#f8fbfd;box-shadow:0 4px 18px rgba(23,50,74,.04)}
-body.optykerBillingMode #navEyewear{display:none!important}
+#dashboardEyewearBtn{cursor:pointer!important}
+body.optykerBillingMode #dashboardEyewearBtn{display:none!important}
 .eyHead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #dce5ec}
 .eyEyebrow{font-size:9px;font-weight:950;letter-spacing:.1em;text-transform:uppercase;color:#1769aa}
 .eyTitle{font-size:25px;font-weight:950;color:#17324a;margin-top:3px}
@@ -62,7 +63,7 @@ body.optykerBillingMode #navEyewear{display:none!important}
 
 js=r'''
 <script id="optykerEyewearJs">
-(function(){/* OPTYKER_EYEWEAR_SHEET_V1 */
+(function(){/* OPTYKER_EYEWEAR_SHEET_V2 */
   if(window.__optykerEyewearV1)return;window.__optykerEyewearV1=true;
   var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-eyewear-api';
   var S={mode:'quote',step:1,catalog:[],selected:null,recent:[],saving:false};
@@ -76,11 +77,43 @@ js=r'''
   function clientsLocal(){var a=window.OPTYKER_CLOUD&&Array.isArray(OPTYKER_CLOUD.clients)?OPTYKER_CLOUD.clients:[];return a.slice().sort(function(a,b){return String((a.surname||'')+' '+(a.name||'')).localeCompare(String((b.surname||'')+' '+(b.name||'')),'it')})}
   function clientLabel(c){return (((c.surname||'')+' '+(c.name||'')).trim()||'Cliente')+(c.reference_no?' · '+c.reference_no:'')}
 
-  function ensureNav(){
+  function ensureDashboardButton(){
     if(window.OPTYKER_BILLING_ADMIN)return;
-    var sub=E('sheetsSubmenu');if(!sub||E('navEyewear'))return;
-    var b=document.createElement('button');b.id='navEyewear';b.className='moduleBtn';b.type='button';b.innerHTML='<span class="winNavIcon" aria-hidden="true">◉</span><span>Occhiali</span>';b.onclick=function(){openEyewear('quote')};
-    sub.appendChild(b)
+    var legacy=E('navEyewear');if(legacy&&legacy.parentNode)legacy.parentNode.removeChild(legacy);
+    var dash=E('dashboardPanel');if(!dash)return;
+    var existing=E('dashboardEyewearBtn');
+    var all=dash.querySelectorAll('button,a,[role="button"]'),lac=null;
+    for(var i=0;i<all.length;i++){
+      if(all[i].id==='dashboardEyewearBtn')continue;
+      var t=String(all[i].textContent||'').replace(/\s+/g,' ').trim().toLowerCase();
+      if(t==='lac'||t==='l.a.c.'||t.indexOf('lenti a contatto')>=0||t.indexOf('scheda lac')>=0){lac=all[i];break}
+    }
+    if(!lac){
+      var nodes=dash.querySelectorAll('.dashboardCard,.dashboardQuickCard,.dashboardActionCard,[class*="dashboard"][onclick]');
+      for(i=0;i<nodes.length;i++){
+        var tx=String(nodes[i].textContent||'').replace(/\s+/g,' ').trim().toLowerCase();
+        if(tx==='lac'||tx.indexOf('lenti a contatto')>=0||tx.indexOf('scheda lac')>=0){lac=nodes[i];break}
+      }
+    }
+    if(!lac)return;
+    if(!existing){
+      existing=lac.cloneNode(true);
+      existing.id='dashboardEyewearBtn';
+      existing.removeAttribute('onclick');
+      existing.removeAttribute('href');
+      existing.querySelectorAll('[id]').forEach(function(x){x.removeAttribute('id')});
+      var textNodes=existing.querySelectorAll('span,b,strong,div');
+      var changed=false;
+      for(i=0;i<textNodes.length;i++){
+        var s=String(textNodes[i].textContent||'').replace(/\s+/g,' ').trim().toLowerCase();
+        if(s==='lac'||s==='l.a.c.'||s.indexOf('lenti a contatto')>=0||s.indexOf('scheda lac')>=0){
+          textNodes[i].textContent='Occhiali';changed=true;break
+        }
+      }
+      if(!changed)existing.textContent='Occhiali';
+      existing.onclick=function(ev){ev.preventDefault();ev.stopPropagation();openEyewear('quote')};
+    }
+    if(existing.parentNode!==lac.parentNode||lac.nextElementSibling!==existing)lac.insertAdjacentElement('afterend',existing)
   }
   function ensurePanel(){
     if(E('eyewearPanel'))return;
@@ -249,12 +282,12 @@ js=r'''
   }
   function openEyewear(mode,clientId){
     ensurePanel();hideOther();setMode(mode||'quote');fillClients(clientId||String(window.clientCurrentId||''));var p=E('eyewearPanel');if(p)p.style.display='block';goStep(1);renderSummary();loadRecent();
-    var nav=E('navEyewear');if(nav)nav.className='moduleBtn active';var sh=E('sheetsSubmenu');if(sh){sh.style.display='flex';sh.setAttribute('aria-hidden','false')}try{window.scrollTo(0,0)}catch(e){}
+    var db=E('dashboardEyewearBtn');if(db)db.classList.add('active');try{window.scrollTo(0,0)}catch(e){}
   }
   window.openEyewearSheet=openEyewear;
-  function hideEyewear(){var p=E('eyewearPanel');if(p)p.style.display='none';var n=E('navEyewear');if(n)n.classList.remove('active')}
-  document.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('#moduleNav button'):null;if(b&&b.id!=='navEyewear'&&b.id!=='navSheets')hideEyewear()},true);
-  function install(){ensureNav();ensurePanel()}
+  function hideEyewear(){var p=E('eyewearPanel');if(p)p.style.display='none';var n=E('dashboardEyewearBtn');if(n)n.classList.remove('active')}
+  document.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('#moduleNav button'):null;if(b)hideEyewear()},true);
+  function install(){ensurePanel();ensureDashboardButton()}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
   setInterval(install,900);
 })();
@@ -266,7 +299,7 @@ if pos<0:
     raise SystemExit("Tag </body> non trovato")
 s=s[:pos]+css+js+s[pos:]
 p.write_text(s,encoding="utf-8")
-for req in [MARK,'navEyewear','Preventivo occhiali','Busta occhiali','optyker-eyewear-api','Cerca nel listino lenti oftalmiche','Sconto sulle lenti']:
+for req in [MARK,'dashboardEyewearBtn','Preventivo occhiali','Busta occhiali','optyker-eyewear-api','Cerca nel listino lenti oftalmiche','Sconto sulle lenti']:
     if req not in s:
         raise SystemExit("Patch occhiali incompleta: "+req)
 print("Optyker eyewear sheet OK")
