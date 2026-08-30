@@ -56,6 +56,7 @@ for f in \
   scripts/patch_lac_warranty_subject.py \
   scripts/patch_client_pages_nav.py \
   scripts/patch_billing_admin.py \
+  scripts/patch_cash_register.py \
   scripts/patch_ios_pwa.py; do python "$f"; done
 
 mkdir -p _site/staff-embed _site/booking _site/iphone _site/reset-password _site/admin-reset-passwords _site/staff-recovery _site/accesso _site/gestionale-v2 _site/gestionale-v3 _site/iphone-app _site/iphone-app-v2 _site/iphone-app-v3 _site/iphone-app-v4 _site/iphone-app-v5 _site/iphone-app-v6 _site/iphone-app-v7 _site/iphone-app-v8 _site/iphone-app-v9 _site/iphone-app-v10 _site/iphone-app-v11 _site/iphone-app-v12 _site/iphone-app-v13 _site/orari
@@ -107,6 +108,8 @@ cp visualcare-logo.svg _site/visualcare-logo.svg
 cp optyker-logo.svg _site/optyker-logo.svg
 cp billing-admin.js _site/billing-admin.js
 cp billing-admin.css _site/billing-admin.css
+cp cash-register.js _site/cash-register.js
+cp cash-register.css _site/cash-register.css
 cp _site/index.html _site/gestionale-v2/index.html
 cp manifest.webmanifest _site/gestionale-v2/manifest.webmanifest
 cp visualcare-logo.svg _site/gestionale-v2/visualcare-logo.svg
@@ -168,6 +171,8 @@ test -s _site/visualcare-logo.svg
 test -s _site/optyker-logo.svg
 test -s _site/billing-admin.js
 test -s _site/billing-admin.css
+test -s _site/cash-register.js
+test -s _site/cash-register.css
 test -s _site/gestionale-v2/index.html
 test -s _site/gestionale-v2/manifest.webmanifest
 test -s _site/gestionale-v2/visualcare-logo.svg
@@ -210,4 +215,5 @@ print('Build verificata',len(main),len(booking),len(app13))
 PY
 cp _site/iphone-app-v13/sw.js _jscheck/iphone-app-v13-sw.js
 for f in _jscheck/*.js; do node --check "$f"; done
+node --check _site/cash-register.js
 touch _site/.nojekyll
