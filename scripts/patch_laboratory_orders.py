@@ -7,6 +7,7 @@ if MARK in s:
     raise SystemExit(0)
 
 s=s.replace("Dati personali, recapiti e informazioni fiscali organizzati in una vista più chiara.","")
+s=s.replace('<div id="onlineSpecialistRequestsList" class="onlineSpecialistBlock"></div>',"")
 
 css=r'''
 <style id="optykerLaboratoryStyles">
