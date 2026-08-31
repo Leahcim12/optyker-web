@@ -97,7 +97,7 @@ js=r'''
   }
   function hideDocumentPanels(){var a=E('optykerDdtPanel'),b=E('optykerCustomerInvoicesPanel');if(a)a.style.display='none';if(b)b.style.display='none'}
   function hideMain(){
-    var ids=['dashboardPanel','analysisPanel','prescriptionPanel','visualExamPanel','indicationsPanel','hearingPanel','clientsPanel','lacPanel','onlineOrdersPanel','labOrdersPanel','optykerChatPanel'];
+    var ids=['dashboardPanel','analysisPanel','prescriptionPanel','visualExamPanel','indicationsPanel','hearingPanel','clientsPanel','lacPanel','onlineOrdersPanel','labOrdersPanel','optykerChatPanel','optykerSettingsPanel','optykerAppointmentsPanel','eyewearPanel','warehousePanel'];
     ids.forEach(function(id){var x=E(id);if(x)x.style.display='none'});
     var r=E('reportSectionTop');if(r)r.style.display='none';var t=E('analysisTabs');if(t)t.style.display='none';
   }
