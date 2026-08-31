@@ -2,13 +2,13 @@ from pathlib import Path
 
 p=Path("_site/index.html")
 s=p.read_text(encoding="utf-8")
-MARK="OPTYKER_SIDEBAR_CHEVRONS_V1"
+MARK="OPTYKER_SIDEBAR_CHEVRONS_V2"
 if MARK in s:
     raise SystemExit(0)
 
 css=r'''
 <style id="optykerSidebarChevronsCss">
-/* OPTYKER_SIDEBAR_CHEVRONS_V1 */
+/* OPTYKER_SIDEBAR_CHEVRONS_V2 */
 #moduleNav .optykerNavChevron{
   margin-left:auto!important;
   flex:0 0 18px!important;
@@ -45,21 +45,19 @@ css=r'''
 
 js=r'''
 <script id="optykerSidebarChevronsJs">
-(function(){/* OPTYKER_SIDEBAR_CHEVRONS_V1 */
+(function(){/* OPTYKER_SIDEBAR_CHEVRONS_V2 */
   if(window.__optykerSidebarChevronsV1)return;window.__optykerSidebarChevronsV1=true;
   function hasSub(btn){
     if(!btn)return false;
-    var id=btn.id||'';
-    if(id==='navDocuments'||id==='navWarehouse'||id==='navSheets')return true;
-    var parent=btn.parentElement;
-    if(parent&&parent.querySelector(':scope > div, :scope > ul')){
-      var kids=parent.children;
-      for(var i=0;i<kids.length;i++){
-        var k=kids[i];
-        if(k!==btn && (k.tagName==='DIV'||k.tagName==='UL') && /sub|menu/i.test((k.id||'')+' '+(k.className||'')))return true;
-      }
+    var parent=btn.parentElement;if(!parent)return false;
+    var kids=parent.children;
+    for(var i=0;i<kids.length;i++){
+      var k=kids[i];if(k===btn)continue;
+      var meta=((k.id||'')+' '+(k.className||'')).toLowerCase();
+      if(!/sub|menu/.test(meta))continue;
+      if(k.querySelector&&k.querySelector('button,a,[role="button"]'))return true;
     }
-    return btn.hasAttribute('aria-expanded');
+    return false;
   }
   function cleanArrowText(btn){
     var spans=btn.querySelectorAll('span');
@@ -75,7 +73,18 @@ js=r'''
     return null;
   }
   function ensure(btn){
-    if(!btn||!hasSub(btn))return;
+    if(!btn)return;
+    if(!hasSub(btn)){
+      var stale=btn.querySelectorAll('.optykerNavChevron');
+      for(var z=0;z<stale.length;z++)stale[z].remove();
+      var spans=btn.querySelectorAll('span');
+      for(var s=0;s<spans.length;s++){
+        var t=(spans[s].textContent||'').trim();
+        if(/^[⌄⌃▾▴▼▲›‹∨∧]+$/.test(t))spans[s].remove();
+      }
+      btn.classList.remove('optykerChevronOpen');
+      return;
+    }
     var chev=btn.querySelector('.optykerNavChevron')||cleanArrowText(btn);
     if(!chev){
       chev=document.createElement('span');
