@@ -123,7 +123,7 @@ if pos<0:
     raise SystemExit("Tag </body> non trovato")
 s=s[:pos]+css+js+s[pos:]
 p.write_text(s,encoding="utf-8")
-for req in [MARK,'optykerNavChevron','navDocuments','navWarehouse']:
+for req in [MARK,'optykerNavChevron','hasSub(btn)','querySelector(\'button,a,[role="button"]\')']:
     if req not in s:
         raise SystemExit("Patch frecce incompleta: "+req)
 print("Sidebar chevrons OK")
