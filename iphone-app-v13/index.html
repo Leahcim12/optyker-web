@@ -235,8 +235,8 @@ const STAFF_LOGIN=U+'/functions/v1/optyker-mobile-staff-login';
 const BOOKING_API=U+'/functions/v1/optyker-appointments-booking';
 const CATALOG=U+'/functions/v1/optyker-shop-catalog';
 const SHOP='https://otticavisualcare.it';
-const OPTYKER_BUILD='20260831-usage-hours';
-const BOOK='../booking/?source=iphone-app&build=20260831-usage-hours';
+const OPTYKER_BUILD='20260831-clinical-sheets';
+const BOOK='../booking/?source=iphone-app&build=20260831-clinical-sheets';
 const sb=window.supabase.createClient(U,K,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const app=document.getElementById('app');
 let state={session:null,me:null,home:null,appointments:[],tab:'home',frame:null,drawer:false,shopCategories:[],shopParent:null,shopCategory:null,shopProducts:[],shopPageInfo:null,shopLoading:false,shopError:'',cart:[],chatMessages:[],chatLoading:false,chatSending:false,chatError:'',chatTimer:null,chatAttachment:null,timers:[],timerLoading:false,timerError:'',staffHome:null,staffAgenda:[],staffAgendaStart:'',staffShifts:null,staffShiftMonth:'',staffClients:[],staffClientDetail:null,staffClientSearch:'',staffOrders:null,staffThreads:[],staffSelectedThread:'',staffMessages:[],staffLoading:false,staffError:'',staffProfileDraftPhoto:'',staffChatAttachment:null,documents:null,documentsLoading:false,documentsError:''};
@@ -907,11 +907,22 @@ function staffPrescriptionEditors(d){
     return h;
   }).join('');
 }
+function sheetKind(s){
+  const x=(String(s?.sheet_type||'')+' '+String(s?.title||'')+' '+String(s?.data?.sheetType||'')+' '+String(s?.data?.sheetLabel||'')+' '+String(s?.data?.type||'')+' '+String(s?.data?.label||'')+' '+String(s?.data?.protocol||'')).toLowerCase();
+  if(x.includes('indicaz')||x.includes('indication')||x.includes('istruz')||x.includes('instruction')||x.includes('usage'))return 'usage';
+  if((x.includes('bamb')||x.includes('child')||x.includes('pediatric'))&&(x.includes('ovc')||x.includes('visualexam')||x.includes('esame visivo')))return 'protocol_ovc_bambini';
+  if(x.includes('fondo')||x.includes('fundus')||x.includes('retina'))return 'fondo_oculare';
+  if((x.includes('analisi')&&x.includes('visiv'))||x.includes('analisi_visiva')||x.includes('visual analysis')||x.includes('visual_analysis')||x.includes('integrat')||String(s?.sheet_type||'').toLowerCase()==='analysis')return 'analisi_visiva_integrata';
+  if(x.includes('ovc')||x.includes('visualexam')||x.includes('esame visivo'))return 'protocol_ovc';
+  return 'other';
+}
 function visitLabel(s){
-  const x=(String(s?.sheet_type||'')+' '+String(s?.title||'')+' '+String(s?.data?.sheetType||'')+' '+String(s?.data?.sheetLabel||'')).toLowerCase();
-  if(x.includes('bamb')&&x.includes('ovc'))return 'Protocollo OVC Bambini';
-  if(x.includes('fondo')||x.includes('fundus'))return 'Fondo Oculare';
-  if(x.includes('ovc'))return 'Protocollo OVC';
+  const k=sheetKind(s);
+  if(k==='usage')return 'Indicazioni d’uso';
+  if(k==='protocol_ovc_bambini')return 'Protocollo OVC Bambini';
+  if(k==='fondo_oculare')return 'Fondo Oculare';
+  if(k==='analisi_visiva_integrata')return 'Analisi Visiva Integrata';
+  if(k==='protocol_ovc')return 'Protocollo OVC';
   return s?.title||s?.data?.sheetLabel||s?.sheet_type||'Scheda visita';
 }
 function visitData(s){
@@ -940,15 +951,30 @@ function visitData(s){
 function prettyVisitKey(k){return String(k||'').replace(/^rx_/i,'').replace(/_/g,' ').replace(/([a-z])([A-Z])/g,'$1 $2')}
 function staffVisitsHtml(a){
   a=Array.isArray(a)?a:[];
-  if(!a.length)return '<div class="empty">Nessuna scheda visita collegata (OVC, OVC Bambini o Fondo Oculare).</div>';
+  if(!a.length)return '';
   return a.map(s=>{const x=visitData(s);return '<div class="staffVisit"><div class="staffVisitTop"><div class="staffVisitTitle">'+esc(visitLabel(s))+'</div><div class="staffVisitDate">'+esc(fmtDateTime(s.updated_at||s.created_at))+'</div></div>'+(x.fields.length?'<div class="staffVisitFields">'+x.fields.map(f=>'<div class="staffVisitField"><b>'+esc(prettyVisitKey(f[0]))+'</b><span>'+esc(f[1])+'</span></div>').join('')+'</div>':'')+(x.media.length?'<div class="staffVisitMedia">'+x.media.map(src=>'<img src="'+esc(src)+'" alt="Immagine visita" onclick="openChatImage(this.src)">').join('')+'</div>':'')+'</div>'}).join('');
+}
+function staffClinicalRows(d,key){
+  const map={usage:'usage_sheets',protocol_ovc:'protocol_ovc_sheets',protocol_ovc_bambini:'protocol_ovc_bambini_sheets',analisi_visiva_integrata:'integrated_visual_analysis_sheets',fondo_oculare:'fundus_sheets',other:'other_clinical_sheets'};
+  const direct=Array.isArray(d?.[map[key]])?d[map[key]]:null;
+  if(direct)return direct;
+  return (Array.isArray(d?.visit_sheets)?d.visit_sheets:[]).filter(s=>sheetKind(s)===key);
+}
+function staffClinicalSection(d,title,key,emptyText){
+  const rows=staffClinicalRows(d,key);
+  return '<div class="staffSection"><h2>'+esc(title)+'</h2>'+(rows.length?staffVisitsHtml(rows):'<div class="empty">'+esc(emptyText)+'</div>')+'</div>';
 }
 function staffClientDetailMarkup(d){
   const c=d.customer||{};
   return '<div class="page"><button class="staffBack" onclick="closeStaffClient()">‹ Torna ai clienti</button><div class="header"><div class="eyebrow">ANAGRAFICA CLIENTE</div><h1>'+esc(((c.surname||'')+' '+(c.name||'')).trim()||'Cliente')+'</h1><div class="sub">'+esc([c.email,c.phone].filter(Boolean).join(' · '))+'</div></div>'+
   '<div class="staffSection"><h2>Anagrafica · modificabile</h2>'+staffClientEditHtml(c)+'</div>'+
   '<div class="staffSection"><div class="staffSectionHead"><h2>Prescrizioni · modificabili</h2><button class="staffMiniBtn" onclick="createStaffPrescription()">+ Nuova prescrizione</button></div>'+staffPrescriptionEditors(d)+'</div>'+
-  '<div class="staffSection"><h2>Schede visite</h2>'+staffVisitsHtml(d.visit_sheets||[])+'</div>'+
+  staffClinicalSection(d,'Indicazioni d’uso','usage','Nessuna indicazione d’uso collegata a questo cliente.')+
+  staffClinicalSection(d,'Protocollo OVC','protocol_ovc','Nessun Protocollo OVC collegato a questo cliente.')+
+  staffClinicalSection(d,'Protocollo OVC Bambini','protocol_ovc_bambini','Nessun Protocollo OVC Bambini collegato a questo cliente.')+
+  staffClinicalSection(d,'Analisi Visiva Integrata','analisi_visiva_integrata','Nessuna Analisi Visiva Integrata collegata a questo cliente.')+
+  staffClinicalSection(d,'Fondo Oculare','fondo_oculare','Nessun Fondo Oculare collegato a questo cliente.')+
+  (staffClinicalRows(d,'other').length?'<div class="staffSection"><h2>Altre schede cliniche</h2>'+staffVisitsHtml(staffClinicalRows(d,'other'))+'</div>':'')+
   '<div class="staffSection"><h2>Schede LAC</h2>'+staffLacHtml(d)+'</div>'+
   '<div class="staffSection"><h2>Ordini del cliente</h2>'+staffClientOrdersHtml(d)+'</div>'+
   '<div class="staffSection"><h2>Scontrini e fatture</h2><div class="docsNotice">Documenti economici collegati a questo cliente.</div><h3 style="font-size:12px;color:#173e69">Scontrini / pagamenti</h3>'+receiptCards(d.documents?.receipts||[])+'<h3 style="font-size:12px;color:#173e69;margin-top:16px">Fatture</h3>'+invoiceCards(d.documents?.invoices||[])+'</div>'+
