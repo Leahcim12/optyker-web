@@ -2,8 +2,8 @@ from pathlib import Path
 
 path=Path("_site/index.html")
 text=path.read_text(encoding="utf-8")
-css='<link rel="stylesheet" href="/cash-register.css?v=20260831-1" id="optykerCashCss">'
-js='<script src="/cash-register.js?v=20260831-1" id="optykerCashJs"></script>'
+css='<link rel="stylesheet" href="/cash-register.css?v=20260831-2" id="optykerCashCss">'
+js='<script src="/cash-register.js?v=20260831-2" id="optykerCashJs"></script>'
 
 if 'id="optykerCashCss"' not in text:
     pos=text.find("</head>")
