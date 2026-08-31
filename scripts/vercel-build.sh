@@ -64,6 +64,7 @@ for f in \
   scripts/patch_cash_register.py \
   scripts/patch_warehouse.py \
   scripts/patch_single_root_view.py \
+  scripts/patch_sidebar_chevrons.py \
   scripts/patch_ios_pwa.py; do python "$f"; done
 
 mkdir -p _site/staff-embed _site/booking _site/iphone _site/reset-password _site/admin-reset-passwords _site/staff-recovery _site/accesso _site/gestionale-v2 _site/gestionale-v3 _site/iphone-app _site/iphone-app-v2 _site/iphone-app-v3 _site/iphone-app-v4 _site/iphone-app-v5 _site/iphone-app-v6 _site/iphone-app-v7 _site/iphone-app-v8 _site/iphone-app-v9 _site/iphone-app-v10 _site/iphone-app-v11 _site/iphone-app-v12 _site/iphone-app-v13 _site/orari
