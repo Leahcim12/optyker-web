@@ -235,8 +235,8 @@ const STAFF_LOGIN=U+'/functions/v1/optyker-mobile-staff-login';
 const BOOKING_API=U+'/functions/v1/optyker-appointments-booking';
 const CATALOG=U+'/functions/v1/optyker-shop-catalog';
 const SHOP='https://otticavisualcare.it';
-const OPTYKER_BUILD='20260830-0033';
-const BOOK='../booking/?source=iphone-app&build=20260830-0033';
+const OPTYKER_BUILD='20260831-usage-hours';
+const BOOK='../booking/?source=iphone-app&build=20260831-usage-hours';
 const sb=window.supabase.createClient(U,K,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const app=document.getElementById('app');
 let state={session:null,me:null,home:null,appointments:[],tab:'home',frame:null,drawer:false,shopCategories:[],shopParent:null,shopCategory:null,shopProducts:[],shopPageInfo:null,shopLoading:false,shopError:'',cart:[],chatMessages:[],chatLoading:false,chatSending:false,chatError:'',chatTimer:null,chatAttachment:null,timers:[],timerLoading:false,timerError:'',staffHome:null,staffAgenda:[],staffAgendaStart:'',staffShifts:null,staffShiftMonth:'',staffClients:[],staffClientDetail:null,staffClientSearch:'',staffOrders:null,staffThreads:[],staffSelectedThread:'',staffMessages:[],staffLoading:false,staffError:'',staffProfileDraftPhoto:'',staffChatAttachment:null,documents:null,documentsLoading:false,documentsError:''};
@@ -316,7 +316,27 @@ function hoursMarkup(){
     return `<div class="hoursRow"><div class="hoursDay">${weekNames[d]} <span class="hoursDate">${dateLabel}</span>${changed?'<span class="hoursChanged">Aggiornato</span>':''}</div><div class="hoursTime ${closed?'hoursClosed':''}">${closed?'Chiuso':esc(hourText(h))}${note}</div></div>`;
   }).join('');
 
-  return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>Orari</h1><div class="sub">Gli orari vengono aggiornati automaticamente in caso di variazioni o chiusure.</div></div><div class="card"><h2>Orari di questa settimana</h2><div class="hoursList">${weekly}</div></div></div>`;
+  return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>Orari</h1><div class="sub">Gli orari vengono aggiornati automaticamente in caso di variazioni o chiusure.</div></div><div class="card"><h2>Orari di questa settimana</h2><div class="hoursList">${weekly}</div></div><div class="card"><h2>Sito web</h2><div class="sub" style="margin-bottom:12px">Visita il sito ufficiale di Ottica Visual Care.</div><button class="action" onclick="openWebsite()">APRI IL SITO WEB</button></div></div>`;
+}
+function usageFieldLabel(v){
+  const raw=String(v||'').trim();
+  if(!raw)return 'Indicazione';
+  const x=raw.replace(/([a-z0-9])([A-Z])/g,'$1 $2').replace(/[_-]+/g,' ').replace(/\s+/g,' ').trim();
+  const words=x.split(' ').filter(Boolean).map(w=>{
+    const u=w.toUpperCase();
+    if(['OD','OS','OO','LAC','SPH','SF','CIL','AX','ADD'].includes(u))return u;
+    return w.charAt(0).toUpperCase()+w.slice(1);
+  });
+  return words.join(' ');
+}
+function usageInstructionsMarkup(){
+  const rows=Array.isArray(state.home?.usage_instructions)?state.home.usage_instructions:[];
+  const cards=rows.map(s=>{
+    const fields=Array.isArray(s?.fields)?s.fields:[];
+    const body=fields.length?fields.map(f=>`<div style="padding:11px 0;border-bottom:1px solid #e8eef2"><div style="font-size:12px;font-weight:800;color:#526777;margin-bottom:4px">${esc(f.label&&f.label!==f.key?f.label:usageFieldLabel(f.key))}</div><div style="font-size:15px;font-weight:700;color:#19364b;white-space:pre-wrap">${esc(f.value||'')}</div></div>`).join(''):'<div class="empty">Nessuna indicazione compilata in questa scheda.</div>';
+    return `<div class="card"><h2>${esc(s?.title||'Indicazioni d’uso')}</h2>${s?.updated_at?`<div class="tiny">Aggiornata il ${esc(fmtDate(s.updated_at))}</div>`:''}<div style="margin-top:8px">${body}</div></div>`;
+  }).join('');
+  return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>Indicazioni d’uso</h1><div class="sub">Le indicazioni associate al tuo profilo Optyker</div></div>${cards||'<div class="card"><div class="empty">Non risultano ancora indicazioni d’uso associate al tuo profilo.</div></div>'}</div>`;
 }
 function lensesMarkup(){
   const lenses=Array.isArray(state.home?.lenses)?state.home.lenses:[];
@@ -1200,6 +1220,7 @@ function page(tab){
   if(tab==='cart')return cartMarkup();
   if(tab==='recent')return recentMarkup();
   if(tab==='rx')return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>La mia prescrizione</h1><div class="sub">Ultima prescrizione disponibile</div></div><div class="card"><h2>Sfero · Cilindro · Asse · Addizione</h2>${prescription()}</div></div>`;
+  if(tab==='instructions')return usageInstructionsMarkup();
   if(tab==='agenda')return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>Agenda</h1><div class="sub">I tuoi appuntamenti e nuove prenotazioni</div></div><div class="card"><h2>Prossimi appuntamenti</h2>${appointments()}</div><button class="action" onclick="openBooking()">Prenota un appuntamento</button></div>`;
   if(tab==='hours')return hoursMarkup();
   if(tab==='lac')return lensesMarkup();
@@ -1222,6 +1243,7 @@ function shell(){
         </div>
         <button class="drawerBtn" data-nav="documents" onclick="goTab('documents')">Scontrini e fatture</button>
         <button class="drawerBtn" data-nav="rx" onclick="goTab('rx')">Prescrizione</button>
+        <button class="drawerBtn" data-nav="instructions" onclick="goTab('instructions')">Indicazioni d’uso</button>
         <button class="drawerBtn" data-nav="agenda" onclick="goTab('agenda')">Agenda</button>
         <button class="drawerBtn" data-nav="hours" onclick="goTab('hours')">Orari</button>
         <button class="drawerBtn" data-nav="lac" onclick="goTab('lac')">LAC</button>
@@ -1248,6 +1270,7 @@ function render(){
   if(state.tab==='chat')setTimeout(()=>{const b=document.getElementById('chatMessages');if(b)b.scrollTop=b.scrollHeight},30);
 }
 window.openContactLensShop=()=>{state.tab='shop';state.drawer=false;state.frame=null;state.shopParent='contacts';state.shopCategory=null;state.shopProducts=[];state.shopPageInfo=null;state.shopError='';toggleDrawer(false);render()};
+window.openWebsite=()=>{window.location.href=String(state.home?.shop_url||SHOP||'https://otticavisualcare.it')};
 window.chooseShopParent=(key)=>{state.shopParent=key;state.shopCategory=null;state.shopProducts=[];state.shopPageInfo=null;state.shopError='';render()};
 window.shopBackRoot=()=>{state.shopParent=null;state.shopCategory=null;state.shopProducts=[];state.shopPageInfo=null;state.shopError='';render()};
 window.shopBackParent=()=>{state.shopCategory=null;state.shopProducts=[];state.shopPageInfo=null;state.shopError='';render()};
