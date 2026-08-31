@@ -1256,6 +1256,7 @@ function page(tab){
   return customerProfileMarkup();
 }
 function shell(){
+  state.drawer=false;
   app.innerHTML=`<div class="shell">
     <header class="topBar"><button class="hamb" onclick="toggleDrawer(true)" aria-label="Apri menu"><span></span><span></span><span></span></button><div class="topBrand"><b>Optyker</b><small>OTTICA VISUAL CARE</small></div></header>
     <div id="drawerBackdrop" class="drawerBackdrop" onclick="toggleDrawer(false)"></div>
