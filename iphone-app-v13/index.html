@@ -235,8 +235,8 @@ const STAFF_LOGIN=U+'/functions/v1/optyker-mobile-staff-login';
 const BOOKING_API=U+'/functions/v1/optyker-appointments-booking';
 const CATALOG=U+'/functions/v1/optyker-shop-catalog';
 const SHOP='https://otticavisualcare.it';
-const OPTYKER_BUILD='20260831-tap-fix';
-const BOOK='../booking/?source=iphone-app&build=20260831-tap-fix';
+const OPTYKER_BUILD='20260831-speed';
+const BOOK='../booking/?source=iphone-app&build=20260831-speed';
 const sb=window.supabase.createClient(U,K,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const app=document.getElementById('app');
 let state={session:null,me:null,home:null,appointments:[],tab:'home',frame:null,drawer:false,shopCategories:[],shopParent:null,shopCategory:null,shopProducts:[],shopPageInfo:null,shopLoading:false,shopError:'',cart:[],chatMessages:[],chatLoading:false,chatSending:false,chatError:'',chatTimer:null,chatAttachment:null,timers:[],timerLoading:false,timerError:'',staffHome:null,staffAgenda:[],staffAgendaStart:'',staffShifts:null,staffShiftMonth:'',staffClients:[],staffClientDetail:null,staffClientSearch:'',staffOrders:null,staffThreads:[],staffSelectedThread:'',staffMessages:[],staffLoading:false,staffError:'',staffProfileDraftPhoto:'',staffChatAttachment:null,documents:null,documentsLoading:false,documentsError:''};
@@ -256,6 +256,24 @@ function loadCart(){try{const x=JSON.parse(localStorage.getItem(cartKey())||'[]'
 function saveCart(){try{localStorage.setItem(cartKey(),JSON.stringify(state.cart||[]))}catch{}}
 function cartCount(){return (state.cart||[]).reduce((n,i)=>n+Number(i.qty||0),0)}
 function cartTotal(){return (state.cart||[]).reduce((n,i)=>n+(Number(i.price||0)*Number(i.qty||0)),0)}
+function lightweightSig(v){
+  try{return JSON.stringify(v)}catch{return String(Date.now())}
+}
+let lastHomeLiveSig='',lastChatSig='',shopCategoriesPromise=null;
+async function loadShopCategories(force=false){
+  if(state.shopCategories?.length&&!force)return state.shopCategories;
+  if(shopCategoriesPromise&&!force)return shopCategoriesPromise;
+  state.shopError='';
+  shopCategoriesPromise=call(CATALOG,'categories').then(x=>{
+    state.shopCategories=Array.isArray(x.data)?x.data:[];
+    return state.shopCategories;
+  }).catch(e=>{
+    state.shopCategories=[];
+    state.shopError='Catalogo temporaneamente non disponibile.';
+    return [];
+  }).finally(()=>{shopCategoriesPromise=null});
+  return shopCategoriesPromise;
+}
 function recentPurchases(){
   const cutoff=Date.now()-120*24*60*60*1000,out=[];
   for(const o of (state.home?.orders||[])){
@@ -731,14 +749,21 @@ function laboratoryDashboardMarkup(){
   return '<div class="dashLabSection"><div class="dashLabHead"><h2>I tuoi ordini in laboratorio</h2><span class="dashLabLive">STATO LIVE</span></div><div class="dashLabList">'+cards+'</div></div>';
 }
 let homeLiveBusy=false;
-async function refreshCustomerHomeLive(){
+async function refreshCustomerHomeLive(force=false){
   if(homeLiveBusy||!state.me||state.me.role!=='customer')return;
+  if(!force&&document.visibilityState!=='visible')return;
   homeLiveBusy=true;
   try{
     const r=await Promise.all([call(API,'customer_home'),call(APPT,'history')]);
-    state.home=r[0].data||state.home;
-    state.appointments=Array.isArray(r[1].data)?r[1].data:state.appointments;
-    if(state.tab==='home')render();
+    const nextHome=r[0].data||state.home,nextAppointments=Array.isArray(r[1].data)?r[1].data:state.appointments;
+    const sig=lightweightSig({
+      laboratory_orders:nextHome?.laboratory_orders||[],
+      unread_chat:Number(nextHome?.unread_chat||0),
+      appointments:nextAppointments,
+      name:nextHome?.customer?.name||''
+    });
+    state.home=nextHome;state.appointments=nextAppointments;
+    if(state.tab==='home'&&(force||sig!==lastHomeLiveSig)){lastHomeLiveSig=sig;render()}
   }catch(e){}finally{homeLiveBusy=false}
 }
 window.refreshCustomerHomeLive=refreshCustomerHomeLive;
@@ -773,11 +798,24 @@ window.chooseChatProfilePhoto=()=>{let f=document.getElementById('chatProfileFil
 window.openChatImage=(src)=>{document.getElementById('chatImageModal')?.remove();app.insertAdjacentHTML('beforeend','<div id="chatImageModal" class="chatImageModal" onclick="if(event.target===this)closeChatImage()"><button onclick="closeChatImage()">×</button><img src="'+esc(src)+'" alt="Foto ingrandita"></div>')};
 window.closeChatImage=()=>document.getElementById('chatImageModal')?.remove();
 async function loadChat(silent=false){
-  if(state.chatLoading&&!silent)return;
-  if(!silent){state.chatLoading=true;state.chatError='';if(state.tab==='chat')render()}
-  try{const x=await call(API,'chat_get',{});state.chatMessages=Array.isArray(x.data)?x.data:[];if(x.customer_photo&&state.home?.customer)state.home.customer.photo_data=x.customer_photo;state.chatError=''}
-  catch(e){if(!silent)state.chatError=e?.message||'Chat non disponibile.'}
-  finally{state.chatLoading=false;if(state.tab==='chat'){render();setTimeout(()=>{const b=document.getElementById('chatMessages');if(b)b.scrollTop=b.scrollHeight},40)}}
+  if(state.chatLoading)return;
+  if(silent&&document.visibilityState!=='visible')return;
+  state.chatLoading=true;
+  if(!silent){state.chatError='';if(state.tab==='chat'&&!state.chatMessages.length)render()}
+  let changed=!silent;
+  try{
+    const x=await call(API,'chat_get',{}),rows=Array.isArray(x.data)?x.data:[];
+    const last=rows.length?rows[rows.length-1]:null;
+    const sig=String(rows.length)+'|'+String(last?.id||'')+'|'+String(last?.created_at||'')+'|'+String(last?.message||'').length+'|'+String(last?.attachment_data||'').length;
+    changed=changed||sig!==lastChatSig;
+    lastChatSig=sig;state.chatMessages=rows;
+    if(x.customer_photo&&state.home?.customer&&state.home.customer.photo_data!==x.customer_photo){state.home.customer.photo_data=x.customer_photo;changed=true}
+    state.chatError='';
+  }catch(e){if(!silent){state.chatError=e?.message||'Chat non disponibile.';changed=true}}
+  finally{
+    state.chatLoading=false;
+    if(state.tab==='chat'&&changed){render();setTimeout(()=>{const b=document.getElementById('chatMessages');if(b)b.scrollTop=b.scrollHeight},40)}
+  }
 }
 window.sendChat=async()=>{
   if(state.chatSending)return;
@@ -1284,20 +1322,20 @@ function shell(){
     <main id="content" class="content"></main>
   </div>`;
   if(state.chatTimer)clearInterval(state.chatTimer);
-  state.chatTimer=setInterval(()=>{if(state.tab==='chat')loadChat(true)},5000);
+  state.chatTimer=setInterval(()=>{if(state.tab==='chat'&&document.visibilityState==='visible')loadChat(true)},15000);
   if(window.__optykerHomeLiveTimer)clearInterval(window.__optykerHomeLiveTimer);
-  window.__optykerHomeLiveTimer=setInterval(()=>{if(state.tab==='home')refreshCustomerHomeLive()},15000);
+  window.__optykerHomeLiveTimer=setInterval(()=>{if(state.tab==='home'&&document.visibilityState==='visible')refreshCustomerHomeLive(false)},45000);
   render();
 }
 window.toggleDrawer=(open)=>{state.drawer=!!open;const drawer=document.getElementById('drawer'),backdrop=document.getElementById('drawerBackdrop');drawer?.classList.toggle('open',state.drawer);backdrop?.classList.toggle('open',state.drawer);if(!state.drawer){backdrop?.setAttribute('aria-hidden','true')}else{backdrop?.setAttribute('aria-hidden','false')}};
-window.goTab=(tab)=>{state.tab=tab;state.drawer=false;state.frame=null;toggleDrawer(false);if(tab==='chat')loadChat(false);else if(tab==='timer')loadTimers(false);else if(tab==='documents')loadCustomerDocuments(false);else if(tab==='home'){render();refreshCustomerHomeLive()}else render()};
+window.goTab=async(tab)=>{state.tab=tab;state.drawer=false;state.frame=null;toggleDrawer(false);if(tab==='shop'&&!state.shopCategories.length){render();await loadShopCategories(false);if(state.tab==='shop')render();return}if(tab==='chat')loadChat(false);else if(tab==='timer')loadTimers(false);else if(tab==='documents')loadCustomerDocuments(false);else if(tab==='home'){render();refreshCustomerHomeLive(false)}else render()};
 function render(){
   const content=document.getElementById('content');if(!content)return;
   content.innerHTML=page(state.tab);
   document.querySelectorAll('.drawerBtn,.drawerSubBtn').forEach(b=>b.classList.toggle('active',b.dataset.nav===state.tab||(b.dataset.nav==='shop'&&(state.tab==='cart'||state.tab==='recent'))));updateCartBadge();
   if(state.tab==='chat')setTimeout(()=>{const b=document.getElementById('chatMessages');if(b)b.scrollTop=b.scrollHeight},30);
 }
-window.openContactLensShop=()=>{state.tab='shop';state.drawer=false;state.frame=null;state.shopParent='contacts';state.shopCategory=null;state.shopProducts=[];state.shopPageInfo=null;state.shopError='';toggleDrawer(false);render()};
+window.openContactLensShop=async()=>{state.tab='shop';state.drawer=false;state.frame=null;state.shopParent='contacts';state.shopCategory=null;state.shopProducts=[];state.shopPageInfo=null;state.shopError='';toggleDrawer(false);if(!state.shopCategories.length)await loadShopCategories(false);render()};
 window.openWebsite=()=>{window.location.href=String(state.home?.shop_url||SHOP||'https://otticavisualcare.it')};
 window.chooseShopParent=(key)=>{state.shopParent=key;state.shopCategory=null;state.shopProducts=[];state.shopPageInfo=null;state.shopError='';render()};
 window.shopBackRoot=()=>{state.shopParent=null;state.shopCategory=null;state.shopProducts=[];state.shopPageInfo=null;state.shopError='';render()};
@@ -1316,7 +1354,7 @@ window.deleteAppointment=async(token)=>{if(!token)return;if(!confirm('Vuoi elimi
 window.openBooking=()=>{const c=state.home?.customer||state.me?.customer||{},url=BOOK+'&fresh='+Date.now()+'&first_name='+encodeURIComponent(c.name||'')+'&last_name='+encodeURIComponent(c.surname||'')+'&email='+encodeURIComponent(c.email||state.me?.email||'')+'&phone='+encodeURIComponent(c.phone||'');state.frame='booking';app.insertAdjacentHTML('beforeend',`<div id="frameLayer"><div class="frameBar"><button onclick="closeFrame()">‹ Agenda</button><b style="flex:1;color:#11395d">Prenota appuntamento</b></div><iframe class="bookingFrame" src="${url}" title="Prenotazione appuntamento"></iframe></div>`) };
 window.openStaffBooking=()=>{const url=BOOK+'&source=staff-app&fresh='+Date.now();state.frame='staff-booking';app.insertAdjacentHTML('beforeend',`<div id="frameLayer"><div class="frameBar"><button onclick="closeFrame()">‹ Agenda</button><b style="flex:1;color:#11395d">Nuovo appuntamento</b></div><iframe class="bookingFrame" src="${url}" title="Nuovo appuntamento"></iframe></div>`)};
 window.closeFrame=async()=>{document.getElementById('frameLayer')?.remove();state.frame=null;window.__optykerProduct=null;window.__optykerVariant=null;if(state.me?.role==='staff'&&state.tab==='staff_agenda'){state.staffAgenda=[];await loadStaffAgenda(true);return}if(state.tab==='agenda'||state.tab==='home'){try{const x=await call(APPT,'history');state.appointments=Array.isArray(x.data)?x.data:[];render()}catch{}}};
-window.logout=async()=>{if(state.chatTimer)clearInterval(state.chatTimer);if(window.__optykerHomeLiveTimer)clearInterval(window.__optykerHomeLiveTimer);await sb.auth.signOut();state={session:null,me:null,home:null,appointments:[],tab:'home',frame:null,drawer:false,shopCategories:[],shopParent:null,shopCategory:null,shopProducts:[],shopPageInfo:null,shopLoading:false,shopError:'',cart:[],chatMessages:[],chatLoading:false,chatSending:false,chatError:'',chatTimer:null,chatAttachment:null,timers:[],timerLoading:false,timerError:'',staffHome:null,staffAgenda:[],staffAgendaStart:'',staffShifts:null,staffShiftMonth:'',staffClients:[],staffClientDetail:null,staffClientSearch:'',staffOrders:null,staffThreads:[],staffSelectedThread:'',staffMessages:[],staffLoading:false,staffError:'',staffProfileDraftPhoto:'',staffChatAttachment:null};login()};
+window.logout=async()=>{if(state.chatTimer)clearInterval(state.chatTimer);if(window.__optykerHomeLiveTimer)clearInterval(window.__optykerHomeLiveTimer);lastHomeLiveSig='';lastChatSig='';shopCategoriesPromise=null;await sb.auth.signOut();state={session:null,me:null,home:null,appointments:[],tab:'home',frame:null,drawer:false,shopCategories:[],shopParent:null,shopCategory:null,shopProducts:[],shopPageInfo:null,shopLoading:false,shopError:'',cart:[],chatMessages:[],chatLoading:false,chatSending:false,chatError:'',chatTimer:null,chatAttachment:null,timers:[],timerLoading:false,timerError:'',staffHome:null,staffAgenda:[],staffAgendaStart:'',staffShifts:null,staffShiftMonth:'',staffClients:[],staffClientDetail:null,staffClientSearch:'',staffOrders:null,staffThreads:[],staffSelectedThread:'',staffMessages:[],staffLoading:false,staffError:'',staffProfileDraftPhoto:'',staffChatAttachment:null};login()};
 
 async function boot(){
   const {data}=await sb.auth.getSession();state.session=data.session||null;if(!state.session){login();return}
@@ -1333,8 +1371,7 @@ async function boot(){
     if(state.me?.role!=='customer')throw Error('Questa email non è associata a un profilo Optyker.');
     const [homeX,apptX]=await Promise.all([call(API,'customer_home'),call(APPT,'history')]);
     loadCart();
-    state.home=homeX.data||null;state.appointments=Array.isArray(apptX.data)?apptX.data:[];const requestedTab=new URLSearchParams(location.search).get('tab');state.tab=requestedTab==='timer'?'timer':'home';
-    try{const catX=await call(CATALOG,'categories');state.shopCategories=Array.isArray(catX.data)?catX.data:[]}catch(e){state.shopCategories=[];state.shopError='Catalogo temporaneamente non disponibile.'}
+    state.home=homeX.data||null;state.appointments=Array.isArray(apptX.data)?apptX.data:[];lastHomeLiveSig=lightweightSig({laboratory_orders:state.home?.laboratory_orders||[],unread_chat:Number(state.home?.unread_chat||0),appointments:state.appointments,name:state.home?.customer?.name||''});const requestedTab=new URLSearchParams(location.search).get('tab');state.tab=requestedTab==='timer'?'timer':'home';
     shell();
     if(state.tab==='timer')loadTimers(false);
   }catch(e){
