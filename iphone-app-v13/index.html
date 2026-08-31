@@ -235,8 +235,8 @@ const STAFF_LOGIN=U+'/functions/v1/optyker-mobile-staff-login';
 const BOOKING_API=U+'/functions/v1/optyker-appointments-booking';
 const CATALOG=U+'/functions/v1/optyker-shop-catalog';
 const SHOP='https://otticavisualcare.it';
-const OPTYKER_BUILD='20260831-speed';
-const BOOK='../booking/?source=iphone-app&build=20260831-speed';
+const OPTYKER_BUILD='20260831-speed2';
+const BOOK='../booking/?source=iphone-app&build=20260831-speed2';
 const sb=window.supabase.createClient(U,K,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const app=document.getElementById('app');
 let state={session:null,me:null,home:null,appointments:[],tab:'home',frame:null,drawer:false,shopCategories:[],shopParent:null,shopCategory:null,shopProducts:[],shopPageInfo:null,shopLoading:false,shopError:'',cart:[],chatMessages:[],chatLoading:false,chatSending:false,chatError:'',chatTimer:null,chatAttachment:null,timers:[],timerLoading:false,timerError:'',staffHome:null,staffAgenda:[],staffAgendaStart:'',staffShifts:null,staffShiftMonth:'',staffClients:[],staffClientDetail:null,staffClientSearch:'',staffOrders:null,staffThreads:[],staffSelectedThread:'',staffMessages:[],staffLoading:false,staffError:'',staffProfileDraftPhoto:'',staffChatAttachment:null,documents:null,documentsLoading:false,documentsError:''};
@@ -1129,13 +1129,12 @@ function staffRender(){
   setTimeout(()=>{const x=document.getElementById('staffChatMsgs');if(x)x.scrollTop=x.scrollHeight},0);
 }
 window.staffGo=async(tab)=>{
-  state.tab=tab;state.drawer=false;toggleDrawer(false);
+  state.tab=tab;state.drawer=false;toggleDrawer(false);staffRender();
   if(tab==='staff_agenda')await loadStaffAgenda(false);
   else if(tab==='staff_shifts')await loadStaffShifts(false);
   else if(tab==='staff_clients')await loadStaffClients(false);
   else if(tab==='staff_orders')await loadStaffOrders(false);
   else if(tab==='staff_chat')await loadStaffThreads(false);
-  else staffRender();
 };
 async function loadStaffAgenda(force){
   if(!state.staffAgendaStart)state.staffAgendaStart=staffDateKey(staffMonday(new Date()));
@@ -1363,9 +1362,9 @@ async function boot(){
     const meX=await call(API,'me');
     state.me=meX.data||null;
     if(state.me?.role==='staff'){
-      const homeX=await call(API,'staff_home');
-      state.staffHome=homeX.data||null;state.tab='staff_home';state.staffShiftMonth=staffMonthKey(new Date());state.staffAgendaStart=staffDateKey(staffMonday(new Date()));
+      state.staffHome=state.staffHome||{stats:{clients:0,orders:0,pending_reorders:0,unread_chats:0}};state.tab='staff_home';state.staffShiftMonth=staffMonthKey(new Date());state.staffAgendaStart=staffDateKey(staffMonday(new Date()));
       staffShell();
+      call(API,'staff_home').then(homeX=>{if(state.me?.role==='staff'){state.staffHome=homeX.data||state.staffHome;if(state.tab==='staff_home')staffRender()}}).catch(()=>{});
       return;
     }
     if(state.me?.role!=='customer')throw Error('Questa email non è associata a un profilo Optyker.');
