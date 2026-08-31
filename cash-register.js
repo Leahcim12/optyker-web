@@ -1,7 +1,7 @@
 (function(){
 if(window.__optykerCashLoaded)return;window.__optykerCashLoaded=true;
 var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-cash-register-api';
-var S={products:[],cart:{},type:'',payment:'card',stage:'balance',clientId:'',invoice:false,busy:false,searchTimer:null};
+var S={products:[],clients:[],cart:{},type:'',payment:'card',stage:'balance',clientId:'',invoice:false,busy:false,searchTimer:null,clientSearchTimer:null};
 
 function E(id){return document.getElementById(id)}
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -43,7 +43,7 @@ function ensureUI(){
     '<div class="optykerCashSearchWrap"><input id="optykerCashSearch" type="search" autocomplete="off" placeholder="Cerca prodotto, marca, SKU o codice…"></div>'+
     '<div class="optykerCashHeaderRight"><div id="optykerCashOperator" class="optykerCashHeaderBadge"></div><button id="optykerCashClose" type="button">×</button></div></div>'+
     '<div class="optykerCashMain"><section class="optykerCashCatalog"><div class="optykerCashCatalogTop"><div id="optykerCashTypes"></div><button id="optykerCashRefresh" type="button">Aggiorna catalogo</button></div><div id="optykerCashProducts" class="optykerCashProducts"></div></section>'+
-    '<aside class="optykerCashCart"><div class="optykerCashCartHead"><div class="optykerCashCartTitle">Carrello</div><div id="optykerCashCartCount" class="optykerCashCartCount">0 articoli</div><div class="optykerCashClientBox"><label>Cliente</label><select id="optykerCashClient"></select></div></div><div id="optykerCashCartItems" class="optykerCashCartItems"></div>'+
+    '<aside class="optykerCashCart"><div class="optykerCashCartHead"><div class="optykerCashCartTitle">Carrello</div><div id="optykerCashCartCount" class="optykerCashCartCount">0 articoli</div><div class="optykerCashClientBox"><label>Cerca cliente</label><input id="optykerCashClientSearch" type="search" autocomplete="off" placeholder="Nome, cognome, telefono, email, riferimento…"><label class="optykerCashClientSelectLabel">Cliente</label><select id="optykerCashClient"></select></div></div><div id="optykerCashCartItems" class="optykerCashCartItems"></div>'+
     '<div class="optykerCashCheckout">'+
       '<div class="optykerCashTotalRow"><div class="optykerCashTotalLabel">Totale vendita</div><div id="optykerCashTotal">€ 0,00</div></div>'+
       '<div class="optykerCashPayLabel">Operazione</div><div class="optykerCashStages">'+
@@ -63,21 +63,36 @@ function ensureUI(){
   document.body.appendChild(d);
   E('optykerCashClose').onclick=closeCash;E('optykerCashRefresh').onclick=function(){loadProducts(true)};
   E('optykerCashSearch').oninput=function(){clearTimeout(S.searchTimer);S.searchTimer=setTimeout(function(){loadProducts(false)},280)};
-  E('optykerCashClient').onchange=function(){S.clientId=this.value||'';updateInvoiceAvailability()};
+  E('optykerCashClient').onchange=function(){S.clientId=this.value||'';updateInvoiceAvailability()};E('optykerCashClientSearch').oninput=function(){var q=this.value||'';clearTimeout(S.clientSearchTimer);S.clientSearchTimer=setTimeout(function(){searchCashClients(q)},220)};
   var ps=d.querySelectorAll('[data-pay]');for(var i=0;i<ps.length;i++)ps[i].onclick=function(){S.payment=this.getAttribute('data-pay')||'card';renderPay();renderCart()};
   var ss=d.querySelectorAll('[data-stage]');for(i=0;i<ss.length;i++)ss[i].onclick=function(){S.stage=this.getAttribute('data-stage')||'balance';renderStage();renderCart()};
   E('optykerCashDeposit').oninput=renderCart;
   E('optykerCashInvoice').onchange=function(){S.invoice=!!this.checked};
   E('optykerCashCheckoutBtn').onclick=checkout;E('optykerCashRecentBtn').onclick=recentSales;E('optykerCashDepositsBtn').onclick=openDeposits;
 }
-function fillClients(id){
+function fillClients(id,rows){
   var s=E('optykerCashClient');if(!s)return;
-  var a=clientsLocal();var h='<option value="">Cliente occasionale</option>';
+  var a=Array.isArray(rows)?rows:(S.clients.length?S.clients:clientsLocal());
+  var h='<option value="">Cliente occasionale</option>';
   for(var i=0;i<a.length;i++)h+='<option value="'+esc(a[i].id)+'">'+esc(clientLabel(a[i]))+'</option>';
-  s.innerHTML=h;s.value=id||'';S.clientId=s.value||''
+  s.innerHTML=h;
+  if(id&&Array.prototype.some.call(s.options,function(o){return o.value===id}))s.value=id;else if(!id)s.value='';
+  S.clientId=s.value||''
+}
+function searchCashClients(q,keepId){
+  var clean=String(q||'').trim();
+  return api('clients',{search:clean}).then(function(x){
+    S.clients=Array.isArray(x.data)?x.data:[];
+    fillClients(keepId||S.clientId,S.clients);
+    updateInvoiceAvailability()
+  }).catch(function(){
+    var all=clientsLocal(),k=clean.toLowerCase();
+    S.clients=k?all.filter(function(c){return [c.name,c.surname,c.email,c.phone,c.fiscal,c.vat,c.reference_no].join(' ').toLowerCase().indexOf(k)>=0}):all;
+    fillClients(keepId||S.clientId,S.clients)
+  })
 }
 function openCash(clientId){
-  ensureUI();S.stage='balance';S.payment='card';S.invoice=false;fillClients(clientId||'');S.clientId=clientId||'';
+  ensureUI();S.stage='balance';S.payment='card';S.invoice=false;S.clients=clientsLocal();fillClients(clientId||'',S.clients);S.clientId=clientId||'';if(E('optykerCashClientSearch'))E('optykerCashClientSearch').value='';searchCashClients('',clientId||'');
   var o=E('optykerCashOperator'),c=creds();if(o)o.textContent=c.username?'Operatore · '+c.username:'Operatore';
   E('optykerCashOverlay').classList.add('open');document.body.style.overflow='hidden';
   var inv=E('optykerCashInvoice');if(inv)inv.checked=false;renderPay();renderStage();updateInvoiceAvailability();renderCart();loadProducts(false);setTimeout(function(){try{E('optykerCashSearch').focus()}catch(e){}},60)
