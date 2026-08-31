@@ -17,21 +17,11 @@ function toast(m,t){var x=E('optykerCashToast');if(!x){x=document.createElement(
 function installTop(){
   if(window.OPTYKER_BILLING_ADMIN)return;
   var n=E('optykerTopNewClientBtn')||E('optykerQuickNewClient');
-  if(!n){
-    var all=document.querySelectorAll('button,a');
-    for(var i=0;i<all.length;i++){
-      var t=String(all[i].textContent||'').replace(/\s+/g,' ').trim().toLowerCase();
-      if(t==='nuovo cliente'||t==='+ nuovo cliente'||t==='+cliente'||t==='+ cliente'){n=all[i];break}
-    }
-  }
   if(!n)return;
-  var b=E('optykerCashBtn');
-  if(!b){
-    b=document.createElement('button');
-    b.id='optykerCashBtn';b.type='button';b.innerHTML='<span aria-hidden="true">€</span> Cassa';
-    b.title='Cassa per vendite occasionali';b.onclick=function(){openCash('')};
-  }
-  if(b.parentNode!==n.parentNode||b.nextElementSibling!==n)n.parentNode.insertBefore(b,n)
+  var old=E('optykerCashBtn');if(old&&old!==n)old.remove();
+  n.innerHTML='<span aria-hidden="true">€</span> Cassa';
+  n.title='Cassa per vendite occasionali';
+  n.onclick=function(ev){if(ev){ev.preventDefault();ev.stopPropagation()}openCash('')};
 }
 function installClient(){
   if(window.OPTYKER_BILLING_ADMIN)return;
