@@ -692,3 +692,101 @@
     width:100%!important;height:auto!important;
   }
 }
+
+/* CASSA LAYOUT V4 · catalog + payment sidebar always visible */
+@media(min-width:761px){
+  .optykerCashMain{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) 410px!important;
+    grid-template-areas:"catalog cart"!important;
+    width:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    height:calc(100vh - 76px)!important;
+    overflow:hidden!important;
+  }
+  .optykerCashCatalog{
+    grid-area:catalog!important;
+    position:relative!important;
+    width:auto!important;
+    height:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    margin:0!important;
+    overflow:hidden!important;
+    display:flex!important;
+    flex-direction:column!important;
+    visibility:visible!important;
+    opacity:1!important;
+  }
+  .optykerCashCatalogTop{
+    flex:0 0 auto!important;
+  }
+  .optykerCashProducts{
+    flex:1 1 auto!important;
+    min-width:0!important;
+    min-height:0!important;
+    width:auto!important;
+    overflow:auto!important;
+    display:grid!important;
+    visibility:visible!important;
+    opacity:1!important;
+  }
+  .optykerCashCart{
+    grid-area:cart!important;
+    position:relative!important;
+    top:auto!important;
+    right:auto!important;
+    bottom:auto!important;
+    left:auto!important;
+    width:auto!important;
+    height:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    max-height:100%!important;
+    margin:0!important;
+    z-index:10!important;
+    display:flex!important;
+    flex-direction:column!important;
+    overflow:hidden!important;
+    visibility:visible!important;
+    opacity:1!important;
+    transform:none!important;
+  }
+  .optykerCashCartHead{flex:0 0 auto!important}
+  .optykerCashCartItems{
+    flex:1 1 auto!important;
+    min-height:0!important;
+    overflow:auto!important;
+  }
+  .optykerCashCheckout{
+    flex:0 0 auto!important;
+    position:relative!important;
+    bottom:auto!important;
+    display:block!important;
+    overflow:visible!important;
+  }
+}
+@media(min-width:761px) and (max-width:1040px){
+  .optykerCashMain{
+    grid-template-columns:minmax(0,1fr) 370px!important;
+  }
+}
+@media(max-width:760px){
+  .optykerCashMain{
+    display:block!important;
+    height:auto!important;
+    overflow:auto!important;
+  }
+  .optykerCashCatalog{
+    width:100%!important;
+    height:auto!important;
+    margin:0!important;
+    overflow:visible!important;
+  }
+  .optykerCashCart{
+    position:relative!important;
+    width:100%!important;
+    height:auto!important;
+  }
+}
