@@ -1,7 +1,7 @@
 (function(){
 if(window.__optykerCashLoaded)return;window.__optykerCashLoaded=true;
 var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-cash-register-api';
-var S={products:[],clients:[],cart:{},type:'',payment:'card',stage:'balance',clientId:'',invoice:false,busy:false,searchTimer:null,clientSearchTimer:null};
+var S={products:[],clients:[],cart:{},type:'',payment:'card',stage:'balance',clientId:'',invoice:false,busy:false,searchTimer:null,clientSearchTimer:null,rchOk:false};
 
 function E(id){return document.getElementById(id)}
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -13,6 +13,44 @@ function api(action,payload){
 }
 function euro(v){try{return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(Number(v||0))}catch(e){return (Number(v||0).toFixed(2)+' €')}}
 function toast(m,t){var x=E('optykerCashToast');if(!x){x=document.createElement('div');x.id='optykerCashToast';document.body.appendChild(x)}x.className=t||'';x.textContent=m;x.style.display='block';clearTimeout(x.__tm);x.__tm=setTimeout(function(){x.style.display='none'},3600)}
+function rchBridge(){return 'http://127.0.0.1:8765'}
+function rchStatusUi(ok,label){
+  S.rchOk=!!ok;var b=E('optykerCashRch');if(!b)return;
+  b.classList.toggle('ok',!!ok);b.classList.toggle('error',!ok);
+  b.textContent=label||((ok?'● RCH collegato':'○ RCH'))
+}
+function rchRequest(path,opts){
+  opts=opts||{};opts.cache='no-store';
+  return fetch(rchBridge()+path,opts).then(function(r){return r.json().catch(function(){return {}}).then(function(x){if(!r.ok||!x||x.ok===false)throw new Error(x&&x.error||('HTTP '+r.status));return x})})
+}
+function testRch(quiet){
+  return rchRequest('/status').then(function(x){
+    var extra=x.mode?(' · '+x.mode):'';rchStatusUi(true,'● RCH collegato'+extra);
+    if(!quiet)toast('RCH PRINT! collegato correttamente'+extra,'ok');return x
+  }).catch(function(e){
+    rchStatusUi(false,'○ RCH non collegato');
+    if(!quiet)toast('Connettore RCH non raggiungibile: '+e.message,'error');
+    throw e
+  })
+}
+function openRch(){
+  var m=E('optykerCashRchModal');if(!m){m=document.createElement('div');m.id='optykerCashRchModal';m.className='optykerCashModal';document.body.appendChild(m)}
+  m.innerHTML='<div class="optykerCashModalCard optykerCashRchCard"><div class="optykerCashModalTitle">Registratore fiscale RCH</div>'+
+    '<div class="optykerCashModalSub">Optyker usa un piccolo connettore locale per comunicare in sicurezza con RCH PRINT! RT su 192.168.1.10.</div>'+
+    '<div class="optykerCashRchInfo"><div><span>Registratore</span><b>RCH PRINT! RT</b></div><div><span>IP</span><b>192.168.1.10</b></div><div><span>Web Service</span><b>/service.cgi</b></div><div><span>Bridge Optyker</span><b>127.0.0.1:8765</b></div></div>'+
+    '<div id="optykerCashRchResult" class="optykerCashRchResult">Pronto per il test.</div>'+
+    '<div class="optykerCashRchDownloads"><a href="/rch-connector/rch-optyker-connector.ps1" download>1. Scarica connettore</a><a href="/rch-connector/Avvia-RCH-Optyker.bat" download>2. Scarica avvio Windows</a></div>'+
+    '<div class="optykerCashRchHelp">Metti i due file nella stessa cartella, apri <b>Avvia-RCH-Optyker.bat</b> e lascia aperta la finestra mentre usi Optyker. Il test non stampa alcuno scontrino.</div>'+
+    '<div class="optykerCashRchActions"><button id="optykerCashRchTest" type="button">Test collegamento RCH</button><button class="optykerCashModalClose" type="button">Chiudi</button></div></div>';
+  m.classList.add('open');
+  m.querySelector('.optykerCashModalClose').onclick=function(){m.classList.remove('open')};
+  m.onclick=function(ev){if(ev.target===m)m.classList.remove('open')};
+  E('optykerCashRchTest').onclick=function(){
+    var r=E('optykerCashRchResult');r.textContent='Collegamento in corso…';r.className='optykerCashRchResult';
+    testRch(true).then(function(x){r.textContent='Collegamento riuscito · errore 0 · stampante pronta'+(x.mode?' · modalità '+x.mode:'');r.className='optykerCashRchResult ok'})
+      .catch(function(e){r.textContent='Non collegato · '+e.message;r.className='optykerCashRchResult error'})
+  }
+}
 
 function installTop(){
   if(window.OPTYKER_BILLING_ADMIN)return;
@@ -41,7 +79,7 @@ function ensureUI(){
   d.innerHTML='<div class="optykerCashHeader">'+
     '<div class="optykerCashBrand"><div class="optykerCashBrandMark">€</div><div><div class="optykerCashBrandTitle">Cassa</div><div class="optykerCashBrandSub">Optyker · vendita in negozio</div></div></div>'+
     '<div class="optykerCashSearchWrap"><input id="optykerCashSearch" type="search" autocomplete="off" placeholder="Cerca prodotto, marca, SKU o codice…"></div>'+
-    '<div class="optykerCashHeaderRight"><div id="optykerCashOperator" class="optykerCashHeaderBadge"></div><button id="optykerCashClose" type="button">×</button></div></div>'+
+    '<div class="optykerCashHeaderRight"><button id="optykerCashRch" class="optykerCashRchBadge" type="button">○ RCH</button><div id="optykerCashOperator" class="optykerCashHeaderBadge"></div><button id="optykerCashClose" type="button">×</button></div></div>'+
     '<div class="optykerCashMain"><section class="optykerCashCatalog"><div class="optykerCashCatalogTop"><div id="optykerCashTypes"></div><button id="optykerCashRefresh" type="button">Aggiorna catalogo</button></div><div id="optykerCashProducts" class="optykerCashProducts"></div></section>'+
     '<aside class="optykerCashCart"><div class="optykerCashCartHead"><div class="optykerCashCartTitle">Carrello</div><div id="optykerCashCartCount" class="optykerCashCartCount">0 articoli</div><div class="optykerCashClientBox"><label>Cerca cliente</label><input id="optykerCashClientSearch" type="search" autocomplete="off" placeholder="Nome, cognome, telefono, email, riferimento…"><label class="optykerCashClientSelectLabel">Cliente</label><select id="optykerCashClient"></select></div></div><div id="optykerCashCartItems" class="optykerCashCartItems"></div>'+
     '<div class="optykerCashCheckout">'+
@@ -61,7 +99,7 @@ function ensureUI(){
       '<div class="optykerCashSecondaryActions"><button id="optykerCashDepositsBtn" type="button">Acconti aperti</button><button id="optykerCashRecentBtn" type="button">Ultime vendite</button></div>'+
     '</div></aside></div>';
   document.body.appendChild(d);
-  E('optykerCashClose').onclick=closeCash;E('optykerCashRefresh').onclick=function(){loadProducts(true)};
+  E('optykerCashClose').onclick=closeCash;E('optykerCashRch').onclick=openRch;E('optykerCashRefresh').onclick=function(){loadProducts(true)};
   E('optykerCashSearch').oninput=function(){clearTimeout(S.searchTimer);S.searchTimer=setTimeout(function(){loadProducts(false)},280)};
   E('optykerCashClient').onchange=function(){S.clientId=this.value||'';updateInvoiceAvailability()};E('optykerCashClientSearch').oninput=function(){var q=this.value||'';clearTimeout(S.clientSearchTimer);S.clientSearchTimer=setTimeout(function(){searchCashClients(q)},220)};
   var ps=d.querySelectorAll('[data-pay]');for(var i=0;i<ps.length;i++)ps[i].onclick=function(){S.payment=this.getAttribute('data-pay')||'card';renderPay();renderCart()};
@@ -94,7 +132,7 @@ function searchCashClients(q,keepId){
 function openCash(clientId){
   ensureUI();S.stage='balance';S.payment='card';S.invoice=false;S.clients=clientsLocal();fillClients(clientId||'',S.clients);S.clientId=clientId||'';if(E('optykerCashClientSearch'))E('optykerCashClientSearch').value='';searchCashClients('',clientId||'');
   var o=E('optykerCashOperator'),c=creds();if(o)o.textContent=c.username?'Operatore · '+c.username:'Operatore';
-  E('optykerCashOverlay').classList.add('open');document.body.style.overflow='hidden';
+  E('optykerCashOverlay').classList.add('open');document.body.style.overflow='hidden';testRch(true).catch(function(){});
   var inv=E('optykerCashInvoice');if(inv)inv.checked=false;renderPay();renderStage();updateInvoiceAvailability();renderCart();loadProducts(false);setTimeout(function(){try{E('optykerCashSearch').focus()}catch(e){}},60)
 }
 function closeCash(){var o=E('optykerCashOverlay');if(o)o.classList.remove('open');document.body.style.overflow=''}
