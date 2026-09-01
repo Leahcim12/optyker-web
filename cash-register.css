@@ -790,3 +790,89 @@
     height:auto!important;
   }
 }
+
+/* CASSA PRODUCT CARDS V5 · prevent collapsed line rendering */
+.optykerCashProducts{
+  grid-auto-rows:max-content!important;
+  align-items:start!important;
+  align-content:start!important;
+}
+.optykerCashProduct{
+  box-sizing:border-box!important;
+  position:relative!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  justify-content:flex-start!important;
+  width:100%!important;
+  min-width:0!important;
+  height:auto!important;
+  min-height:224px!important;
+  max-height:none!important;
+  padding:0!important;
+  margin:0!important;
+  overflow:hidden!important;
+  visibility:visible!important;
+  opacity:1!important;
+  line-height:normal!important;
+  text-indent:0!important;
+  white-space:normal!important;
+}
+.optykerCashProductImage{
+  box-sizing:border-box!important;
+  display:flex!important;
+  flex:0 0 132px!important;
+  width:100%!important;
+  height:132px!important;
+  min-height:132px!important;
+  max-height:132px!important;
+  overflow:hidden!important;
+  visibility:visible!important;
+  opacity:1!important;
+}
+.optykerCashProductImage img{
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  object-fit:contain!important;
+  visibility:visible!important;
+  opacity:1!important;
+}
+.optykerCashProductPlaceholder{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:100%!important;
+  height:100%!important;
+  font-size:28px!important;
+  opacity:.35!important;
+}
+.optykerCashProductBody{
+  box-sizing:border-box!important;
+  display:block!important;
+  flex:1 0 auto!important;
+  width:100%!important;
+  min-height:78px!important;
+  padding:12px 13px 13px!important;
+  overflow:visible!important;
+  visibility:visible!important;
+  opacity:1!important;
+}
+.optykerCashProductTitle,
+.optykerCashProductVariant,
+.optykerCashProductFoot,
+.optykerCashProductPrice,
+.optykerCashProductStock{
+  visibility:visible!important;
+  opacity:1!important;
+}
+.optykerCashProductTitle{
+  display:block!important;
+  min-height:30px!important;
+}
+.optykerCashProductFoot{
+  display:flex!important;
+  width:100%!important;
+}
