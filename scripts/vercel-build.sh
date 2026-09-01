@@ -67,7 +67,7 @@ for f in \
   scripts/patch_sidebar_chevrons.py \
   scripts/patch_ios_pwa.py; do python "$f"; done
 
-mkdir -p _site/staff-embed _site/booking _site/iphone _site/reset-password _site/admin-reset-passwords _site/staff-recovery _site/accesso _site/gestionale-v2 _site/gestionale-v3 _site/iphone-app _site/iphone-app-v2 _site/iphone-app-v3 _site/iphone-app-v4 _site/iphone-app-v5 _site/iphone-app-v6 _site/iphone-app-v7 _site/iphone-app-v8 _site/iphone-app-v9 _site/iphone-app-v10 _site/iphone-app-v11 _site/iphone-app-v12 _site/iphone-app-v13 _site/orari
+mkdir -p _site/rch-connector _site/staff-embed _site/booking _site/iphone _site/reset-password _site/admin-reset-passwords _site/staff-recovery _site/accesso _site/gestionale-v2 _site/gestionale-v3 _site/iphone-app _site/iphone-app-v2 _site/iphone-app-v3 _site/iphone-app-v4 _site/iphone-app-v5 _site/iphone-app-v6 _site/iphone-app-v7 _site/iphone-app-v8 _site/iphone-app-v9 _site/iphone-app-v10 _site/iphone-app-v11 _site/iphone-app-v12 _site/iphone-app-v13 _site/orari
 cp staff-embed/index.html _site/staff-embed/index.html
 python scripts/patch_staff_whatsapp.py
 python scripts/patch_staff_appointments.py
@@ -120,6 +120,8 @@ cp cash-register.js _site/cash-register.js
 cp cash-register.css _site/cash-register.css
 cp warehouse.js _site/warehouse.js
 cp warehouse.css _site/warehouse.css
+cp rch-connector/rch-optyker-connector.ps1 _site/rch-connector/rch-optyker-connector.ps1
+cp rch-connector/Avvia-RCH-Optyker.bat _site/rch-connector/Avvia-RCH-Optyker.bat
 cp _site/index.html _site/gestionale-v2/index.html
 cp manifest.webmanifest _site/gestionale-v2/manifest.webmanifest
 cp visualcare-logo.svg _site/gestionale-v2/visualcare-logo.svg
@@ -185,6 +187,8 @@ test -s _site/cash-register.js
 test -s _site/cash-register.css
 test -s _site/warehouse.js
 test -s _site/warehouse.css
+test -s _site/rch-connector/rch-optyker-connector.ps1
+test -s _site/rch-connector/Avvia-RCH-Optyker.bat
 test -s _site/gestionale-v2/index.html
 test -s _site/gestionale-v2/manifest.webmanifest
 test -s _site/gestionale-v2/visualcare-logo.svg
