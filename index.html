@@ -12,7 +12,7 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
 <div class="load"><div class="card"><div class="spin"></div><h2>Optyker</h2><div id="msg">Caricamento applicazione…</div></div></div>
 <script>
 (async()=>{
-  const source='https://whgziwaegjzqsgcntesr.supabase.co/storage/v1/object/public/optyker-web/index.html?v=20260824-search1';
+  const source='https://whgziwaegjzqsgcntesr.supabase.co/storage/v1/object/public/optyker-web/index.html?v=20260901-quotes1';
   const blank='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
   async function asDataUrl(url){
     const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw new Error('Logo HTTP '+r.status);
@@ -426,7 +426,7 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
 })();
 </scr`+`ipt>`;
 
-    html=html.replace('</body>',css+enhancer+laboratoryPatch+'<link rel="stylesheet" href="/billing-admin.css?v=20260830-1"><script src="/billing-admin.js?v=20260830-1"><\\/script></body>');
+    html=html.replace('</body>',css+enhancer+laboratoryPatch+'<link rel="stylesheet" href="/billing-admin.css?v=20260830-1"><link rel="stylesheet" href="/quotes.css?v=20260901-1"><script src="/billing-admin.js?v=20260830-1"><\\/script><script src="/quotes.js?v=20260901-1"><\\/script></body>');
     document.open();document.write(html);document.close();
   }catch(e){
     document.querySelector('.spin').style.display='none';const m=document.getElementById('msg');m.className='err';m.textContent='Impossibile avviare Optyker.\n'+(e&&e.message?e.message:e);
