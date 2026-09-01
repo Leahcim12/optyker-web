@@ -39,8 +39,8 @@ function openRch(){
     '<div class="optykerCashModalSub">Optyker usa un piccolo connettore locale per comunicare in sicurezza con RCH PRINT! RT su 192.168.1.10.</div>'+
     '<div class="optykerCashRchInfo"><div><span>Registratore</span><b>RCH PRINT! RT</b></div><div><span>IP</span><b>192.168.1.10</b></div><div><span>Web Service</span><b>/service.cgi</b></div><div><span>Bridge Optyker</span><b>127.0.0.1:8765</b></div></div>'+
     '<div id="optykerCashRchResult" class="optykerCashRchResult">Pronto per il test.</div>'+
-    '<div class="optykerCashRchDownloads"><a href="/rch-connector/rch-optyker-connector.ps1" download>1. Scarica connettore</a><a href="/rch-connector/Avvia-RCH-Optyker.bat" download>2. Scarica avvio Windows</a></div>'+
-    '<div class="optykerCashRchHelp">Metti i due file nella stessa cartella, apri <b>Avvia-RCH-Optyker.bat</b> e lascia aperta la finestra mentre usi Optyker. Il test non stampa alcuno scontrino.</div>'+
+    '<div class="optykerCashRchDownloads optykerCashRchDownloadsAuto"><a class="primary" href="/rch-connector/Installa-RCH-Optyker.bat" download>Installa avvio automatico</a><a href="/rch-connector/Disinstalla-RCH-Optyker.ps1" download>Rimuovi avvio automatico</a></div>'+
+    '<div class="optykerCashRchHelp">Scarica <b>Installa avvio automatico</b> ed eseguilo una sola volta. Il connettore verrà salvato sul PC, partirà automaticamente con Windows e resterà nascosto in background. Il test non stampa alcuno scontrino.</div>'+
     '<div class="optykerCashRchActions"><button id="optykerCashRchTest" type="button">Test collegamento RCH</button><button class="optykerCashModalClose" type="button">Chiudi</button></div></div>';
   m.classList.add('open');
   m.querySelector('.optykerCashModalClose').onclick=function(){m.classList.remove('open')};
