@@ -235,8 +235,8 @@ const STAFF_LOGIN=U+'/functions/v1/optyker-mobile-staff-login';
 const BOOKING_API=U+'/functions/v1/optyker-appointments-booking';
 const CATALOG=U+'/functions/v1/optyker-shop-catalog';
 const SHOP='https://otticavisualcare.it';
-const OPTYKER_BUILD='20260901-staff-client-tools';
-const BOOK='../booking/?source=iphone-app&build=20260901-staff-client-tools';
+const OPTYKER_BUILD='20260901-clinical-edit2';
+const BOOK='../booking/?source=iphone-app&build=20260901-clinical-edit2';
 const sb=window.supabase.createClient(U,K,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const app=document.getElementById('app');
 let state={session:null,me:null,home:null,appointments:[],tab:'home',frame:null,drawer:false,shopCategories:[],shopParent:null,shopCategory:null,shopProducts:[],shopPageInfo:null,shopLoading:false,shopError:'',cart:[],chatMessages:[],chatLoading:false,chatSending:false,chatError:'',chatTimer:null,chatAttachment:null,timers:[],timerLoading:false,timerError:'',staffHome:null,staffAgenda:[],staffAgendaStart:'',staffShifts:null,staffShiftMonth:'',staffClients:[],staffClientDetail:null,staffClientSearch:'',staffOrders:null,staffThreads:[],staffSelectedThread:'',staffMessages:[],staffLoading:false,staffError:'',staffProfileDraftPhoto:'',staffChatAttachment:null,documents:null,documentsLoading:false,documentsError:''};
@@ -957,10 +957,10 @@ function sheetKind(s){
 function visitLabel(s){
   const k=sheetKind(s);
   if(k==='usage')return 'Indicazioni d’uso';
-  if(k==='protocol_ovc_bambini')return 'Protocollo OVC Bambini';
+  if(k==='protocol_ovc_bambini')return 'Protocollo VC Bambini';
   if(k==='fondo_oculare')return 'Fondo Oculare';
   if(k==='visual_anomalies')return 'Anomalie visive';if(k==='analisi_visiva_integrata')return 'Analisi Visiva Integrata';
-  if(k==='protocol_ovc')return 'Protocollo OVC';
+  if(k==='protocol_ovc')return 'Protocollo VC';
   return s?.title||s?.data?.sheetLabel||s?.sheet_type||'Scheda visita';
 }
 function visitData(s){
@@ -1005,7 +1005,7 @@ function staffClinicalEditableHtml(rows){
 }
 function staffClinicalSection(d,title,key,emptyText,creatable=true){
   const rows=staffClinicalRows(d,key);
-  return '<div class="staffSection"><div class="staffSectionHead"><h2>'+esc(title)+'</h2>'+(creatable?'<button class="staffMiniBtn" onclick="createStaffClinical(\''+esc(key)+'\')">+ Nuova scheda</button>':'')+'</div>'+(rows.length?staffClinicalEditableHtml(rows):'<div class="empty">'+esc(emptyText)+'</div>')+'</div>';
+  return '<div class="staffSection"><div class="staffSectionHead"><h2>'+esc(title)+'</h2>'+(creatable?'<button class="staffMiniBtn" onclick="createStaffClinical(\''+esc(key)+'\')">+ Crea scheda</button>':'')+'</div>'+(rows.length?staffClinicalEditableHtml(rows):'<div class="empty">'+esc(emptyText)+'</div>')+'</div>';
 }
 function staffQuotesHtml(d){
   const rows=Array.isArray(d?.quotes)?d.quotes:[];
@@ -1028,8 +1028,8 @@ function staffClientDetailMarkup(d){
   '<div class="staffSection"><h2>Carrello / da pagare</h2>'+staffPaymentCartHtml(d)+'</div>'+
   '<div class="staffSection"><div class="staffSectionHead"><h2>Prescrizioni · modificabili</h2><button class="staffMiniBtn" onclick="createStaffPrescription()">+ Nuova prescrizione</button></div>'+staffPrescriptionEditors(d)+'</div>'+
   staffClinicalSection(d,'Indicazioni d’uso','usage','Nessuna indicazione d’uso collegata a questo cliente.')+
-  staffClinicalSection(d,'Protocollo OVC','protocol_ovc','Nessun Protocollo OVC collegato a questo cliente.')+
-  staffClinicalSection(d,'Protocollo OVC Bambini','protocol_ovc_bambini','Nessun Protocollo OVC Bambini collegato a questo cliente.')+
+  staffClinicalSection(d,'Protocollo VC','protocol_ovc','Nessun Protocollo VC collegato a questo cliente.')+
+  staffClinicalSection(d,'Protocollo VC Bambini','protocol_ovc_bambini','Nessun Protocollo VC Bambini collegato a questo cliente.')+
   staffClinicalSection(d,'Anomalie visive · esiti','visual_anomalies','Nessuna anomalia visiva registrata per questo cliente.')+
   staffClinicalSection(d,'Analisi Visiva Integrata','analisi_visiva_integrata','Nessuna Analisi Visiva Integrata collegata a questo cliente.')+
   staffClinicalSection(d,'Fondo Oculare','fondo_oculare','Nessun Fondo Oculare collegato a questo cliente.')+
