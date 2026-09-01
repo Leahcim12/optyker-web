@@ -267,3 +267,5 @@
 #optykerCashRchModal{z-index:2147483550!important}
 #optykerCashRchModal.open{display:flex!important;pointer-events:auto!important}
 #optykerCashRchModal *{pointer-events:auto!important}
+
+.optykerCashRchDownloads a.primary{background:#1769aa!important;color:#fff!important;border-color:#1769aa!important}
