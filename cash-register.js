@@ -178,9 +178,9 @@ function renderProducts(){
   var h='';
   rows.forEach(function(p){
     var v=String(p.variant_title||'');if(v==='Default Title')v='';
-    h+='<article class="optykerCashProduct" data-variant="'+esc(p.variant_id)+'"><div class="optykerCashProductImage">'+(p.image?'<img src="'+esc(p.image)+'" alt="">':'<div style="font-size:28px;opacity:.35">◉</div>')+'</div><div class="optykerCashProductBody"><div class="optykerCashProductTitle">'+esc(p.title)+'</div><div class="optykerCashProductVariant">'+esc([v,p.sku].filter(Boolean).join(' · '))+'</div><div class="optykerCashProductFoot"><div class="optykerCashProductPrice">'+esc(euro(p.price))+'</div><div class="optykerCashProductStock">'+(p.inventory_quantity==null?'':('Disp. '+esc(p.inventory_quantity)))+'</div></div></div></article>'
+    h+='<div class="optykerCashProduct" role="button" tabindex="0" data-variant="'+esc(p.variant_id)+'"><div class="optykerCashProductImage">'+(p.image?'<img src="'+esc(p.image)+'" alt="">':'<div class="optykerCashProductPlaceholder">◉</div>')+'</div><div class="optykerCashProductBody"><div class="optykerCashProductTitle">'+esc(p.title)+'</div><div class="optykerCashProductVariant">'+esc([v,p.sku].filter(Boolean).join(' · '))+'</div><div class="optykerCashProductFoot"><div class="optykerCashProductPrice">'+esc(euro(p.price))+'</div><div class="optykerCashProductStock">'+(p.inventory_quantity==null?'':('Disp. '+esc(p.inventory_quantity)))+'</div></div></div></div>'
   });
-  box.innerHTML=h;var cards=box.querySelectorAll('[data-variant]');for(var i=0;i<cards.length;i++)cards[i].onclick=function(){add(this.getAttribute('data-variant'))}
+  box.innerHTML=h;var cards=box.querySelectorAll('[data-variant]');for(var i=0;i<cards.length;i++){cards[i].onclick=function(){add(this.getAttribute('data-variant'))};cards[i].onkeydown=function(ev){if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();add(this.getAttribute('data-variant'))}}}
 }
 function add(id){
   var p=null;for(var i=0;i<S.products.length;i++)if(S.products[i].variant_id===id){p=S.products[i];break}if(!p)return;
