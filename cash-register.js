@@ -74,9 +74,13 @@ function installTop(){
   if(window.OPTYKER_BILLING_ADMIN)return;
   var n=E('optykerTopNewClientBtn')||E('optykerQuickNewClient');
   if(!n)return;
-  var old=E('optykerCashBtn');if(old&&old!==n)old.remove();
+  n.setAttribute('data-optyker-cash-managed','1');
   n.innerHTML='<span aria-hidden="true">€</span> Cassa';
-  n.title='Cassa per vendite occasionali';
+  n.title='Cassa Optyker';
+  n.style.setProperty('display','inline-flex','important');
+  n.style.setProperty('visibility','visible','important');
+  n.style.setProperty('opacity','1','important');
+  n.style.setProperty('pointer-events','auto','important');
   n.onclick=function(ev){if(ev){ev.preventDefault();ev.stopPropagation()}openCash('')};
 }
 function installClient(){
@@ -275,14 +279,37 @@ function recentSales(){
   }).catch(function(e){E('optykerCashSaleList').innerHTML='<div class="optykerCashEmpty">Errore: '+esc(e.message)+'</div>'})
 }
 window.openOptykerCash=function(clientId){openCash(clientId||'')};
+function keepCashOpen(){
+  if(!S.cashOpen)return;
+  ensureUI();
+  var o=E('optykerCashOverlay');
+  if(o){
+    o.classList.add('open');
+    o.style.setProperty('display','flex','important');
+    o.style.setProperty('visibility','visible','important');
+    o.style.setProperty('opacity','1','important');
+    o.style.setProperty('pointer-events','auto','important');
+  }
+  if(document.body)document.body.style.overflow='hidden';
+}
 function tick(){
   installTop();installClient();
-  if(S.cashOpen){
-    ensureUI();
-    var o=E('optykerCashOverlay');
-    if(o&&!o.classList.contains('open'))o.classList.add('open');
-    if(document.body.style.overflow!=='hidden')document.body.style.overflow='hidden';
-  }
+  keepCashOpen();
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tick);else tick();setInterval(tick,700);
+function installCashObserver(){
+  if(window.__optykerCashObserverInstalled)return;
+  window.__optykerCashObserverInstalled=true;
+  var pending=false;
+  var repair=function(){
+    if(pending)return;pending=true;
+    setTimeout(function(){pending=false;tick()},25);
+  };
+  try{
+    var mo=new MutationObserver(function(){repair()});
+    mo.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['class','style','hidden']});
+    window.__optykerCashObserver=mo;
+  }catch(e){}
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){tick();installCashObserver()});else{tick();installCashObserver()}
+setInterval(tick,250);
 })();
