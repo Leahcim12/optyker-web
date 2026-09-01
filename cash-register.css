@@ -536,3 +536,21 @@
   .optykerCashProducts{grid-template-columns:repeat(2,minmax(0,1fr))!important;padding:12px!important}
   .optykerCashRchActions3{grid-template-columns:1fr!important}
 }
+
+/* CASSA BUTTON VISIBILITY FIX */
+.optykerCashHeaderRight{display:flex!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:20!important}
+#optykerCashDrawer,#optykerCashRch,#optykerCashClose{display:inline-flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}
+.optykerCashCheckout{display:block!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:5!important;flex:0 0 auto!important}
+.optykerCashStages{display:grid!important;visibility:visible!important}
+.optykerCashPayModes{display:grid!important;visibility:visible!important}
+.optykerCashStage,.optykerCashPayMode,#optykerCashCheckoutBtn,.optykerCashSecondaryActions,.optykerCashSecondaryActions button{visibility:visible!important;opacity:1!important;pointer-events:auto!important}
+.optykerCashSecondaryActions{display:grid!important}
+#optykerCashCheckoutBtn:disabled{opacity:.5!important}
+.optykerCashCart{overflow:hidden!important}
+.optykerCashCartItems{min-height:72px!important}
+@media(max-height:760px){
+  .optykerCashCartHead{padding:10px 14px 9px!important}
+  .optykerCashClientBox{margin-top:8px!important;padding-top:8px!important}
+  .optykerCashCartItems{max-height:24vh!important;flex:0 1 auto!important}
+  .optykerCashCheckout{overflow:auto!important;max-height:55vh!important}
+}
