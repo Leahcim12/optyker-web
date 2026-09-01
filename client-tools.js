@@ -4,8 +4,8 @@
   var state={clientId:'',data:null,loading:false,last:0};
   var defs={
     usage:{title:"Indicazioni d’uso",fields:['examDate','instructions','products','maintenance','notes']},
-    protocol_ovc:{title:'Protocollo OVC',fields:['examDate','reason','anamnesis','visualAcuity','refraction','binocularVision','accommodation','motility','outcome','notes']},
-    protocol_ovc_bambini:{title:'Protocollo OVC Bambini',fields:['examDate','reason','parentNotes','visualAcuity','coverTest','motility','accommodation','stereopsis','colorVision','outcome','notes']},
+    protocol_ovc:{title:'Protocollo VC',fields:['examDate','reason','anamnesis','visualAcuity','refraction','binocularVision','accommodation','motility','outcome','notes']},
+    protocol_ovc_bambini:{title:'Protocollo VC Bambini',fields:['examDate','reason','parentNotes','visualAcuity','coverTest','motility','accommodation','stereopsis','colorVision','outcome','notes']},
     analisi_visiva_integrata:{title:'Analisi Visiva Integrata',fields:['examDate','reason','anamnesis','visualAcuity','refraction','binocularVision','accommodation','motility','outcome','recommendations','notes']},
     fondo_oculare:{title:'Fondo Oculare',fields:['examDate','odFindings','osFindings','outcome','recommendations','notes']},
     visual_anomalies:{title:'Anomalie visive',fields:['examDate','anomaly','tests','findings','outcome','recommendations','notes']}
@@ -24,7 +24,7 @@
   function cloudReplace(row){var cid=String(row&&row.client_id||state.clientId||'');if(!cid||!window.OPTYKER_CLOUD||!OPTYKER_CLOUD.sheets)return;var a=Array.isArray(OPTYKER_CLOUD.sheets[cid])?OPTYKER_CLOUD.sheets[cid]:[],i=a.findIndex(function(x){return String(x&&x.id||'')===String(row&&row.id||'')});if(i>=0)a[i]=row;else a.unshift(row);OPTYKER_CLOUD.sheets[cid]=a}
   function ensureBlock(id,after){var b=E(id);if(b)return b;b=document.createElement('section');b.id=id;b.className='optykerClientToolsBlock';if(after&&after.parentNode)after.parentNode.insertBefore(b,after.nextSibling);else{var n=E('clientWorkspaceName');if(n&&n.parentNode&&n.parentNode.parentNode)n.parentNode.parentNode.appendChild(b)}return b}
   function rootAnchor(){return E('optykerClientQuotesSection')||E('optykerClientReferenceBadge')||E('clientWorkspaceName')?.parentNode||E('clientWorkspaceName')}
-  function clinicalGroups(){var rows=state.data&&state.data.clinical_sheets||[],kinds=['usage','protocol_ovc','protocol_ovc_bambini','analisi_visiva_integrata','fondo_oculare'];return kinds.map(function(k){var a=rows.filter(function(x){return x.kind===k}),d=defs[k];return '<div class="optykerClinicalGroup"><div class="optykerClinicalGroupHead"><div class="optykerClinicalGroupTitle">'+esc(d.title)+'</div><button class="optykerClientToolsBtn" data-tools-new="'+k+'" type="button">+ Nuova</button></div>'+(a.length?a.map(cardHtml).join(''):'<div class="optykerEmptySmall">Nessuna scheda.</div>')+'</div>'}).join('')}
+  function clinicalGroups(){var rows=state.data&&state.data.clinical_sheets||[],kinds=['usage','protocol_ovc','protocol_ovc_bambini','analisi_visiva_integrata','fondo_oculare'];return kinds.map(function(k){var a=rows.filter(function(x){return x.kind===k}),d=defs[k];return '<div class="optykerClinicalGroup"><div class="optykerClinicalGroupHead"><div class="optykerClinicalGroupTitle">'+esc(d.title)+'</div><button class="optykerClientToolsBtn" data-tools-new="'+k+'" type="button">+ Crea scheda</button></div>'+(a.length?a.map(cardHtml).join(''):'<div class="optykerEmptySmall">Nessuna scheda.</div>')+'</div>'}).join('')}
   function cardHtml(s){var out=getVal(s,'outcome');return '<div class="optykerClinicalCard" data-tools-card="'+esc(s.id)+'"><div class="optykerClinicalSummary"><strong>'+esc((defs[s.kind]&&defs[s.kind].title)||s.title||'Scheda')+'</strong><span>'+esc(dt(s.updated_at||s.created_at))+' ▾</span></div>'+(s.kind==='visual_anomalies'&&out?'<div class="optykerAnomalyOutcome"><b>Esito:</b> '+esc(out)+'</div>':'')+'<div class="optykerClinicalEditor"><div class="optykerClinicalFields">'+fieldsFor(s).map(function(k){return fieldHtml(s,k)}).join('')+'</div><div class="optykerClinicalSaveRow"><button class="optykerClientToolsBtn primary" data-tools-save="'+esc(s.id)+'" type="button">SALVA SCHEDA</button></div></div></div>'}
   function renderClinical(){
     var a=rootAnchor(),b=ensureBlock('optykerClientClinicalTools',a);if(!b)return;
@@ -33,7 +33,7 @@
   }
   function renderAnomalies(){
     var rows=(state.data&&state.data.clinical_sheets||[]).filter(function(x){return x.kind==='visual_anomalies'}),after=E('optykerClientClinicalTools')||rootAnchor(),b=ensureBlock('optykerClientAnomalyTools',after);if(!b)return;
-    b.innerHTML='<div class="optykerClientToolsHead"><div><h3>Anomalie visive · esiti</h3><div class="optykerClientToolsSub">Storico degli esiti e nuove valutazioni per il cliente.</div></div><button class="optykerClientToolsBtn" data-tools-new="visual_anomalies" type="button">+ Nuova anomalia visiva</button></div>'+(rows.length?rows.map(cardHtml).join(''):'<div class="optykerEmptySmall">Nessuna anomalia visiva registrata.</div>');
+    b.innerHTML='<div class="optykerClientToolsHead"><div><h3>Anomalie visive · esiti</h3><div class="optykerClientToolsSub">Storico degli esiti e nuove valutazioni per il cliente.</div></div><button class="optykerClientToolsBtn" data-tools-new="visual_anomalies" type="button">+ Crea anomalia visiva</button></div>'+(rows.length?rows.map(cardHtml).join(''):'<div class="optykerEmptySmall">Nessuna anomalia visiva registrata.</div>');
     bind(b);
   }
   function renderPayments(){
