@@ -73,6 +73,13 @@ function Status-Rch {
   return Parse-Rch (Send-Rch $xml)
 }
 
+function Drawer-Rch {
+  # RCH protocol key function: C86 = apertura cassetto.
+  # It is accepted only with a closed document and outside PRG mode.
+  $xml = '<?xml version="1.0" encoding="UTF-8"?><Service><cmd>=C86</cmd></Service>'
+  return Parse-Rch (Send-Rch $xml)
+}
+
 function Sanitize-Desc([string]$s) {
   if($null -eq $s){return "ARTICOLO"}
   $s = $s -replace '[<>&()/\\]',' '
@@ -151,10 +158,17 @@ try {
       if($method -eq 'OPTIONS'){
         Json-Response $stream 200 @{ok=$true}
       } elseif($path -eq '/health'){
-        Json-Response $stream 200 @{ok=$true;connector='Optyker RCH';version='1.0';printer=$PrinterIp;port=$Port}
+        Json-Response $stream 200 @{ok=$true;connector='Optyker RCH';version='1.1';printer=$PrinterIp;port=$Port}
       } elseif($path -eq '/status'){
         try {
           $r=Status-Rch
+          Json-Response $stream 200 $r
+        } catch {
+          Json-Response $stream 500 @{ok=$false;error=$_.Exception.Message;printer=$PrinterIp}
+        }
+      } elseif($path -eq '/drawer' -and $method -eq 'POST'){
+        try {
+          $r=Drawer-Rch
           Json-Response $stream 200 $r
         } catch {
           Json-Response $stream 500 @{ok=$false;error=$_.Exception.Message;printer=$PrinterIp}
