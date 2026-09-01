@@ -1,7 +1,15 @@
 const ICON='https://cdn.shopify.com/s/files/1/0917/4289/6503/files/visual-care-logo-app-original.png?v=1787903859';
+const APP_VERSION='20260902-refs2';
+const APP_URL='/optyker-web/iphone-app-v13/?app=13&build='+APP_VERSION+'&fresh='+Date.now();
 
 self.addEventListener('install',()=>self.skipWaiting());
-self.addEventListener('activate',event=>event.waitUntil(self.clients.claim()));
+self.addEventListener('activate',event=>event.waitUntil((async()=>{
+  await self.clients.claim();
+  const list=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+  for(const client of list){
+    try{if('navigate' in client)await client.navigate(APP_URL)}catch{}
+  }
+})()));
 
 self.addEventListener('push',event=>{
   let data={};
