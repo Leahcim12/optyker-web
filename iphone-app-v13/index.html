@@ -88,7 +88,7 @@
     @media(min-width:640px){.shopRootGrid{grid-template-columns:1fr 1fr}.shopSubGrid{grid-template-columns:repeat(3,minmax(0,1fr))}.productGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
     .tiny{font-size:10px;color:var(--muted);line-height:1.45}.installNote{background:#fff7db;border:1px solid #f0df9a;border-radius:12px;padding:10px 12px;font-size:11px;color:#6c5a15;margin-bottom:12px}
     @media(min-width:640px){.eyeGrid{grid-template-columns:1fr 1fr}}
-  </style>
+  .staffClinicalEdit{border:1px solid #dce6ee;border-radius:13px;margin:9px 0;background:#fff;overflow:hidden}.staffClinicalEdit>summary{padding:11px 12px;font-size:11px;font-weight:900;color:#17324a;background:#f8fbfd;list-style:none}.staffClinicalEditBody{padding:10px}.staffClinicalGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.staffClinicalField{display:grid;gap:3px}.staffClinicalField.wide{grid-column:1/-1}.staffClinicalField label{font-size:7px;text-transform:uppercase;color:#728494;font-weight:900}.staffClinicalField input,.staffClinicalField textarea{width:100%;border:1px solid #d0dbe4;border-radius:8px;padding:8px;font:inherit;font-size:9px;color:#17324a;background:#fff}.staffClinicalField textarea{min-height:64px;resize:vertical}.staffQuoteActions{display:flex;gap:7px;margin-top:8px;flex-wrap:wrap}.staffDangerBtn{border:1px solid #e1b6b6;background:#fff;color:#a52a2a;border-radius:9px;padding:8px 10px;font-size:9px;font-weight:900}.staffDueTotal{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px;border-radius:12px;background:#fff4e8;border:1px solid #f2d2ad;margin-bottom:9px}.staffDueTotal b{font-size:11px;color:#7b4c15}.staffDueTotal strong{font-size:20px;color:#9a5b14}.staffPaidOk{padding:12px;border-radius:11px;background:#eef9f2;color:#27633b;font-size:10px;font-weight:800}@media(max-width:620px){.staffClinicalGrid{grid-template-columns:1fr}}</style>
 <style id="optykerHoursOverrideCss">
 .hoursDate{display:inline-block;margin-left:5px;font-size:9px;font-weight:700;color:#8798a5}
 .hoursChanged{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:999px;background:#e8f3fb;color:#1769aa;font-size:8px;font-weight:900;vertical-align:1px}
@@ -235,8 +235,8 @@ const STAFF_LOGIN=U+'/functions/v1/optyker-mobile-staff-login';
 const BOOKING_API=U+'/functions/v1/optyker-appointments-booking';
 const CATALOG=U+'/functions/v1/optyker-shop-catalog';
 const SHOP='https://otticavisualcare.it';
-const OPTYKER_BUILD='20260831-speed2';
-const BOOK='../booking/?source=iphone-app&build=20260831-speed2';
+const OPTYKER_BUILD='20260901-staff-client-tools';
+const BOOK='../booking/?source=iphone-app&build=20260901-staff-client-tools';
 const sb=window.supabase.createClient(U,K,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const app=document.getElementById('app');
 let state={session:null,me:null,home:null,appointments:[],tab:'home',frame:null,drawer:false,shopCategories:[],shopParent:null,shopCategory:null,shopProducts:[],shopPageInfo:null,shopLoading:false,shopError:'',cart:[],chatMessages:[],chatLoading:false,chatSending:false,chatError:'',chatTimer:null,chatAttachment:null,timers:[],timerLoading:false,timerError:'',staffHome:null,staffAgenda:[],staffAgendaStart:'',staffShifts:null,staffShiftMonth:'',staffClients:[],staffClientDetail:null,staffClientSearch:'',staffOrders:null,staffThreads:[],staffSelectedThread:'',staffMessages:[],staffLoading:false,staffError:'',staffProfileDraftPhoto:'',staffChatAttachment:null,documents:null,documentsLoading:false,documentsError:''};
@@ -950,7 +950,7 @@ function sheetKind(s){
   if(x.includes('indicaz')||x.includes('indication')||x.includes('istruz')||x.includes('instruction')||x.includes('usage'))return 'usage';
   if((x.includes('bamb')||x.includes('child')||x.includes('pediatric'))&&(x.includes('ovc')||x.includes('visualexam')||x.includes('esame visivo')))return 'protocol_ovc_bambini';
   if(x.includes('fondo')||x.includes('fundus')||x.includes('retina'))return 'fondo_oculare';
-  if((x.includes('analisi')&&x.includes('visiv'))||x.includes('analisi_visiva')||x.includes('visual analysis')||x.includes('visual_analysis')||x.includes('integrat')||String(s?.sheet_type||'').toLowerCase()==='analysis')return 'analisi_visiva_integrata';
+  if(String(s?.sheet_type||s?.data?.sheetType||'').toLowerCase()==='analysis'||x.includes('anomali'))return 'visual_anomalies';if(x.includes('integrat')||x.includes('analisi_visiva_integrata')||x.includes('integrated visual')||String(s?.sheet_type||s?.data?.sheetType||'').toLowerCase()==='visual_analysis_integrated')return 'analisi_visiva_integrata';
   if(x.includes('ovc')||x.includes('visualexam')||x.includes('esame visivo'))return 'protocol_ovc';
   return 'other';
 }
@@ -959,7 +959,7 @@ function visitLabel(s){
   if(k==='usage')return 'Indicazioni d’uso';
   if(k==='protocol_ovc_bambini')return 'Protocollo OVC Bambini';
   if(k==='fondo_oculare')return 'Fondo Oculare';
-  if(k==='analisi_visiva_integrata')return 'Analisi Visiva Integrata';
+  if(k==='visual_anomalies')return 'Anomalie visive';if(k==='analisi_visiva_integrata')return 'Analisi Visiva Integrata';
   if(k==='protocol_ovc')return 'Protocollo OVC';
   return s?.title||s?.data?.sheetLabel||s?.sheet_type||'Scheda visita';
 }
@@ -986,33 +986,53 @@ function visitData(s){
   for(const [k,v] of Object.entries(root))walk(v,k,0);
   return {fields,media};
 }
-function prettyVisitKey(k){return String(k||'').replace(/^rx_/i,'').replace(/_/g,' ').replace(/([a-z])([A-Z])/g,'$1 $2')}
+function prettyVisitKey(k){const m={examDate:'Data esame',reason:'Motivo',anamnesis:'Anamnesi',visualAcuity:'Acuità visiva',refraction:'Refrazione',binocularVision:'Visione binoculare',accommodation:'Accomodazione',motility:'Motilità',outcome:'Esito',recommendations:'Indicazioni / raccomandazioni',notes:'Note',parentNotes:'Note genitore',coverTest:'Cover test',stereopsis:'Stereopsi',colorVision:'Visione dei colori',anomaly:'Anomalia visiva',tests:'Test eseguiti',findings:'Risultati',odFindings:'Fondo OD',osFindings:'Fondo OS',instructions:'Indicazioni d’uso',products:'Prodotti',maintenance:'Manutenzione'};return m[k]||String(k||'').replace(/^rx_/i,'').replace(/_/g,' ').replace(/([a-z])([A-Z])/g,'$1 $2')}
 function staffVisitsHtml(a){
   a=Array.isArray(a)?a:[];
   if(!a.length)return '';
   return a.map(s=>{const x=visitData(s);return '<div class="staffVisit"><div class="staffVisitTop"><div class="staffVisitTitle">'+esc(visitLabel(s))+'</div><div class="staffVisitDate">'+esc(fmtDateTime(s.updated_at||s.created_at))+'</div></div>'+(x.fields.length?'<div class="staffVisitFields">'+x.fields.map(f=>'<div class="staffVisitField"><b>'+esc(prettyVisitKey(f[0]))+'</b><span>'+esc(f[1])+'</span></div>').join('')+'</div>':'')+(x.media.length?'<div class="staffVisitMedia">'+x.media.map(src=>'<img src="'+esc(src)+'" alt="Immagine visita" onclick="openChatImage(this.src)">').join('')+'</div>':'')+'</div>'}).join('');
 }
 function staffClinicalRows(d,key){
-  const map={usage:'usage_sheets',protocol_ovc:'protocol_ovc_sheets',protocol_ovc_bambini:'protocol_ovc_bambini_sheets',analisi_visiva_integrata:'integrated_visual_analysis_sheets',fondo_oculare:'fundus_sheets',other:'other_clinical_sheets'};
+  const map={usage:'usage_sheets',protocol_ovc:'protocol_ovc_sheets',protocol_ovc_bambini:'protocol_ovc_bambini_sheets',analisi_visiva_integrata:'integrated_visual_analysis_sheets',visual_anomalies:'visual_anomaly_sheets',fondo_oculare:'fundus_sheets',other:'other_clinical_sheets'};
   const direct=Array.isArray(d?.[map[key]])?d[map[key]]:null;
   if(direct)return direct;
   return (Array.isArray(d?.visit_sheets)?d.visit_sheets:[]).filter(s=>sheetKind(s)===key);
 }
-function staffClinicalSection(d,title,key,emptyText){
+function staffClinicalEditableHtml(rows){
+  rows=Array.isArray(rows)?rows:[];
+  return rows.map(s=>{const x=visitData(s),hidden=new Set(['clientName','clientSurname','specialistName']);const fields=x.fields.filter(f=>!hidden.has(String(f[0])));return '<details class="staffClinicalEdit"><summary>'+esc(visitLabel(s))+' · '+esc(fmtDateTime(s.updated_at||s.created_at))+'</summary><div class="staffClinicalEditBody"><div class="staffClinicalGrid">'+(fields.length?fields.map(f=>{const wide=String(f[1]||'').length>55||['notes','outcome','recommendations','findings','anamnesis','instructions'].includes(String(f[0]));return '<div class="staffClinicalField '+(wide?'wide':'')+'"><label>'+esc(prettyVisitKey(f[0]))+'</label>'+(wide?'<textarea data-clinical-key="'+esc(f[0])+'">'+esc(f[1])+'</textarea>':'<input data-clinical-key="'+esc(f[0])+'" value="'+esc(f[1])+'">')+'</div>'}).join(''):'<div class="empty">Scheda vuota: inserisci i dati creando o modificando i campi disponibili.</div>')+'</div>'+(x.media.length?'<div class="staffVisitMedia">'+x.media.map(src=>'<img src="'+esc(src)+'" alt="Immagine visita" onclick="openChatImage(this.src)">').join('')+'</div>':'')+'<div class="staffSaveRow"><button class="staffSaveBtn" onclick="saveStaffClinical(\''+esc(s.id)+'\',this.closest(\'.staffClinicalEdit\'))">SALVA SCHEDA</button></div></div></details>'}).join('');
+}
+function staffClinicalSection(d,title,key,emptyText,creatable=true){
   const rows=staffClinicalRows(d,key);
-  return '<div class="staffSection"><h2>'+esc(title)+'</h2>'+(rows.length?staffVisitsHtml(rows):'<div class="empty">'+esc(emptyText)+'</div>')+'</div>';
+  return '<div class="staffSection"><div class="staffSectionHead"><h2>'+esc(title)+'</h2>'+(creatable?'<button class="staffMiniBtn" onclick="createStaffClinical(\''+esc(key)+'\')">+ Nuova scheda</button>':'')+'</div>'+(rows.length?staffClinicalEditableHtml(rows):'<div class="empty">'+esc(emptyText)+'</div>')+'</div>';
+}
+function staffQuotesHtml(d){
+  const rows=Array.isArray(d?.quotes)?d.quotes:[];
+  if(!rows.length)return '<div class="empty">Nessun preventivo aperto.</div>';
+  return rows.map(q=>{const data=q.data||{},type=String(q.sheet_type||'').includes('eyewear')?'Occhiali':'LAC',total=type==='Occhiali'?Number(data?.pricing?.total||0):Number(data?.lacState?.odCost||0)+Number(data?.lacState?.osCost||0);return '<div class="staffVisit"><div class="staffVisitTop"><div><div class="staffVisitTitle">Preventivo '+esc(type)+' · '+esc(q.reference_no||q.reference_code||'—')+'</div><div class="staffVisitDate">'+esc(fmtDateTime(q.created_at))+'</div></div>'+(total?'<b>'+esc(orderMoney(total,'EUR'))+'</b>':'')+'</div><div class="staffQuoteActions"><button class="staffMiniBtn" onclick="staffQuoteConvert(\''+esc(q.id)+'\')">Trasforma in vendita</button><button class="staffDangerBtn" onclick="staffQuoteDelete(\''+esc(q.id)+'\')">Elimina</button></div></div>'}).join('');
+}
+function staffPaymentCartHtml(d){
+  const p=d?.payment_cart||{},pos=Array.isArray(p.pos_open)?p.pos_open:[],online=Array.isArray(p.online_unpaid)?p.online_unpaid:[],due=Number(p.total_due||0);
+  if(!pos.length&&!online.length)return '<div class="staffPaidOk">Nessun importo residuo: il cliente non risulta avere pagamenti aperti.</div>';
+  let h='<div class="staffDueTotal"><b>TOTALE ANCORA DA PAGARE</b><strong>'+esc(orderMoney(due,p.currency||'EUR'))+'</strong></div>';
+  h+=pos.map(x=>'<div class="staffOrder"><div class="staffOrderTop"><div><div class="staffOrderTitle">'+esc(x.shopify_order_name||x.note||'Vendita Optyker')+'</div><div class="staffOrderMeta">'+esc(fmtDateTime(x.created_at))+' · '+esc(x.payment_stage||x.payment_status||x.status||'Pagamento aperto')+'</div></div><div class="staffOrderTotal">'+esc(orderMoney(x.due_amount,x.currency||'EUR'))+'</div></div></div>').join('');
+  h+=online.map(o=>'<div class="staffOrder"><div class="staffOrderTop"><div><div class="staffOrderTitle">'+esc(o.order_name||'Ordine online')+'</div><div class="staffOrderMeta">Ordine online · '+esc(o.financial_status||'Da pagare')+'</div></div><div class="staffOrderTotal">'+esc(orderMoney(o.total,o.currency||'EUR'))+'</div></div></div>').join('');
+  return h;
 }
 function staffClientDetailMarkup(d){
   const c=d.customer||{};
   return '<div class="page"><button class="staffBack" onclick="closeStaffClient()">‹ Torna ai clienti</button><div class="header"><div class="eyebrow">ANAGRAFICA CLIENTE</div><h1>'+esc(((c.surname||'')+' '+(c.name||'')).trim()||'Cliente')+'</h1><div class="sub">'+esc([c.email,c.phone].filter(Boolean).join(' · '))+'</div></div>'+
   '<div class="staffSection"><h2>Anagrafica · modificabile</h2>'+staffClientEditHtml(c)+'</div>'+
+  '<div class="staffSection"><h2>Preventivi</h2>'+staffQuotesHtml(d)+'</div>'+
+  '<div class="staffSection"><h2>Carrello / da pagare</h2>'+staffPaymentCartHtml(d)+'</div>'+
   '<div class="staffSection"><div class="staffSectionHead"><h2>Prescrizioni · modificabili</h2><button class="staffMiniBtn" onclick="createStaffPrescription()">+ Nuova prescrizione</button></div>'+staffPrescriptionEditors(d)+'</div>'+
   staffClinicalSection(d,'Indicazioni d’uso','usage','Nessuna indicazione d’uso collegata a questo cliente.')+
   staffClinicalSection(d,'Protocollo OVC','protocol_ovc','Nessun Protocollo OVC collegato a questo cliente.')+
   staffClinicalSection(d,'Protocollo OVC Bambini','protocol_ovc_bambini','Nessun Protocollo OVC Bambini collegato a questo cliente.')+
+  staffClinicalSection(d,'Anomalie visive · esiti','visual_anomalies','Nessuna anomalia visiva registrata per questo cliente.')+
   staffClinicalSection(d,'Analisi Visiva Integrata','analisi_visiva_integrata','Nessuna Analisi Visiva Integrata collegata a questo cliente.')+
   staffClinicalSection(d,'Fondo Oculare','fondo_oculare','Nessun Fondo Oculare collegato a questo cliente.')+
-  (staffClinicalRows(d,'other').length?'<div class="staffSection"><h2>Altre schede cliniche</h2>'+staffVisitsHtml(staffClinicalRows(d,'other'))+'</div>':'')+
+  (staffClinicalRows(d,'other').length?'<div class="staffSection"><h2>Altre schede cliniche</h2>'+staffClinicalEditableHtml(staffClinicalRows(d,'other'))+'</div>':'')+
   '<div class="staffSection"><h2>Schede LAC</h2>'+staffLacHtml(d)+'</div>'+
   '<div class="staffSection"><h2>Ordini del cliente</h2>'+staffClientOrdersHtml(d)+'</div>'+
   '<div class="staffSection"><h2>Scontrini e fatture</h2><div class="docsNotice">Documenti economici collegati a questo cliente.</div><h3 style="font-size:12px;color:#173e69">Scontrini / pagamenti</h3>'+receiptCards(d.documents?.receipts||[])+'<h3 style="font-size:12px;color:#173e69;margin-top:16px">Fatture</h3>'+invoiceCards(d.documents?.invoices||[])+'</div>'+
@@ -1096,6 +1116,10 @@ window.saveNewStaffClient=async()=>{
     if(cl?.id)await openStaffClient(cl.id);
   }catch(e){alert(e?.message||'Creazione cliente non riuscita');if(btn){btn.disabled=false;btn.textContent='CREA CLIENTE'}}
 };
+window.createStaffClinical=async(kind)=>{const id=state.staffClientDetail?.customer?.id;if(!id)return;try{const x=await call(API,'client_clinical_create',{client_id:id,kind});await openStaffClient(id);setTimeout(()=>{const el=[...document.querySelectorAll('.staffClinicalEdit')].find(e=>e.textContent.includes(visitLabel(x.data||{})));if(el){el.open=true;el.scrollIntoView({behavior:'smooth',block:'start'})}},80)}catch(e){alert(e?.message||'Creazione scheda non riuscita')}};
+window.saveStaffClinical=async(id,box)=>{const cid=state.staffClientDetail?.customer?.id;if(!cid||!id||!box)return;const values={};box.querySelectorAll('[data-clinical-key]').forEach(x=>values[x.dataset.clinicalKey]=x.value);try{await call(API,'client_clinical_update',{client_id:cid,sheet_id:id,values});await openStaffClient(cid);alert('Scheda aggiornata')}catch(e){alert(e?.message||'Salvataggio scheda non riuscito')}};
+window.staffQuoteConvert=async(id)=>{const cid=state.staffClientDetail?.customer?.id;if(!cid||!confirm('Trasformare questo preventivo in vendita?'))return;try{await call(API,'client_quote_convert',{client_id:cid,quote_id:id});await openStaffClient(cid);alert('Preventivo trasformato in vendita')}catch(e){alert(e?.message||'Conversione non riuscita')}};
+window.staffQuoteDelete=async(id)=>{const cid=state.staffClientDetail?.customer?.id;if(!cid||!confirm('Eliminare definitivamente questo preventivo?'))return;try{await call(API,'client_quote_delete',{client_id:cid,quote_id:id});await openStaffClient(cid)}catch(e){alert(e?.message||'Eliminazione non riuscita')}};
 window.createStaffPrescription=async()=>{
   const id=state.staffClientDetail?.customer?.id;if(!id)return;
   try{
