@@ -18,6 +18,7 @@ function Json-Response([System.Net.Sockets.NetworkStream]$stream, [int]$status, 
     "Access-Control-Allow-Origin: *",
     "Access-Control-Allow-Methods: GET, POST, OPTIONS",
     "Access-Control-Allow-Headers: Content-Type",
+    "Access-Control-Allow-Private-Network: true",
     "Connection: close",
     "",
     ""
