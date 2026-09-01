@@ -33,22 +33,40 @@ function testRch(quiet){
     throw e
   })
 }
+function openCashDrawer(){
+  var b=E('optykerCashDrawer');if(b)b.disabled=true;
+  return rchRequest('/drawer',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(function(x){
+    rchStatusUi(true,'● RCH collegato');
+    toast('Cassetto contanti aperto','ok');
+    return x
+  }).catch(function(e){
+    var msg=String(e&&e.message||e||'Errore RCH');
+    if(/Endpoint non valido|HTTP 400/i.test(msg))msg='Il connettore RCH va aggiornato. Apri RCH e premi Installa / aggiorna connettore.';
+    toast('Cassetto non aperto: '+msg,'error');
+    throw e
+  }).finally(function(){if(b)b.disabled=false})
+}
 function openRch(){
   var m=E('optykerCashRchModal');if(!m){m=document.createElement('div');m.id='optykerCashRchModal';m.className='optykerCashModal';document.body.appendChild(m)}
   m.innerHTML='<div class="optykerCashModalCard optykerCashRchCard"><div class="optykerCashModalTitle">Registratore fiscale RCH</div>'+
     '<div class="optykerCashModalSub">Optyker usa un piccolo connettore locale per comunicare in sicurezza con RCH PRINT! RT su 192.168.1.10.</div>'+
     '<div class="optykerCashRchInfo"><div><span>Registratore</span><b>RCH PRINT! RT</b></div><div><span>IP</span><b>192.168.1.10</b></div><div><span>Web Service</span><b>/service.cgi</b></div><div><span>Bridge Optyker</span><b>127.0.0.1:8765</b></div></div>'+
     '<div id="optykerCashRchResult" class="optykerCashRchResult">Pronto per il test.</div>'+
-    '<div class="optykerCashRchDownloads optykerCashRchDownloadsAuto"><a class="primary" href="/rch-connector/Installa-RCH-Optyker.bat?v=20260901-3" download>Installa avvio automatico</a><a href="/rch-connector/Disinstalla-RCH-Optyker.ps1" download>Rimuovi avvio automatico</a></div>'+
-    '<div class="optykerCashRchHelp">Scarica <b>Installa avvio automatico</b> ed eseguilo una sola volta. Il connettore verrà salvato sul PC, partirà automaticamente con Windows e resterà nascosto in background. Il test non stampa alcuno scontrino.</div>'+
-    '<div class="optykerCashRchActions"><button id="optykerCashRchTest" type="button">Test collegamento RCH</button><button class="optykerCashModalClose" type="button">Chiudi</button></div></div>';
+    '<div class="optykerCashRchDownloads optykerCashRchDownloadsAuto"><a class="primary" href="/rch-connector/Installa-RCH-Optyker.bat?v=20260901-4" download>Installa / aggiorna connettore</a><a href="/rch-connector/Disinstalla-RCH-Optyker.ps1" download>Rimuovi avvio automatico</a></div>'+
+    '<div class="optykerCashRchHelp">Il <b>Test collegamento</b> controlla soltanto la comunicazione e non emette documenti fiscali. <b>Apri cassetto</b> è la prova hardware più semplice: apre solo il cassetto contanti senza stampare uno scontrino.</div>'+
+    '<div class="optykerCashRchActions optykerCashRchActions3"><button id="optykerCashRchTest" type="button">Test collegamento</button><button id="optykerCashRchDrawerTest" type="button">Apri cassetto</button><button class="optykerCashModalClose" type="button">Chiudi</button></div></div>';
   m.classList.add('open');
   m.querySelector('.optykerCashModalClose').onclick=function(){m.classList.remove('open')};
   m.onclick=function(ev){if(ev.target===m)m.classList.remove('open')};
   E('optykerCashRchTest').onclick=function(){
     var r=E('optykerCashRchResult');r.textContent='Collegamento in corso…';r.className='optykerCashRchResult';
-    testRch(true).then(function(x){r.textContent='Collegamento riuscito · errore 0 · stampante pronta'+(x.mode?' · modalità '+x.mode:'');r.className='optykerCashRchResult ok'})
+    testRch(true).then(function(x){r.textContent='Collegamento riuscito · stampante pronta'+(x.mode?' · modalità '+x.mode:'');r.className='optykerCashRchResult ok'})
       .catch(function(e){r.textContent='Non collegato · '+e.message;r.className='optykerCashRchResult error'})
+  };
+  E('optykerCashRchDrawerTest').onclick=function(){
+    var r=E('optykerCashRchResult');r.textContent='Apertura cassetto in corso…';r.className='optykerCashRchResult';
+    openCashDrawer().then(function(){r.textContent='Comando inviato · cassetto aperto';r.className='optykerCashRchResult ok'})
+      .catch(function(e){r.textContent='Apertura non riuscita · '+e.message;r.className='optykerCashRchResult error'})
   }
 }
 
@@ -79,7 +97,7 @@ function ensureUI(){
   d.innerHTML='<div class="optykerCashHeader">'+
     '<div class="optykerCashBrand"><div class="optykerCashBrandMark">€</div><div><div class="optykerCashBrandTitle">Cassa</div><div class="optykerCashBrandSub">Optyker · vendita in negozio</div></div></div>'+
     '<div class="optykerCashSearchWrap"><input id="optykerCashSearch" type="search" autocomplete="off" placeholder="Cerca prodotto, marca, SKU o codice…"></div>'+
-    '<div class="optykerCashHeaderRight"><button id="optykerCashRch" class="optykerCashRchBadge" type="button">○ RCH</button><div id="optykerCashOperator" class="optykerCashHeaderBadge"></div><button id="optykerCashClose" type="button">×</button></div></div>'+
+    '<div class="optykerCashHeaderRight"><button id="optykerCashDrawer" class="optykerCashDrawerBtn" type="button" title="Apri solo il cassetto dei contanti"><span aria-hidden="true">▱</span> Apri cassetto</button><button id="optykerCashRch" class="optykerCashRchBadge" type="button">○ RCH</button><div id="optykerCashOperator" class="optykerCashHeaderBadge"></div><button id="optykerCashClose" type="button">×</button></div></div>'+
     '<div class="optykerCashMain"><section class="optykerCashCatalog"><div class="optykerCashCatalogTop"><div id="optykerCashTypes"></div><button id="optykerCashRefresh" type="button">Aggiorna catalogo</button></div><div id="optykerCashProducts" class="optykerCashProducts"></div></section>'+
     '<aside class="optykerCashCart"><div class="optykerCashCartHead"><div class="optykerCashCartTitle">Carrello</div><div id="optykerCashCartCount" class="optykerCashCartCount">0 articoli</div><div class="optykerCashClientBox"><label>Cerca cliente</label><input id="optykerCashClientSearch" type="search" autocomplete="off" placeholder="Nome, cognome, telefono, email, riferimento…"><label class="optykerCashClientSelectLabel">Cliente</label><select id="optykerCashClient"></select></div></div><div id="optykerCashCartItems" class="optykerCashCartItems"></div>'+
     '<div class="optykerCashCheckout">'+
@@ -99,7 +117,7 @@ function ensureUI(){
       '<div class="optykerCashSecondaryActions"><button id="optykerCashDepositsBtn" type="button">Acconti aperti</button><button id="optykerCashRecentBtn" type="button">Ultime vendite</button></div>'+
     '</div></aside></div>';
   document.body.appendChild(d);
-  E('optykerCashClose').onclick=closeCash;E('optykerCashRch').onclick=openRch;E('optykerCashRefresh').onclick=function(){loadProducts(true)};
+  E('optykerCashClose').onclick=closeCash;E('optykerCashRch').onclick=openRch;E('optykerCashDrawer').onclick=openCashDrawer;E('optykerCashRefresh').onclick=function(){loadProducts(true)};
   E('optykerCashSearch').oninput=function(){clearTimeout(S.searchTimer);S.searchTimer=setTimeout(function(){loadProducts(false)},280)};
   E('optykerCashClient').onchange=function(){S.clientId=this.value||'';updateInvoiceAvailability()};E('optykerCashClientSearch').oninput=function(){var q=this.value||'';clearTimeout(S.clientSearchTimer);S.clientSearchTimer=setTimeout(function(){searchCashClients(q)},220)};
   var ps=d.querySelectorAll('[data-pay]');for(var i=0;i<ps.length;i++)ps[i].onclick=function(){S.payment=this.getAttribute('data-pay')||'card';renderPay();renderCart()};
