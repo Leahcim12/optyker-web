@@ -3,7 +3,7 @@ import re
 
 path=Path("_site/index.html")
 text=path.read_text(encoding="utf-8")
-version="20260901-7"
+version="20260901-8"
 css=f'<link rel="stylesheet" href="/cash-register.css?v={version}" id="optykerCashCss">'
 js=f'<script src="/cash-register.js?v={version}" id="optykerCashJs"></script>'
 
