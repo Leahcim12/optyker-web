@@ -242,3 +242,24 @@
   .optykerCashDepositRow{grid-template-columns:1fr}
   .optykerCashDepositActions{grid-column:auto}
 }
+
+/* Cassa · RCH PRINT! connector */
+.optykerCashRchBadge{height:34px;border:1px solid #ffffff38;border-radius:8px;background:#ffffff10;color:#d7e5ef;padding:0 10px;font-size:9px;font-weight:900;cursor:pointer;white-space:nowrap}
+.optykerCashRchBadge.ok{background:#1f7a451f;border-color:#8de1ad;color:#bdf5d0}
+.optykerCashRchBadge.error{background:#ffffff10;color:#d7e5ef}
+.optykerCashRchCard{width:min(620px,94vw)!important}
+.optykerCashRchInfo{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
+.optykerCashRchInfo>div{border:1px solid #dbe5ec;border-radius:9px;padding:9px 10px;background:#f8fbfd}
+.optykerCashRchInfo span{display:block;font-size:8px;text-transform:uppercase;color:#7a8d9c;font-weight:900}
+.optykerCashRchInfo b{display:block;margin-top:3px;font-size:10px;color:#29455c}
+.optykerCashRchResult{border:1px solid #dbe5ec;border-radius:9px;padding:10px 11px;background:#f8fafb;color:#617687;font-size:9px;font-weight:850}
+.optykerCashRchResult.ok{background:#edf8f1;border-color:#c8e8d3;color:#2f6e43}
+.optykerCashRchResult.error{background:#fff2f2;border-color:#efcccc;color:#963d3d}
+.optykerCashRchDownloads{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}
+.optykerCashRchDownloads a{display:flex;align-items:center;justify-content:center;min-height:36px;border:1px solid #1769aa;border-radius:8px;background:#fff;color:#1769aa;text-decoration:none;font-size:9px;font-weight:900}
+.optykerCashRchDownloads a:hover{background:#eef7fd}
+.optykerCashRchHelp{margin-top:10px;padding:10px;border-radius:8px;background:#fff8e8;color:#745a21;font-size:9px;line-height:1.45}
+.optykerCashRchActions{display:grid;grid-template-columns:1fr 140px;gap:7px;margin-top:12px}
+#optykerCashRchTest{height:36px;border:0;border-radius:8px;background:#1769aa;color:#fff;font-size:9px;font-weight:950;cursor:pointer}
+.optykerCashRchActions .optykerCashModalClose{margin-top:0!important;height:36px!important}
+@media(max-width:620px){.optykerCashRchInfo,.optykerCashRchDownloads,.optykerCashRchActions{grid-template-columns:1fr}}
