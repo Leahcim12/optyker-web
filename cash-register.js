@@ -1,7 +1,7 @@
 (function(){
 if(window.__optykerCashLoaded)return;window.__optykerCashLoaded=true;
 var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-cash-register-api';
-var S={products:[],clients:[],cart:{},type:'',payment:'card',stage:'balance',clientId:'',invoice:false,busy:false,searchTimer:null,clientSearchTimer:null,rchOk:false};
+var S={products:[],clients:[],cart:{},type:'',payment:'card',stage:'balance',clientId:'',invoice:false,busy:false,searchTimer:null,clientSearchTimer:null,rchOk:false,cashOpen:false};
 
 function E(id){return document.getElementById(id)}
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -148,12 +148,12 @@ function searchCashClients(q,keepId){
   })
 }
 function openCash(clientId){
-  ensureUI();S.stage='balance';S.payment='card';S.invoice=false;S.clients=clientsLocal();fillClients(clientId||'',S.clients);S.clientId=clientId||'';if(E('optykerCashClientSearch'))E('optykerCashClientSearch').value='';searchCashClients('',clientId||'');
+  S.cashOpen=true;ensureUI();S.stage='balance';S.payment='card';S.invoice=false;S.clients=clientsLocal();fillClients(clientId||'',S.clients);S.clientId=clientId||'';if(E('optykerCashClientSearch'))E('optykerCashClientSearch').value='';searchCashClients('',clientId||'');
   var o=E('optykerCashOperator'),c=creds();if(o)o.textContent=c.username?'Operatore · '+c.username:'Operatore';
   E('optykerCashOverlay').classList.add('open');document.body.style.overflow='hidden';testRch(true).catch(function(){});
   var inv=E('optykerCashInvoice');if(inv)inv.checked=false;renderPay();renderStage();updateInvoiceAvailability();renderCart();loadProducts(false);setTimeout(function(){try{E('optykerCashSearch').focus()}catch(e){}},60)
 }
-function closeCash(){var o=E('optykerCashOverlay');if(o)o.classList.remove('open');document.body.style.overflow=''}
+function closeCash(){S.cashOpen=false;var o=E('optykerCashOverlay');if(o)o.classList.remove('open');document.body.style.overflow=''}
 function loadProducts(force){
   var box=E('optykerCashProducts');if(!box)return;
   box.innerHTML='<div class="optykerCashLoading">Caricamento catalogo…</div>';
@@ -275,6 +275,14 @@ function recentSales(){
   }).catch(function(e){E('optykerCashSaleList').innerHTML='<div class="optykerCashEmpty">Errore: '+esc(e.message)+'</div>'})
 }
 window.openOptykerCash=function(clientId){openCash(clientId||'')};
-function tick(){installTop();installClient()}
+function tick(){
+  installTop();installClient();
+  if(S.cashOpen){
+    ensureUI();
+    var o=E('optykerCashOverlay');
+    if(o&&!o.classList.contains('open'))o.classList.add('open');
+    if(document.body.style.overflow!=='hidden')document.body.style.overflow='hidden';
+  }
+}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tick);else tick();setInterval(tick,700);
 })();
