@@ -617,3 +617,78 @@
   .optykerCashCart{height:auto!important;max-height:none!important;overflow:visible!important}
   .optykerCashCheckout{position:relative!important;bottom:auto!important}
 }
+
+/* CASSA SIDEBAR LOCK V3
+   Desktop: the payment/cart column is physically locked to the right side.
+   Product rendering cannot push it away or move it below the catalog. */
+@media(min-width:761px){
+  .optykerCashMain{
+    display:block!important;
+    position:relative!important;
+    width:100%!important;
+    min-width:0!important;
+    overflow:hidden!important;
+  }
+  .optykerCashCatalog{
+    position:relative!important;
+    height:100%!important;
+    min-width:0!important;
+    margin-right:410px!important;
+    overflow:hidden!important;
+  }
+  .optykerCashCart{
+    position:absolute!important;
+    top:0!important;
+    right:0!important;
+    bottom:0!important;
+    left:auto!important;
+    width:410px!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    z-index:50!important;
+    display:flex!important;
+    flex-direction:column!important;
+    visibility:visible!important;
+    opacity:1!important;
+    transform:none!important;
+    overflow:hidden!important;
+    background:#fff!important;
+  }
+  .optykerCashCartHead{flex:0 0 auto!important}
+  .optykerCashCartItems{
+    flex:1 1 auto!important;
+    min-height:0!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+  }
+  .optykerCashCheckout{
+    flex:0 0 auto!important;
+    position:relative!important;
+    bottom:auto!important;
+    max-height:none!important;
+    overflow:visible!important;
+    display:block!important;
+  }
+}
+@media(min-width:761px) and (max-width:1040px){
+  .optykerCashCatalog{margin-right:380px!important}
+  .optykerCashCart{width:380px!important}
+}
+@media(max-width:760px){
+  .optykerCashMain{
+    display:block!important;
+    height:auto!important;
+    overflow:auto!important;
+  }
+  .optykerCashCatalog{
+    height:auto!important;
+    margin-right:0!important;
+    overflow:visible!important;
+  }
+  .optykerCashCart{
+    position:relative!important;
+    top:auto!important;right:auto!important;bottom:auto!important;left:auto!important;
+    width:100%!important;height:auto!important;
+  }
+}
