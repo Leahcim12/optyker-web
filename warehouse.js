@@ -1,6 +1,6 @@
 (function(){
 if(window.__optykerWarehouseLoaded)return;window.__optykerWarehouseLoaded=true;
-window.OPTYKER_WAREHOUSE_BUILD='20260903-bulkcat1';
+window.OPTYKER_WAREHOUSE_BUILD='20260903-compact-actions2';
 var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-inventory-api';
 var CATS={
   frames:'Montature da vista',
