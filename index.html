@@ -12,7 +12,7 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
 <div class="load"><div class="card"><div class="spin"></div><h2>Optyker</h2><div id="msg">Caricamento applicazione…</div></div></div>
 <script>
 (async()=>{
-  const source='https://whgziwaegjzqsgcntesr.supabase.co/storage/v1/object/public/optyker-web/index.html?v=20260903-rate2';
+  const source='https://whgziwaegjzqsgcntesr.supabase.co/storage/v1/object/public/optyker-web/index.html?v=20260903-cashclose1';
   const blank='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
   async function asDataUrl(url){
     const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw new Error('Logo HTTP '+r.status);
@@ -217,6 +217,76 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
 })();
 </scr`+`ipt>`;
 
+
+    const cashClosePatch=`<scr`+`ipt id="optykerCashClosePatch">
+(function(){
+  if(window.__optykerCashClosePatch)return;
+  window.__optykerCashClosePatch=true;
+  function clean(v){return String(v||"").replace(/\\s+/g," ").trim()}
+  function cashText(el){try{return clean(el&&el.textContent).toLowerCase()}catch(e){return ""}}
+  function looksCash(el){var t=cashText(el);return t.indexOf("cassa")>=0&&(t.indexOf("apri cassetto")>=0||t.indexOf("rch")>=0||t.indexOf("totale vendita")>=0)}
+  function rootScore(el){
+    if(!el||el===document.body||el===document.documentElement)return -1;
+    var r;try{r=el.getBoundingClientRect()}catch(e){return -1}
+    var cls=clean((el.id||"")+" "+(el.className||"")).toLowerCase();
+    var score=0;
+    if(/cash|cassa|pos|register|checkout/.test(cls))score+=4;
+    if(looksCash(el))score+=5;
+    if(r.width>=window.innerWidth*.75)score+=2;
+    if(r.height>=window.innerHeight*.65)score+=3;
+    try{var p=getComputedStyle(el).position;if(p==="fixed")score+=5;else if(p==="absolute")score+=2}catch(e){}
+    return score;
+  }
+  function findRoot(btn){
+    var best=null,bestScore=-1,p=btn;
+    for(var i=0;i<16&&p;i++,p=p.parentElement){var s=rootScore(p);if(s>bestScore){best=p;bestScore=s}}
+    if(bestScore>=7)return best;
+    var all=document.querySelectorAll("body *");
+    for(var j=0;j<all.length;j++){var el=all[j],s2=rootScore(el);if(s2>bestScore){best=el;bestScore=s2}}
+    return bestScore>=7?best:null;
+  }
+  function reopenMain(){
+    var app=document.getElementById("mainApp");
+    if(app){try{if(getComputedStyle(app).display==="none")app.style.display="grid"}catch(e){}}
+    try{document.documentElement.style.removeProperty("overflow")}catch(e){}
+    try{document.body.style.removeProperty("overflow")}catch(e){}
+  }
+  function closeCash(btn){
+    var fnNames=["closeCashRegister","closeCash","closeCassa","hideCashRegister","hideCash","hideCassa","closePos","hidePos"];
+    for(var i=0;i<fnNames.length;i++){var fn=window[fnNames[i]];if(typeof fn==="function"){try{fn();setTimeout(reopenMain,20);return true}catch(e){}}}
+    var root=findRoot(btn);
+    if(root){
+      try{root.classList.remove("open","active","show","visible")}catch(e){}
+      root.setAttribute("aria-hidden","true");
+      root.style.setProperty("display","none","important");
+      reopenMain();
+      return true;
+    }
+    reopenMain();
+    try{if(typeof window.showDashboard==="function")window.showDashboard()}catch(e){}
+    return false;
+  }
+  function isTopClose(btn){
+    if(!btn||String(btn.tagName||"").toLowerCase()!=="button")return false;
+    var t=clean(btn.textContent).toLowerCase();
+    if(!(t==="×"||t==="✕"||t==="x"||t==="✖"))return false;
+    var r;try{r=btn.getBoundingClientRect()}catch(e){return false}
+    if(r.top>130||r.right<window.innerWidth-130)return false;
+    var p=btn;
+    for(var i=0;i<10&&p;i++,p=p.parentElement)if(looksCash(p))return true;
+    return false;
+  }
+  document.addEventListener("click",function(ev){
+    var path=ev.composedPath?ev.composedPath():[];
+    var btn=null;
+    for(var i=0;i<path.length;i++){if(path[i]&&String(path[i].tagName||"").toLowerCase()==="button"){btn=path[i];break}}
+    if(!btn&&ev.target&&ev.target.closest)btn=ev.target.closest("button");
+    if(!isTopClose(btn))return;
+    ev.preventDefault();ev.stopPropagation();if(ev.stopImmediatePropagation)ev.stopImmediatePropagation();
+    closeCash(btn);
+  },true);
+})();
+</scr`+`ipt>`;
 
     const rateButtonPatch=`<scr`+`ipt id="optykerRateButtonPatch">
 (function(){
@@ -487,7 +557,7 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
 })();
 </scr`+`ipt>`;
 
-    html=html.replace('</body>',css+enhancer+rateButtonPatch+laboratoryPatch+'<link rel="stylesheet" href="/billing-admin.css?v=20260830-1"><link rel="stylesheet" href="/quotes.css?v=20260901-1"><link rel="stylesheet" href="/client-tools.css?v=20260902-1"><script src="/billing-admin.js?v=20260830-1"><\\/script><script src="/quotes.js?v=20260901-1"><\\/script><script src="/client-tools.js?v=20260902-1"><\\/script></body>');
+    html=html.replace('</body>',css+enhancer+cashClosePatch+rateButtonPatch+laboratoryPatch+'<link rel="stylesheet" href="/billing-admin.css?v=20260830-1"><link rel="stylesheet" href="/quotes.css?v=20260901-1"><link rel="stylesheet" href="/client-tools.css?v=20260902-1"><script src="/billing-admin.js?v=20260830-1"><\\/script><script src="/quotes.js?v=20260901-1"><\\/script><script src="/client-tools.js?v=20260902-1"><\\/script></body>');
     document.open();document.write(html);document.close();
   }catch(e){
     document.querySelector('.spin').style.display='none';const m=document.getElementById('msg');m.className='err';m.textContent='Impossibile avviare Optyker.\n'+(e&&e.message?e.message:e);
