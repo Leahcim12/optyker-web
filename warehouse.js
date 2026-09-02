@@ -1,5 +1,6 @@
 (function(){
 if(window.__optykerWarehouseLoaded)return;window.__optykerWarehouseLoaded=true;
+window.OPTYKER_WAREHOUSE_BUILD='20260903-stock-buttons1';
 var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-inventory-api';
 var CATS={
   frames:'Montature da vista',
@@ -9,7 +10,7 @@ var CATS={
   accessories:'Accessori',
   services:'Servizi'
 };
-var W={category:'frames',rows:[],count:0,page:1,limit:120,companies:[],loading:false,syncing:false,search:'',firstOpen:true,lastAutoSync:0};
+var W={category:'frames',rows:[],count:0,page:1,limit:120,companies:[],loading:false,syncing:false,search:'',firstOpen:true,lastAutoSync:0,canViewCost:false};
 
 function E(id){return document.getElementById(id)}
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -39,6 +40,22 @@ function expiryClass(v){
   if(!v)return '';var d=new Date(v+'T12:00:00').getTime(),now=Date.now(),days=(d-now)/86400000;
   if(days<0)return 'expired';if(days<90)return 'soon';return ''
 }
+function isMichaelUser(){return /^michael(?:\s+mologni)?$/i.test(String(creds().username||'').trim())}
+function lotGroups(r){
+  var a=Array.isArray(r&&r.lots)?r.lots:[],m={},loaded=0;
+  a.forEach(function(x){
+    var q=Math.max(0,Math.trunc(Number(x.quantity||0)));if(!q)return;loaded+=q;
+    var lot=String(x.lot_number||'').trim()||'Senza lotto',exp=String(x.expiry_date||'');
+    var k=lot+'|'+exp;if(!m[k])m[k]={lot:lot,expiry:exp,quantity:0};m[k].quantity+=q
+  });
+  var rest=Math.max(0,Math.trunc(Number(r&&r.inventory_quantity||0))-loaded);
+  if(rest>0){var k='Senza lotto|';if(!m[k])m[k]={lot:'Senza lotto',expiry:'',quantity:0};m[k].quantity+=rest}
+  return Object.keys(m).map(function(k){return m[k]}).sort(function(a,b){return String(a.expiry||'9999').localeCompare(String(b.expiry||'9999'))||String(a.lot).localeCompare(String(b.lot),'it')})
+}
+function lotsHtml(r){
+  var a=lotGroups(r);if(!a.length)return '<div class="whLotEmpty">Nessun lotto</div>';
+  return '<div class="whLots">'+a.map(function(x){return '<div class="whLotRow"><div><b>'+esc(x.lot)+'</b>'+(x.expiry?'<span>Scad. '+esc(date(x.expiry))+'</span>':'')+'</div><strong>'+esc(x.quantity)+'</strong></div>'}).join('')+'</div>'
+}
 
 function installNav(){
   if(window.OPTYKER_BILLING_ADMIN||E('navWarehouseGroup'))return;
@@ -54,11 +71,11 @@ function installNav(){
 function installPanel(){
   if(E('warehousePanel'))return;
   var p=document.createElement('div');p.id='warehousePanel';p.className='panel';
-  p.innerHTML='<div class="whHead"><div><div class="whEyebrow">Optyker · Magazzino</div><div id="whTitle" class="whTitle">Magazzino</div><div class="whSub">Prodotti, giacenze Shopify, barcode, lotti, scadenze, DDT e ditte.</div></div>'+
+  p.innerHTML='<div class="whHead"><div><div class="whEyebrow">Optyker · Magazzino</div><div id="whTitle" class="whTitle">Magazzino</div><div class="whSub">Prodotti, giacenze controllate da Optyker, barcode, lotti, scadenze e ditte.</div></div>'+
     '<div class="whHeadActions"><button id="whCompaniesBtn" class="whBtn" type="button">Ditte / fornitori</button><button id="whNewBtn" class="whBtn" type="button">+ Inserisci prodotto</button><button id="whSyncBtn" class="whBtn primary" type="button">Sincronizza Shopify</button></div></div>'+
     '<div class="whStats"><div class="whStat"><b id="whCount">0</b><span>Prodotti / varianti</span></div><div class="whStat"><b id="whStockTotal">0</b><span>Giacenza nella pagina</span></div><div class="whStat"><b id="whExpirySoon">0</b><span>Scadenze entro 90 gg</span></div><div class="whStat"><b id="whNoImage">0</b><span>Senza immagine</span></div></div>'+
-    '<div class="whToolbar"><input id="whSearch" type="search" placeholder="Cerca prodotto, diottria, Infinite Options, SKU, barcode, lotto, DDT…"><select id="whCategory"></select><select id="whRows"><option value="60">60 righe</option><option value="120" selected>120 righe</option><option value="250">250 righe</option></select><button id="whApply" class="whBtn" type="button">Applica</button></div>'+
-    '<div id="whSyncInfo" class="whSyncInfo">Sincronizzazione bidirezionale automatica Optyker ↔ Shopify: prodotti, prezzi, giacenze, immagini, SKU e barcode.</div>'+
+    '<div class="whToolbar"><input id="whSearch" type="search" placeholder="Cerca prodotto, diottria, Infinite Options, SKU, barcode o lotto…"><select id="whCategory"></select><select id="whRows"><option value="60">60 righe</option><option value="120" selected>120 righe</option><option value="250">250 righe</option></select><button id="whApply" class="whBtn" type="button">Applica</button></div>'+
+    '<div id="whSyncInfo" class="whSyncInfo">La giacenza si aggiorna esclusivamente con CARICA e DIFFERENZA MAGAZZINO. Optyker aggiorna Shopify con la quantità impostata qui.</div>'+
     '<div id="whTableWrap" class="whTableWrap"><div class="whLoading">Caricamento magazzino…</div></div><div id="whPager" class="whPager"></div>';
   var a=E('labOrdersPanel')||E('onlineOrdersPanel')||E('clientsPanel')||document.querySelector('.panel');
   if(a&&a.parentNode)a.parentNode.insertBefore(p,a.nextSibling);else (E('mainApp')||document.body).appendChild(p);
@@ -94,7 +111,7 @@ function loadCompanies(){
 function loadItems(autoSync){
   if(W.loading)return;W.loading=true;var box=E('whTableWrap');if(box)box.innerHTML='<div class="whLoading">Caricamento '+esc(categoryLabel(W.category))+'…</div>';
   return api('list',{category:W.category,search:W.search,page:W.page,limit:W.limit}).then(function(x){
-    var d=x.data||{},rows=Array.isArray(d.rows)?d.rows:[];W.rows=rows;W.count=Number(d.count||0);W.page=Number(d.page||W.page);W.limit=Number(d.limit||W.limit);
+    var d=x.data||{},rows=Array.isArray(d.rows)?d.rows:[];W.rows=rows;W.count=Number(d.count||0);W.page=Number(d.page||W.page);W.limit=Number(d.limit||W.limit);W.canViewCost=!!d.can_view_confidential_cost||isMichaelUser();
     render();
     if(autoSync&&W.firstOpen&&W.count===0){W.firstOpen=false;W.loading=false;return syncShopify()}
     W.firstOpen=false;
@@ -103,26 +120,28 @@ function loadItems(autoSync){
 function render(){
   var box=E('whTableWrap');if(!box)return;
   E('whCount').textContent=String(W.count);
-  var stock=0,soon=0,noimg=0;W.rows.forEach(function(r){stock+=Number(r.inventory_quantity||0);if(expiryClass(r.expiry_date)==='soon')soon++;if(!r.image_url)noimg++});
+  var stock=0,soon=0,noimg=0;W.rows.forEach(function(r){stock+=Number(r.inventory_quantity||0);var la=lotGroups(r);if(la.some(function(x){return expiryClass(x.expiry)==='soon'}))soon++;if(!r.image_url)noimg++});
   E('whStockTotal').textContent=String(stock);E('whExpirySoon').textContent=String(soon);E('whNoImage').textContent=String(noimg);
-  if(!W.rows.length){box.innerHTML='<div class="whEmpty">Nessun prodotto in questa sezione.<br>La sincronizzazione con Shopify è automatica; puoi anche inserire un nuovo prodotto.</div>';renderPager();return}
-  var h='<table class="whTable"><thead><tr><th>Prodotto</th><th>Diottria / opzioni</th><th>Barcode</th><th>Giacenza</th><th>Prezzo</th><th>Costo conf.</th><th>Ditta / DDT</th><th>Lotto / scadenza</th><th>Azioni</th></tr></thead><tbody>';
+  if(!W.rows.length){box.innerHTML='<div class="whEmpty">Nessun prodotto in questa sezione.<br>Puoi inserire un prodotto e poi caricare la giacenza con il pulsante CARICA.</div>';renderPager();return}
+  var costHead=W.canViewCost?'<th>Costo conf.</th>':'';
+  var h='<table class="whTable"><thead><tr><th>Prodotto</th><th>Diottria / opzioni</th><th>Barcode</th><th>Giacenza</th><th>Prezzo vendita</th>'+costHead+'<th>Lotti / quantità</th><th>Azioni</th></tr></thead><tbody>';
   W.rows.forEach(function(r){
-    var opt=optionText(r),cmp=companyName(r),exp=expiryClass(r.expiry_date),src=r.source==='shopify'?'Shopify':'Optyker';
+    var opt=optionText(r),src=r.source==='shopify'?'Shopify':'Optyker';
+    var costCell=W.canViewCost?'<td><div class="whCostMask" data-cost="'+esc(r.confidential_cost==null?'':r.confidential_cost)+'" title="Tocca per mostrare">••••••</div></td>':'';
     h+='<tr><td><div class="whProductCell"><div class="whImg">'+(r.image_url?'<img src="'+esc(r.image_url)+'" alt="">':'Nessuna<br>immagine')+'</div><div><div class="whName">'+esc(r.title||'Prodotto')+'</div><div class="whVariant">'+esc(r.variant_title&&r.variant_title!=='Default Title'?r.variant_title:'')+(r.sku?' · SKU '+esc(r.sku):'')+'</div><span class="whSource '+(r.source==='shopify'?'shopify':'')+'">'+src+'</span></div></div></td>'+
       '<td><div class="whOptions">'+esc(opt||'—')+'</div>'+(hasInfinite(r)?'<span class="whInfinite">Infinite Options</span>':'')+'</td>'+
       '<td><div class="whBarcode">'+esc(r.barcode||'—')+'</div></td>'+
-      '<td><div class="whStock '+(Number(r.inventory_quantity)<0?'neg':'')+'">'+esc(r.inventory_quantity)+'</div><div class="whVariant">'+(r.tracked?'Inventario attivo':'Non tracciato')+'</div></td>'+
-      '<td><div class="whPrice">'+esc(euro(r.price))+'</div></td>'+
-      '<td><div class="whCostMask" data-cost="'+esc(r.confidential_cost==null?'':r.confidential_cost)+'" title="Tocca per mostrare">••••••</div></td>'+
-      '<td><div class="whCompany">'+esc(cmp||'—')+(r.ddt_reference?'<div class="whVariant">DDT '+esc(r.ddt_reference)+(r.ddt_date?' · '+esc(date(r.ddt_date)):'')+'</div>':'')+'</div></td>'+
-      '<td><div class="whCompany">'+(r.lot_number?'Lotto '+esc(r.lot_number):'—')+(r.expiry_date?'<div class="whExpiry '+exp+'">Scad. '+esc(date(r.expiry_date))+'</div>':'')+'</div></td>'+
-      '<td><div class="whActions"><button class="whIconBtn" data-edit="'+esc(r.id)+'" type="button">Mod.</button><button class="whIconBtn" data-label="'+esc(r.id)+'" type="button">Etich.</button></div></td></tr>';
+      '<td><div class="whStock '+(Number(r.inventory_quantity)<0?'neg':'')+'">'+esc(r.inventory_quantity)+'</div><div class="whVariant">Aggiornabile solo dai pulsanti</div></td>'+
+      '<td><div class="whPrice">'+esc(euro(r.price))+'</div></td>'+costCell+
+      '<td>'+lotsHtml(r)+'</td>'+
+      '<td><div class="whActions whActionsStock"><button class="whIconBtn whLoadBtn" data-load="'+esc(r.id)+'" type="button">CARICA</button><button class="whIconBtn whDiffBtn" data-diff="'+esc(r.id)+'" type="button">DIFFERENZA MAGAZZINO</button><button class="whIconBtn" data-edit="'+esc(r.id)+'" type="button">Mod.</button><button class="whIconBtn" data-label="'+esc(r.id)+'" type="button">Etich.</button></div></td></tr>';
   });
   box.innerHTML=h+'</tbody></table>';
-  var costs=box.querySelectorAll('.whCostMask');for(var i=0;i<costs.length;i++)costs[i].onclick=function(){var v=this.getAttribute('data-cost');this.classList.toggle('revealed');this.textContent=this.classList.contains('revealed')?(v!==''?euro(v):'—'):'••••••'};
-  var es=box.querySelectorAll('[data-edit]');for(i=0;i<es.length;i++)es[i].onclick=function(){openItemModal(findRow(this.getAttribute('data-edit')))};
-  var ls=box.querySelectorAll('[data-label]');for(i=0;i<ls.length;i++)ls[i].onclick=function(){printLabel(findRow(this.getAttribute('data-label')))};
+  if(W.canViewCost){var costs=box.querySelectorAll('.whCostMask');for(var i=0;i<costs.length;i++)costs[i].onclick=function(){var v=this.getAttribute('data-cost');this.classList.toggle('revealed');this.textContent=this.classList.contains('revealed')?(v!==''?euro(v):'—'):'••••••'}}
+  var loads=box.querySelectorAll('[data-load]');for(var j=0;j<loads.length;j++)loads[j].onclick=function(){openLoadModal(findRow(this.getAttribute('data-load')))};
+  var diffs=box.querySelectorAll('[data-diff]');for(j=0;j<diffs.length;j++)diffs[j].onclick=function(){openDifferenceModal(findRow(this.getAttribute('data-diff')))};
+  var es=box.querySelectorAll('[data-edit]');for(j=0;j<es.length;j++)es[j].onclick=function(){openItemModal(findRow(this.getAttribute('data-edit')))};
+  var ls=box.querySelectorAll('[data-label]');for(j=0;j<ls.length;j++)ls[j].onclick=function(){printLabel(findRow(this.getAttribute('data-label')))};
   renderPager()
 }
 function renderPager(){
@@ -175,20 +194,13 @@ function openItemModal(r){
     field('whfType','Tipo prodotto',r.product_type||'')+
     field('whfSku','SKU',r.sku||'')+
     field('whfBarcode','Barcode',r.barcode||'')+
-    field('whfQty','Giacenza',r.inventory_quantity==null?0:r.inventory_quantity,'number')+
     field('whfPrice','Prezzo vendita',r.price==null?0:r.price,'number')+
-    field('whfCost','Costo confidenziale',r.confidential_cost==null?'':r.confidential_cost,'password')+
-    '<div class="whField"><label>Ditta / fornitore</label><select id="whfCompany">'+companyOptions(r.company_id)+'</select></div>'+
-    field('whfDdt','DDT',r.ddt_reference||'')+
-    field('whfDdtDate','Data DDT',r.ddt_date||'','date')+
-    field('whfLot','Lotto',r.lot_number||'')+
-    field('whfExpiry','Scadenza',r.expiry_date||'','date')+
+    '<div class="whField wide"><div class="whStockLocked"><b>Giacenza: '+esc(r.inventory_quantity==null?0:r.inventory_quantity)+'</b><span>La quantità non si modifica da questa schermata. Usa CARICA oppure DIFFERENZA MAGAZZINO.</span></div></div>'+
     '<div class="whField wide"><label>Immagine prodotto</label><input id="whfImage" type="file" accept="image/*"><div id="whfImagePreview" class="whImagePreview">'+(r.image_url?'<img src="'+esc(r.image_url)+'" alt="">':'Carica una foto oppure verrà usata quella Shopify')+'</div></div>'+
     '<div class="whField wide"><label>Note</label><textarea id="whfNotes">'+esc(r.notes||'')+'</textarea></div>'+
-    '<div class="whField wide"><div class="whSecretNote">Il costo è confidenziale: nel magazzino viene nascosto e può essere rivelato solo cliccando sul campo costo.</div></div>'+
-    '<div class="whField wide"><div class="whSecretNote"><b>Sincronizzazione automatica:</b> salvando questo prodotto, Optyker lo crea o lo aggiorna anche su Shopify. Le modifiche fatte su Shopify vengono riportate automaticamente nel Magazzino.</div></div>'+
+    '<div class="whField wide"><div class="whSecretNote"><b>Giacenza protetta:</b> i salvataggi del prodotto non possono cambiare la quantità in magazzino.</div></div>'+
     '</div><div class="whFormFooter"><button id="whfCompanies" class="whBtn" type="button">Gestisci ditte</button><div class="whFormFooterRight"><button id="whfCancel" class="whBtn" type="button">Annulla</button><button id="whfSave" class="whBtn primary" type="button">'+(editing?'Salva modifiche':'Inserisci prodotto')+'</button></div></div>';
-  var m=modalShell('whItemModal',editing?'Modifica prodotto':'Inserisci prodotto',editing?'Le modifiche vengono sincronizzate automaticamente anche su Shopify.':'Il prodotto verrà pubblicato automaticamente su Shopify. Barcode automatico se lasci il campo vuoto.',body);
+  var m=modalShell('whItemModal',editing?'Modifica prodotto':'Inserisci prodotto',editing?'Modifica i dati anagrafici del prodotto. La giacenza resta invariata.':'Il prodotto nasce con giacenza 0. Dopo il salvataggio usa CARICA per inserire la merce.',body);
   E('whfCancel').onclick=function(){m.classList.remove('open')};E('whfCompanies').onclick=function(){openCompanies()};
   E('whfImage').onchange=function(ev){var file=ev.target.files&&ev.target.files[0];if(!file)return;readImage(file).then(function(data){m.__imageData=data;E('whfImagePreview').innerHTML='<img src="'+data+'" alt="">' }).catch(function(e){toast(e.message,'error')})};
   E('whfSave').onclick=function(){saveItem(r,m)}
@@ -199,13 +211,50 @@ function readImage(file){
 function saveItem(old,m){
   var payload={
     id:old.id||'',category:E('whfCategory').value,title:E('whfTitle').value,variant_title:E('whfVariant').value,vendor:E('whfVendor').value,product_type:E('whfType').value,
-    sku:E('whfSku').value,barcode:E('whfBarcode').value,inventory_quantity:Number(E('whfQty').value||0),price:Number(E('whfPrice').value||0),
-    confidential_cost:E('whfCost').value,company_id:E('whfCompany').value,ddt_reference:E('whfDdt').value,ddt_date:E('whfDdtDate').value,lot_number:E('whfLot').value,
-    expiry_date:E('whfExpiry').value,notes:E('whfNotes').value,image_data:m.__imageData||'',image_url:old.image_url||''
+    sku:E('whfSku').value,barcode:E('whfBarcode').value,price:Number(E('whfPrice').value||0),notes:E('whfNotes').value,image_data:m.__imageData||'',image_url:old.image_url||''
   };
   if(!String(payload.title||'').trim()){toast('Inserisci il nome del prodotto.','error');return}
   var b=E('whfSave');b.disabled=true;b.textContent='Salvataggio…';
-  api(old.id?'update_item':'create_item',payload).then(function(x){toast(old.id?'Prodotto aggiornato anche online':'Prodotto inserito e pubblicato online','ok');m.classList.remove('open');W.category=payload.category;W.page=1;setNavActive();return loadItems()}).catch(function(e){toast('Salvataggio non riuscito: '+e.message,'error')}).finally(function(){b.disabled=false;b.textContent=old.id?'Salva modifiche':'Inserisci prodotto'})
+  api(old.id?'update_item':'create_item',payload).then(function(){toast(old.id?'Prodotto aggiornato':'Prodotto inserito con giacenza 0','ok');m.classList.remove('open');W.category=payload.category;W.page=1;setNavActive();return loadItems()}).catch(function(e){toast('Salvataggio non riuscito: '+e.message,'error')}).finally(function(){b.disabled=false;b.textContent=old.id?'Salva modifiche':'Inserisci prodotto'})
+}
+
+function openLoadModal(r){
+  if(!r)return;
+  var costField=W.canViewCost?field('whlCost','Prezzo confidenziale unitario',r.confidential_cost==null?'':r.confidential_cost,'number'):'';
+  var body='<div class="whLoadProduct"><b>'+esc(r.title||'Prodotto')+'</b><span>Giacenza attuale: '+esc(r.inventory_quantity||0)+'</span></div><div class="whForm">'+
+    field('whlQty','Quantità da caricare','','number')+
+    field('whlLot','Lotto','')+
+    field('whlExpiry','Data di scadenza','','date')+
+    field('whlDdt','Numero DDT','')+
+    field('whlDdtDate','Data DDT','','date')+
+    field('whlPrice','Prezzo di vendita',r.price==null?0:r.price,'number')+
+    costField+
+    '<div class="whField"><label>Ditta / fornitore</label><select id="whlCompany">'+companyOptions(r.company_id)+'</select></div>'+
+    '<div class="whField wide"><div class="whSecretNote">Numero e data DDT vengono salvati nel carico ma non vengono mostrati nella tabella del Magazzino.</div></div>'+
+    '</div><div class="whFormFooter"><span></span><div class="whFormFooterRight"><button id="whlCancel" class="whBtn" type="button">Annulla</button><button id="whlSave" class="whBtn primary" type="button">CARICA</button></div></div>';
+  var m=modalShell('whLoadModal','CARICA','Aggiungi merce alla giacenza e registra lotto, scadenza e DDT.',body);
+  E('whlCancel').onclick=function(){m.classList.remove('open')};
+  E('whlSave').onclick=function(){
+    var qty=Math.trunc(Number(E('whlQty').value||0));if(qty<=0){toast('Inserisci la quantità da caricare.','error');return}
+    var p={id:r.id,quantity:qty,lot_number:E('whlLot').value,expiry_date:E('whlExpiry').value,ddt_reference:E('whlDdt').value,ddt_date:E('whlDdtDate').value,price:E('whlPrice').value,company_id:E('whlCompany').value};
+    if(W.canViewCost&&E('whlCost'))p.confidential_cost=E('whlCost').value;
+    var b=E('whlSave');b.disabled=true;b.textContent='Caricamento…';
+    api('stock_load',p).then(function(){toast('Carico registrato e giacenza aggiornata','ok');m.classList.remove('open');return loadItems()}).catch(function(e){toast('Carico non riuscito: '+e.message,'error')}).finally(function(){b.disabled=false;b.textContent='CARICA'})
+  }
+}
+function openDifferenceModal(r){
+  if(!r)return;
+  var body='<div class="whLoadProduct"><b>'+esc(r.title||'Prodotto')+'</b><span>Giacenza registrata: '+esc(r.inventory_quantity||0)+'</span></div><div class="whForm whDiffForm">'+
+    field('whdQty','Quantità realmente presente',r.inventory_quantity==null?0:r.inventory_quantity,'number','wide')+
+    '<div class="whField wide"><div class="whSecretNote">Il valore inserito sostituirà completamente la giacenza attuale. Se necessario verranno riallineate anche le quantità dei lotti.</div></div>'+
+    '</div><div class="whFormFooter"><span></span><div class="whFormFooterRight"><button id="whdCancel" class="whBtn" type="button">Annulla</button><button id="whdSave" class="whBtn primary" type="button">SALVA DIFFERENZA</button></div></div>';
+  var m=modalShell('whDifferenceModal','DIFFERENZA MAGAZZINO','Inserisci la quantità fisicamente presente: questo dato sostituisce la giacenza.',body);
+  E('whdCancel').onclick=function(){m.classList.remove('open')};
+  E('whdSave').onclick=function(){
+    var q=Math.trunc(Number(E('whdQty').value));if(!isFinite(q)||q<0){toast('Inserisci una quantità valida.','error');return}
+    var b=E('whdSave');b.disabled=true;b.textContent='Salvataggio…';
+    api('stock_difference',{id:r.id,actual_quantity:q}).then(function(){toast('Giacenza sostituita con '+q,'ok');m.classList.remove('open');return loadItems()}).catch(function(e){toast('Differenza non salvata: '+e.message,'error')}).finally(function(){b.disabled=false;b.textContent='SALVA DIFFERENZA'})
+  }
 }
 
 function openCompanies(){
