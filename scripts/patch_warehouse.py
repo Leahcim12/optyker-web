@@ -2,8 +2,8 @@ from pathlib import Path
 
 path=Path("_site/index.html")
 text=path.read_text(encoding="utf-8")
-css='<link rel="stylesheet" href="/warehouse.css?v=20260903-bulkcat1" id="optykerWarehouseCss">'
-js='<script src="/warehouse.js?v=20260903-bulkcat1" id="optykerWarehouseJs"></script>'
+css='<link rel="stylesheet" href="/warehouse.css?v=20260903-compact-actions2" id="optykerWarehouseCss">'
+js='<script src="/warehouse.js?v=20260903-compact-actions2" id="optykerWarehouseJs"></script>'
 
 if 'id="optykerWarehouseCss"' in text:
     import re
