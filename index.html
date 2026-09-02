@@ -12,7 +12,7 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
 <div class="load"><div class="card"><div class="spin"></div><h2>Optyker</h2><div id="msg">Caricamento applicazione…</div></div></div>
 <script>
 (async()=>{
-  const source='https://whgziwaegjzqsgcntesr.supabase.co/storage/v1/object/public/optyker-web/index.html?v=20260902-refs1';
+  const source='https://whgziwaegjzqsgcntesr.supabase.co/storage/v1/object/public/optyker-web/index.html?v=20260903-rate2';
   const blank='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
   async function asDataUrl(url){
     const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw new Error('Logo HTTP '+r.status);
@@ -220,25 +220,64 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
 
     const rateButtonPatch=`<scr`+`ipt id="optykerRateButtonPatch">
 (function(){
-  if(window.__optykerRateButtonPatch)return;
-  window.__optykerRateButtonPatch=true;
-  function apply(){
-    var buttons=document.querySelectorAll('button');
-    for(var i=0;i<buttons.length;i++){
-      var b=buttons[i];
-      var txt=String(b.textContent||'').replace(/\\s+/g,' ').trim().toLowerCase();
-      if(txt==='da pagare'){
-        b.textContent='Rate';
-        b.setAttribute('title','Pagamento dilazionato');
-        b.setAttribute('aria-label','Rate - pagamento dilazionato');
-        b.setAttribute('data-optyker-rate','1');
-      }
+  if(window.__optykerRateButtonPatchV2)return;
+  window.__optykerRateButtonPatchV2=true;
+
+  function fixButton(b){
+    if(!b)return;
+    var txt=String(b.textContent||'').replace(/\\s+/g,' ').trim().toLowerCase();
+    if(txt==='da pagare'){
+      b.textContent='RATE';
+      b.setAttribute('title','Pagamento dilazionato');
+      b.setAttribute('aria-label','RATE - pagamento dilazionato');
+      b.setAttribute('data-optyker-rate','1');
     }
   }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply);else apply();
-  setTimeout(apply,100);setTimeout(apply,500);setInterval(apply,900);
+
+  function walkRoot(root){
+    if(!root)return;
+    try{
+      var buttons=root.querySelectorAll?root.querySelectorAll('button'):[];
+      for(var i=0;i<buttons.length;i++)fixButton(buttons[i]);
+
+      var all=root.querySelectorAll?root.querySelectorAll('*'):[];
+      for(var j=0;j<all.length;j++){
+        var el=all[j];
+        if(el.shadowRoot)walkRoot(el.shadowRoot);
+        if(el.tagName==='IFRAME'){
+          try{
+            var d=el.contentDocument;
+            if(d)walkRoot(d);
+          }catch(e){}
+        }
+      }
+    }catch(e){}
+  }
+
+  function apply(){
+    walkRoot(document);
+  }
+
+  function observe(root){
+    try{
+      var mo=new MutationObserver(function(){apply()});
+      mo.observe(root,{subtree:true,childList:true,characterData:true});
+    }catch(e){}
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',function(){apply();observe(document.documentElement)});
+  }else{
+    apply();observe(document.documentElement);
+  }
+
+  setTimeout(apply,50);
+  setTimeout(apply,250);
+  setTimeout(apply,700);
+  setTimeout(apply,1500);
+  setInterval(apply,600);
 })();
-</scr`+`ipt>`;
+</scr`+`ipt>;
 
     const laboratoryPatch=`<scr`+`ipt id="optykerLaboratoryPatch">
 (function(){
