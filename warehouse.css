@@ -76,3 +76,14 @@ body.optykerBillingMode #navWarehouseGroup{display:none!important}
 
 @media(max-width:1000px){.whStats{grid-template-columns:1fr 1fr}.whToolbar{grid-template-columns:1fr 1fr}.whForm{grid-template-columns:1fr 1fr}.whField.two{grid-column:span 2}}
 @media(max-width:760px){#warehousePanel{grid-column:1!important;padding:12px}.whHead{flex-direction:column}.whHeadActions{justify-content:flex-start}.whToolbar{grid-template-columns:1fr}.whForm{grid-template-columns:1fr}.whField.wide,.whField.two{grid-column:auto}.whCompanies{grid-template-columns:1fr}.whStats{grid-template-columns:1fr 1fr}}
+
+/* Magazzino · gestione giacenza tramite pulsanti */
+.whActionsStock{display:grid!important;grid-template-columns:1fr 1fr;min-width:245px;gap:5px!important}
+.whActionsStock .whIconBtn{min-width:0;height:32px;padding:0 8px}
+.whLoadBtn{background:#1769aa!important;border-color:#1769aa!important;color:#fff!important}
+.whLoadBtn:hover{background:#135a92!important}
+.whDiffBtn{grid-column:1/-1;background:#f5f9fc!important;color:#375970!important}
+.whLots{display:grid;gap:4px;min-width:150px}.whLotRow{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid #e1e9ef;border-radius:7px;padding:5px 7px;background:#fbfdff}.whLotRow b{display:block;font-size:8px;color:#29485f}.whLotRow span{display:block;font-size:7px;color:#7a8d9b;margin-top:1px}.whLotRow strong{font-size:10px;color:#1769aa}.whLotEmpty{font-size:8px;color:#8a9aa5}
+.whStockLocked,.whLoadProduct{border:1px solid #d7e3eb;border-radius:10px;background:#f5f9fc;padding:10px 11px}.whStockLocked b,.whLoadProduct b{display:block;font-size:11px;color:#17334b}.whStockLocked span,.whLoadProduct span{display:block;font-size:8px;color:#718493;margin-top:3px;line-height:1.4}
+.whLoadProduct{margin-bottom:12px;background:#eef7fd;border-color:#cfe1ee}.whLoadProduct span{font-size:9px}
+.whDiffForm{grid-template-columns:1fr!important}
