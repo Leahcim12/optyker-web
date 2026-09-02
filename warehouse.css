@@ -89,3 +89,9 @@ body.optykerBillingMode #navWarehouseGroup{display:none!important}
 .whStockLocked,.whLoadProduct{border:1px solid #d7e3eb;border-radius:10px;background:#f5f9fc;padding:10px 11px}.whStockLocked b,.whLoadProduct b{display:block;font-size:11px;color:#17334b}.whStockLocked span,.whLoadProduct span{display:block;font-size:8px;color:#718493;margin-top:3px;line-height:1.4}
 .whLoadProduct{margin-bottom:12px;background:#eef7fd;border-color:#cfe1ee}.whLoadProduct span{font-size:9px}
 .whDiffForm{grid-template-columns:1fr!important}
+
+/* Magazzino · selezione multipla */
+.whBulkBar{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #d9e5ed;border-radius:10px;background:#fff;padding:9px 11px;margin:0 0 10px}.whBulkBar b{display:block;font-size:10px;color:#17334b}.whBulkBar span{display:block;font-size:8px;color:#758899;margin-top:2px}.whBulkBar.active{border-color:#9fc6e1;background:#f3f9fd}.whBulkActions{display:flex;gap:6px;flex-wrap:wrap}.whBulkActions .whBtn:disabled{opacity:.45;cursor:not-allowed}
+.whSelectCol{width:38px!important;min-width:38px!important;max-width:38px!important;text-align:center!important;padding-left:6px!important;padding-right:6px!important}.whCheck{width:16px;height:16px;accent-color:#1769aa;cursor:pointer}.whRowSelected td{background:#f0f8fd!important}
+.whBulkModalIntro{border:1px solid #d4e4ef;border-radius:10px;background:#f5fafd;padding:11px 12px;margin-bottom:12px}.whBulkModalIntro b{display:block;font-size:11px;color:#17334b}.whBulkModalIntro span{display:block;font-size:8px;color:#718493;margin-top:3px}
+@media(max-width:760px){.whBulkBar{align-items:flex-start;flex-direction:column}.whBulkActions{width:100%}.whBulkActions .whBtn{flex:1}}
