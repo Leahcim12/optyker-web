@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Visual Care">
   <title>Ottica Visual Care</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=13">
+  <link rel="manifest" href="./manifest.webmanifest?v=20260903-app-live1">
   <link rel="apple-touch-icon" href="https://cdn.shopify.com/s/files/1/0917/4289/6503/files/visual-care-logo-app-original.png?v=1787903859">
   <style>
     :root{--blue:#1769aa;--navy:#11395d;--bg:#f4f7fa;--line:#dce6ee;--text:#19384d;--muted:#6d8291;--card:#fff;--danger:#b42318}
@@ -235,8 +235,8 @@ const STAFF_LOGIN=U+'/functions/v1/optyker-mobile-staff-login';
 const BOOKING_API=U+'/functions/v1/optyker-appointments-booking';
 const CATALOG=U+'/functions/v1/optyker-shop-catalog';
 const SHOP='https://otticavisualcare.it';
-const OPTYKER_BUILD='20260902-refs2';
-const BOOK='../booking/?source=iphone-app&build=20260902-refs2';
+const OPTYKER_BUILD='20260903-app-live1';
+const BOOK='../booking/?source=iphone-app&build=20260903-app-live1';
 const sb=window.supabase.createClient(U,K,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const app=document.getElementById('app');
 let state={session:null,me:null,home:null,appointments:[],tab:'home',frame:null,drawer:false,shopCategories:[],shopParent:null,shopCategory:null,shopProducts:[],shopPageInfo:null,shopLoading:false,shopError:'',cart:[],chatMessages:[],chatLoading:false,chatSending:false,chatError:'',chatTimer:null,chatAttachment:null,timers:[],timerLoading:false,timerError:'',staffHome:null,staffAgenda:[],staffAgendaStart:'',staffShifts:null,staffShiftMonth:'',staffClients:[],staffClientDetail:null,staffClientSearch:'',staffOrders:null,staffThreads:[],staffSelectedThread:'',staffMessages:[],staffLoading:false,staffError:'',staffProfileDraftPhoto:'',staffChatAttachment:null,documents:null,documentsLoading:false,documentsError:''};
@@ -379,7 +379,7 @@ async function ensurePushSubscription(){
   if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window))throw Error('Le notifiche non sono supportate su questo dispositivo.');
   const cfg=await call(API,'push_config',{});
   const pub=String(cfg.data?.vapid_public_key||'');if(!pub)throw Error('Servizio notifiche non disponibile.');
-  const reg=await navigator.serviceWorker.register('./sw.js?v=13');
+  const reg=await navigator.serviceWorker.register('./sw.js?v=20260903-app-live1');
   await navigator.serviceWorker.ready;
   let permission=Notification.permission;
   if(permission!=='granted')permission=await Notification.requestPermission();
@@ -1419,7 +1419,7 @@ sb.auth.onAuthStateChange((event,session)=>{
   if(event==='SIGNED_OUT'){login();return}
   if(event==='SIGNED_IN'&&session&&!state.me)setTimeout(boot,0);
 });
-if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js?v=13').catch(()=>{});
+if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js?v=20260903-app-live1').catch(()=>{});
 boot();
 </script>
 
