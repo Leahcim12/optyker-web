@@ -253,7 +253,7 @@ test -s _site/rch-connector/Disinstalla-RCH-Optyker.ps1
           reset=Path('_site/reset-password/index.html').read_text(encoding='utf-8')
           app13=Path('_site/iphone-app-v13/index.html').read_text(encoding='utf-8')
           required_reset=['Recupero password','SALVA NUOVA PASSWORD','updateUser','exchangeCodeForSession']
-          required_app13=['<h1>Orari</h1>','data-nav="hours"','data-nav="timer"','push_subscribe','timer_create','APP 13.4','sw.js?v=13','profile_photo_save','chooseChatProfilePhoto','attachment_data','chatImageModal']
+          required_app13=['<h1>Orari</h1>','data-nav="hours"','data-nav="timer"','push_subscribe','timer_create','APP 13.4','sw.js?v=20260903-app-live1',"const OPTYKER_BUILD='20260903-app-live1'",'profile_photo_save','chooseChatProfilePhoto','attachment_data','chatImageModal']
           required_booking=['I tuoi appuntamenti','Sposta','Aggiungi un altro','optyker_appointment_tokens_v2','Scegli lo studio disponibile','Inserisci l’orario','studio_id:S.candidate.studio_id||null']
           missing=[x for x in required_main if x not in main]+[x for x in required_booking if x not in booking]+[x for x in required_reset if x not in reset]+[x for x in required_app13 if x not in app13]
           if missing: raise SystemExit('Mancano: '+', '.join(missing))
