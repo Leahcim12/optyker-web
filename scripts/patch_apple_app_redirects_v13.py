@@ -1,6 +1,6 @@
 from pathlib import Path
 
-TARGET = "/optyker-web/iphone-app-v13/?app=13"
+TARGET = "../iphone-app-v13/?app=13&build=20260903-app-live1"
 OLD = ["iphone-app"] + [f"iphone-app-v{i}" for i in range(2,13)]
 
 html = """<!doctype html>
@@ -19,7 +19,7 @@ a{display:block;margin-top:16px;padding:13px 16px;border-radius:11px;background:
 </style>
 <script>
 (function(){
-  var target='""" + TARGET + """';
+  var target='""" + TARGET + """'+'&fresh='+Date.now();
   var extra=(location.search||'').replace(/^\?/,'');
   if(extra){
     extra=extra.split('&').filter(function(x){return x && !/^app=/.test(x)}).join('&');
