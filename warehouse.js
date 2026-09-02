@@ -1,6 +1,6 @@
 (function(){
 if(window.__optykerWarehouseLoaded)return;window.__optykerWarehouseLoaded=true;
-window.OPTYKER_WAREHOUSE_BUILD='20260903-stock-buttons1';
+window.OPTYKER_WAREHOUSE_BUILD='20260903-bulkcat1';
 var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-inventory-api';
 var CATS={
   frames:'Montature da vista',
@@ -10,7 +10,7 @@ var CATS={
   accessories:'Accessori',
   services:'Servizi'
 };
-var W={category:'frames',rows:[],count:0,page:1,limit:120,companies:[],loading:false,syncing:false,search:'',firstOpen:true,lastAutoSync:0,canViewCost:false};
+var W={category:'frames',rows:[],count:0,page:1,limit:120,companies:[],loading:false,syncing:false,search:'',firstOpen:true,lastAutoSync:0,canViewCost:false,selected:new Set()};
 
 function E(id){return document.getElementById(id)}
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -75,6 +75,7 @@ function installPanel(){
     '<div class="whHeadActions"><button id="whCompaniesBtn" class="whBtn" type="button">Ditte / fornitori</button><button id="whNewBtn" class="whBtn" type="button">+ Inserisci prodotto</button><button id="whSyncBtn" class="whBtn primary" type="button">Sincronizza Shopify</button></div></div>'+
     '<div class="whStats"><div class="whStat"><b id="whCount">0</b><span>Prodotti / varianti</span></div><div class="whStat"><b id="whStockTotal">0</b><span>Giacenza nella pagina</span></div><div class="whStat"><b id="whExpirySoon">0</b><span>Scadenze entro 90 gg</span></div><div class="whStat"><b id="whNoImage">0</b><span>Senza immagine</span></div></div>'+
     '<div class="whToolbar"><input id="whSearch" type="search" placeholder="Cerca prodotto, diottria, Infinite Options, SKU, barcode o lotto…"><select id="whCategory"></select><select id="whRows"><option value="60">60 righe</option><option value="120" selected>120 righe</option><option value="250">250 righe</option></select><button id="whApply" class="whBtn" type="button">Applica</button></div>'+
+    '<div id="whBulkBar" class="whBulkBar"><div><b id="whBulkCount">0 selezionati</b><span>Seleziona più prodotti per modificarli insieme.</span></div><div class="whBulkActions"><button id="whBulkClear" class="whBtn" type="button">Deseleziona</button><button id="whBulkCategory" class="whBtn primary" type="button" disabled>CAMBIA CATEGORIA</button></div></div>'+
     '<div id="whSyncInfo" class="whSyncInfo">La giacenza si aggiorna esclusivamente con CARICA e DIFFERENZA MAGAZZINO. Optyker aggiorna Shopify con la quantità impostata qui.</div>'+
     '<div id="whTableWrap" class="whTableWrap"><div class="whLoading">Caricamento magazzino…</div></div><div id="whPager" class="whPager"></div>';
   var a=E('labOrdersPanel')||E('onlineOrdersPanel')||E('clientsPanel')||document.querySelector('.panel');
@@ -85,6 +86,8 @@ function installPanel(){
   E('whCategory').onchange=function(){W.category=this.value||'frames';W.page=1;setNavActive();loadItems()};
   E('whRows').onchange=function(){W.limit=Number(this.value||120);W.page=1;loadItems()};
   E('whSyncBtn').onclick=function(){syncShopify(false,true)};E('whNewBtn').onclick=function(){openItemModal(null)};E('whCompaniesBtn').onclick=openCompanies;
+  E('whBulkClear').onclick=function(){W.selected.clear();render();updateBulkBar()};
+  E('whBulkCategory').onclick=openBulkCategoryModal;
 }
 function hideOther(){
   var ids=['dashboardPanel','analysisPanel','prescriptionPanel','visualExamPanel','indicationsPanel','hearingPanel','clientsPanel','lacPanel','onlineOrdersPanel','labOrdersPanel','optykerDdtPanel','optykerCustomerInvoicesPanel','eyewearPanel'];
@@ -117,6 +120,36 @@ function loadItems(autoSync){
     W.firstOpen=false;
   }).catch(function(e){if(box)box.innerHTML='<div class="whEmpty">Impossibile caricare il magazzino: '+esc(e.message)+'</div>'}).finally(function(){W.loading=false})
 }
+function updateBulkBar(){
+  var n=W.selected.size,b=E('whBulkBar'),c=E('whBulkCount'),btn=E('whBulkCategory');
+  if(c)c.textContent=n+' selezionat'+(n===1?'o':'i');
+  if(btn)btn.disabled=n===0;
+  if(b)b.classList.toggle('active',n>0)
+}
+function toggleRowSelection(id,checked){
+  id=String(id||'');if(!id)return;
+  if(checked)W.selected.add(id);else W.selected.delete(id);
+  updateBulkBar()
+}
+function openBulkCategoryModal(){
+  if(!W.selected.size)return;
+  var opts=Object.keys(CATS).map(function(k){return '<option value="'+esc(k)+'">'+esc(CATS[k])+'</option>'}).join('');
+  var body='<div class="whBulkModalIntro"><b>'+W.selected.size+' prodotti selezionati</b><span>Scegli la nuova categoria da applicare a tutti.</span></div><div class="whForm whDiffForm"><div class="whField wide"><label>Nuova categoria</label><select id="whBulkCategorySelect">'+opts+'</select></div></div><div class="whFormFooter"><span></span><div class="whFormFooterRight"><button id="whBulkCancel" class="whBtn" type="button">Annulla</button><button id="whBulkSave" class="whBtn primary" type="button">CAMBIA CATEGORIA</button></div></div>';
+  var m=modalShell('whBulkCategoryModal','Cambia categoria','La categoria verrà modificata per tutti i prodotti selezionati.',body);
+  if(E('whBulkCategorySelect'))E('whBulkCategorySelect').value=W.category||'frames';
+  E('whBulkCancel').onclick=function(){m.classList.remove('open')};
+  E('whBulkSave').onclick=function(){
+    var category=E('whBulkCategorySelect').value,ids=Array.from(W.selected),b=E('whBulkSave');
+    if(!ids.length)return;
+    b.disabled=true;b.textContent='Aggiornamento…';
+    api('bulk_change_category',{ids:ids,category:category}).then(function(x){
+      var n=Number(x&&x.data&&x.data.updated||ids.length);
+      toast(n+' prodotti spostati in '+categoryLabel(category),'ok');
+      W.selected.clear();m.classList.remove('open');W.page=1;return loadItems()
+    }).catch(function(e){toast('Cambio categoria non riuscito: '+e.message,'error')}).finally(function(){b.disabled=false;b.textContent='CAMBIA CATEGORIA'})
+  }
+}
+
 function render(){
   var box=E('whTableWrap');if(!box)return;
   E('whCount').textContent=String(W.count);
@@ -124,11 +157,12 @@ function render(){
   E('whStockTotal').textContent=String(stock);E('whExpirySoon').textContent=String(soon);E('whNoImage').textContent=String(noimg);
   if(!W.rows.length){box.innerHTML='<div class="whEmpty">Nessun prodotto in questa sezione.<br>Puoi inserire un prodotto e poi caricare la giacenza con il pulsante CARICA.</div>';renderPager();return}
   var costHead=W.canViewCost?'<th>Costo conf.</th>':'';
-  var h='<table class="whTable"><thead><tr><th>Prodotto</th><th>Diottria / opzioni</th><th>Barcode</th><th>Giacenza</th><th>Prezzo vendita</th>'+costHead+'<th>Lotti / quantità</th><th>Azioni</th></tr></thead><tbody>';
+  var visibleIds=W.rows.map(function(r){return String(r.id||'')});var allSelected=visibleIds.length>0&&visibleIds.every(function(id){return W.selected.has(id)});
+  var h='<table class="whTable"><thead><tr><th class="whSelectCol"><input id="whSelectAll" class="whCheck" type="checkbox" '+(allSelected?'checked':'')+' aria-label="Seleziona tutti i prodotti visibili"></th><th>Prodotto</th><th>Diottria / opzioni</th><th>Barcode</th><th>Giacenza</th><th>Prezzo vendita</th>'+costHead+'<th>Lotti / quantità</th><th>Azioni</th></tr></thead><tbody>';
   W.rows.forEach(function(r){
     var opt=optionText(r),src=r.source==='shopify'?'Shopify':'Optyker';
     var costCell=W.canViewCost?'<td><div class="whCostMask" data-cost="'+esc(r.confidential_cost==null?'':r.confidential_cost)+'" title="Tocca per mostrare">••••••</div></td>':'';
-    h+='<tr><td><div class="whProductCell"><div class="whImg">'+(r.image_url?'<img src="'+esc(r.image_url)+'" alt="">':'Nessuna<br>immagine')+'</div><div><div class="whName">'+esc(r.title||'Prodotto')+'</div><div class="whVariant">'+esc(r.variant_title&&r.variant_title!=='Default Title'?r.variant_title:'')+(r.sku?' · SKU '+esc(r.sku):'')+'</div><span class="whSource '+(r.source==='shopify'?'shopify':'')+'">'+src+'</span></div></div></td>'+
+    h+='<tr class="'+(W.selected.has(String(r.id))?'whRowSelected':'')+'"><td class="whSelectCol"><input class="whCheck" data-select="'+esc(r.id)+'" type="checkbox" '+(W.selected.has(String(r.id))?'checked':'')+' aria-label="Seleziona prodotto"></td><td><div class="whProductCell"><div class="whImg">'+(r.image_url?'<img src="'+esc(r.image_url)+'" alt="">':'Nessuna<br>immagine')+'</div><div><div class="whName">'+esc(r.title||'Prodotto')+'</div><div class="whVariant">'+esc(r.variant_title&&r.variant_title!=='Default Title'?r.variant_title:'')+(r.sku?' · SKU '+esc(r.sku):'')+'</div><span class="whSource '+(r.source==='shopify'?'shopify':'')+'">'+src+'</span></div></div></td>'+
       '<td><div class="whOptions">'+esc(opt||'—')+'</div>'+(hasInfinite(r)?'<span class="whInfinite">Infinite Options</span>':'')+'</td>'+
       '<td><div class="whBarcode">'+esc(r.barcode||'—')+'</div></td>'+
       '<td><div class="whStock '+(Number(r.inventory_quantity)<0?'neg':'')+'">'+esc(r.inventory_quantity)+'</div><div class="whVariant">Aggiornabile solo dai pulsanti</div></td>'+
@@ -137,6 +171,9 @@ function render(){
       '<td><div class="whActions whActionsStock"><button class="whIconBtn whLoadBtn" data-load="'+esc(r.id)+'" type="button">CARICA</button><button class="whIconBtn whDiffBtn" data-diff="'+esc(r.id)+'" type="button">DIFFERENZA MAGAZZINO</button><button class="whIconBtn" data-edit="'+esc(r.id)+'" type="button">Mod.</button><button class="whIconBtn" data-label="'+esc(r.id)+'" type="button">Etich.</button></div></td></tr>';
   });
   box.innerHTML=h+'</tbody></table>';
+  var all=E('whSelectAll');if(all)all.onchange=function(){var checked=this.checked;W.rows.forEach(function(r){var id=String(r.id||'');if(!id)return;if(checked)W.selected.add(id);else W.selected.delete(id)});render()};
+  var sels=box.querySelectorAll('[data-select]');for(var si=0;si<sels.length;si++)sels[si].onchange=function(){toggleRowSelection(this.getAttribute('data-select'),this.checked);var tr=this.closest('tr');if(tr)tr.classList.toggle('whRowSelected',this.checked)};
+  updateBulkBar();
   if(W.canViewCost){var costs=box.querySelectorAll('.whCostMask');for(var i=0;i<costs.length;i++)costs[i].onclick=function(){var v=this.getAttribute('data-cost');this.classList.toggle('revealed');this.textContent=this.classList.contains('revealed')?(v!==''?euro(v):'—'):'••••••'}}
   var loads=box.querySelectorAll('[data-load]');for(var j=0;j<loads.length;j++)loads[j].onclick=function(){openLoadModal(findRow(this.getAttribute('data-load')))};
   var diffs=box.querySelectorAll('[data-diff]');for(j=0;j<diffs.length;j++)diffs[j].onclick=function(){openDifferenceModal(findRow(this.getAttribute('data-diff')))};
