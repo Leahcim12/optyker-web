@@ -33,12 +33,12 @@ body.optykerBillingMode #navWarehouseGroup{display:none!important}
 .whToolbar input:focus,.whToolbar select:focus{border-color:#1769aa;box-shadow:0 0 0 2px rgba(23,105,170,.1)}
 .whSyncInfo{font-size:8px;color:#718493;margin:-3px 0 11px}
 .whTableWrap{border:1px solid #dce5ec;border-radius:11px;background:#fff;overflow:auto}
-.whTable{width:100%;border-collapse:collapse;min-width:1220px}
-.whTable th{position:sticky;top:0;z-index:2;background:#f6f9fb;border-bottom:1px solid #dce5ec;padding:9px 8px;text-align:left;font-size:8px;font-weight:950;letter-spacing:.05em;text-transform:uppercase;color:#718494}
-.whTable td{border-bottom:1px solid #edf2f5;padding:8px;vertical-align:middle;font-size:9px;color:#304b62}
+.whTable{width:100%;border-collapse:collapse;min-width:1080px;table-layout:auto}
+.whTable th{position:sticky;top:0;z-index:2;background:#f6f9fb;border-bottom:1px solid #dce5ec;padding:8px 6px;text-align:left;font-size:8px;font-weight:950;letter-spacing:.05em;text-transform:uppercase;color:#718494}
+.whTable td{border-bottom:1px solid #edf2f5;padding:7px 6px;vertical-align:middle;font-size:9px;color:#304b62}
 .whTable tr:last-child td{border-bottom:0}.whTable tr:hover td{background:#fbfdff}
-.whProductCell{display:grid;grid-template-columns:54px minmax(0,1fr);gap:9px;align-items:center;min-width:280px}
-.whImg{width:54px;height:54px;border-radius:9px;border:1px solid #e1e8ed;background:#f5f7f9;display:grid;place-items:center;overflow:hidden;color:#8fa0ac;font-size:8px;text-align:center}
+.whProductCell{display:grid;grid-template-columns:46px minmax(0,1fr);gap:7px;align-items:center;min-width:225px;max-width:280px}
+.whImg{width:46px;height:46px;border-radius:9px;border:1px solid #e1e8ed;background:#f5f7f9;display:grid;place-items:center;overflow:hidden;color:#8fa0ac;font-size:8px;text-align:center}
 .whImg img{width:100%;height:100%;object-fit:contain;background:#fff}
 .whName{font-size:10px;font-weight:900;color:#203d55;line-height:1.3}.whVariant{font-size:8px;color:#778b9b;margin-top:2px;line-height:1.35}
 .whSource{display:inline-flex;margin-top:4px;padding:3px 6px;border-radius:999px;background:#eef4f8;color:#60788b;font-size:7px;font-weight:900;text-transform:uppercase}
@@ -48,7 +48,7 @@ body.optykerBillingMode #navWarehouseGroup{display:none!important}
 .whPrice{font-size:10px;font-weight:950;color:#1769aa;white-space:nowrap}
 .whExpiry{white-space:nowrap}.whExpiry.soon{color:#a66b00;font-weight:900}.whExpiry.expired{color:#a53737;font-weight:900}
 .whCompany{font-size:8px;color:#536b7f;max-width:150px}
-.whOptions{font-size:8px;color:#526c80;max-width:220px;white-space:normal;line-height:1.35}
+.whOptions{font-size:8px;color:#526c80;max-width:175px;white-space:normal;line-height:1.35}
 .whInfinite{display:inline-flex;margin-top:3px;padding:3px 5px;border-radius:999px;background:#f0eefa;color:#6247a7;font-size:7px;font-weight:900}
 .whCostMask{font-size:10px;font-weight:900;letter-spacing:.08em;color:#617889;cursor:pointer;white-space:nowrap}
 .whCostMask.revealed{letter-spacing:0;color:#17334b}
@@ -78,14 +78,14 @@ body.optykerBillingMode #navWarehouseGroup{display:none!important}
 @media(max-width:760px){#warehousePanel{grid-column:1!important;padding:12px}.whHead{flex-direction:column}.whHeadActions{justify-content:flex-start}.whToolbar{grid-template-columns:1fr}.whForm{grid-template-columns:1fr}.whField.wide,.whField.two{grid-column:auto}.whCompanies{grid-template-columns:1fr}.whStats{grid-template-columns:1fr 1fr}}
 
 /* Magazzino · gestione giacenza tramite pulsanti */
-.whTable th:last-child,.whTable td:last-child{width:180px;min-width:180px;max-width:180px}
-.whActionsStock{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-width:0!important;width:100%;max-width:100%;box-sizing:border-box;gap:5px!important}
-.whActionsStock .whIconBtn{width:100%;max-width:100%;min-width:0!important;height:auto;min-height:32px;padding:7px 6px;box-sizing:border-box;white-space:normal;overflow-wrap:anywhere;line-height:1.15}
+.whTable th:last-child,.whTable td:last-child{width:205px;min-width:205px;max-width:205px}
+.whActionsStock{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-width:0!important;width:100%;max-width:100%;box-sizing:border-box;gap:4px!important}
+.whActionsStock .whIconBtn{width:100%;max-width:100%;min-width:0!important;height:auto;min-height:30px;padding:6px 5px;box-sizing:border-box;white-space:normal;overflow-wrap:anywhere;line-height:1.15}
 .whLoadBtn{grid-column:1/-1;background:#1769aa!important;border-color:#1769aa!important;color:#fff!important}
 .whLoadBtn:hover{background:#135a92!important}
 .whDiffBtn{grid-column:1/-1;background:#f5f9fc!important;color:#375970!important}
-@media(max-width:1200px){.whTable th:last-child,.whTable td:last-child{width:160px;min-width:160px;max-width:160px}.whActionsStock .whIconBtn{font-size:7px;padding:7px 4px}}
-.whLots{display:grid;gap:4px;min-width:150px}.whLotRow{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid #e1e9ef;border-radius:7px;padding:5px 7px;background:#fbfdff}.whLotRow b{display:block;font-size:8px;color:#29485f}.whLotRow span{display:block;font-size:7px;color:#7a8d9b;margin-top:1px}.whLotRow strong{font-size:10px;color:#1769aa}.whLotEmpty{font-size:8px;color:#8a9aa5}
+@media(max-width:1200px){.whTable{min-width:980px}.whTable th:last-child,.whTable td:last-child{width:185px;min-width:185px;max-width:185px}.whProductCell{min-width:205px}.whOptions{max-width:150px}.whActionsStock .whIconBtn{font-size:7px;padding:6px 4px}}
+.whLots{display:grid;gap:3px;min-width:120px;max-width:150px}.whLotRow{display:flex;align-items:center;justify-content:space-between;gap:7px;border:1px solid #e1e9ef;border-radius:7px;padding:4px 6px;background:#fbfdff}.whLotRow b{display:block;font-size:8px;color:#29485f}.whLotRow span{display:block;font-size:7px;color:#7a8d9b;margin-top:1px}.whLotRow strong{font-size:10px;color:#1769aa}.whLotEmpty{font-size:8px;color:#8a9aa5}
 .whStockLocked,.whLoadProduct{border:1px solid #d7e3eb;border-radius:10px;background:#f5f9fc;padding:10px 11px}.whStockLocked b,.whLoadProduct b{display:block;font-size:11px;color:#17334b}.whStockLocked span,.whLoadProduct span{display:block;font-size:8px;color:#718493;margin-top:3px;line-height:1.4}
 .whLoadProduct{margin-bottom:12px;background:#eef7fd;border-color:#cfe1ee}.whLoadProduct span{font-size:9px}
 .whDiffForm{grid-template-columns:1fr!important}
@@ -95,3 +95,14 @@ body.optykerBillingMode #navWarehouseGroup{display:none!important}
 .whSelectCol{width:38px!important;min-width:38px!important;max-width:38px!important;text-align:center!important;padding-left:6px!important;padding-right:6px!important}.whCheck{width:16px;height:16px;accent-color:#1769aa;cursor:pointer}.whRowSelected td{background:#f0f8fd!important}
 .whBulkModalIntro{border:1px solid #d4e4ef;border-radius:10px;background:#f5fafd;padding:11px 12px;margin-bottom:12px}.whBulkModalIntro b{display:block;font-size:11px;color:#17334b}.whBulkModalIntro span{display:block;font-size:8px;color:#718493;margin-top:3px}
 @media(max-width:760px){.whBulkBar{align-items:flex-start;flex-direction:column}.whBulkActions{width:100%}.whBulkActions .whBtn{flex:1}}
+
+/* Magazzino · layout compatto azioni */
+.whTable th:nth-last-child(2),.whTable td:nth-last-child(2){max-width:155px}
+.whActionsStock .whLoadBtn,.whActionsStock .whDiffBtn{font-size:7.5px;letter-spacing:.01em}
+.whActionsStock [data-edit],.whActionsStock [data-label]{font-size:7.5px}
+.whName{overflow-wrap:anywhere}
+@media(max-width:1050px){
+  .whTable{min-width:920px}
+  .whTable th:last-child,.whTable td:last-child{width:175px;min-width:175px;max-width:175px}
+  .whActionsStock .whIconBtn{font-size:6.8px}
+}
