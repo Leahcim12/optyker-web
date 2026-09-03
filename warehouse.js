@@ -1,6 +1,6 @@
 (function(){
 if(window.__optykerWarehouseLoaded)return;window.__optykerWarehouseLoaded=true;
-window.OPTYKER_WAREHOUSE_BUILD='20260903-compact-actions2';
+window.OPTYKER_WAREHOUSE_BUILD='20260903-services-vat1';
 var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-inventory-api';
 var CATS={
   frames:'Montature da vista',
@@ -10,6 +10,16 @@ var CATS={
   accessories:'Accessori',
   services:'Servizi'
 };
+var VAT_CODES={
+  '04':'04 - IVA Agevolata',
+  '10':'10 - IVA 10%',
+  '22':'22 - IVA Default',
+  'ART10':'ART10 - Esente IVA - Art.10',
+  'ART15':'ART15 - Esclusa IVA - Art.15',
+  'NV':'NV - No Vendite'
+};
+function vatLabel(v){return VAT_CODES[String(v||'22').toUpperCase()]||VAT_CODES['22']}
+function vatOptions(v){var cur=String(v||'22').toUpperCase();return Object.keys(VAT_CODES).map(function(k){return '<option value="'+k+'"'+(k===cur?' selected':'')+'>'+esc(VAT_CODES[k])+'</option>'}).join('')}
 var W={category:'frames',rows:[],count:0,page:1,limit:120,companies:[],loading:false,syncing:false,search:'',firstOpen:true,lastAutoSync:0,canViewCost:false,selected:new Set()};
 
 function E(id){return document.getElementById(id)}
@@ -150,12 +160,33 @@ function openBulkCategoryModal(){
   }
 }
 
+function renderServices(box){
+  var visibleIds=W.rows.map(function(r){return String(r.id||'')});
+  var allSelected=visibleIds.length>0&&visibleIds.every(function(id){return W.selected.has(id)});
+  var h='<table class="whTable whServiceTable"><thead><tr><th class="whSelectCol"><input id="whSelectAll" class="whCheck" type="checkbox" '+(allSelected?'checked':'')+' aria-label="Seleziona tutti i servizi visibili"></th><th>Nome servizio</th><th>Costo</th><th>IVA</th><th>Azioni</th></tr></thead><tbody>';
+  W.rows.forEach(function(r){
+    h+='<tr class="'+(W.selected.has(String(r.id))?'whRowSelected':'')+'">'+
+      '<td class="whSelectCol"><input class="whCheck" data-select="'+esc(r.id)+'" type="checkbox" '+(W.selected.has(String(r.id))?'checked':'')+' aria-label="Seleziona servizio"></td>'+
+      '<td><div class="whServiceName">'+esc(r.title||'Servizio')+'</div></td>'+
+      '<td><div class="whServicePrice">'+esc(euro(r.price))+'</div></td>'+
+      '<td><div class="whVatBadge">'+esc(vatLabel(r.vat_code))+'</div></td>'+
+      '<td><div class="whActions whServiceActions"><button class="whIconBtn" data-edit="'+esc(r.id)+'" type="button">Mod.</button></div></td>'+
+      '</tr>'
+  });
+  box.innerHTML=h+'</tbody></table>';
+  var all=E('whSelectAll');if(all)all.onchange=function(){var checked=this.checked;W.rows.forEach(function(r){var id=String(r.id||'');if(!id)return;if(checked)W.selected.add(id);else W.selected.delete(id)});render()};
+  var sels=box.querySelectorAll('[data-select]');for(var si=0;si<sels.length;si++)sels[si].onchange=function(){toggleRowSelection(this.getAttribute('data-select'),this.checked);var tr=this.closest('tr');if(tr)tr.classList.toggle('whRowSelected',this.checked)};
+  var es=box.querySelectorAll('[data-edit]');for(var j=0;j<es.length;j++)es[j].onclick=function(){openItemModal(findRow(this.getAttribute('data-edit')))};
+  updateBulkBar();renderPager()
+}
+
 function render(){
   var box=E('whTableWrap');if(!box)return;
   E('whCount').textContent=String(W.count);
   var stock=0,soon=0,noimg=0;W.rows.forEach(function(r){stock+=Number(r.inventory_quantity||0);var la=lotGroups(r);if(la.some(function(x){return expiryClass(x.expiry)==='soon'}))soon++;if(!r.image_url)noimg++});
   E('whStockTotal').textContent=String(stock);E('whExpirySoon').textContent=String(soon);E('whNoImage').textContent=String(noimg);
-  if(!W.rows.length){box.innerHTML='<div class="whEmpty">Nessun prodotto in questa sezione.<br>Puoi inserire un prodotto e poi caricare la giacenza con il pulsante CARICA.</div>';renderPager();return}
+  if(!W.rows.length){box.innerHTML='<div class="whEmpty">'+(W.category==='services'?'Nessun servizio inserito.<br>Premi + Inserisci prodotto per creare un servizio.':'Nessun prodotto in questa sezione.<br>Puoi inserire un prodotto e poi caricare la giacenza con il pulsante CARICA.')+'</div>';renderPager();return}
+  if(W.category==='services'){renderServices(box);return}
   var costHead=W.canViewCost?'<th>Costo conf.</th>':'';
   var visibleIds=W.rows.map(function(r){return String(r.id||'')});var allSelected=visibleIds.length>0&&visibleIds.every(function(id){return W.selected.has(id)});
   var h='<table class="whTable"><thead><tr><th class="whSelectCol"><input id="whSelectAll" class="whCheck" type="checkbox" '+(allSelected?'checked':'')+' aria-label="Seleziona tutti i prodotti visibili"></th><th>Prodotto</th><th>Diottria / opzioni</th><th>Barcode</th><th>Giacenza</th><th>Prezzo vendita</th>'+costHead+'<th>Lotti / quantità</th><th>Azioni</th></tr></thead><tbody>';
@@ -221,8 +252,34 @@ function companyOptions(selected){
 function field(id,label,value,type,cls){
   return '<div class="whField '+(cls||'')+'"><label>'+esc(label)+'</label><input id="'+id+'" type="'+(type||'text')+'" value="'+esc(value==null?'':value)+'"></div>'
 }
-function openItemModal(r){
+function openServiceModal(r){
   r=r||{};var editing=!!r.id;
+  var body='<div class="whServiceForm">'+
+    '<div class="whField wide"><label>Nome servizio</label><input id="whsTitle" type="text" value="'+esc(r.title||'')+'" autocomplete="off"></div>'+
+    '<div class="whField"><label>Costo</label><input id="whsPrice" type="number" min="0" step="0.01" inputmode="decimal" value="'+esc(r.price==null?'':r.price)+'"></div>'+
+    '<div class="whField"><label>IVA</label><select id="whsVat">'+vatOptions(r.vat_code||'22')+'</select></div>'+
+    '</div>'+
+    '<div class="whServiceHint">Il servizio non usa giacenza, lotti, scadenze o DDT.</div>'+
+    '<div class="whFormFooter"><span></span><div class="whFormFooterRight"><button id="whsCancel" class="whBtn" type="button">Annulla</button><button id="whsSave" class="whBtn primary" type="button">'+(editing?'Salva modifiche':'Inserisci servizio')+'</button></div></div>';
+  var m=modalShell('whServiceModal',editing?'Modifica servizio':'Inserisci servizio',editing?'Modifica nome, costo e IVA del servizio.':'Inserisci nome, costo e IVA come nel gestionale fiscale.',body);
+  E('whsCancel').onclick=function(){m.classList.remove('open')};
+  E('whsSave').onclick=function(){saveServiceItem(r,m)}
+}
+function saveServiceItem(old,m){
+  var title=String(E('whsTitle').value||'').trim(),price=Number(E('whsPrice').value||0),vat=String(E('whsVat').value||'22');
+  if(!title){toast('Inserisci il nome del servizio.','error');return}
+  if(!isFinite(price)||price<0){toast('Inserisci un costo valido.','error');return}
+  var payload={id:old.id||'',category:'services',title:title,price:price,vat_code:vat,variant_title:'',vendor:'',product_type:'Servizio',sku:'',barcode:'',notes:'',image_url:'',image_data:''};
+  var b=E('whsSave');b.disabled=true;b.textContent='Salvataggio…';
+  api(old.id?'update_item':'create_item',payload).then(function(){
+    toast(old.id?'Servizio aggiornato':'Servizio inserito','ok');m.classList.remove('open');W.category='services';W.page=1;setNavActive();return loadItems()
+  }).catch(function(e){toast('Salvataggio non riuscito: '+e.message,'error')}).finally(function(){b.disabled=false;b.textContent=old.id?'Salva modifiche':'Inserisci servizio'})
+}
+
+function openItemModal(r){
+  r=r||{};
+  if((r.category||W.category)==='services'){openServiceModal(r);return}
+  var editing=!!r.id;
   var body='<div class="whForm">'+
     field('whfTitle','Nome prodotto',r.title||'','text','two')+
     '<div class="whField"><label>Categoria</label><select id="whfCategory">'+Object.keys(CATS).map(function(k){return '<option value="'+k+'"'+((r.category||W.category)===k?' selected':'')+'>'+esc(CATS[k])+'</option>'}).join('')+'</select></div>'+
@@ -239,6 +296,7 @@ function openItemModal(r){
     '</div><div class="whFormFooter"><button id="whfCompanies" class="whBtn" type="button">Gestisci ditte</button><div class="whFormFooterRight"><button id="whfCancel" class="whBtn" type="button">Annulla</button><button id="whfSave" class="whBtn primary" type="button">'+(editing?'Salva modifiche':'Inserisci prodotto')+'</button></div></div>';
   var m=modalShell('whItemModal',editing?'Modifica prodotto':'Inserisci prodotto',editing?'Modifica i dati anagrafici del prodotto. La giacenza resta invariata.':'Il prodotto nasce con giacenza 0. Dopo il salvataggio usa CARICA per inserire la merce.',body);
   E('whfCancel').onclick=function(){m.classList.remove('open')};E('whfCompanies').onclick=function(){openCompanies()};
+  if(!editing&&E('whfCategory'))E('whfCategory').onchange=function(){if(this.value==='services'){var temp={category:'services',title:E('whfTitle').value||'',price:E('whfPrice').value||''};m.classList.remove('open');openServiceModal(temp)}};
   E('whfImage').onchange=function(ev){var file=ev.target.files&&ev.target.files[0];if(!file)return;readImage(file).then(function(data){m.__imageData=data;E('whfImagePreview').innerHTML='<img src="'+data+'" alt="">' }).catch(function(e){toast(e.message,'error')})};
   E('whfSave').onclick=function(){saveItem(r,m)}
 }
