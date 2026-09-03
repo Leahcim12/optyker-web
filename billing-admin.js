@@ -43,14 +43,43 @@
     card.appendChild(box);
     E('optykerAdminAccessBtn').onclick=showAdminLogin
   }
-  function showAdminLogin(){
-    var shell=document.querySelector('#optykerLoginScreen .optykerLoginShell');if(!shell)return;
+  function ensureAdminSidebarButton(){
+    var nav=E('moduleNav');
+    if(!nav||window.OPTYKER_BILLING_ADMIN)return;
+    var b=E('navAdministration');
+    if(!b){
+      b=document.createElement('button');
+      b.id='navAdministration';b.className='moduleBtn';b.type='button';
+      b.setAttribute('data-short','Amministrazione');
+      b.textContent='Amministrazione';
+      b.style.order='80';
+      b.onclick=function(){showAdminLogin(true)};
+      nav.appendChild(b)
+    }
+  }
+  function showAdminLogin(fromSidebar){
+    var screen=E('optykerLoginScreen'),shell=document.querySelector('#optykerLoginScreen .optykerLoginShell');if(!shell)return;
+    var appMain=E('mainApp');
+    if(fromSidebar&&screen){
+      screen.__optykerAdminFromSidebar=true;
+      screen.style.setProperty('display','flex','important');
+      screen.setAttribute('aria-hidden','false');
+      if(appMain)appMain.style.setProperty('display','none','important')
+    }
     var normal=document.querySelector('.optykerUserLoginCard');if(normal)normal.style.display='none';
     var old=E('optykerAdminLoginCard');if(old)old.remove();
     var card=document.createElement('div');card.id='optykerAdminLoginCard';card.className='optykerAdminLoginCard';
     card.innerHTML='<div class="optykerAdminLoginHead"><div class="optykerAdminLoginEyebrow">Optyker · Amministrazione</div><div class="optykerAdminLoginTitle">Ottica Visual Care</div><div class="optykerAdminLoginSub">Accesso riservato alla fatturazione.</div></div><div id="optykerAdminLoginBody"><div class="optykerBillingLoading">Verifica account…</div></div><button id="optykerAdminLoginBack" type="button">← Torna agli operatori</button>';
     shell.appendChild(card);
-    E('optykerAdminLoginBack').onclick=function(){card.remove();if(normal)normal.style.display='block'};
+    E('optykerAdminLoginBack').onclick=function(){
+      card.remove();if(normal)normal.style.display='block';
+      if(screen&&screen.__optykerAdminFromSidebar){
+        screen.__optykerAdminFromSidebar=false;
+        screen.style.setProperty('display','none','important');
+        screen.setAttribute('aria-hidden','true');
+        if(appMain)appMain.style.setProperty('display','grid','important')
+      }
+    };
     call('auth_status',{},'').then(function(x){renderAdminAuthForm(!!x.needs_password)}).catch(function(err){
       E('optykerAdminLoginBody').innerHTML='<div id="optykerAdminLoginError">'+esc(err.message)+'</div>'
     })
@@ -284,6 +313,7 @@
   }
   function maintenance(){
     ensureAdminAccess();
+    ensureAdminSidebarButton();
     if(window.OPTYKER_BILLING_ADMIN){
       document.body.classList.add('optykerBillingMode');ensureHeaderTools();ensureSidebar();ensurePanel();hideRegularPanels();
       var p=E('optykerBillingPanel');if(p)p.style.setProperty('display','block','important')
