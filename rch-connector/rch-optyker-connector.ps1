@@ -80,6 +80,13 @@ function Drawer-Rch {
   return Parse-Rch (Send-Rch $xml)
 }
 
+function GiftReceipt-Rch {
+  # RCH PRINT! RT: ristampa l'ultimo documento commerciale senza importi ("scontrino regalo").
+  # Il comando va eseguito in REG dopo l'emissione del documento fiscale originale.
+  $xml = '<?xml version="1.0" encoding="UTF-8"?><Service><cmd>=C453/$2</cmd></Service>'
+  return Parse-Rch (Send-Rch $xml)
+}
+
 function Sanitize-Desc([string]$s) {
   if($null -eq $s){return "ARTICOLO"}
   $s = $s -replace '[<>&()/\\]',' '
@@ -158,7 +165,7 @@ try {
       if($method -eq 'OPTIONS'){
         Json-Response $stream 200 @{ok=$true}
       } elseif($path -eq '/health'){
-        Json-Response $stream 200 @{ok=$true;connector='Optyker RCH';version='1.1';printer=$PrinterIp;port=$Port}
+        Json-Response $stream 200 @{ok=$true;connector='Optyker RCH';version='1.2';printer=$PrinterIp;port=$Port}
       } elseif($path -eq '/status'){
         try {
           $r=Status-Rch
@@ -169,6 +176,13 @@ try {
       } elseif($path -eq '/drawer' -and $method -eq 'POST'){
         try {
           $r=Drawer-Rch
+          Json-Response $stream 200 $r
+        } catch {
+          Json-Response $stream 500 @{ok=$false;error=$_.Exception.Message;printer=$PrinterIp}
+        }
+      } elseif($path -eq '/gift-receipt' -and $method -eq 'POST'){
+        try {
+          $r=GiftReceipt-Rch
           Json-Response $stream 200 $r
         } catch {
           Json-Response $stream 500 @{ok=$false;error=$_.Exception.Message;printer=$PrinterIp}
