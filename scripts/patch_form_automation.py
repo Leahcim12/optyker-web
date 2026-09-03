@@ -3,7 +3,7 @@ import re
 
 path=Path("_site/index.html")
 text=path.read_text(encoding="utf-8")
-version="20260903-rx-autofill1"
+version="20260903-rxrules2"
 tag=f'<script src="/form-automation.js?v={version}" id="optykerFormAutomationJs"></script>'
 
 if 'id="optykerFormAutomationJs"' in text:
