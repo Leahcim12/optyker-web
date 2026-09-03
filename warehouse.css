@@ -106,3 +106,19 @@ body.optykerBillingMode #navWarehouseGroup{display:none!important}
   .whTable th:last-child,.whTable td:last-child{width:175px;min-width:175px;max-width:175px}
   .whActionsStock .whIconBtn{font-size:6.8px}
 }
+
+/* Magazzino · servizi fiscali */
+.whServiceTable{min-width:720px!important}
+.whServiceTable th:nth-child(2),.whServiceTable td:nth-child(2){width:auto;min-width:280px}
+.whServiceTable th:nth-child(3),.whServiceTable td:nth-child(3){width:130px;min-width:130px}
+.whServiceTable th:nth-child(4),.whServiceTable td:nth-child(4){width:230px;min-width:230px}
+.whServiceTable th:last-child,.whServiceTable td:last-child{width:110px!important;min-width:110px!important;max-width:110px!important}
+.whServiceName{font-size:11px;font-weight:900;color:#203d55}
+.whServicePrice{font-size:12px;font-weight:950;color:#1769aa;white-space:nowrap}
+.whVatBadge{display:inline-flex;align-items:center;min-height:30px;padding:0 9px;border:1px solid #d5e1e9;border-radius:8px;background:#f8fbfd;color:#3e5a70;font-size:8px;font-weight:900;white-space:nowrap}
+.whServiceActions{display:block!important}.whServiceActions .whIconBtn{width:100%;height:32px}
+.whServiceForm{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.whServiceForm .wide{grid-column:1/-1}.whServiceForm input,.whServiceForm select{width:100%;box-sizing:border-box;height:40px;border:1px solid #cad8e2;border-radius:9px;background:#fff;color:#28465e;padding:0 10px;font:800 11px/1.2 "Segoe UI",Arial,sans-serif;outline:none}
+.whServiceForm input:focus,.whServiceForm select:focus{border-color:#1769aa;box-shadow:0 0 0 2px rgba(23,105,170,.1)}
+.whServiceHint{margin-top:12px;padding:9px 10px;border:1px solid #dce6ed;border-radius:9px;background:#f7fafc;color:#718493;font-size:8px}
+@media(max-width:760px){.whServiceForm{grid-template-columns:1fr}.whServiceForm .wide{grid-column:auto}.whServiceTable{min-width:620px!important}}
