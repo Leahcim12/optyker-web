@@ -136,7 +136,7 @@ function ensureUI(){
       '<label id="optykerCashInvoiceBox" class="optykerCashInvoiceBox"><input id="optykerCashInvoice" type="checkbox"><span class="optykerCashInvoiceCheck">✓</span><span><b>Crea fattura per questo pagamento</b><small id="optykerCashInvoiceHint">La fattura verrà preparata con i dati del cliente.</small></span></label>'+
       '<textarea id="optykerCashNote" placeholder="Nota vendita (facoltativa)"></textarea>'+
       '<button id="optykerCashCheckoutBtn" type="button" disabled>Conferma vendita</button>'+
-      '<div class="optykerCashSecondaryActions"><button id="optykerCashDepositsBtn" type="button">Acconti aperti</button><button id="optykerCashRecentBtn" type="button">Ultime vendite</button><button id="optykerCashGiftBtn" class="optykerCashGiftBtn" type="button" title="Stampa l'ultimo scontrino fiscale senza prezzi">Scontrino cortesia</button><button id="optykerCashTsDocsBtn" type="button">Sistema TS</button></div>'+
+      '<div class="optykerCashSecondaryActions"><button id="optykerCashDepositsBtn" type="button">Acconti aperti</button><button id="optykerCashRecentBtn" type="button">Ultime vendite</button><button id="optykerCashGiftBtn" class="optykerCashGiftBtn" type="button" title="Stampa l’ultimo scontrino fiscale senza prezzi">Scontrino cortesia</button><button id="optykerCashTsDocsBtn" type="button">Sistema TS</button></div>'+
     '</div></aside></div>';
   document.body.appendChild(d);
   E('optykerCashClose').onclick=function(ev){return closeCash(ev)};E('optykerCashRch').onclick=openRch;E('optykerCashDrawer').onclick=openCashDrawer;E('optykerCashRefresh').onclick=function(){loadProducts(true)};
