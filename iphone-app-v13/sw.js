@@ -1,5 +1,5 @@
 const ICON='https://cdn.shopify.com/s/files/1/0917/4289/6503/files/visual-care-logo-app-original.png?v=1787903859';
-const APP_VERSION='20260903-app-live1';
+const APP_VERSION='20260903-rxrules2';
 const APP_URL='./?app=13&build='+APP_VERSION+'&fresh='+Date.now();
 
 self.addEventListener('install',()=>self.skipWaiting());
