@@ -3,8 +3,8 @@ from pathlib import Path
 path = Path("_site/index.html")
 text = path.read_text(encoding="utf-8")
 
-css = '<link rel="stylesheet" href="/billing-admin.css?v=20260830-2" id="optykerBillingAdminCss">'
-js = '<script src="/billing-admin.js?v=20260830-2" id="optykerBillingAdminScript"></script>'
+css = '<link rel="stylesheet" href="/billing-admin.css?v=20260903-adminnav1" id="optykerBillingAdminCss">'
+js = '<script src="/billing-admin.js?v=20260903-adminnav1" id="optykerBillingAdminScript"></script>'
 
 if 'id="optykerBillingAdminCss"' not in text:
     if "</head>" in text:
