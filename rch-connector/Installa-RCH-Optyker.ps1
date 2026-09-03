@@ -9,7 +9,7 @@ $connector = Join-Path $base "rch-optyker-connector.ps1"
 $launcher = Join-Path $base "Avvia-Optyker-RCH-Nascosto.vbs"
 $startup = [Environment]::GetFolderPath("Startup")
 $startupLink = Join-Path $startup "Optyker RCH.lnk"
-$source = "https://www.optyker.it/rch-connector/rch-optyker-connector.ps1"
+$source = "https://www.optyker.it/rch-connector/rch-optyker-connector.ps1?v=20260903-giftreceipt1"
 
 New-Item -ItemType Directory -Force -Path $base | Out-Null
 
