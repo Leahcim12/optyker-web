@@ -1,7 +1,7 @@
 (function(){
 if(window.__optykerFormAutomationV1)return;
 window.__optykerFormAutomationV1=true;
-window.OPTYKER_FORM_AUTOMATION_BUILD='20260903-rx-autofill1';
+window.OPTYKER_FORM_AUTOMATION_BUILD='20260903-rxrules2';
 
 var internal=false;
 
@@ -84,6 +84,43 @@ function normalizePersonName(el){
 }
 
 /* Prescrizione */
+function explicitRxParts(el){
+  var k=attr(el,'data-rx-key')||attr(el,'name')||attr(el,'id'),m=text(k).match(/^rx_(od|os)_(sf|cil|asse|add|visus|voo|distan)_(\d+)$/i);
+  return m?{eye:m[1].toLowerCase(),field:m[2].toLowerCase(),row:parseInt(m[3],10)}:null
+}
+function refreshAddLocks(root){
+  root=root||E('prescriptionPanel')||document;
+  var xs=root.querySelectorAll('[data-rx-key*="_add_"],input[name*="_add_"],input[id*="_add_"]');
+  for(var i=0;i<xs.length;i++){
+    var p=explicitRxParts(xs[i]);if(!p)continue;
+    var lock=p.row===1||p.row===4;
+    xs[i].disabled=lock;
+    xs[i].readOnly=lock;
+    xs[i].setAttribute('aria-disabled',lock?'true':'false');
+    if(lock){xs[i].value='';xs[i].setAttribute('title','ADD disponibile solo nelle righe 2 e 3')}
+    else xs[i].removeAttribute('title')
+  }
+}
+function explicitPrescriptionInput(el){
+  var p=explicitRxParts(el);if(!p)return false;
+  var root=el.closest('[data-rx-sheet]')||E('prescriptionPanel')||document;
+  if(p.field==='add'){
+    if(p.row===1||p.row===4){setAuto(el,'');refreshAddLocks(root);return true}
+    var sf1=root.querySelector('[data-rx-key="rx_'+p.eye+'_sf_1"]'),target=root.querySelector('[data-rx-key="rx_'+p.eye+'_sf_'+p.row+'"]');
+    var add=parseOptical(el.value),base=sf1?parseOptical(sf1.value):NaN;
+    if(target&&isFinite(add)&&isFinite(base))setAuto(target,formatOptical(base+add,target));
+    return true
+  }
+  if((p.field==='cil'||p.field==='asse')&&p.row!==4){
+    for(var r=1;r<=3;r++){
+      var dst=root.querySelector('[data-rx-key="rx_'+p.eye+'_'+p.field+'_'+r+'"]');
+      if(dst&&dst!==el)setAuto(dst,el.value)
+    }
+    return true
+  }
+  return true
+}
+
 function prescriptionRoot(el){
   var p=E('prescriptionPanel');
   if(p&&p.contains(el))return p;
@@ -197,6 +234,7 @@ function applyAdd(el){
 }
 function prescriptionInput(el){
   if(!prescriptionRoot(el))return;
+  if(explicitPrescriptionInput(el)){refreshAddLocks(el.closest('[data-rx-sheet]')||prescriptionRoot(el));return}
   var k=kind(el);
   if(k==='cylinder'||k==='axis')propagateColumn(el,k);
   else if(k==='add')applyAdd(el)
@@ -217,5 +255,7 @@ function onChange(ev){
 document.addEventListener('input',onInput,true);
 document.addEventListener('change',onChange,true);
 document.addEventListener('blur',function(ev){if(!internal)normalizePersonName(ev.target)},true);
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){refreshAddLocks()}, {once:true});else refreshAddLocks();
+setInterval(function(){refreshAddLocks()},800);
 
 })();
