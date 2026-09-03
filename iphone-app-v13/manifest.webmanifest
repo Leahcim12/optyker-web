@@ -2,7 +2,7 @@
   "name": "Ottica Visual Care",
   "short_name": "Visual Care",
   "id": "./",
-  "start_url": "./?app=13&build=20260903-app-live1",
+  "start_url": "./?app=13&build=20260903-rxrules2",
   "scope": "./",
   "display": "standalone",
   "background_color": "#eef3f7",
