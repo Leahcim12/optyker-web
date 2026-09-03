@@ -63,6 +63,7 @@ for f in \
   scripts/patch_billing_admin.py \
   scripts/patch_cash_register.py \
   scripts/patch_client_tools.py \
+  scripts/patch_form_automation.py \
   scripts/patch_warehouse.py \
   scripts/patch_single_root_view.py \
   scripts/patch_sidebar_chevrons.py \
@@ -121,6 +122,7 @@ cp cash-register.js _site/cash-register.js
 cp cash-register.css _site/cash-register.css
 cp client-tools.js _site/client-tools.js
 cp client-tools.css _site/client-tools.css
+cp form-automation.js _site/form-automation.js
 cp warehouse.js _site/warehouse.js
 cp warehouse.css _site/warehouse.css
 cp rch-connector/rch-optyker-connector.ps1 _site/rch-connector/rch-optyker-connector.ps1
@@ -193,6 +195,7 @@ test -s _site/cash-register.js
 test -s _site/cash-register.css
 test -s _site/client-tools.js
 test -s _site/client-tools.css
+test -s _site/form-automation.js
 test -s _site/warehouse.js
 test -s _site/warehouse.css
 test -s _site/rch-connector/rch-optyker-connector.ps1
@@ -244,5 +247,6 @@ cp _site/iphone-app-v13/sw.js _jscheck/iphone-app-v13-sw.js
 for f in _jscheck/*.js; do node --check "$f"; done
 node --check _site/cash-register.js
 node --check _site/client-tools.js
+node --check _site/form-automation.js
 node --check _site/warehouse.js
 touch _site/.nojekyll
