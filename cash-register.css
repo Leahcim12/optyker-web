@@ -944,3 +944,8 @@
   .optykerCashTsRow{grid-template-columns:1fr}
   .optykerCashTsStatus{text-align:left;max-width:none}
 }
+
+/* Cassa · scontrino cortesia / regalo */
+.optykerCashGiftBtn{background:#fff8ea!important;border-color:#e3c78c!important;color:#7b5a19!important}
+.optykerCashGiftBtn:hover{background:#fff2d2!important;border-color:#cfa64c!important;color:#68480d!important}
+.optykerCashGiftBtn:disabled{opacity:.55!important;cursor:not-allowed!important}
