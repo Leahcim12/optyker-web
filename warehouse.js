@@ -1,11 +1,12 @@
 (function(){
 if(window.__optykerWarehouseLoaded)return;window.__optykerWarehouseLoaded=true;
-window.OPTYKER_WAREHOUSE_BUILD='20260903-services-vat1';
+window.OPTYKER_WAREHOUSE_BUILD='20260903-lac-solutions1';
 var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-inventory-api';
 var CATS={
   frames:'Montature da vista',
   sunglasses:'Occhiali da sole',
   contact_lenses:'Lenti a contatto per diottria',
+  lac_solutions:'SOLUZIONI LAC',
   supplements:'Integratori',
   accessories:'Accessori',
   services:'Servizi'
