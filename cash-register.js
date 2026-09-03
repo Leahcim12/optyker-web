@@ -1,6 +1,6 @@
 (function(){
 if(window.__optykerCashLoaded)return;window.__optykerCashLoaded=true;
-window.OPTYKER_CASH_BUILD='20260903-live1';
+window.OPTYKER_CASH_BUILD='20260903-giftreceipt1';
 var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-cash-register-api';
 var S={products:[],clients:[],cart:{},type:'',payment:'card',stage:'balance',clientId:'',invoice:false,tsRequested:false,tsCode:'AD',tsOpposition:false,busy:false,searchTimer:null,clientSearchTimer:null,rchOk:false,cashOpen:false};
 
@@ -47,13 +47,28 @@ function openCashDrawer(){
     throw e
   }).finally(function(){if(b)b.disabled=false})
 }
+function printGiftReceipt(){
+  var b=E('optykerCashGiftBtn');
+  if(!window.confirm('Stampare lo scontrino di cortesia dell\'ultimo documento fiscale emesso?\n\nVerrà stampato senza prezzi.'))return;
+  if(b){b.disabled=true;b.textContent='Stampa…'}
+  return rchRequest('/gift-receipt',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(function(x){
+    rchStatusUi(true,'● RCH collegato');
+    toast('Scontrino di cortesia stampato senza prezzi','ok');
+    return x
+  }).catch(function(e){
+    var msg=String(e&&e.message||e||'Errore RCH');
+    if(/Endpoint non valido|HTTP 400/i.test(msg))msg='Aggiorna il connettore RCH da RCH → Installa / aggiorna connettore.';
+    toast('Scontrino di cortesia non stampato: '+msg,'error');
+    throw e
+  }).finally(function(){if(b){b.disabled=false;b.textContent='Scontrino cortesia'}})
+}
 function openRch(){
   var m=E('optykerCashRchModal');if(!m){m=document.createElement('div');m.id='optykerCashRchModal';m.className='optykerCashModal';document.body.appendChild(m)}
   m.innerHTML='<div class="optykerCashModalCard optykerCashRchCard"><div class="optykerCashModalTitle">Registratore fiscale RCH</div>'+
     '<div class="optykerCashModalSub">Optyker usa un piccolo connettore locale per comunicare in sicurezza con RCH PRINT! RT su 192.168.1.10.</div>'+
     '<div class="optykerCashRchInfo"><div><span>Registratore</span><b>RCH PRINT! RT</b></div><div><span>IP</span><b>192.168.1.10</b></div><div><span>Web Service</span><b>/service.cgi</b></div><div><span>Bridge Optyker</span><b>127.0.0.1:8765</b></div></div>'+
     '<div id="optykerCashRchResult" class="optykerCashRchResult">Pronto per il test.</div>'+
-    '<div class="optykerCashRchDownloads optykerCashRchDownloadsAuto"><a class="primary" href="/rch-connector/Installa-RCH-Optyker.bat?v=20260901-4" download>Installa / aggiorna connettore</a><a href="/rch-connector/Disinstalla-RCH-Optyker.ps1" download>Rimuovi avvio automatico</a></div>'+
+    '<div class="optykerCashRchDownloads optykerCashRchDownloadsAuto"><a class="primary" href="/rch-connector/Installa-RCH-Optyker.bat?v=20260903-giftreceipt1" download>Installa / aggiorna connettore</a><a href="/rch-connector/Disinstalla-RCH-Optyker.ps1" download>Rimuovi avvio automatico</a></div>'+
     '<div class="optykerCashRchHelp">Il <b>Test collegamento</b> controlla soltanto la comunicazione e non emette documenti fiscali. <b>Apri cassetto</b> è la prova hardware più semplice: apre solo il cassetto contanti senza stampare uno scontrino.</div>'+
     '<div class="optykerCashRchActions optykerCashRchActions3"><button id="optykerCashRchTest" type="button">Test collegamento</button><button id="optykerCashRchDrawerTest" type="button">Apri cassetto</button><button class="optykerCashModalClose" type="button">Chiudi</button></div></div>';
   m.classList.add('open');
@@ -121,7 +136,7 @@ function ensureUI(){
       '<label id="optykerCashInvoiceBox" class="optykerCashInvoiceBox"><input id="optykerCashInvoice" type="checkbox"><span class="optykerCashInvoiceCheck">✓</span><span><b>Crea fattura per questo pagamento</b><small id="optykerCashInvoiceHint">La fattura verrà preparata con i dati del cliente.</small></span></label>'+
       '<textarea id="optykerCashNote" placeholder="Nota vendita (facoltativa)"></textarea>'+
       '<button id="optykerCashCheckoutBtn" type="button" disabled>Conferma vendita</button>'+
-      '<div class="optykerCashSecondaryActions"><button id="optykerCashDepositsBtn" type="button">Acconti aperti</button><button id="optykerCashRecentBtn" type="button">Ultime vendite</button><button id="optykerCashTsDocsBtn" type="button">Sistema TS</button></div>'+
+      '<div class="optykerCashSecondaryActions"><button id="optykerCashDepositsBtn" type="button">Acconti aperti</button><button id="optykerCashRecentBtn" type="button">Ultime vendite</button><button id="optykerCashGiftBtn" class="optykerCashGiftBtn" type="button" title="Stampa l'ultimo scontrino fiscale senza prezzi">Scontrino cortesia</button><button id="optykerCashTsDocsBtn" type="button">Sistema TS</button></div>'+
     '</div></aside></div>';
   document.body.appendChild(d);
   E('optykerCashClose').onclick=function(ev){return closeCash(ev)};E('optykerCashRch').onclick=openRch;E('optykerCashDrawer').onclick=openCashDrawer;E('optykerCashRefresh').onclick=function(){loadProducts(true)};
@@ -145,7 +160,7 @@ function ensureUI(){
       var o=E('optykerCashTsOptions');if(o)o.style.display='none'
     }
   };
-  E('optykerCashCheckoutBtn').onclick=checkout;E('optykerCashRecentBtn').onclick=recentSales;E('optykerCashDepositsBtn').onclick=openDeposits;E('optykerCashTsDocsBtn').onclick=openTsDocuments;
+  E('optykerCashCheckoutBtn').onclick=checkout;E('optykerCashRecentBtn').onclick=recentSales;E('optykerCashDepositsBtn').onclick=openDeposits;E('optykerCashGiftBtn').onclick=printGiftReceipt;E('optykerCashTsDocsBtn').onclick=openTsDocuments;
 }
 function fillClients(id,rows){
   var s=E('optykerCashClient');if(!s)return;
