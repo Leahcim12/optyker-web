@@ -1,6 +1,6 @@
 from pathlib import Path
 
-TARGET = "../iphone-app-v13/?app=13&build=20260903-app-live1"
+TARGET = "../iphone-app-v13/?app=13&build=20260903-rxrules2"
 OLD = ["iphone-app"] + [f"iphone-app-v{i}" for i in range(2,13)]
 
 html = """<!doctype html>
