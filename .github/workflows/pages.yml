@@ -30,18 +30,21 @@ jobs:
       - name: Prepara e verifica Optyker
         env:
           VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
-        run: bash scripts/vercel-build-v8.sh
+        run: bash scripts/vercel-build-v9.sh
 
       - name: Verifica ultime modifiche Scheda Occhiali
         run: |
-          grep -q "20260906-eyewear-flow8-fix1" _site/index.html
+          grep -q "20260906-eyewear-flow9" _site/index.html
+          grep -q "SCELTA DELLA LENTE DX" _site/index.html
+          grep -q "SCELTA DELLA LENTE SX" _site/index.html
           grep -q "Es. Michael Optyker" _site/index.html
-          grep -q "Tipo lente DX" _site/index.html
-          grep -q "Tipo lente SX" _site/index.html
-          grep -q "€ 20 a lente" _site/index.html
-          grep -q "€ 40 a lente" _site/index.html
-          grep -q "Garanzia" _site/index.html
           grep -q "Del cliente" _site/index.html
+          grep -q "€ 10 a lente" _site/index.html
+          grep -q "€ 15 a lente" _site/index.html
+          grep -q "€ 25 a lente" _site/index.html
+          grep -q "€ 20 a lente" _site/index.html
+          grep -q "Montaggio tradizionale" _site/index.html
+          grep -q "Montaggio speciale" _site/index.html
 
       - name: Carica sito GitHub Pages
         uses: actions/upload-pages-artifact@v3
