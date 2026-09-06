@@ -3,7 +3,7 @@ import re
 
 path=Path("_site/index.html")
 text=path.read_text(encoding="utf-8")
-version="20260906-company-select1"
+version="20260906-eyewear-rules3"
 tag=f'<script src="/form-automation.js?v={version}" id="optykerFormAutomationJs"></script>'
 frame_addon=Path("frame-form-addon.js").read_text(encoding="utf-8")
 frame_tag='<script id="optykerWarehouseFrameFormJs">'+frame_addon+'</script>'
@@ -46,3 +46,7 @@ else:
 
 path.write_text(text,encoding="utf-8")
 print("Optyker form automation loader OK",version,"frame + LAC solutions + supplements + company selector")
+
+# Le regole della Scheda Occhiali vengono applicate dopo la patch base eyewear.
+rules=Path("scripts/patch_eyewear_rules_v3.py")
+exec(compile(rules.read_text(encoding="utf-8"),str(rules),"exec"),{})
