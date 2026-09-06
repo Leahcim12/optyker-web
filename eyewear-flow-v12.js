@@ -1,5 +1,5 @@
 /* OPTYKER_EYEWEAR_FLOW_V12 */
-window.OPTYKER_EYEWEAR_FLOW_V12_BUILD='20260906-eyewear-flow-v12';
+window.OPTYKER_EYEWEAR_FLOW_V12_BUILD='20260907-eyewear-flow-v12-stable1';
 API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-eyewear-api-v6';
 
 function v12MonofocalOnly(){
@@ -34,7 +34,9 @@ ensureTreatmentUI=function(){
     box.appendChild(lab)
   }else{
     var l=input.closest('label'),sp=l&&l.querySelector('span');
-    if(sp)sp.innerHTML='Sportive<small>€ 25 a lente</small>'
+    if(sp&&sp.textContent.replace(/\s+/g,' ').trim()!=='Sportive€ 25 a lente'){
+      sp.innerHTML='Sportive<small>€ 25 a lente</small>'
+    }
   }
 };
 
@@ -58,14 +60,6 @@ validate=function(){
   return true
 };
 
-function v12Refresh(){
-  ensureTreatmentUI();refreshDiscountOptions();renderSummary()
-}
-document.addEventListener('change',function(ev){
-  if(E('eyewearPanel')&&E('eyewearPanel').contains(ev.target))setTimeout(v12Refresh,35)
-},true);
-document.addEventListener('input',function(ev){
-  if(E('eyewearPanel')&&E('eyewearPanel').contains(ev.target))setTimeout(v12Refresh,35)
-},true);
-setTimeout(v12Refresh,120);
-setInterval(function(){if(E('eyewearPanel'))ensureTreatmentUI()},900);
+/* Nessun nuovo timer o listener: V9/V10 richiamano già
+   ensureTreatmentUI, promoEligible, treatmentDetails e validate.
+   Questo evita aggiornamenti DOM duplicati e caricamenti instabili. */
