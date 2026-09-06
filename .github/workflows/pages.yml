@@ -37,7 +37,7 @@ jobs:
           grep -q "20260906-eyewear-flow9" _site/index.html
           grep -q "20260906-eyewear-discounts-v10" _site/index.html
           grep -q "20260906-eyewear-ui-fix-v11" _site/index.html
-          grep -q "20260906-eyewear-flow-v12" _site/index.html
+          grep -q "20260907-eyewear-flow-v12-stable1" _site/index.html
           grep -q "Sportive" _site/index.html
           grep -q "€ 25 a lente" _site/index.html
           grep -q "solo monofocali" _site/index.html
