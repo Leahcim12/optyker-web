@@ -3,7 +3,7 @@ import re
 
 path=Path("_site/index.html")
 text=path.read_text(encoding="utf-8")
-version="20260906-eyewear-rules4"
+version="20260906-eyewear-treatments5"
 tag=f'<script src="/form-automation.js?v={version}" id="optykerFormAutomationJs"></script>'
 frame_addon=Path("frame-form-addon.js").read_text(encoding="utf-8")
 frame_tag='<script id="optykerWarehouseFrameFormJs">'+frame_addon+'</script>'
@@ -15,6 +15,8 @@ company_addon=Path("company-select-addon.js").read_text(encoding="utf-8")
 company_tag='<script id="optykerWarehouseCompanySelectJs">'+company_addon+'</script>'
 eyewear_addon=Path("eyewear-rules-addon.js").read_text(encoding="utf-8")
 eyewear_tag='<script id="optykerEyewearRulesRuntimeJs">'+eyewear_addon+'</script>'
+eyewear_extra_addon=Path("eyewear-extra-treatments-addon.js").read_text(encoding="utf-8")
+eyewear_extra_tag='<script id="optykerEyewearExtraTreatmentsJs">'+eyewear_extra_addon+'</script>'
 
 if 'id="optykerFormAutomationJs"' in text:
     text=re.sub(r'<script[^>]*id="optykerFormAutomationJs"[^>]*></script>',tag,text,count=1)
@@ -52,5 +54,11 @@ else:
     pos=text.rfind("</body>")
     text=(text[:pos]+eyewear_tag+"\n"+text[pos:]) if pos>=0 else text+"\n"+eyewear_tag
 
+if 'id="optykerEyewearExtraTreatmentsJs"' in text:
+    text=re.sub(r'<script[^>]*id="optykerEyewearExtraTreatmentsJs"[^>]*>[\s\S]*?</script>',eyewear_extra_tag,text,count=1)
+else:
+    pos=text.rfind("</body>")
+    text=(text[:pos]+eyewear_extra_tag+"\n"+text[pos:]) if pos>=0 else text+"\n"+eyewear_extra_tag
+
 path.write_text(text,encoding="utf-8")
-print("Optyker form automation loader OK",version,"frame + LAC solutions + supplements + company selector + eyewear rules")
+print("Optyker form automation loader OK",version,"frame + LAC solutions + supplements + company selector + eyewear rules + extra treatments")
