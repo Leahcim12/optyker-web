@@ -26,8 +26,8 @@ if pos<0:
 body=body[:pos]+'\n'+addon+'\n'+body[pos:]
 s=s[:body_start]+body+s[end:]
 page.write_text(s,encoding='utf-8')
-required=[MARK,'20260906-eyewear-flow-v12','Sportive','€ 25 a lente','solo monofocali','optyker-eyewear-api-v6']
+required=[MARK,'20260907-eyewear-flow-v12-stable1','Sportive','€ 25 a lente','solo monofocali','optyker-eyewear-api-v6']
 for x in required:
     if x not in s:
         raise SystemExit('Runtime occhiali V12 incompleto: '+x)
-print('Optyker eyewear flow V12 OK')
+print('Optyker eyewear flow V12 stable OK')
