@@ -3,7 +3,7 @@ import re
 
 path=Path("_site/index.html")
 text=path.read_text(encoding="utf-8")
-version="20260906-eyewear-rules3"
+version="20260906-eyewear-rules4"
 tag=f'<script src="/form-automation.js?v={version}" id="optykerFormAutomationJs"></script>'
 frame_addon=Path("frame-form-addon.js").read_text(encoding="utf-8")
 frame_tag='<script id="optykerWarehouseFrameFormJs">'+frame_addon+'</script>'
@@ -13,6 +13,8 @@ supplement_addon=Path("supplement-form-addon.js").read_text(encoding="utf-8")
 supplement_tag='<script id="optykerWarehouseSupplementFormJs">'+supplement_addon+'</script>'
 company_addon=Path("company-select-addon.js").read_text(encoding="utf-8")
 company_tag='<script id="optykerWarehouseCompanySelectJs">'+company_addon+'</script>'
+eyewear_addon=Path("eyewear-rules-addon.js").read_text(encoding="utf-8")
+eyewear_tag='<script id="optykerEyewearRulesRuntimeJs">'+eyewear_addon+'</script>'
 
 if 'id="optykerFormAutomationJs"' in text:
     text=re.sub(r'<script[^>]*id="optykerFormAutomationJs"[^>]*></script>',tag,text,count=1)
@@ -44,9 +46,11 @@ else:
     pos=text.rfind("</body>")
     text=(text[:pos]+company_tag+"\n"+text[pos:]) if pos>=0 else text+"\n"+company_tag
 
-path.write_text(text,encoding="utf-8")
-print("Optyker form automation loader OK",version,"frame + LAC solutions + supplements + company selector")
+if 'id="optykerEyewearRulesRuntimeJs"' in text:
+    text=re.sub(r'<script[^>]*id="optykerEyewearRulesRuntimeJs"[^>]*>[\s\S]*?</script>',eyewear_tag,text,count=1)
+else:
+    pos=text.rfind("</body>")
+    text=(text[:pos]+eyewear_tag+"\n"+text[pos:]) if pos>=0 else text+"\n"+eyewear_tag
 
-# Le regole della Scheda Occhiali vengono applicate dopo la patch base eyewear.
-rules=Path("scripts/patch_eyewear_rules_v3.py")
-exec(compile(rules.read_text(encoding="utf-8"),str(rules),"exec"),{})
+path.write_text(text,encoding="utf-8")
+print("Optyker form automation loader OK",version,"frame + LAC solutions + supplements + company selector + eyewear rules")
