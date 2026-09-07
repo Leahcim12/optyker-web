@@ -2,6 +2,7 @@
 if(window.__optykerEyewearUiFixV11)return;
 window.__optykerEyewearUiFixV11=true;
 window.OPTYKER_EYEWEAR_UI_FIX_BUILD='20260906-eyewear-ui-fix-v11';
+window.OPTYKER_LOGIN_FREEZE_FIX='20260907-login-loop-fix1';
 
 function E(id){return document.getElementById(id)}
 function txt(v){return String(v==null?'':v).trim()}
@@ -21,7 +22,7 @@ function syncWarranty(){
   if(allowed.indexOf(current)<0)current='Base';
   var html=warrantyMarkup();
   if(sel.innerHTML!==html)sel.innerHTML=html;
-  sel.value=current;
+  if(sel.value!==current)sel.value=current;
   var hint=E('eyWarrantyBox')&&E('eyWarrantyBox').querySelector('.eyWarrantyHint');
   if(hint){
     var wanted=framePrice()>150?'Base inclusa. Gold disponibile per montature oltre € 150.':'Base inclusa. Silver disponibile per montature fino a € 150.';
@@ -29,11 +30,7 @@ function syncWarranty(){
   }
 }
 
-/*
-  Le vecchie versioni della Scheda Occhiali riscrivevano periodicamente il select
-  della garanzia con due testi diversi. Intercettiamo esclusivamente eyWarranty,
-  lasciando invariati tutti gli altri select della pagina.
-*/
+/* Mantiene stabile esclusivamente il select Garanzia senza osservare tutto il DOM. */
 (function installWarrantyGuard(){
   try{
     var proto=window.HTMLSelectElement&&HTMLSelectElement.prototype;
@@ -72,7 +69,7 @@ function cleanLensTypeSelect(sel){
   });
   if(current){
     var match=Array.prototype.find.call(sel.options,function(o){return low(o.value||o.textContent)===low(current)});
-    if(match)sel.value=match.value
+    if(match&&sel.value!==match.value)sel.value=match.value
   }
 }
 function keepIndexOutOfLensType(){
@@ -83,19 +80,21 @@ function orderOptics(){
   var idx=E('eyLensIndexBox'),w=E('eyWarrantyBox');
   if(idx&&w&&idx.parentNode===w.parentNode&&idx.nextSibling!==w)w.parentNode.insertBefore(idx,w);
   if(idx){
-    var lab=idx.querySelector('label');if(lab)lab.textContent='Indice lente';
-    var sm=idx.querySelector('small');if(sm)sm.textContent='L’indice si seleziona qui, separatamente dal Tipo lente.'
+    var lab=idx.querySelector('label');if(lab&&lab.textContent!=='Indice lente')lab.textContent='Indice lente';
+    var sm=idx.querySelector('small'),wanted='L’indice si seleziona qui, separatamente dal Tipo lente.';
+    if(sm&&sm.textContent!==wanted)sm.textContent=wanted
   }
 }
 function sync(){keepIndexOutOfLensType();orderOptics();syncWarranty()}
 
+function scheduleSync(){setTimeout(sync,0)}
 document.addEventListener('change',function(ev){
-  if(E('eyewearPanel')&&E('eyewearPanel').contains(ev.target))setTimeout(sync,0)
+  if(E('eyewearPanel')&&E('eyewearPanel').contains(ev.target))scheduleSync()
 },true);
 document.addEventListener('input',function(ev){
-  if(E('eyewearPanel')&&E('eyewearPanel').contains(ev.target))setTimeout(sync,0)
+  if(E('eyewearPanel')&&E('eyewearPanel').contains(ev.target))scheduleSync()
 },true);
-new MutationObserver(function(){sync()}).observe(document.documentElement,{childList:true,subtree:true});
+/* Niente MutationObserver globale: causava un ciclo infinito di riscrittura DOM e bloccava il login. */
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',sync,{once:true});else sync();
 setTimeout(sync,100);setTimeout(sync,500);setTimeout(sync,1500);
 })();
