@@ -9,7 +9,7 @@ $connector = Join-Path $base "rch-optyker-connector.ps1"
 $launcher = Join-Path $base "Avvia-Optyker-RCH-Nascosto.vbs"
 $startup = [Environment]::GetFolderPath("Startup")
 $startupLink = Join-Path $startup "Optyker RCH.lnk"
-$source = "https://www.optyker.it/rch-connector/rch-optyker-connector.ps1?v=20260903-giftreceipt1"
+$source = "https://www.optyker.it/rch-connector/rch-optyker-connector.ps1?v=20260907-rchdiag1"
 
 New-Item -ItemType Directory -Force -Path $base | Out-Null
 
@@ -48,6 +48,7 @@ try {
     Write-Host "Il connettore parte automaticamente con Windows e resta nascosto."
     Write-Host "Registratore: $PrinterIp"
     Write-Host "Bridge: 127.0.0.1:$Port"
+    Write-Host "Versione connettore: $($r.version)"
   } else {
     throw "Health check non valido"
   }
