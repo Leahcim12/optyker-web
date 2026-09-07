@@ -3,7 +3,7 @@ from pathlib import Path
 p = Path("iphone-app-v13/index.html")
 s = p.read_text(encoding="utf-8")
 MARK = "OPTYKER_IPHONE_CUSTOMER_EYEWEAR_V1"
-NEW_BUILD = "20260907-eyewear1"
+NEW_BUILD = "20260903-rxrules2"
 
 if MARK not in s:
     # Endpoint autenticato dedicato agli occhiali del cliente.
@@ -92,11 +92,13 @@ function eyewearMarkup(){
     s = s.replace(needle, "state.home=nextHome;state.eyewear=nextEyewear;state.appointments=nextAppointments;", 1)
 
 # Forza l'aggiornamento della PWA installata su iPhone.
+s = s.replace("20260907-eyewear1", NEW_BUILD)
 s = s.replace("20260903-rxrules2", NEW_BUILD)
 p.write_text(s, encoding="utf-8")
 
 sw = Path("iphone-app-v13/sw.js")
 ws = sw.read_text(encoding="utf-8")
+ws = ws.replace("20260907-eyewear1", NEW_BUILD)
 ws = ws.replace("20260903-rxrules2", NEW_BUILD)
 sw.write_text(ws, encoding="utf-8")
 
