@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Visual Care">
   <title>Ottica Visual Care</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=20260903-rxrules2">
+  <link rel="manifest" href="./manifest.webmanifest?v=20260907-eyewear1">
   <link rel="apple-touch-icon" href="https://cdn.shopify.com/s/files/1/0917/4289/6503/files/visual-care-logo-app-original.png?v=1787903859">
   <style>
     :root{--blue:#1769aa;--navy:#11395d;--bg:#f4f7fa;--line:#dce6ee;--text:#19384d;--muted:#6d8291;--card:#fff;--danger:#b42318}
@@ -229,17 +229,18 @@
 const U='https://whgziwaegjzqsgcntesr.supabase.co';
 const K='sb_publishable_DndhLvY32YeCmqWMNRi30g_dEDm8upv';
 const API=U+'/functions/v1/optyker-mobile-api';
+const EYEWEAR_API=U+'/functions/v1/optyker-customer-eyewear';
 const APPT=U+'/functions/v1/optyker-mobile-appointments';
 const CUSTOMER_AUTH=U+'/functions/v1/optyker-customer-auth';
 const STAFF_LOGIN=U+'/functions/v1/optyker-mobile-staff-login';
 const BOOKING_API=U+'/functions/v1/optyker-appointments-booking';
 const CATALOG=U+'/functions/v1/optyker-shop-catalog';
 const SHOP='https://otticavisualcare.it';
-const OPTYKER_BUILD='20260903-rxrules2';
-const BOOK='../booking/?source=iphone-app&build=20260903-rxrules2';
+const OPTYKER_BUILD='20260907-eyewear1';
+const BOOK='../booking/?source=iphone-app&build=20260907-eyewear1';
 const sb=window.supabase.createClient(U,K,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const app=document.getElementById('app');
-let state={session:null,me:null,home:null,appointments:[],tab:'home',frame:null,drawer:false,shopCategories:[],shopParent:null,shopCategory:null,shopProducts:[],shopPageInfo:null,shopLoading:false,shopError:'',cart:[],chatMessages:[],chatLoading:false,chatSending:false,chatError:'',chatTimer:null,chatAttachment:null,timers:[],timerLoading:false,timerError:'',staffHome:null,staffAgenda:[],staffAgendaStart:'',staffShifts:null,staffShiftMonth:'',staffClients:[],staffClientDetail:null,staffClientSearch:'',staffOrders:null,staffThreads:[],staffSelectedThread:'',staffMessages:[],staffLoading:false,staffError:'',staffProfileDraftPhoto:'',staffChatAttachment:null,documents:null,documentsLoading:false,documentsError:''};
+let state={session:null,me:null,home:null,eyewear:[],appointments:[],tab:'home',frame:null,drawer:false,shopCategories:[],shopParent:null,shopCategory:null,shopProducts:[],shopPageInfo:null,shopLoading:false,shopError:'',cart:[],chatMessages:[],chatLoading:false,chatSending:false,chatError:'',chatTimer:null,chatAttachment:null,timers:[],timerLoading:false,timerError:'',staffHome:null,staffAgenda:[],staffAgendaStart:'',staffShifts:null,staffShiftMonth:'',staffClients:[],staffClientDetail:null,staffClientSearch:'',staffOrders:null,staffThreads:[],staffSelectedThread:'',staffMessages:[],staffLoading:false,staffError:'',staffProfileDraftPhoto:'',staffChatAttachment:null,documents:null,documentsLoading:false,documentsError:''};
 
 function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function fmtDate(v){try{return new Intl.DateTimeFormat('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(v))}catch{return''}}
@@ -347,6 +348,38 @@ function usageFieldLabel(v){
   });
   return words.join(' ');
 }
+
+/* OPTYKER_IPHONE_CUSTOMER_EYEWEAR_V1 */
+function eyewearMarkup(){
+  const rows=Array.isArray(state.eyewear)?state.eyewear:[];
+  const join=(a)=>a.filter(Boolean).join(' · ');
+  const value=(label,v)=>v?`<div class="field"><b>${esc(label)}</b><span style="text-align:right;max-width:68%">${esc(v)}</span></div>`:'';
+  const lensText=(eye,fallback={})=>join([eye?.brand||fallback.brand,eye?.name||fallback.name,eye?.type,eye?.design||fallback.design,eye?.material||fallback.material]);
+  const cards=rows.map((x,i)=>{
+    const f=x?.frame||{},l=x?.lenses||{},w=x?.warranty||{};
+    const treatments=Array.isArray(l.treatments)?l.treatments.filter(Boolean):[];
+    const optical=join([l.refractive_index?('Indice '+l.refractive_index):'',l.geometry,l.mounting]);
+    const color=join([l.color_mode,l.color,l.photochromic?'Fotocromatico':'',l.polarized?'Polarizzato':'']);
+    const ref=x?.reference||'Occhiale';
+    const frame=join([f.brand,f.model,f.type,f.color])||f.description||'Montatura registrata';
+    return `<div class="card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px">
+        <div><h2 style="margin-bottom:3px">${esc(ref)}</h2><div class="tiny">${i===0?'Ultimo occhiale registrato':'Occhiale precedente'}${x?.registered_at?' · '+esc(fmtDate(x.registered_at)):''}</div></div>
+        <span style="display:inline-flex;align-items:center;border-radius:999px;background:#edf5fb;color:#1769aa;padding:6px 9px;font-size:9px;font-weight:900;white-space:nowrap">${esc('Garanzia '+(w.name||'Base'))}</span>
+      </div>
+      ${value('Montatura',frame)}
+      ${value('Lente OD',lensText(l.od,l))}
+      ${value('Lente OS',lensText(l.os,l))}
+      ${value('Caratteristiche lenti',optical)}
+      ${value('Trattamenti',treatments.join(' · '))}
+      ${value('Colore / tecnologia',color)}
+      ${value('Garanzia',w.name||'Base')}
+      ${value('Fascia garanzia',w.eligibility||'')}
+    </div>`;
+  }).join('');
+  return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>I miei occhiali</h1><div class="sub">Montatura, lenti e garanzia associate alla tua anagrafica Optyker</div></div>${cards||'<div class="card"><div class="empty">Non risultano ancora occhiali collegati alla tua anagrafica.</div></div>'}</div>`;
+}
+
 function usageInstructionsMarkup(){
   const rows=Array.isArray(state.home?.usage_instructions)?state.home.usage_instructions:[];
   const cards=rows.map(s=>{
@@ -379,7 +412,7 @@ async function ensurePushSubscription(){
   if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window))throw Error('Le notifiche non sono supportate su questo dispositivo.');
   const cfg=await call(API,'push_config',{});
   const pub=String(cfg.data?.vapid_public_key||'');if(!pub)throw Error('Servizio notifiche non disponibile.');
-  const reg=await navigator.serviceWorker.register('./sw.js?v=20260903-rxrules2');
+  const reg=await navigator.serviceWorker.register('./sw.js?v=20260907-eyewear1');
   await navigator.serviceWorker.ready;
   let permission=Notification.permission;
   if(permission!=='granted')permission=await Notification.requestPermission();
@@ -755,15 +788,15 @@ async function refreshCustomerHomeLive(force=false){
   if(!force&&document.visibilityState!=='visible')return;
   homeLiveBusy=true;
   try{
-    const r=await Promise.all([call(API,'customer_home'),call(APPT,'history')]);
-    const nextHome=r[0].data||state.home,nextAppointments=Array.isArray(r[1].data)?r[1].data:state.appointments;
+    const r=await Promise.all([call(API,'customer_home'),call(APPT,'history'),call(EYEWEAR_API,'list').catch(()=>({data:state.eyewear||[]}))]);
+    const nextHome=r[0].data||state.home,nextAppointments=Array.isArray(r[1].data)?r[1].data:state.appointments,nextEyewear=Array.isArray(r[2]?.data)?r[2].data:state.eyewear;
     const sig=lightweightSig({
       laboratory_orders:nextHome?.laboratory_orders||[],
       unread_chat:Number(nextHome?.unread_chat||0),
       appointments:nextAppointments,
       name:nextHome?.customer?.name||''
     });
-    state.home=nextHome;state.appointments=nextAppointments;
+    state.home=nextHome;state.eyewear=nextEyewear;state.appointments=nextAppointments;
     if(state.tab==='home'&&(force||sig!==lastHomeLiveSig)){lastHomeLiveSig=sig;render()}
   }catch(e){}finally{homeLiveBusy=false}
 }
@@ -1335,6 +1368,7 @@ function page(tab){
   if(tab==='cart')return cartMarkup();
   if(tab==='recent')return recentMarkup();
   if(tab==='rx')return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>La mia prescrizione</h1><div class="sub">Ultima prescrizione disponibile</div></div><div class="card"><h2>Sfero · Cilindro · Asse · Addizione</h2>${prescription()}</div></div>`;
+  if(tab==='eyewear')return eyewearMarkup();
   if(tab==='instructions')return usageInstructionsMarkup();
   if(tab==='agenda')return `<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>Agenda</h1><div class="sub">I tuoi appuntamenti e nuove prenotazioni</div></div><div class="card"><h2>Prossimi appuntamenti</h2>${appointments()}</div><button class="action" onclick="openBooking()">Prenota un appuntamento</button></div>`;
   if(tab==='hours')return hoursMarkup();
@@ -1358,6 +1392,7 @@ function shell(){
           <button class="drawerSubBtn" data-nav="recent" onclick="goTab('recent')">Acquistati di recente</button>
         </div>
         <button class="drawerBtn" data-nav="documents" onclick="goTab('documents')">Scontrini e fatture</button>
+        <button class="drawerBtn ${state.eyewear?.length?'':'hidden'}" data-nav="eyewear" onclick="goTab('eyewear')">I miei occhiali</button>
         <button class="drawerBtn" data-nav="rx" onclick="goTab('rx')">Prescrizione</button>
         <button class="drawerBtn" data-nav="instructions" onclick="goTab('instructions')">Indicazioni d’uso</button>
         <button class="drawerBtn" data-nav="agenda" onclick="goTab('agenda')">Agenda</button>
@@ -1404,7 +1439,7 @@ window.deleteAppointment=async(token)=>{if(!token)return;if(!confirm('Vuoi elimi
 window.openBooking=()=>{const c=state.home?.customer||state.me?.customer||{},url=BOOK+'&fresh='+Date.now()+'&first_name='+encodeURIComponent(c.name||'')+'&last_name='+encodeURIComponent(c.surname||'')+'&email='+encodeURIComponent(c.email||state.me?.email||'')+'&phone='+encodeURIComponent(c.phone||'');state.frame='booking';app.insertAdjacentHTML('beforeend',`<div id="frameLayer"><div class="frameBar"><button onclick="closeFrame()">‹ Agenda</button><b style="flex:1;color:#11395d">Prenota appuntamento</b></div><iframe class="bookingFrame" src="${url}" title="Prenotazione appuntamento"></iframe></div>`) };
 window.openStaffBooking=()=>{const url=BOOK+'&source=staff-app&fresh='+Date.now();state.frame='staff-booking';app.insertAdjacentHTML('beforeend',`<div id="frameLayer"><div class="frameBar"><button onclick="closeFrame()">‹ Agenda</button><b style="flex:1;color:#11395d">Nuovo appuntamento</b></div><iframe class="bookingFrame" src="${url}" title="Nuovo appuntamento"></iframe></div>`)};
 window.closeFrame=async()=>{document.getElementById('frameLayer')?.remove();state.frame=null;window.__optykerProduct=null;window.__optykerVariant=null;if(state.me?.role==='staff'&&state.tab==='staff_agenda'){state.staffAgenda=[];await loadStaffAgenda(true);return}if(state.tab==='agenda'||state.tab==='home'){try{const x=await call(APPT,'history');state.appointments=Array.isArray(x.data)?x.data:[];render()}catch{}}};
-window.logout=async()=>{if(state.chatTimer)clearInterval(state.chatTimer);if(window.__optykerHomeLiveTimer)clearInterval(window.__optykerHomeLiveTimer);lastHomeLiveSig='';lastChatSig='';shopCategoriesPromise=null;await sb.auth.signOut();state={session:null,me:null,home:null,appointments:[],tab:'home',frame:null,drawer:false,shopCategories:[],shopParent:null,shopCategory:null,shopProducts:[],shopPageInfo:null,shopLoading:false,shopError:'',cart:[],chatMessages:[],chatLoading:false,chatSending:false,chatError:'',chatTimer:null,chatAttachment:null,timers:[],timerLoading:false,timerError:'',staffHome:null,staffAgenda:[],staffAgendaStart:'',staffShifts:null,staffShiftMonth:'',staffClients:[],staffClientDetail:null,staffClientSearch:'',staffOrders:null,staffThreads:[],staffSelectedThread:'',staffMessages:[],staffLoading:false,staffError:'',staffProfileDraftPhoto:'',staffChatAttachment:null};login()};
+window.logout=async()=>{if(state.chatTimer)clearInterval(state.chatTimer);if(window.__optykerHomeLiveTimer)clearInterval(window.__optykerHomeLiveTimer);lastHomeLiveSig='';lastChatSig='';shopCategoriesPromise=null;await sb.auth.signOut();state={session:null,me:null,home:null,eyewear:[],appointments:[],tab:'home',frame:null,drawer:false,shopCategories:[],shopParent:null,shopCategory:null,shopProducts:[],shopPageInfo:null,shopLoading:false,shopError:'',cart:[],chatMessages:[],chatLoading:false,chatSending:false,chatError:'',chatTimer:null,chatAttachment:null,timers:[],timerLoading:false,timerError:'',staffHome:null,staffAgenda:[],staffAgendaStart:'',staffShifts:null,staffShiftMonth:'',staffClients:[],staffClientDetail:null,staffClientSearch:'',staffOrders:null,staffThreads:[],staffSelectedThread:'',staffMessages:[],staffLoading:false,staffError:'',staffProfileDraftPhoto:'',staffChatAttachment:null};login()};
 
 async function boot(){
   const {data}=await sb.auth.getSession();state.session=data.session||null;if(!state.session){login();return}
@@ -1419,9 +1454,9 @@ async function boot(){
       return;
     }
     if(state.me?.role!=='customer')throw Error('Questa email non è associata a un profilo Optyker.');
-    const [homeX,apptX]=await Promise.all([call(API,'customer_home'),call(APPT,'history')]);
+    const [homeX,apptX,eyeX]=await Promise.all([call(API,'customer_home'),call(APPT,'history'),call(EYEWEAR_API,'list').catch(()=>({data:[]}))]);
     loadCart();
-    state.home=homeX.data||null;state.appointments=Array.isArray(apptX.data)?apptX.data:[];lastHomeLiveSig=lightweightSig({laboratory_orders:state.home?.laboratory_orders||[],unread_chat:Number(state.home?.unread_chat||0),appointments:state.appointments,name:state.home?.customer?.name||''});const requestedTab=new URLSearchParams(location.search).get('tab');state.tab=requestedTab==='timer'?'timer':'home';
+    state.home=homeX.data||null;state.eyewear=Array.isArray(eyeX.data)?eyeX.data:[];state.appointments=Array.isArray(apptX.data)?apptX.data:[];lastHomeLiveSig=lightweightSig({laboratory_orders:state.home?.laboratory_orders||[],unread_chat:Number(state.home?.unread_chat||0),appointments:state.appointments,name:state.home?.customer?.name||''});const requestedTab=new URLSearchParams(location.search).get('tab');state.tab=requestedTab==='timer'?'timer':'home';
     shell();
     if(state.tab==='timer')loadTimers(false);
   }catch(e){
@@ -1439,7 +1474,7 @@ sb.auth.onAuthStateChange((event,session)=>{
   if(event==='SIGNED_OUT'){login();return}
   if(event==='SIGNED_IN'&&session&&!state.me)setTimeout(boot,0);
 });
-if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js?v=20260903-rxrules2').catch(()=>{});
+if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js?v=20260907-eyewear1').catch(()=>{});
 boot();
 </script>
 
