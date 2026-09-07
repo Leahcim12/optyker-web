@@ -1,5 +1,5 @@
 {
-  "buildCommand": "bash scripts/vercel-build-v12.sh",
+  "buildCommand": "bash scripts/vercel-build-v13.sh",
   "outputDirectory": "_site",
   "framework": null,
   "cleanUrls": false
