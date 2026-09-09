@@ -1,6 +1,6 @@
 (function(){
 if(window.__optykerCashLoaded)return;window.__optykerCashLoaded=true;
-window.OPTYKER_CASH_BUILD='20260909-fiscal-setup1';
+window.OPTYKER_CASH_BUILD='20260909-rch-status2';
 var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-cash-register-api';
 var S={products:[],clients:[],cart:{},type:'',payment:'card',stage:'balance',clientId:'',invoice:false,tsRequested:false,tsCode:'AD',tsOpposition:false,busy:false,searchTimer:null,clientSearchTimer:null,rchOk:false,cashOpen:false};
 
@@ -29,7 +29,7 @@ function rchRequest(path,opts){
 }
 function testRch(quiet){
   return rchRequest('/health').then(function(h){
-    if(h.version!=='1.4-readonly-diagnostics')throw new Error('Aggiorna il connettore RCH dalla finestra di configurazione.');
+    if(h.version!=='1.5-status-compatibility')throw new Error('Aggiorna il connettore RCH dalla finestra di configurazione.');
     return rchRequest('/status')
   }).then(function(x){
     var extra=x.mode?(' · '+x.mode):'';rchStatusUi(true,'● RCH raggiungibile'+extra);
@@ -44,13 +44,13 @@ function downloadRchDiagnostics(){
   var b=E('optykerCashRchDiagnostics'),r=E('optykerCashRchResult');
   b.disabled=true;r.textContent='Raccolta diagnosi dal PC della cassa…';r.className='optykerCashRchResult';
   return rchRequest('/health').then(function(h){
-    if(h.version!=='1.4-readonly-diagnostics')throw new Error('Installa / aggiorna il connettore, poi riprova.');
+    if(h.version!=='1.5-status-compatibility')throw new Error('Installa / aggiorna il connettore, poi riprova.');
     return rchRequest('/diagnostics')
   }).then(function(report){
     if(report.reportGenerated!==true||report.readOnly!==true)throw new Error('Rapporto diagnostico incompleto.');
     var url=URL.createObjectURL(new Blob([JSON.stringify(report,null,2)],{type:'application/json'}));
     var a=document.createElement('a');a.href=url;a.download='Diagnostica-RCH-Optyker.json';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},1000);
-    r.textContent='Diagnosi scaricata. '+(report.printerReady?'RCH risponde.':'Il collegamento RCH richiede una verifica.')+' Allega il file nella chat per completare la configurazione.';
+    r.textContent='Diagnosi scaricata. '+(report.statusAccepted?'Richiesta di stato accettata.':report.printerReached?'RCH raggiungibile, ma la richiesta di stato non è stata accettata.':'Nessuna risposta RCH valida: verificare il collegamento.')+' Allega il file nella chat per completare la configurazione.';
     r.className='optykerCashRchResult'+(report.printerReady?' ok':' error')
   }).catch(function(e){r.textContent=e.message+' Se il browser blocca l’accesso locale, usa “Diagnostica Windows”.';r.className='optykerCashRchResult error'})
     .finally(function(){b.disabled=false})
@@ -90,7 +90,7 @@ function openRch(){
     '<div class="optykerCashRchInfo"><div><span>Registratore</span><b>RCH PRINT! RT</b></div><div><span>IP</span><b>192.168.1.10</b></div><div><span>Web Service</span><b>/service.cgi</b></div><div><span>Bridge Optyker</span><b>127.0.0.1:8765</b></div></div>'+
     '<div class="optykerCashRchHelp"><b>Attivazione fiscale da completare</b><br>Scontrini ordinari e parlanti: configurazione RCH da verificare.<br>Spese sanitarie: invio diretto al Sistema TS non attivo.<br>Corrispettivi AdE: esiti del registratore non ancora verificati.</div>'+
     '<div id="optykerCashRchResult" class="optykerCashRchResult">Pronto per il test.</div>'+
-    '<div class="optykerCashRchDownloads optykerCashRchDownloadsAuto"><a class="primary" href="/rch-connector/Installa-RCH-Optyker.bat?v=20260909-fiscal-setup1" download>Installa / aggiorna connettore</a><a href="/rch-connector/Diagnostica-RCH-Optyker.bat?v=20260909-fiscal-setup1" download>Diagnostica Windows</a><a href="/rch-connector/Disinstalla-RCH-Optyker.ps1" download>Rimuovi avvio automatico</a></div>'+
+    '<div class="optykerCashRchDownloads optykerCashRchDownloadsAuto"><a class="primary" href="/rch-connector/Installa-RCH-Optyker.bat?v=20260909-rch-status2" download>Installa / aggiorna connettore</a><a href="/rch-connector/Diagnostica-RCH-Optyker.bat?v=20260909-rch-status2" download>Diagnostica Windows</a><a href="/rch-connector/Disinstalla-RCH-Optyker.ps1" download>Rimuovi avvio automatico</a></div>'+
     '<div class="optykerCashRchHelp">Il <b>Test collegamento</b> controlla soltanto la comunicazione e non emette documenti fiscali. <b>Apri cassetto</b> è la prova hardware più semplice: apre solo il cassetto contanti senza stampare uno scontrino.</div>'+
     '<div class="optykerCashRchActions optykerCashRchActions4"><button id="optykerCashRchTest" type="button">Test collegamento</button><button id="optykerCashRchDiagnostics" type="button">Scarica diagnosi</button><button id="optykerCashRchDrawerTest" type="button">Apri cassetto</button><button class="optykerCashModalClose" type="button">Chiudi</button></div></div>';
   m.classList.add('open');
