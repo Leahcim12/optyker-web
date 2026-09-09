@@ -1,14 +1,18 @@
 # Optyker: attivazione cassa RCH e Sistema TS
 
-## Stato della versione 20260909-fiscal-setup1
+## Stato della versione 20260909-rch-status2
 
 Non abilita emissione fiscale o trasmissione TS. Le vendite e i pagamenti restano registrazioni gestionali. I nuovi dati TS usano `provider=not_configured`; i record storici non vengono riscritti. Non esiste ancora un servizio di trasmissione TS in questa versione.
 
-La diagnostica RCH 1.4 corregge la conversione delle liste PowerShell, legge il corpo HTTP in byte UTF-8, limita tempi e dimensioni, rifiuta risposte XML incomplete e DTD, controlla Host/Origin e impedisce comandi via GET. L'endpoint `/receipt` restituisce 409 senza contattare la stampante: il vecchio generatore ignorava il prezzo e non gestiva codice fiscale, identificativo documento o tentativi ripetuti.
+La diagnostica RCH 1.5 corregge la conversione delle liste PowerShell, legge il corpo HTTP in byte UTF-8, limita tempi e dimensioni, rifiuta risposte XML incomplete e DTD, controlla Host/Origin e impedisce comandi via GET. L'endpoint `/receipt` restituisce 409 senza contattare la stampante: il vecchio generatore ignorava il prezzo e non gestiva codice fiscale, identificativo documento o tentativi ripetuti.
 
-La diagnostica usa la sola interrogazione di stato `</?i/*4` e un GET passivo a `service.cgi`. Il comando di stato è riscontrato nel codice pubblico dell'SDK indipendente [fiscal-printer](https://github.com/lyancoder/fiscal-printer). Non è una verifica del protocollo specifico del dispositivo; reparti e pagamenti non vengono indovinati. Il manuale del produttore [Protocollo PRINT! RT](https://support.rch.it/docs/print-rt/manuale-protocollo-print-rt/) richiede autenticazione.
+La diagnosi del negozio ricevuta il 09/09/2026 contiene `errorCode=101`, `lastCmd=0` per `</?i/*4`. Questo conferma una risposta RCH, ma non una richiesta di stato accettata. Il significato preciso di 101 per il firmware installato non è stato verificato nel manuale del produttore.
 
-`reportGenerated=true` significa soltanto che il rapporto è stato creato. `printerReady` riguarda la risposta di stato. Nessuno dei due conferma emissione, matricola/reparti corretti, invio corrispettivi AdE o trasmissione TS.
+La versione 1.5 prova prima `<</?s`, richiesta di stato descritta dallo sviluppatore di un'integrazione RCH nel suo [resoconto diretto](https://www.iprogrammatori.it/forum-programmazione/fatturazione-elettronica/printf-esempio-scontrino-t42108-30.html). Solo se riceve 101 con i campi occupato, carta, coperchio ed errore stampante a zero, prova una volta `</?i/*4`, presente nel codice pubblico dell'[SDK indipendente fiscal-printer](https://github.com/lyancoder/fiscal-printer). Il messaggio XML ora usa righe separate e Content-Type `application/xml`, come il client pubblico. La richiesta disattiva inoltre `Expect: 100-continue`, connessioni persistenti e trasferimento chunked, per inviare direttamente un corpo di lunghezza dichiarata ([comportamento documentato da Microsoft](https://learn.microsoft.com/en-us/dotnet/api/system.net.servicepoint.expect100continue?view=netframework-4.8.1)). Questi sono adattamenti di compatibilità da verificare sulla RCH reale, non una diagnosi certa della causa di 101.
+
+Non vengono ripetute richieste dopo timeout, risposta accettata, busy o errori hardware. Non vengono ripetuti comandi di scrittura. La diagnosi conserva il messaggio XML esatto inviato e la risposta, per consentire la verifica del protocollo. Reparti e pagamenti non vengono indovinati. Il [manuale del produttore](https://support.rch.it/docs/print-rt/manuale-protocollo-print-rt/) richiede autenticazione.
+
+`reportGenerated=true` indica un rapporto creato, `printerReached=true` una risposta RCH riconoscibile, `statusAccepted=true` una risposta completa priva di errori alla richiesta di stato. Nessuno certifica configurazione fiscale, emissione o invio a TS/AdE.
 
 ## Passaggio sul PC del negozio
 
