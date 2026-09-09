@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { connectionStatus, startConnection, finishConnection, syncFic } from './fic.ts';
 import { issuance } from './issuance.ts';
+import { foreignAction } from './foreign.ts';
 
 const U = Deno.env.get("SUPABASE_URL") || "";
 const S = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -197,7 +198,9 @@ Deno.serve(async (req: Request) => {
     const session = await verifyToken(req);
     if (!session) return out(req, { ok:false, error:"Sessione amministrativa non valida o scaduta" }, 401);
 
-    if (['fic_form','fic_preview','fic_drafts','fic_create','fic_document','fic_send'].includes(action)) return out(req,{ok:true,...await issuance(db,action,b)});
+    if (['foreign_status','foreign_upload','foreign_list','foreign_get','foreign_original','foreign_extract'].includes(action)) return out(req,{ok:true,...await foreignAction(db,action,b)});
+
+    if (['fic_form','fic_preview','fic_draft','fic_drafts','fic_create','fic_document','fic_send'].includes(action)) return out(req,{ok:true,...await issuance(db,action,b)});
     if (action === 'fic_status') return out(req,{ok:true,data:await connectionStatus(db)});
     if (action === 'fic_connect') return out(req,{ok:true,url:await startConnection(db,b.write===true)});
 
