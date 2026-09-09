@@ -1,6 +1,6 @@
 (function(){
 if(window.__optykerCashLoaded)return;window.__optykerCashLoaded=true;
-window.OPTYKER_CASH_BUILD='20260903-giftreceipt1';
+window.OPTYKER_CASH_BUILD='20260909-client-history1';
 var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-cash-register-api';
 var S={products:[],clients:[],cart:{},type:'',payment:'card',stage:'balance',clientId:'',invoice:false,tsRequested:false,tsCode:'AD',tsOpposition:false,busy:false,searchTimer:null,clientSearchTimer:null,rchOk:false,cashOpen:false};
 
@@ -101,10 +101,17 @@ function installTop(){
 }
 function installClient(){
   if(window.OPTYKER_BILLING_ADMIN)return;
-  var name=E('clientWorkspaceName');if(!name||E('optykerClientCashBtn'))return;
-  var b=document.createElement('button');b.id='optykerClientCashBtn';b.type='button';b.textContent='🛒 Cassa cliente';
-  b.onclick=function(){openCash(String(window.clientCurrentId||''))};
-  name.insertAdjacentElement('afterend',b)
+  var name=E('clientWorkspaceName');if(!name)return;
+  if(!E('optykerClientCashBtn')){
+    var b=document.createElement('button');b.id='optykerClientCashBtn';b.type='button';b.textContent='🛒 Cassa cliente';
+    b.onclick=function(){var id=String(window.clientCurrentId||'');if(id)openCash(id);else toast('Apri prima la scheda di un cliente.','error')};
+    name.insertAdjacentElement('afterend',b)
+  }
+  if(!E('optykerClientReceiptsBtn')){
+    var h=document.createElement('button');h.id='optykerClientReceiptsBtn';h.type='button';h.textContent='Scontrini';
+    h.onclick=function(){var id=String(window.clientCurrentId||'');if(id)recentSales(id);else toast('Apri prima la scheda di un cliente.','error')};
+    E('optykerClientCashBtn').insertAdjacentElement('afterend',h)
+  }
 }
 function clientsLocal(){
   var a=(window.OPTYKER_CLOUD&&Array.isArray(OPTYKER_CLOUD.clients))?OPTYKER_CLOUD.clients:[];
@@ -382,13 +389,76 @@ function openTsDocuments(){
     box.innerHTML=a.map(function(r){var dt='';try{dt=new Date(r.payment_date||r.created_at).toLocaleDateString('it-IT')}catch(e){}var doc=r.document_number?(' · Doc. '+r.document_number):'';var proto=r.ts_protocol?(' · Protocollo '+r.ts_protocol):'';return '<div class="optykerCashTsRow"><div><b>'+esc(r.expense_code)+' · '+esc(euro(r.amount))+'</b><span>'+esc(dt+doc+' · '+(r.payment_method||''))+'</span></div><div class="optykerCashTsStatus '+esc(r.status||'')+'">'+esc(sl(r.status))+esc(proto)+'</div></div>'}).join('')
   }).catch(function(e){E('optykerCashTsList').innerHTML='<div class="optykerCashEmpty">Errore: '+esc(e.message)+'</div>'})
 }
-function recentSales(){
+var H={clientId:'',offset:0,includeDeleted:false,request:0};
+function recentSales(clientId){
+  H.clientId=typeof clientId==='string'?clientId:S.clientId;H.offset=0;H.includeDeleted=false;
   var m=E('optykerCashRecentModal');if(!m){m=document.createElement('div');m.id='optykerCashRecentModal';m.className='optykerCashModal';document.body.appendChild(m)}
-  m.innerHTML='<div class="optykerCashModalCard"><div class="optykerCashModalTitle">Ultime vendite</div><div class="optykerCashModalSub">Movimenti registrati dalla cassa Optyker.</div><div id="optykerCashSaleList" class="optykerCashSaleList"><div class="optykerCashLoading">Caricamento…</div></div><button class="optykerCashModalClose" type="button">Chiudi</button></div>';m.classList.add('open');
-  m.querySelector('.optykerCashModalClose').onclick=function(){m.classList.remove('open')};m.onclick=function(ev){if(ev.target===m)m.classList.remove('open')};
-  api('recent_sales',{client_id:S.clientId}).then(function(x){var box=E('optykerCashSaleList'),a=Array.isArray(x.data)?x.data:[];if(!a.length){box.innerHTML='<div class="optykerCashEmpty">Nessuna vendita registrata.</div>';return}
-    box.innerHTML=a.map(function(r){var dt='';try{dt=new Date(r.created_at).toLocaleString('it-IT')}catch(e){}var st=stageLabel(r.payment_stage||'balance');var extra=Number(r.due_amount||0)>0?(' · Da saldare '+euro(r.due_amount)):' · Saldato';if(r.invoice_requested)extra+=' · Fattura';return '<div class="optykerCashSaleRow"><div class="optykerCashSaleTop"><div class="optykerCashSaleName">'+esc(r.shopify_order_name||'Vendita')+'</div><div class="optykerCashSaleAmount">'+esc(euro(r.total))+'</div></div><div class="optykerCashSaleMeta">'+esc(dt+' · '+st+' · '+(r.payment_method||'')+extra)+'</div></div>'}).join('')
-  }).catch(function(e){E('optykerCashSaleList').innerHTML='<div class="optykerCashEmpty">Errore: '+esc(e.message)+'</div>'})
+  m.innerHTML='<div class="optykerCashModalCard"><div class="optykerCashModalTitle">'+(H.clientId?'Scontrini del cliente':'Scontrini e vendite')+'</div><div class="optykerCashModalSub">Ristampa una copia della vendita o rimuovi la registrazione dalla cronologia. Le copie non hanno valore fiscale.</div><div class="optykerCashHistoryToolbar"><label><input id="optykerCashShowDeleted" type="checkbox"> Mostra anche eliminati</label><button id="optykerCashHistoryRefresh" type="button">Aggiorna</button></div><div id="optykerCashSaleList" class="optykerCashSaleList"></div><div class="optykerCashHistoryToolbar"><button id="optykerCashHistoryPrev" type="button" disabled>Precedenti</button><span id="optykerCashHistoryPage"></span><button id="optykerCashHistoryNext" type="button" disabled>Successivi</button></div><button class="optykerCashModalClose" type="button">Chiudi</button></div>';m.classList.add('open');
+  function close(){H.request++;m.classList.remove('open')}
+  m.querySelector('.optykerCashModalClose').onclick=close;m.onclick=function(ev){if(ev.target===m)close()};
+  E('optykerCashShowDeleted').onchange=function(){H.includeDeleted=this.checked;H.offset=0;loadHistory()};
+  E('optykerCashHistoryRefresh').onclick=loadHistory;
+  E('optykerCashHistoryPrev').onclick=function(){H.offset=Math.max(0,H.offset-30);loadHistory()};
+  E('optykerCashHistoryNext').onclick=function(){H.offset+=30;loadHistory()};
+  loadHistory()
+}
+function receiptDate(v){try{return new Date(v).toLocaleString('it-IT')}catch(e){return ''}}
+function paymentLabel(v){return {cash:'Contanti',card:'Carta',bank:'Bonifico',pending:'Rate',other:'Altro'}[v]||v||''}
+function loadHistory(){
+  var request=++H.request,clientId=H.clientId,offset=H.offset;
+  var box=E('optykerCashSaleList');if(!box)return;
+  box.innerHTML='<div class="optykerCashLoading">Caricamento…</div>';
+  E('optykerCashHistoryPrev').disabled=true;E('optykerCashHistoryNext').disabled=true;
+  return api('recent_sales',{client_id:clientId,offset:offset,include_deleted:H.includeDeleted}).then(function(x){
+    if(request!==H.request)return;
+    var a=Array.isArray(x.data)?x.data:[];
+    if(!a.length&&offset>0){H.offset=Math.max(0,offset-30);return loadHistory()}
+    E('optykerCashHistoryPrev').disabled=offset===0;E('optykerCashHistoryNext').disabled=!x.has_more;
+    E('optykerCashHistoryPage').textContent='Pagina '+(Math.floor(offset/30)+1);
+    box.innerHTML=a.length?a.map(function(r){
+      var extra=Number(r.due_amount||0)>0?(' · Da saldare '+euro(r.due_amount)):' · Saldato';
+      if(r.status==='error')extra=' · Registrazione con errore';
+      if(r.invoice_requested)extra+=' · Fattura richiesta';
+      if(r.hidden_at)extra+=' · Eliminato dalla cronologia';
+      return '<div class="optykerCashSaleRow'+(r.hidden_at?' deleted':'')+'"><div class="optykerCashSaleTop"><div class="optykerCashSaleName">'+esc(r.shopify_order_name||'Vendita')+'</div><div class="optykerCashSaleAmount">'+esc(euro(r.total))+'</div></div><div class="optykerCashSaleMeta">'+esc(receiptDate(r.created_at)+' · '+stageLabel(r.payment_stage||'balance')+' · '+paymentLabel(r.payment_method)+extra)+'</div><div class="optykerCashHistoryActions"><button type="button" data-receipt="'+esc(r.id)+'">Ristampa copia</button><button type="button" data-visibility="'+esc(r.id)+'" data-hidden="'+(r.hidden_at?'false':'true')+'">'+(r.hidden_at?'Ripristina':'Elimina dalla scheda')+'</button></div></div>'
+    }).join(''):'<div class="optykerCashEmpty">Nessuno scontrino registrato'+(clientId?' per questo cliente':'')+'.</div>';
+    box.querySelectorAll('[data-receipt]').forEach(function(b){b.onclick=function(){openReceiptCopy(b.getAttribute('data-receipt'),clientId,b)}});
+    box.querySelectorAll('[data-visibility]').forEach(function(b){b.onclick=function(){
+      var hidden=b.getAttribute('data-hidden')==='true';
+      var message=hidden?'Eliminare questa registrazione dalla scheda cliente e dalla cronologia della cassa?\n\nNon annulla lo scontrino fiscale, non effettua rimborsi e non modifica l’ordine o il magazzino. Potrai ripristinarla da “Mostra anche eliminati”.':'Ripristinare la registrazione nella cronologia?';
+      if(!window.confirm(message))return;
+      b.disabled=true;
+      api('history_visibility',{sale_id:b.getAttribute('data-visibility'),client_id:clientId,hidden:hidden,confirm:true}).then(function(){
+        toast(hidden?'Registrazione eliminata dalla scheda. Puoi ripristinarla.':'Registrazione ripristinata.','ok');
+        if(request===H.request)return loadHistory()
+      }).catch(function(e){toast(e.message,'error')}).finally(function(){b.disabled=false})
+    }})
+  }).catch(function(e){if(request===H.request)box.innerHTML='<div class="optykerCashEmpty">Errore: '+esc(e.message)+'. Premi Aggiorna per riprovare.</div>'})
+}
+function openReceiptCopy(id,clientId,button){
+  if(button)button.disabled=true;
+  return api('receipt_detail',{sale_id:id,client_id:clientId}).then(function(x){
+    var r=x.data;if(!r)throw new Error('Documento non disponibile');
+    var m=E('optykerReceiptCopy');if(!m){m=document.createElement('div');m.id='optykerReceiptCopy';m.className='optykerCashModal';document.body.appendChild(m)}
+    m.innerHTML='<div class="optykerCashModalCard"><div class="optykerReceiptPrintActions"><button id="optykerReceiptPrint" type="button">Stampa / Salva PDF</button><button id="optykerReceiptClose" type="button">Chiudi</button></div><article class="optykerReceiptPaper"><h1>Ottica Visual Care</h1><p>MOLOGNI COMPANY S.R.L. · P.IVA 04679780165</p><h2>COPIA NON FISCALE</h2><p>Riepilogo della vendita registrata in Optyker.<br>Non sostituisce il documento commerciale del registratore fiscale.</p>'+
+      '<p><b>'+esc(r.shopify_order_name||'Vendita')+'</b> · '+esc(receiptDate(r.created_at))+'<br>Cliente: '+esc(r.client_name)+'<br>Operatore: '+esc(r.operator_username)+'</p>'+
+      (r.hidden_at?'<p><b>Registrazione eliminata dalla cronologia</b></p>':'')+
+      (r.status==='error'?'<p><b>Registrazione con errore: verificare l’esito della vendita.</b></p>':'')+
+      '<table><thead><tr><th>Articolo</th><th>Qtà</th><th>Prezzo</th><th>Totale</th></tr></thead><tbody>'+r.items.map(function(l){return '<tr><td>'+esc(l.title)+(l.variant_title&&l.variant_title!=='Default Title'?'<br><small>'+esc(l.variant_title)+'</small>':'')+'</td><td>'+esc(l.quantity)+'</td><td>'+esc(euro(l.unit_price))+'</td><td>'+esc(euro(l.total))+'</td></tr>'}).join('')+'</tbody></table><p class="optykerReceiptTotal">Totale vendita: <b>'+esc(euro(r.total))+'</b></p><p>Pagato: '+esc(euro(r.paid_amount))+'<br>Da saldare: '+esc(euro(r.due_amount))+'</p>'+
+      (r.payments.length?'<h3>Pagamenti registrati</h3>'+r.payments.map(function(p){return '<p>'+esc(receiptDate(p.created_at)+' · '+stageLabel(p.payment_stage)+' · '+paymentLabel(p.payment_method)+' · '+euro(p.amount))+'</p>'}).join(''):'<p>Nessun movimento di pagamento registrato.</p>')+
+      '<small>Riferimento Optyker: '+esc(r.id)+'</small></article></div>';
+    m.classList.add('open');
+    function close(){m.classList.remove('open')}
+    E('optykerReceiptClose').onclick=close;m.onclick=function(ev){if(ev.target===m)close()};
+    E('optykerReceiptPrint').onclick=function(){
+      var w=window.open('','_blank');
+      if(!w){toast('Consenti le finestre di stampa per Optyker e riprova.','error');return}
+      w.opener=null;
+      w.document.open();
+      w.document.write('<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Copia vendita Optyker</title><style>@page{size:A4;margin:16mm}body{font:13px/1.5 Arial,sans-serif;color:#172b40}h1{font-size:22px}h2{font-size:16px;border-block:1px solid #ccd6df;padding:10px 0}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{text-align:right;padding:8px 5px;border-bottom:1px solid #dde3e8}th:first-child,td:first-child{text-align:left}tr{break-inside:avoid}.optykerReceiptTotal{text-align:right;font-size:16px}</style></head><body>'+m.querySelector('.optykerReceiptPaper').outerHTML+'</body></html>');
+      w.document.close();w.focus();w.print()
+    }
+  }).catch(function(e){toast('Copia non disponibile: '+e.message,'error')}).finally(function(){if(button)button.disabled=false})
 }
 window.openOptykerCash=function(clientId){openCash(clientId||'')};
 function keepCashOpen(){
