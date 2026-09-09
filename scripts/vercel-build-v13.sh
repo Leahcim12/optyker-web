@@ -5,6 +5,7 @@ python scripts/patch_eyewear_summary_stability_v13.py
 python scripts/patch_quote_dates_red.py
 
 cp billing-compose.js _site/billing-compose.js
+cp foreign-invoices.js _site/foreign-invoices.js
 cp billing-compose.css _site/billing-compose.css
 
 python - <<'CACHE'
@@ -12,8 +13,8 @@ from pathlib import Path
 import re
 p=Path('_site/index.html')
 text=p.read_text()
-text=re.sub(r'/billing-admin\.css(?:\?[^\"\']*)?', '/billing-admin.css?v=20260909-admin-history1', text)
-p.write_text(re.sub(r'/billing-admin\.js(?:\?[^\"\']*)?', '/billing-admin.js?v=20260909-admin-history1', text))
+text=re.sub(r'/billing-admin\.css(?:\?[^\"\']*)?', '/billing-admin.css?v=20260909-foreign1', text)
+p.write_text(re.sub(r'/billing-admin\.js(?:\?[^\"\']*)?', '/billing-admin.js?v=20260909-foreign1', text))
 CACHE
 
 cp _site/index.html _site/gestionale-v2/index.html
