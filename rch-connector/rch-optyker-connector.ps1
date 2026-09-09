@@ -5,7 +5,7 @@
 )
 
 $ErrorActionPreference = 'Stop'
-$ConnectorVersion = '1.4-readonly-diagnostics'
+$ConnectorVersion = '1.5-status-compatibility'
 $printerAddress = $null
 if(-not [System.Net.IPAddress]::TryParse($PrinterIp, [ref]$printerAddress) -or $printerAddress.AddressFamily -ne [System.Net.Sockets.AddressFamily]::InterNetwork){throw 'Indirizzo IPv4 del registratore non valido.'}
 $PrinterUrl = "http://$PrinterIp/service.cgi"
@@ -28,11 +28,12 @@ function Read-SafeXml([string]$text) {
 }
 
 function Parse-Rch([string]$xmlText) {
-  $out = [ordered]@{ok=$false;errorCode=-1;printerError=-1;paperEnd=-1;coverOpen=-1;lastCmd=-1;busy=-1;raw=$xmlText}
+  $out = [ordered]@{ok=$false;rchResponse=$false;errorCode=-1;printerError=-1;paperEnd=-1;coverOpen=-1;lastCmd=-1;busy=-1;raw=$xmlText}
   try {
     $doc = Read-SafeXml $xmlText
     $request = $doc.SelectSingleNode('/Service/Request')
     if($null -eq $request){throw 'Risposta RCH senza esito Request.'}
+    $out.rchResponse=$true
     foreach($name in @('errorCode','printerError','paperEnd','coverOpen','lastCmd','busy')){
       $nodes = $request.SelectNodes($name)
       $value = 0
@@ -70,10 +71,13 @@ function Request-Printer([string]$method,[string]$body='') {
   $req.Method = $method
   $req.AllowAutoRedirect = $false
   $req.Proxy = $null
+  $req.ServicePoint.Expect100Continue = $false
+  $req.KeepAlive = $false
+  $req.SendChunked = $false
   $req.Timeout = 10000
   $req.ReadWriteTimeout = 10000
   if($method -eq 'POST'){
-    $req.ContentType = 'application/xml; charset=utf-8'
+    $req.ContentType = 'application/xml'
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($body)
     $req.ContentLength = $bytes.Length
     $stream = $req.GetRequestStream()
@@ -94,36 +98,68 @@ function Request-Printer([string]$method,[string]$body='') {
     } finally {$reader.Dispose()}
   } finally {$response.Dispose()}
 }
-function Send-RchCommand([string]$command) {
+function Build-RchXml([string]$command) {
   $escaped = [System.Security.SecurityElement]::Escape($command)
-  return Request-Printer 'POST' ('<?xml version="1.0" encoding="UTF-8"?><Service><cmd>'+ $escaped +'</cmd></Service>')
+  # Match the multiline envelope used by the public RCH client implementation.
+  return '<?xml version="1.0" encoding="UTF-8"?>' + "`n<Service>`n  <cmd>" + $escaped + "</cmd>`n</Service>`n"
 }
-function Status-Rch { return Parse-Rch (Send-RchCommand '</?i/*4') }
+function Send-RchCommand([string]$command) {
+  return Request-Printer 'POST' (Build-RchXml $command)
+}
+function Read-StatusProbe([string]$command) {
+  # Only these two independently published status queries may be probed.
+  if($command -cnotin @('<</?s','</?i/*4')){throw 'Comando diagnostico non consentito.'}
+  $xml=Build-RchXml $command
+  try {
+    $raw=Request-Printer 'POST' $xml
+    $parsed=Parse-Rch $raw
+    return [pscustomobject]@{
+      label='Stato registratore';command=$command;requestXml=$xml
+      httpReached=$true;rchResponse=$parsed.rchResponse;ok=$parsed.ok
+      errorCode=$parsed.errorCode;error=$parsed.error
+      values=(Flatten-RchXml $raw);raw=$raw;result=$parsed
+    }
+  } catch {
+    return [pscustomobject]@{
+      label='Stato registratore';command=$command;requestXml=$xml
+      httpReached=$false;rchResponse=$false;ok=$false;errorCode=-1
+      error=$_.Exception.Message;values=@();raw=''
+      result=[pscustomobject]@{ok=$false;rchResponse=$false;error=$_.Exception.Message}
+    }
+  }
+}
+function Get-StatusProbes {
+  $probes=New-Object 'System.Collections.Generic.List[object]'
+  $first=Read-StatusProbe '<</?s'
+  $probes.Add($first)
+  # 101 is not reliably documented for every firmware. Try the alternate
+  # read-only syntax only on this observed refusal, never after a timeout,
+  # a busy/hardware error, or a successful response. No write command is retried.
+  if(-not $first.ok -and $first.errorCode -eq 101 -and $first.result.busy -eq 0 -and $first.result.printerError -eq 0 -and $first.result.paperEnd -eq 0 -and $first.result.coverOpen -eq 0){
+    $probes.Add((Read-StatusProbe '</?i/*4'))
+  }
+  return ,$probes.ToArray()
+}
+function Status-Rch {
+  $probes=Get-StatusProbes
+  return $probes[$probes.Length-1].result
+}
 function Drawer-Rch { return Parse-Rch (Send-RchCommand '=C86') }
 function GiftReceipt-Rch { return Parse-Rch (Send-RchCommand '=C453/$2') }
 
 function Diagnostics-Rch {
-  # Only the documented public status query and a passive HTTP read.
-  # No department/tender guessing, programming, fiscal printing or closure.
-  $probes = New-Object 'System.Collections.Generic.List[object]'
-  try {
-    $raw = Send-RchCommand '</?i/*4'
-    $parsed = Parse-Rch $raw
-    $probes.Add([pscustomobject]@{label='Stato registratore';command='</?i/*4';ok=$parsed.ok;error=$parsed.error;values=(Flatten-RchXml $raw);raw=$raw})
-  } catch {$probes.Add([pscustomobject]@{label='Stato registratore';ok=$false;error=$_.Exception.Message})}
-  try {
-    $raw = Request-Printer 'GET'
-    $passive = [pscustomobject]@{ok=$true;raw=$raw;values=(Flatten-RchXml $raw)}
-  } catch {$passive = [pscustomobject]@{ok=$false;error=$_.Exception.Message}}
+  $probes=Get-StatusProbes
+  $reached=@($probes | Where-Object {$_.rchResponse -eq $true}).Count -gt 0
+  $accepted=@($probes | Where-Object {$_.ok -eq $true}).Count -gt 0
   return [pscustomobject]@{
     ok=$true;reportGenerated=$true;version=$ConnectorVersion;readOnly=$true
     emittedFiscalDocument=$false;changedProgramming=$false
     printer=$PrinterIp;generatedAt=(Get-Date).ToString('o')
-    printerReady=($probes[0].ok -eq $true)
-    probes=$probes.ToArray();passiveServicePage=$passive
+    printerReached=$reached;statusAccepted=$accepted;printerReady=$accepted
+    probes=$probes
     readiness=@{receipt=$false;talkingReceipt=$false;adeOutcome='unverified';tsSubmission=$false}
     missing=@('Configurazione reparti IVA e pagamenti verificata sul registratore','Protocollo RCH per codice fiscale e riferimento documento','Accesso e integrazione diretta Sistema TS')
-    note='Rapporto di comunicazione. Non certifica la configurazione fiscale o la trasmissione AdE.'
+    note='printerReached indica una risposta RCH; statusAccepted indica una richiesta di stato accettata. Nessuno dei due certifica emissione o invio fiscale.'
   }
 }
 
