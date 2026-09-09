@@ -1,0 +1,240 @@
+/* OPTYKER AURORA · 2026-09-09
+   Presentation only. Screen-only skin: no changes to data, auth, fiscal flows,
+   clinical calculations, visibility rules, or printed document layouts. */
+@media screen {
+  html[data-optyker-design="aurora"] {
+    --aurora-ink:#152c3e; --aurora-muted:#637888; --aurora-line:#dce5e8;
+    --aurora-paper:#f3f6f7; --aurora-navy:#0c2333; --aurora-teal:#087e83;
+    --aurora-mint:#8fe1d5; --aurora-radius:18px;
+    --aurora-shadow:0 4px 18px rgba(13,40,53,.045),0 1px 2px rgba(13,40,53,.025);
+    --op-surface:#fff; --op-line:#dce5e8; --op-muted:#637888;
+    --op-blue:#087e83; --op-blue2:#08676c; --op-radius:18px;
+    --op-shadow-sm:var(--aurora-shadow); --op-shadow:0 14px 34px rgba(13,40,53,.08);
+    color-scheme:light; background:var(--aurora-paper);
+  }
+  html[data-optyker-design] body {
+    background:radial-gradient(ellipse at 95% 0%,#e6f2f1 0,transparent 48%),#f3f6f7!important;
+    color:var(--aurora-ink); font-family:"Segoe UI Variable","Segoe UI",system-ui,sans-serif!important;
+    -webkit-font-smoothing:antialiased;
+  }
+  html[data-optyker-design] :is(button,input,select,textarea) {font-family:inherit}
+  html[data-optyker-design] ::selection {background:#b8ece4;color:#102f3a}
+  html[data-optyker-design] :is(button,a,input,select,textarea,[tabindex]):focus-visible {
+    outline:3px solid #0d9294!important; outline-offset:3px!important;
+  }
+  html[data-optyker-design] :is(button,input,select,textarea):disabled {cursor:not-allowed}
+
+  /* Application frame. Never override display: auth and modules own visibility. */
+  html[data-optyker-design] #mainApp {
+    max-width:1920px!important; margin:0 auto!important; padding:0 26px 32px!important;
+    grid-template-columns:216px minmax(0,1fr)!important; gap:24px!important;
+  }
+  #mainApp > :is(.panel,#dashboardPanel,#warehousePanel,#optykerBillingPanel) {min-width:0!important}
+  #mainApp .topbar {
+    margin:0 -26px!important; padding:14px 26px!important; min-height:80px!important;
+    height:auto!important; gap:22px!important; flex-wrap:nowrap!important;
+    background:rgba(255,255,255,.96)!important; border-bottom:1px solid #dce5e8!important;
+    box-shadow:0 3px 18px rgba(14,42,54,.035)!important;
+    backdrop-filter:blur(16px)!important; -webkit-backdrop-filter:blur(16px)!important;
+  }
+  #mainApp .topbarLeft {gap:12px!important; flex:0 0 auto!important}
+  #mainApp .topbarLeft img {width:64px!important;height:46px!important;object-fit:contain!important}
+  #mainApp .topbar h1 {font-size:25px!important;font-weight:650!important;letter-spacing:-.9px!important;color:#102b3b!important}
+  #mainApp .topbar .sub {font-size:10px!important;letter-spacing:.035em!important;color:#6b7d86!important;max-width:340px}
+  #mainApp .topbarRight {width:auto!important;flex:1 1 auto!important;gap:9px!important;flex-wrap:wrap!important}
+  #mainApp .optykerGlobalSearchWrap {flex:1 1 250px!important;min-width:170px!important;max-width:520px!important}
+  #mainApp #optykerGlobalSearchInput,#mainApp #optykerGlobalSearch {
+    height:44px!important;border-radius:12px!important;border:1px solid #dce5e8!important;
+    background:#f5f8f9!important;color:#183442!important;box-shadow:none!important;font-weight:450!important;
+  }
+  #mainApp #optykerGlobalSearchResults {border-radius:16px!important;border-color:#dce5e8!important;box-shadow:0 22px 54px #102d3c24!important}
+  #mainApp .optykerGlobalSearchItem:hover,#mainApp .optykerGlobalSearchItem.active {background:#eaf6f3!important}
+  #mainApp .topShortcutBtn {min-height:42px!important;border-radius:11px!important;border:1px solid #dce5e8!important;background:#fff!important;color:#264654!important;font-size:12px!important;font-weight:650!important}
+  #mainApp #optykerTopNewClientBtn,#mainApp #optykerQuickNewClient {
+    min-height:44px!important;background:#0b767b!important;border-color:#0b767b!important;
+    border-radius:12px!important;font-weight:650!important;box-shadow:0 4px 12px #087e8319!important;
+  }
+  #mainApp #optykerCashBtn {background:#102e40!important;border-color:#102e40!important;color:#fff!important;border-radius:12px!important;min-height:44px!important;font-weight:650!important;box-shadow:none!important}
+  #mainApp :is(.optykerActiveUserBadge,.optykerOperatorBadge) {border-radius:999px!important;background:#f0f6f5!important;border-color:#dce8e4!important;color:#2f5d59!important}
+
+  /* Text-only navigation. Expanded/collapsed states remain application-owned. */
+  #mainApp #moduleNav {
+    background:radial-gradient(ellipse at 100% 0%,#174653 0,transparent 50%),linear-gradient(160deg,#102c3b,#091e2d)!important;
+    border:1px solid #173848!important;border-radius:20px!important;padding:17px 11px!important;
+    grid-row:2 / span 5!important;height:calc(100dvh - 124px)!important;max-height:calc(100dvh - 124px)!important;min-height:0!important;
+    top:104px!important;gap:5px!important;box-shadow:0 16px 32px #102b3d14!important;
+    overflow-y:auto!important;scrollbar-width:thin;scrollbar-color:#42606c transparent;
+  }
+  #mainApp #moduleNav::before {content:"SPAZIO DI LAVORO"!important;color:#94afba!important;font-size:9px!important;letter-spacing:.15em!important;font-weight:600!important;padding:9px 12px 16px!important}
+  #mainApp #moduleNav::after {content:"OPTYKER  /  VISUAL CARE";display:block;order:9999;margin-top:auto;padding:30px 12px 6px;color:#839daa;font-size:9px;font-weight:500;letter-spacing:.1em;pointer-events:none}
+  #mainApp #moduleNav .moduleBtn,#mainApp #moduleNav #navClients {
+    color:#cad9df!important;background:transparent!important;border:1px solid transparent!important;
+    border-radius:11px!important;font-size:13px!important;font-weight:550!important;letter-spacing:.005em!important;
+    padding:11px 13px!important;min-height:44px!important;box-shadow:none!important;transform:none!important;
+    transition:background-color .16s ease,color .16s ease,border-color .16s ease!important;
+  }
+  #mainApp #moduleNav .moduleBtn:hover,#mainApp #moduleNav #navClients:hover {color:#fff!important;background:#ffffff0e!important;border-color:#ffffff0c!important;box-shadow:none!important;transform:none!important}
+  #mainApp #moduleNav .moduleBtn.active,#mainApp #moduleNav #navClients.active {
+    background:linear-gradient(105deg,#1f5b60,#143d4c)!important;color:#c5fff0!important;border-color:#3e7c7a!important;
+    box-shadow:inset 3px 0 0 #90e4d4!important;font-weight:650!important;
+  }
+  #mainApp #moduleNav .moduleBtn .winNavIcon {display:none!important}
+  #mainApp #moduleNav :is(.sheetsSubmenu,.moduleSheetChildren,#clientSidebarSubmenu,.optykerBillingSubnav) {background:transparent!important;border-color:#38515f!important}
+  #mainApp #moduleNav :is(#navWarehouseSub,#navDocumentsSub,.optykerBillingSubnav) button {color:#b9d0d7!important;background:transparent!important;border-color:#385662!important;border-radius:7px!important;font-size:11px!important;min-height:36px!important;line-height:1.45!important}
+  #mainApp #moduleNav :is(#navWarehouseSub,#navDocumentsSub,.optykerBillingSubnav) button:hover,
+  #mainApp #moduleNav :is(#navWarehouseSub,#navDocumentsSub,.optykerBillingSubnav) button.active {background:#224652!important;color:#cefff4!important}
+  #mainApp #moduleNav :is(.navSheetsArrow,.optykerNavChevron) {color:#9fc0c7!important}
+  #mainApp #moduleNav .optykerNavChevron::before {border-color:currentColor!important}
+
+  /* Dashboard: no invented metrics, only the existing live content. */
+  #mainApp .dashboardHero {
+    position:relative;isolation:isolate;overflow:hidden;
+    padding:32px!important;margin:0 0 20px!important;min-height:146px;box-sizing:border-box;
+    background:radial-gradient(ellipse at 88% 15%,#22616a 0,transparent 56%),linear-gradient(120deg,#0d2738,#153d4b)!important;
+    border:1px solid #1d4655!important;border-radius:22px!important;box-shadow:0 12px 26px #17374a14!important;
+  }
+  #mainApp .dashboardHero::after {content:"";position:absolute;z-index:-1;pointer-events:none;width:290px;height:290px;right:2%;top:-130px;border:1px solid #8edcd538;border-radius:50%;box-shadow:0 0 0 42px #9fe7db07,0 0 0 43px #9fe7db14,0 0 0 85px #9fe7db04,0 0 0 86px #9fe7db0d}
+  #mainApp .dashboardHero .dashboardEyebrow {color:#9ae0d4!important;font-size:10px!important;letter-spacing:.16em!important;font-weight:600!important;margin-bottom:10px!important}
+  #mainApp .dashboardHero .dashboardTitle {color:#f5fbfa!important;font-size:clamp(27px,2.6vw,38px)!important;line-height:1.14!important;letter-spacing:-1.15px!important;font-weight:600!important}
+  #mainApp .dashboardHero .dashboardSubtitle {color:#b9d1d9!important;font-size:12px!important;line-height:1.7!important;max-width:580px;margin-top:11px!important}
+  #mainApp .dashboardHeroActions {flex-wrap:wrap!important;gap:9px!important;flex-shrink:0!important}
+  #mainApp .dashboardHero .dashboardHeroBtn {min-height:44px!important;border-radius:12px!important;font-size:12px!important;font-weight:650!important;padding:11px 16px!important;box-shadow:none!important}
+  #mainApp .dashboardHero .dashboardHeroBtn.primary {background:#a9eedc!important;border:1px solid #a9eedc!important;color:#113e41!important}
+  #mainApp .dashboardHero .dashboardHeroBtn.primary:hover {background:#c6f7eb!important}
+  #mainApp .dashboardHero .dashboardHeroBtn.secondary {background:#ffffff0c!important;border:1px solid #7ea8b366!important;color:#eaf4f4!important}
+  #mainApp .dashboardHero .dashboardHeroBtn.secondary:hover {background:#ffffff18!important}
+  #mainApp .dashboardMainRow {display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,275px),1fr))!important;gap:16px!important;margin-bottom:20px!important}
+  #mainApp :is(.dashboardCard,.dashboardSection) {background:#fff!important;border:1px solid var(--aurora-line)!important;border-radius:18px!important;box-shadow:var(--aurora-shadow)!important;min-width:0!important}
+  #mainApp .dashboardCard {width:auto!important;max-width:none!important;margin:0!important;padding:22px!important;box-sizing:border-box!important}
+  #mainApp :is(.dashboardCardTitle,.dashboardSectionTitle) {font-size:16px!important;line-height:1.35!important;letter-spacing:-.25px!important;font-weight:650!important;color:#183746!important}
+  #mainApp :is(.dashboardCardText,.dashboardSectionHint) {font-size:11.5px!important;line-height:1.6!important;color:#6a7d89!important;margin-top:5px!important}
+  #mainApp .dashboardSection {padding:22px!important;margin-bottom:18px!important}
+  #mainApp .dashboardSectionHead {margin-bottom:16px!important}
+  #mainApp .dashboardSearchRow {gap:8px!important;margin-top:16px!important}
+  #mainApp #dashboardClientSearch {height:43px!important;border-radius:11px!important;border-color:#d7e2e6!important;background:#f8fafb!important;min-width:0!important;font-size:12px!important}
+  #mainApp :is(.dashboardSearchBtn,.dashboardTodayOpenAgenda,.dashboardShopifyOpen) {background:#0e6e76!important;color:#fff!important;border:1px solid #0e6e76!important;border-radius:11px!important;min-height:41px!important;font-size:12px!important;font-weight:650!important;box-shadow:none!important}
+  #mainApp :is(.dashboardTodayOpenAgenda,.dashboardShopifyOpen) {background:#f0f7f6!important;color:#176a6c!important;border-color:#d1e7e2!important;margin-top:14px!important}
+  #mainApp :is(.dashboardTodayCount,.dashboardShopifyCount) {background:#e8f5f1!important;color:#126f70!important;border-radius:12px!important;min-width:36px!important;font-size:16px!important;box-shadow:none!important}
+  #mainApp :is(.dashboardClientEmpty,.dashboardTodayEmpty,.dashboardShopifyEmpty) {background:#f7f9fa!important;border:1px dashed #d4e0e3!important;border-radius:12px!important;color:#657d89!important;font-size:11px!important;line-height:1.6!important;padding:20px 14px!important}
+  #mainApp :is(.dashboardTodayItem,.dashboardShopifyItem,.dashboardClientItem) {border-color:#e2eaeb!important;border-radius:11px!important}
+  #mainApp .dashboardDocs {display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,175px),1fr))!important;gap:12px!important}
+  #mainApp .dashboardDocBtn {width:100%!important;max-width:none!important;min-width:0!important;min-height:134px!important;box-sizing:border-box!important;padding:17px!important;border-radius:14px!important;border:1px solid #e0e8eb!important;background:#fff!important;box-shadow:none!important;transition:background-color .16s,border-color .16s,box-shadow .16s!important}
+  #mainApp .dashboardDocBtn:hover {transform:none!important;background:#f6fbfa!important;border-color:#91c9c1!important;box-shadow:0 6px 18px #103e4a09!important}
+  #mainApp .dashboardDocIcon {background:#edf7f4!important;border-color:#d0e8e0!important;color:#1e7776!important;border-radius:10px!important}
+  #mainApp .dashboardDocBtn {display:grid!important;grid-template-columns:34px minmax(0,1fr)!important;grid-template-rows:auto 1fr!important;gap:10px 9px!important;text-align:left!important;align-content:start!important;align-items:start!important}
+  #mainApp .dashboardDocIcon {grid-column:1;grid-row:1;width:34px!important;height:34px!important;box-sizing:border-box!important;display:grid!important;place-items:center!important;margin:0!important}
+  #mainApp .dashboardDocName {grid-column:2;grid-row:1;align-self:center;margin:0!important;font-size:12px!important;line-height:1.4!important;font-weight:650!important;color:#244351!important}
+  #mainApp .dashboardDocText {grid-column:1 / -1;grid-row:2;margin:0!important;padding:0!important;font-size:10.5px!important;line-height:1.65!important;color:#71838e!important}
+  #mainApp .dashboardDevicesSection .dashboardDocs {grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  #mainApp .dashboardDeviceBtn {width:100%!important;max-width:none!important;min-width:0!important;min-height:95px!important;padding:22px!important;box-sizing:border-box!important;background:linear-gradient(110deg,#eff8f5,#f9fcfb)!important;border:1px solid #d4e9e2!important;border-radius:14px!important;text-align:left!important;box-shadow:none!important;color:#164e50!important;font-size:17px!important;font-weight:700!important}
+  #mainApp .dashboardDeviceName {font-size:18px!important;letter-spacing:-.4px!important;color:#184950!important}
+  #mainApp .dashboardDeviceText {font-size:11px!important;color:#65817f!important;margin-top:6px!important}
+  #mainApp #optykerDashboardClinicalCards {gap:16px!important;margin:18px 0!important}
+  #mainApp #optykerDashboardClinicalCards .optykerDashboardQuickCard {background:#fff!important;border-color:#dce7e6!important;border-radius:17px!important;padding:22px!important;box-shadow:var(--aurora-shadow)!important}
+  #mainApp #optykerDashboardClinicalCards .optykerDashboardQuickCardIcon {background:#eaf7f2!important;color:#197674!important;border-radius:14px!important}
+  #mainApp #optykerDashboardClinicalCards .optykerDashboardQuickCardTitle {font-weight:650!important;color:#214452!important}
+  #mainApp #optykerDashboardClinicalCards .optykerDashboardQuickCardSub {font-size:11px!important;font-weight:450!important;color:#6b808b!important}
+
+  /* Shared work surfaces. Preserve clinical tables, calculations and print geometry. */
+  #mainApp :is(.panel,#warehousePanel,#optykerBillingPanel,.clientBox,.clientSheetSection,.optykerLabCard,.onlineOrderCard,.optykerClinicalGroup) {background:#fff!important;border-color:#dce5e8!important;border-radius:18px!important;box-shadow:var(--aurora-shadow)!important}
+  #mainApp :is(.clientWorkspaceHero,.clientIdentityPremium) {background:linear-gradient(115deg,#f0f8f6,#fff)!important;border-color:#d8e8e3!important;border-radius:18px!important}
+  #mainApp .clientWorkspaceAvatar {background:linear-gradient(145deg,#145764,#0b333f)!important;border-radius:16px!important;box-shadow:none!important}
+  #mainApp .clientWorkspaceName {font-size:26px!important;font-weight:650!important;letter-spacing:-.7px!important;color:#183847!important}
+  #mainApp :is(.clientRecordTabs,.clientViewNav,.onlineTabs,.lacTabs) {gap:6px!important;border-color:#e0e8ea!important}
+  #mainApp :is(.clientViewBtn,.clientRecordTab,.onlineTab,.lacTab) {border-radius:10px!important;font-weight:600!important}
+  #mainApp :is(.clientViewBtn,.clientRecordTab,.onlineTab,.lacTab).active {background:#e8f5f1!important;border-color:#b7dcd1!important;color:#155f61!important;box-shadow:none!important}
+  #mainApp :is(.clientBox,.optykerLabToolbar,.whToolbar,.optykerBillingFilters) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea) {border-color:#d4e0e4!important;border-radius:10px!important;background:#fafcfc!important;color:#1f3a49!important;box-shadow:none!important}
+  #mainApp :is(.clientBox,.optykerLabToolbar,.whToolbar,.optykerBillingFilters) :is(input,select,textarea):focus {border-color:#449e99!important;box-shadow:0 0 0 3px #11887d12!important}
+  #mainApp :is(button.primary,.clientPrivacyBtn,.clientCreateSheetMain,.lacSendOrderBtn) {background:#0b767b!important;border-color:#0b767b!important;color:#fff!important;border-radius:10px!important;box-shadow:0 3px 8px #087e8314!important;font-weight:650!important}
+  #mainApp :is(.whStat,.optykerBillingStat,.optykerBillingCard) {border-radius:14px!important;border-color:#dce7e6!important;background:#f7faf9!important;box-shadow:none!important}
+  #mainApp :is(.whTitle,.optykerBillingTitle,.optykerLabTitle,.onlineTitle) {font-weight:650!important;letter-spacing:-.7px!important;color:#193949!important}
+  #mainApp :is(.whTable,.optykerBillingTable) th {background:#edf5f3!important;color:#4d6c73!important}
+  #mainApp :is(.whTable,.optykerBillingTable) td {border-color:#e6edee!important}
+  #mainApp .optykerLabRef {color:#117b7a!important}
+  #mainApp .footer {color:#7c8c95!important;font-size:10px!important;margin-top:0!important}
+
+  /* Cash register: color/surface changes only. Do not touch the fixed payment column. */
+  html[data-optyker-design] .optykerCashOverlay {background:#f1f6f5!important}
+  html[data-optyker-design] .optykerCashHeader {background:linear-gradient(105deg,#0c2637,#16505a)!important;box-shadow:0 4px 16px #15384512!important}
+  html[data-optyker-design] .optykerCashProduct {border-color:#dbe6e3!important;border-radius:16px!important;box-shadow:0 3px 12px #163e4907!important}
+  html[data-optyker-design] .optykerCashCatalogTop {background:#f3f8f6!important;border-color:#d8e6e1!important}
+  html[data-optyker-design] .optykerCashType.active {background:#127b7b!important;border-color:#127b7b!important;color:#fff!important}
+
+  /* Original logos and all existing operator/admin authentication controls are retained. */
+  html[data-optyker-design] #optykerLoginScreen {
+    box-sizing:border-box!important;padding:44px!important;gap:clamp(36px,7vw,112px)!important;
+    background:radial-gradient(ellipse at 19% 34%,#1d5261 0,transparent 50%),radial-gradient(ellipse at 80% 92%,#154e51 0,transparent 48%),#0b202f!important;
+    overflow-y:auto!important;align-items:center!important;
+  }
+  #optykerLoginScreen .optykerLoginShell {width:430px!important;max-width:100%!important;flex:0 1 430px!important;box-sizing:border-box!important;padding:34px 36px 28px!important;border-radius:25px!important;border:1px solid #ffffff73!important;background:#fbfdfc!important;box-shadow:0 30px 90px #03121a55!important;position:relative;z-index:1}
+  #optykerLoginScreen .optykerLoginLogo {width:150px!important;height:106px!important;object-fit:contain!important;margin:0 auto 14px!important}
+  #optykerLoginScreen .optykerLoginBrand {font-size:30px!important;font-weight:650!important;letter-spacing:-.8px!important;color:#173746!important}
+  #optykerLoginScreen .optykerLoginProperty {font-size:8px!important;letter-spacing:.07em!important;line-height:1.7!important;color:#71858b!important}
+  #optykerLoginScreen .optykerLoginCard {border-color:#dbe7e4!important;margin-top:23px!important;padding-top:22px!important}
+  #optykerLoginScreen .optykerLoginTitle {font-size:17px!important;font-weight:650!important;color:#234955!important;margin-bottom:20px!important}
+  #optykerLoginScreen :is(.optykerLoginField,.optykerAuthField) label {font-size:12px!important;font-weight:600!important;color:#526f78!important}
+  #optykerLoginScreen :is(select,input:not([type=checkbox]):not([type=radio])) {border:1px solid #cadfdc!important;border-radius:12px!important;background:#f3f8f6!important;color:#183c49!important;height:48px!important;box-shadow:none!important;font-size:14px!important}
+  #optykerLoginScreen .optykerLoginButton {height:48px!important;border-radius:12px!important;background:#0b7577!important;border:1px solid #0b7577!important;color:#fff!important;font-size:12px!important;font-weight:650!important;letter-spacing:.04em!important;box-shadow:0 6px 16px #0b757724!important}
+  #optykerLoginScreen .optykerLoginButton:hover {background:#095f64!important}
+  #optykerLoginScreen .optykerLoginFoot {font-size:10px!important;color:#70888d!important;line-height:1.6!important}
+  #optykerLoginScreen .optykerAuroraIntro {flex:0 1 435px;position:relative;color:#f3fcfa;text-align:left}
+  #optykerLoginScreen .optykerAuroraEyebrow {font-size:10px;font-weight:550;letter-spacing:.23em;color:#9fd7cd;display:block;margin-bottom:28px}
+  #optykerLoginScreen .optykerAuroraIntro h2 {font-size:clamp(36px,4.5vw,62px);line-height:1.06;font-weight:500;letter-spacing:-2.7px;margin:0 0 24px;color:#f1faf7}
+  #optykerLoginScreen .optykerAuroraIntro h2 span {color:#a7e8d8}
+  #optykerLoginScreen .optykerAuroraIntro p {font-size:14px;line-height:1.85;color:#a9c3cb;max-width:340px;margin:0}
+  #optykerLoginScreen .optykerAuroraSignature {display:block;font-size:10px;font-weight:500;letter-spacing:.15em;color:#87aab7;margin-top:60px;padding-top:22px;border-top:1px solid #6faaaa44}
+}
+@media screen and (max-width:1200px) {
+  #mainApp .topbar {flex-wrap:wrap!important;gap:10px!important}
+  #mainApp .topbarRight {flex-basis:420px!important}
+  #mainApp .topbar .sub {display:none!important}
+  #mainApp .dashboardHero {flex-wrap:wrap!important;gap:22px!important;padding:28px!important}
+}
+@media screen and (max-width:900px) {
+  html[data-optyker-design] #mainApp {grid-template-columns:190px minmax(0,1fr)!important;padding:0 16px 24px!important;gap:16px!important}
+  #mainApp .topbar {margin:0 -16px!important;padding:12px 16px!important}
+  #mainApp #moduleNav {padding:12px 8px!important;top:100px!important;display:flex!important;flex-direction:column!important;grid-column:1!important;grid-row:2 / span 5!important;position:sticky!important}
+  #mainApp #moduleNav .moduleBtn {font-size:12px!important;padding:10px 11px!important}
+  #mainApp .dashboardHero .dashboardTitle {font-size:29px!important}
+  #mainApp .dashboardDevicesSection .dashboardDocs {grid-template-columns:1fr!important}
+  #mainApp #optykerDashboardClinicalCards {grid-template-columns:1fr!important}
+  #optykerLoginScreen .optykerAuroraIntro {flex-basis:300px}
+  #optykerLoginScreen .optykerAuroraIntro h2 {font-size:44px}
+}
+@media screen and (max-width:760px) {
+  html[data-optyker-design] #mainApp {display:block!important;padding:0 12px 22px!important}
+  /* Keep the existing inline display:none on unauthenticated application. */
+  html[data-optyker-design] #mainApp[style*="display:none"],html[data-optyker-design] #mainApp[style*="display: none"] {display:none!important}
+  #mainApp .topbar {margin:0 -12px 14px!important;padding:12px!important;gap:10px!important;position:relative!important}
+  #mainApp .topbarLeft img {width:52px!important;height:37px!important}
+  #mainApp .topbar h1 {font-size:23px!important}
+  #mainApp .topbarRight {flex:1 1 100%!important;width:100%!important;gap:7px!important}
+  #mainApp .optykerGlobalSearchWrap {min-width:120px!important;flex:1 1 160px!important;max-width:none!important}
+  #mainApp #optykerTopNewClientBtn,#mainApp #optykerCashBtn {padding:0 11px!important;font-size:11px!important}
+  #mainApp #optykerGlobalSearchResults {min-width:0!important}
+  #mainApp #moduleNav {position:relative!important;top:auto!important;display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;grid-row:auto!important;height:auto!important;max-height:none!important;min-height:0!important;overflow:visible!important;margin:0 0 16px!important;padding:12px!important;border-radius:17px!important;gap:5px!important}
+  #mainApp #moduleNav::before {flex:0 0 100%!important;box-sizing:border-box!important;padding:5px 10px 8px!important}
+  #mainApp #moduleNav::after {display:none!important}
+  #mainApp #moduleNav .moduleBtn {width:100%!important;box-sizing:border-box!important;min-height:42px!important}
+  #mainApp #moduleNav > * {flex:0 0 calc(50% - 3px)!important;width:calc(50% - 3px)!important;min-width:0!important;box-sizing:border-box!important}
+  #mainApp #moduleNav > :is(#sheetsSubmenu,#clientSidebarSubmenu) {flex-basis:100%!important;width:100%!important}
+  #mainApp > :is(.panel,#warehousePanel,#optykerBillingPanel) {grid-column:1!important}
+  #mainApp .dashboardHero {padding:25px!important;min-height:0!important;border-radius:18px!important}
+  #mainApp .dashboardHero .dashboardTitle {font-size:29px!important;letter-spacing:-.8px!important}
+  #mainApp .dashboardHeroActions {margin-top:20px!important}
+  #mainApp .dashboardMainRow {grid-template-columns:1fr!important;gap:13px!important}
+  #mainApp :is(.dashboardCard,.dashboardSection) {padding:19px!important}
+  #mainApp .dashboardDocs {grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  #mainApp .dashboardDocBtn {padding:14px!important}
+  #mainApp .dashboardDevicesSection .dashboardDocs {grid-template-columns:1fr!important}
+  html[data-optyker-design] #optykerLoginScreen {padding:24px 16px!important;gap:0!important}
+  #optykerLoginScreen .optykerAuroraIntro {display:none}
+  #optykerLoginScreen .optykerLoginShell {padding:30px 26px!important;border-radius:22px!important}
+}
+@media screen and (max-width:400px) {
+  #mainApp .dashboardDocs {grid-template-columns:1fr!important}
+  #mainApp .dashboardDocBtn {min-height:102px!important}
+}
+@media screen and (prefers-reduced-motion:reduce) {
+  html[data-optyker-design] *,html[data-optyker-design] *::before,html[data-optyker-design] *::after {scroll-behavior:auto!important;animation:none!important;transition:none!important}
+}

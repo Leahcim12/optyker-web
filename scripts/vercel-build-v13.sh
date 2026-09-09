@@ -30,3 +30,8 @@ grep -q "OPTYKER_QUOTE_DATES_RED_V1" _site/index.html
 grep -q "optykerQuoteDateRed" _site/index.html
 
 echo "Optyker production build V13 OK"
+
+# Screen-only redesign. The patch verifies existing scripts and form controls.
+python scripts/apply_aurora_design.py
+grep -q 'id="optykerAuroraCss"' _site/index.html
+test -s _site/optyker-aurora.css
