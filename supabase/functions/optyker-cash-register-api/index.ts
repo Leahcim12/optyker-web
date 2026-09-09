@@ -189,8 +189,8 @@ async function createTsDocument(sale:any,payment:any,client:any,operator:string,
   const status=opposition?"opposition_recorded":"awaiting_fiscal_document";
   const payload={
     source:"optyker_pos",
-    provider:"FOCUS TS · Bludata",
-    provider_connection:"pending",
+    provider:"not_configured",
+    provider_connection:"not_configured",
     fiscal_code:fiscal,
     expense_code:code,
     operation_type:"I",
@@ -201,7 +201,7 @@ async function createTsDocument(sale:any,payment:any,client:any,operator:string,
     shopify_order_id:sale?.shopify_order_id||"",
     shopify_order_name:sale?.shopify_order_name||"",
     lines:Array.isArray(sale?.data?.lines)?sale.data.lines:[],
-    note:"In attesa del numero del documento commerciale RCH prima dell'invio a FOCUS TS."
+    note:"Dati salvati in Optyker. Invio TS non configurato; necessario verificare il documento fiscale, la classificazione della spesa e il collegamento diretto TS."
   };
   const {data,error}=await db.from("optyker_ts_documents").insert({
     sale_id:sale.id,
@@ -220,7 +220,7 @@ async function createTsDocument(sale:any,payment:any,client:any,operator:string,
     opposition:!!opposition,
     operation_type:"I",
     status,
-    provider:"FOCUS TS · Bludata",
+    provider:"not_configured",
     provider_payload:payload
   }).select("*").single();
   if(error)throw error;
@@ -236,7 +236,7 @@ async function createInvoiceDraft(sale:any,payment:any,client:any,operator:strin
   const payload={
     source:"optyker_pos",
     provider:"FOCUS FE · Bludata",
-    provider_connection:"pending",
+    provider_connection:"not_configured",
     pos_sale_id:sale.id,
     pos_payment_id:payment?.id||null,
     payment_stage:stage,
