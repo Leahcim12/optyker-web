@@ -120,10 +120,11 @@
       var children=Array.prototype.slice.call(nav.children);
       children.forEach(function(ch){ch.setAttribute('data-billing-hidden','1');ch.style.setProperty('display','none','important')});
       group=document.createElement('div');group.id='optykerBillingNavGroup';group.className='optykerBillingNavGroup';
-      group.innerHTML='<button id="optykerBillingMainNav" type="button">Fatturazione</button><div class="optykerBillingSubnav"><button data-billing-mode="outgoing" type="button">Fatture emesse</button><button data-billing-mode="incoming" type="button">Fatture in entrata</button><button data-billing-mode="errors" type="button">Errori</button></div><button id="optykerBillingSettingsNav" class="moduleBtn" type="button">⚙ Impostazioni</button>';
+      group.innerHTML='<button id="optykerBillingMainNav" type="button">Fatturazione</button><div class="optykerBillingSubnav"><button data-billing-mode="outgoing" type="button">Fatture emesse</button><button id="optykerForeignNav" type="button">Fatture estere</button><button data-billing-mode="incoming" type="button">Fatture in entrata</button><button data-billing-mode="errors" type="button">Errori</button></div><button id="optykerBillingSettingsNav" class="moduleBtn" type="button">⚙ Impostazioni</button>';
       nav.appendChild(group);
       E('optykerBillingMainNav').onclick=function(){showSection(state.mode||'outgoing')};
       E('optykerBillingSettingsNav').onclick=showAdminSettings;
+      E('optykerForeignNav').onclick=openForeignInvoices;
       var bs=group.querySelectorAll('[data-billing-mode]');
       for(var i=0;i<bs.length;i++)bs[i].onclick=function(){showSection(this.getAttribute('data-billing-mode'))}
     }
@@ -158,6 +159,14 @@
   function daysOptions(){
     var h='<option value="">Tutti i giorni</option>';for(var i=1;i<=31;i++)h+='<option value="'+i+'">'+i+'</option>';return h
   }
+  function openForeignInvoices(){
+    function open(){window.OptykerForeignInvoices.open({call:call,onChanged:function(){loadRows();loadProvider()}})}
+    if(window.OptykerForeignInvoices){open();return}
+    var button=E('optykerForeignNav');if(button)button.disabled=true;
+    var script=document.createElement('script');script.src='/foreign-invoices.js?v=20260909-foreign1';
+    script.onload=function(){if(button)button.disabled=false;open()};
+    script.onerror=function(){if(button)button.disabled=false;toast('Impossibile aprire le fatture estere. Riprova.','error')};document.head.appendChild(script)
+  }
   function ensurePanel(){
     var p=E('optykerBillingPanel');if(p)return p;
     p=document.createElement('div');p.id='optykerBillingPanel';p.className='panel';
@@ -188,7 +197,7 @@
     create.onclick=function(){
       function open(){window.OptykerInvoices.open({call:call,onChanged:function(){loadRows();loadProvider()}})}
       if(window.OptykerInvoices){open();return}
-      create.disabled=true;var script=document.createElement('script');script.src='/billing-compose.js?v=20260909-1';
+      create.disabled=true;var script=document.createElement('script');script.src='/billing-compose.js?v=20260909-foreign1';
       script.onload=function(){create.disabled=false;open()};script.onerror=function(){create.disabled=false;toast('Impossibile aprire la creazione fattura. Riprova.','error')};document.head.appendChild(script)
     };
     return p
