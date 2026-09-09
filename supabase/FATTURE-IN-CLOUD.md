@@ -29,3 +29,30 @@ Scope di sola lettura: fatture emesse, note di credito emesse, documenti ricevut
 
 Documentazione: https://developers.fattureincloud.it/docs/authentication/code-flow/vanilla-code/
 Specifica: https://github.com/fattureincloud/openapi-fattureincloud
+
+## Emissione da Optyker — aggiornamento 9 settembre 2026
+
+Applicare anche `fic-issuance-setup.sql` e pubblicare `issuance.ts` con gli altri due file della funzione.
+Il pulsante **Nuova fattura** apre il modulo. **Abilita creazione e invio** richiede nuovamente OAuth con gli scope aggiuntivi `issued_documents.invoices:a` e `issued_documents.self_invoices:a`. Il collegamento di sola lettura rimane valido fino alla nuova autorizzazione.
+
+Serie inizializzate sulla conferma dell'utente, senza reset se lo script viene riapplicato:
+
+| Serie | Ultimo | Prossimo |
+|---|---|---|
+| Clienti / dettaglio | 38/26 | 39/26 |
+| Ingrosso | 8/26/W | 9/26/W |
+| Integrazioni / autofatture estere | 55/26/A/ES | 56/26/A/ES |
+
+Le date precedenti non sono state fornite. La creazione richiede una conferma del controllo della data e verifica la cronologia dei documenti presenti in Fatture in Cloud e in Optyker. Solo l'anno 2026 è configurato: il nuovo anno richiede la configurazione esplicita delle serie.
+
+Flusso: compilazione → calcolo totali del provider e bozza Optyker → conferma della creazione in Fatture in Cloud → visualizzazione del documento effettivo → conferma di invio SDI. Non inviare fatture reali per verificare il software senza approvazione sul documento specifico.
+
+Supportati: fatture TD01 per clienti italiani; autofatture del fornitore estero TD17/TD18/TD19 con riferimento al documento originale; documento sanitario a persona fisica senza SDI. Aliquote IVA dal provider, valuta EUR, prezzi netti, nessuna movimentazione magazzino, pagamento inizialmente da incassare. La gestione Sistema TS e i casi fiscali speciali restano da implementare. La selezione del tipo fiscale compete all'operatore.
+
+Numeri prenotati in una transazione PostgreSQL; confronto con le fatture del provider; ID bozza riutilizzato per evitare la creazione ripetuta. Una risposta di creazione o invio incerta viene segnalata e non viene ritentata automaticamente: controllare Fatture in Cloud prima di qualsiasi nuova operazione. I numeri prenotati da bozze respinte restano assegnati a tali bozze, che possono essere corrette e riprovate con lo stesso numero. Non abbandonarle senza verifica contabile.
+
+Prima dell'invio viene confrontata l'impronta dei dati effettivamente mostrati nell'anteprima (valida 10 minuti), verificato il tipo nell'XML e chiamato il controllo del provider con `dry_run:true`. Solo la conferma successiva trasmette con `dry_run:false`. Sono ammessi invii iniziali di documenti con stato `not_sent`; la rettifica di scarti e i tentativi con esito incerto richiedono verifica nel provider. “Invio richiesto” non significa accettazione da parte dello SDI.
+
+La sezione precedente “Comportamento e limiti” descriveva la prima versione in sola lettura: l'emissione e l'invio sono ora implementati come sopra, dopo l'estensione dei permessi. La sincronizzazione comprende anche le autofatture fornitore dopo tale autorizzazione.
+
+Verifiche aggiuntive: `node --test tests/fic.test.mjs tests/fic-issuance.test.mjs` (13 test). La prova di trasmissione di documenti reali non è inclusa nei test.
