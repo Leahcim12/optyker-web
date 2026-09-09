@@ -11,7 +11,9 @@ python - <<'CACHE'
 from pathlib import Path
 import re
 p=Path('_site/index.html')
-p.write_text(re.sub(r'/billing-admin\.js(?:\?[^\"\']*)?', '/billing-admin.js?v=20260909-fic3', p.read_text()))
+text=p.read_text()
+text=re.sub(r'/billing-admin\.css(?:\?[^\"\']*)?', '/billing-admin.css?v=20260909-admin-history1', text)
+p.write_text(re.sub(r'/billing-admin\.js(?:\?[^\"\']*)?', '/billing-admin.js?v=20260909-admin-history1', text))
 CACHE
 
 cp _site/index.html _site/gestionale-v2/index.html
