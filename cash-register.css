@@ -964,3 +964,6 @@
 .optykerReceiptPaper th,.optykerReceiptPaper td{text-align:right;padding:8px 5px;border-bottom:1px solid #dde3e8}
 .optykerReceiptPaper th:first-child,.optykerReceiptPaper td:first-child{text-align:left}
 .optykerReceiptTotal{text-align:right;font-size:16px}
+
+.optykerCashRchActions4{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:620px){.optykerCashRchActions4{grid-template-columns:1fr}}
