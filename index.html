@@ -557,7 +557,7 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
 })();
 </scr`+`ipt>`;
 
-    html=html.replace('</body>',css+enhancer+cashClosePatch+rateButtonPatch+laboratoryPatch+'<link rel="stylesheet" href="/billing-admin.css?v=20260830-1"><link rel="stylesheet" href="/quotes.css?v=20260901-1"><link rel="stylesheet" href="/client-tools.css?v=20260902-1"><script src="/billing-admin.js?v=20260830-1"><\\/script><script src="/quotes.js?v=20260901-1"><\\/script><script src="/client-tools.js?v=20260902-1"><\\/script></body>');
+    html=html.replace('</body>',css+enhancer+cashClosePatch+rateButtonPatch+laboratoryPatch+'<link rel="stylesheet" href="/billing-admin.css?v=20260830-1"><link rel="stylesheet" href="/quotes.css?v=20260901-1"><link rel="stylesheet" href="/client-tools.css?v=20260902-1"><script src="/billing-admin.js?v=20260909-fic1"><\\/script><script src="/quotes.js?v=20260901-1"><\\/script><script src="/client-tools.js?v=20260902-1"><\\/script></body>');
     document.open();document.write(html);document.close();
   }catch(e){
     document.querySelector('.spin').style.display='none';const m=document.getElementById('msg');m.className='err';m.textContent='Impossibile avviare Optyker.\n'+(e&&e.message?e.message:e);

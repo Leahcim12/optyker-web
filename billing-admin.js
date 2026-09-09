@@ -168,6 +168,18 @@
     E('billReset').onclick=resetFilters;
     E('billQ').onkeydown=function(ev){if(ev.key==='Enter'){ev.preventDefault();loadRows()}};
     E('optykerBillingSync').onclick=syncInvoices;
+    var connect=document.createElement('button');
+    connect.id='optykerFicConnect';connect.className='optykerBillingBtn';connect.type='button';
+    connect.textContent='Collega Fatture in Cloud';
+    E('optykerBillingSync').parentNode.insertBefore(connect,E('optykerBillingSync'));
+    connect.onclick=function(){
+      connect.disabled=true;
+      call('fic_connect',{}).then(function(x){
+        var target=new URL(x.url);
+        if(target.origin!=='https://api-v2.fattureincloud.it'||target.pathname!=='/oauth/authorize')throw new Error('Indirizzo autorizzazione non valido');
+        window.location.assign(target.href);
+      }).catch(function(e){toast(e.message,'error')}).finally(function(){connect.disabled=false});
+    };
     return p
   }
   function resetFilters(){
@@ -283,6 +295,10 @@
   }
   function detail(k,v,full){return '<div class="optykerBillingDetail'+(full?' full':'')+'"><b>'+esc(k)+'</b><span>'+esc(v)+'</span></div>'}
   function loadProvider(){
+    call('fic_status',{}).then(function(x){
+      var b=E('optykerFicConnect');if(!b)return;
+      b.textContent=x.data&&x.data.connected?'Ricollega Fatture in Cloud':'Collega Fatture in Cloud';
+    }).catch(function(){});
     call('provider_status',{}).then(function(x){
       state.provider=x.data||{};var s=E('optykerBillingProviderStatus');if(!s)return;
       if(state.provider.enabled&&state.provider.provider_name){
