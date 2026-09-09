@@ -45,3 +45,45 @@ foreach($wire in @("GET /health HTTP/1.1`r`nHost: localhost:8765`r`nContent-Leng
   Assert-True $failed 'Malformed HTTP must fail.'
 }
 Write-Host 'RCH parser, UTF-8, HTTP and origin checks passed.'
+
+# Real response received from the store's RCH on 2026-09-09, without identifiers.
+$refusal=Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'fixtures/rch-error-101.xml')
+$observed=Parse-Rch $refusal
+Assert-True ($observed.rchResponse -and -not $observed.ok -and $observed.errorCode -eq 101) '101 is a reachable RCH, not a ready printer.'
+$script:requests=New-Object 'System.Collections.Generic.List[string]'
+$script:scenario='fallback'
+function Request-Printer([string]$method,[string]$body='') {
+  Assert-True ($method -eq 'POST') 'Status queries use POST.'
+  $script:requests.Add($body)
+  if($script:scenario -eq 'offline'){throw 'Connection refused'}
+  if($script:scenario -eq 'busy'){return ($refusal -replace '<busy>0','<busy>1')}
+  if($script:scenario -eq 'printer-error'){return ($refusal -replace '<printerError>0','<printerError>2')}
+  if($script:scenario -eq 'different-error'){return ($refusal -replace '<errorCode>101','<errorCode>20')}
+  if($script:scenario -eq 'refused'){return $refusal}
+  if($script:scenario -eq 'fallback' -and $script:requests.Count -eq 1){return $refusal}
+  return $valid
+}
+$report=Diagnostics-Rch
+Assert-True ($script:requests.Count -eq 2) '101 should try the second known status syntax once.'
+Assert-True ($script:requests[0].Contains('<cmd>&lt;&lt;/?s</cmd>')) 'First query must use the generic RCH status syntax.'
+Assert-True ($script:requests[1].Contains('<cmd>&lt;/?i/*4</cmd>')) 'Fallback must use the alternative published status syntax.'
+Assert-True ($script:requests[0].Contains("`n<Service>`n")) 'XML envelope must preserve separate lines.'
+foreach($xml in $script:requests){
+  $doc=Read-SafeXml $xml
+  Assert-True ($doc.SelectNodes('/Service/cmd').Count -eq 1) 'Exactly one read command per request.'
+  Assert-True ($doc.Service.cmd -cin @('<</?s','</?i/*4')) 'Diagnostics must never send fiscal commands.'
+}
+Assert-True ($report.printerReached -and $report.statusAccepted -and -not $report.readiness.receipt) 'Accepted status must not enable fiscal printing.'
+Assert-True (-not $report.emittedFiscalDocument) 'Diagnostics never issue a fiscal document.'
+$script:scenario='accepted';$script:requests.Clear();$report=Diagnostics-Rch
+Assert-True ($script:requests.Count -eq 1 -and $report.statusAccepted) 'Successful status must not be repeated.'
+$script:scenario='refused';$script:requests.Clear();$report=Diagnostics-Rch
+Assert-True ($script:requests.Count -eq 2 -and $report.printerReached -and -not $report.statusAccepted) 'Both 101 responses must remain refused, with reachability recorded.'
+foreach($scenario in @('offline','busy','printer-error','different-error')){
+  $script:scenario=$scenario;$script:requests.Clear();$report=Diagnostics-Rch
+  Assert-True ($script:requests.Count -eq 1 -and -not $report.statusAccepted) "No automatic retry for $scenario."
+}
+$failed=$false
+try {$null=Read-StatusProbe '=C86'} catch {$failed=$true}
+Assert-True $failed 'Diagnostics must reject write commands.'
+Write-Host 'Real error 101 fixture, compatibility selection and no-retry boundaries passed.'
