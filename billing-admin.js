@@ -36,7 +36,7 @@
   }
   function ensureAdminAccess(){
     removeNormalVisualCareOption();
-    var card=document.querySelector('.optykerUserLoginCard');
+    var card=document.querySelector('.optykerUserLoginCard, #optykerLoginScreen .optykerLoginCard');
     if(!card||E('optykerAdminAccessBox'))return;
     var box=document.createElement('div');box.id='optykerAdminAccessBox';box.className='optykerAdminAccessBox';
     box.innerHTML='<div class="optykerAdminAccessLabel">Amministrazione</div><button id="optykerAdminAccessBtn" type="button">OTTICA VISUAL CARE · ACCESSO AMMINISTRATIVO</button>';
@@ -66,7 +66,7 @@
       screen.setAttribute('aria-hidden','false');
       if(appMain)appMain.style.setProperty('display','none','important')
     }
-    var normal=document.querySelector('.optykerUserLoginCard');if(normal)normal.style.display='none';
+    var normal=document.querySelector('.optykerUserLoginCard, #optykerLoginScreen .optykerLoginCard');if(normal)normal.style.display='none';
     var old=E('optykerAdminLoginCard');if(old)old.remove();
     var card=document.createElement('div');card.id='optykerAdminLoginCard';card.className='optykerAdminLoginCard';
     card.innerHTML='<div class="optykerAdminLoginHead"><div class="optykerAdminLoginEyebrow">Optyker · Amministrazione</div><div class="optykerAdminLoginTitle">Ottica Visual Care</div><div class="optykerAdminLoginSub">Accesso riservato alla fatturazione.</div></div><div id="optykerAdminLoginBody"><div class="optykerBillingLoading">Verifica account…</div></div><button id="optykerAdminLoginBack" type="button">← Torna agli operatori</button>';
