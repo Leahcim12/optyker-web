@@ -3,6 +3,10 @@
 body.optykerBillingMode #optykerGlobalTools,
 body.optykerBillingMode .topShortcutBtn,
 body.optykerBillingMode .cloudBadge { display:none !important; }
+body.optykerBillingMode #optykerSettingsPanel .optykerSettingsHead > button { display:none !important; }
+#optykerBillingSettingsNav { margin-top:12px; width:100%; text-align:left; }
+body.optykerBillingMode #optykerSettingsPanel { grid-column:2; min-width:0; }
+@media(max-width:760px){body.optykerBillingMode #optykerSettingsPanel{grid-column:1}}
 
 .optykerAdminAccessBox{
   margin-top:18px;padding-top:18px;border-top:1px solid #dfe7ef;text-align:center
