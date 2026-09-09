@@ -4,11 +4,14 @@ bash scripts/vercel-build-v12.sh
 python scripts/patch_eyewear_summary_stability_v13.py
 python scripts/patch_quote_dates_red.py
 
+cp billing-compose.js _site/billing-compose.js
+cp billing-compose.css _site/billing-compose.css
+
 python - <<'CACHE'
 from pathlib import Path
 import re
 p=Path('_site/index.html')
-p.write_text(re.sub(r'/billing-admin\.js(?:\?[^\"\']*)?', '/billing-admin.js?v=20260909-fic2', p.read_text()))
+p.write_text(re.sub(r'/billing-admin\.js(?:\?[^\"\']*)?', '/billing-admin.js?v=20260909-fic3', p.read_text()))
 CACHE
 
 cp _site/index.html _site/gestionale-v2/index.html
