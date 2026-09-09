@@ -48,23 +48,23 @@ async function api(token: string,path: string) {
   return response.json();
 }
 export async function connectionStatus(db: any) {
-  const {data,error} = await db.from(TABLE).select('company_id,connected_at').eq('id',1).maybeSingle();
+  const {data,error} = await db.from(TABLE).select('company_id,connected_at,can_write').eq('id',1).maybeSingle();
   if (error) throw error;
-  return {configured:credentialsReady(),connected:!!data?.company_id,connected_at:data?.connected_at||null};
+  return {configured:credentialsReady(),connected:!!data?.company_id,connected_at:data?.connected_at||null,can_write:!!data?.can_write};
 }
-export async function startConnection(db: any) {
+export async function startConnection(db: any,write = false) {
   const {client_id} = credentials();
   const state = crypto.randomUUID()+crypto.randomUUID();
-  const {error} = await db.from(STATES).insert({state_hash:await hash(state),expires_at:new Date(Date.now()+600000).toISOString()});
+  const {error} = await db.from(STATES).insert({state_hash:await hash(state),expires_at:new Date(Date.now()+600000).toISOString(),write_requested:write});
   if(error) throw error;
-  const q = new URLSearchParams({response_type:'code',client_id,redirect_uri:redirectUri(),scope:SCOPES,state});
+  const q = new URLSearchParams({response_type:'code',client_id,redirect_uri:redirectUri(),scope:write ? SCOPES+' issued_documents.invoices:a issued_documents.self_invoices:a' : SCOPES,state});
   return BASE+'/oauth/authorize?'+q;
 }
 export async function finishConnection(db: any,req: Request) {
   const url = new URL(req.url), state = url.searchParams.get('state')||'';
   if (state.length!==72) throw new Error('Richiesta di collegamento non valida');
   // Delete-and-return makes the state single-use across concurrent callbacks.
-  const {data,error} = await db.from(STATES).delete().eq('state_hash',await hash(state)).gt('expires_at',new Date().toISOString()).select('state_hash').maybeSingle();
+  const {data,error} = await db.from(STATES).delete().eq('state_hash',await hash(state)).gt('expires_at',new Date().toISOString()).select('state_hash,write_requested').maybeSingle();
   if(error || !data) throw new Error('Richiesta scaduta o già utilizzata. Ripeti il collegamento da Optyker.');
   const code = url.searchParams.get('code');
   if(url.searchParams.has('error') || !code) throw new Error('Autorizzazione non concessa');
@@ -72,7 +72,7 @@ export async function finishConnection(db: any,req: Request) {
   const companies = await api(tokens.access_token,'/user/companies');
   const matches = (companies.data?.companies||[]).filter((c:any)=>String(c.vat_number||'').replace(/^IT/i,'')===VAT);
   if(matches.length!==1) throw new Error('Autorizza esclusivamente MOLOGNI COMPANY S.R.L. con la partita IVA configurata.');
-  const row = {id:1,company_id:String(matches[0].id),tokens:await seal(tokens),connected_at:new Date().toISOString()};
+  const row = {id:1,company_id:String(matches[0].id),tokens:await seal(tokens),connected_at:new Date().toISOString(),can_write:!!data.write_requested};
   const {data:existing,error:readError} = await db.from(TABLE).select('id').eq('id',1).maybeSingle();
   if(readError) throw readError;
   if(existing) {
@@ -85,7 +85,7 @@ export async function finishConnection(db: any,req: Request) {
 }
 
 // Sync and token refresh run under the same database lease: refresh tokens rotate.
-export async function syncFic(db:any) {
+export async function withFic(db:any, work:(token:string,company:string,canWrite:boolean)=>Promise<any>) {
   const lease = crypto.randomUUID(), now = new Date().toISOString();
   const {data:conn,error} = await db.from(TABLE).update({lease,lease_until:new Date(Date.now()+180000).toISOString()}).eq('id',1).lt('lease_until',now).select('*').maybeSingle();
   if(error) throw error;
@@ -97,19 +97,27 @@ export async function syncFic(db:any) {
       const {error:e} = await db.from(TABLE).update({tokens:await seal(tokens)}).eq('id',1).eq('lease',lease);
       if(e) throw e;
     }
+    return await work(tokens.access_token,conn.company_id,!!conn.can_write);
+  } finally {
+    await db.from(TABLE).update({lease:null,lease_until:'1970-01-01T00:00:00Z'}).eq('id',1).eq('lease',lease);
+  }
+}
+
+export async function syncFic(db:any) {
+  return withFic(db,async(token,company,canWrite)=>{
     const rows:any[] = [];
     const started = Date.now();
-    for(const [direction,type] of [['outgoing','invoice'],['outgoing','credit_note'],['incoming','expense']]) {
+    for(const [direction,type] of [['outgoing','invoice'],['outgoing','credit_note'],['incoming','expense'],...(canWrite?[['outgoing','self_supplier_invoice']]:[])]) {
       const route = direction==='outgoing'?'issued_documents':'received_documents';
       for(let page=1;page<=20;page++) {
         if(Date.now()-started>90000) throw new Error('Aggiornamento troppo lungo. Riprovare con un intervallo più breve.');
         const q = new URLSearchParams({per_page:'100',page:String(page),fieldset:'detailed'});
         q.set('type',type);
-        const result = await api(tokens.access_token,'/c/'+encodeURIComponent(conn.company_id)+'/'+route+'?'+q);
+        const result = await api(token,'/c/'+encodeURIComponent(company)+'/'+route+'?'+q);
         if(!Array.isArray(result.data)) throw new Error('Elenco fatture non valido');
         for(const d of result.data) {
           if(!d.id) throw new Error('Identificativo fattura mancante');
-          rows.push({provider_invoice_id:'fic:'+conn.company_id+':'+d.id,direction,invoice_number:direction==='incoming'?String(d.invoice_number||''):String(d.number??'')+String(d.numeration||''),issue_date:d.date||null,counterparty_name:d.entity?.name||'',counterparty_vat:d.entity?.vat_number||'',counterparty_fiscal_code:d.entity?.tax_code||'',header:d.subject||d.description||'',total:d.amount_gross??null,currency:d.currency?.id||'EUR',sdi_status:d.ei_status||'unknown',provider_status:d.ei_status||'',provider_payload:d,updated_at:new Date().toISOString()});
+          rows.push({provider_invoice_id:'fic:'+company+':'+d.id,direction,invoice_number:direction==='incoming'?String(d.invoice_number||''):String(d.number??'')+String(d.numeration||''),issue_date:d.date||null,counterparty_name:d.entity?.name||'',counterparty_vat:d.entity?.vat_number||'',counterparty_fiscal_code:d.entity?.tax_code||'',header:d.visible_subject||d.subject||d.description||'',total:d.amount_gross??null,currency:d.currency?.id||'EUR',sdi_status:d.ei_status||'unknown',provider_status:d.ei_status||'',provider_payload:d,updated_at:new Date().toISOString()});
         }
         if(!result.last_page || page>=result.last_page) break;
         if(page===20) throw new Error('Troppi documenti per un singolo aggiornamento.');
@@ -126,7 +134,5 @@ export async function syncFic(db:any) {
     const {error:e} = await db.from('optyker_billing_provider_config').upsert({id:1,provider_name:'Fatture in Cloud',sdi_code:'M5UXCR1',enabled:true,last_sync_at:new Date().toISOString(),last_sync_error:null});
     if(e) throw e;
     return {count:rows.length};
-  } finally {
-    await db.from(TABLE).update({lease:null,lease_until:'1970-01-01T00:00:00Z'}).eq('id',1).eq('lease',lease);
-  }
+  });
 }
