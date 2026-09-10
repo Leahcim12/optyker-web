@@ -160,6 +160,32 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!importan
 
 @media(max-width:380px){.refHeroCopy h1{font-size:30px!important}.refHeroScene>b{font-size:9px}.refQuick{min-height:98px;padding:12px}.refQuickCopy b{font-size:14px}.refProfileEdit .profileEditGrid{grid-template-columns:1fr}.refAvatar{width:82px;height:82px;flex-basis:82px}.refProfileIdentity h2{font-size:22px}.refPageTitle h1{font-size:18px!important}}
 
+/* OPTYKER_IPHONE_REFERENCE_INTERACTIONS_V1 */
+.refNewsOpen{overflow:hidden!important}
+.refNewsBackdrop{position:fixed;inset:0;z-index:2990;background:rgba(5,24,40,.34);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .22s ease,visibility 0s linear .22s;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.refNewsBackdrop.open{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .22s ease}
+.refNewsDrawer{position:fixed;z-index:3000;top:0;right:0;bottom:0;width:min(90vw,390px);background:linear-gradient(180deg,#fff 0,#f7f9fb 100%);box-shadow:-22px 0 55px rgba(6,33,57,.18);transform:translateX(104%);transition:transform .26s cubic-bezier(.2,.8,.2,1);padding:calc(18px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom));display:flex;flex-direction:column;overflow:hidden}
+.refNewsDrawer.open{transform:translateX(0)}
+.refNewsHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:5px 4px 15px;border-bottom:1px solid #e5ebf0}
+.refNewsHead span{display:block;font-size:8px;font-weight:850;letter-spacing:.18em;color:#0c5c94;margin-bottom:5px}
+.refNewsHead h2{font:600 28px/1 Georgia,"Times New Roman",serif!important;color:#0a3158;margin:0!important;letter-spacing:-.025em}
+.refNewsHead p{margin:6px 0 0;font-size:11px;color:#71869a}
+.refNewsHead button{width:36px;height:36px;border:0;border-radius:50%;background:#eef3f7;color:#173e69;font-size:25px;line-height:1;display:grid;place-items:center;padding:0}
+.refNewsList{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 1px 14px}
+.refNewsItem{width:100%;border:1px solid #e2e9ef;background:#fff;border-radius:15px;padding:12px 10px;display:grid;grid-template-columns:43px 1fr 18px;gap:10px;align-items:center;text-align:left;color:#173b5d;margin-bottom:9px;box-shadow:0 7px 20px rgba(15,48,77,.045)}
+.refNewsItem:active{transform:scale(.989)}
+.refNewsItem.unread{border-color:#bcd9eb;background:#f8fcff;box-shadow:0 9px 22px rgba(7,80,126,.075)}
+.refNewsIcon{width:43px;height:43px;border-radius:13px;background:#edf5fb;color:#0b5b91;display:grid;place-items:center}
+.refNewsIcon svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.65}
+.refNewsIcon-chat{background:#e9f5ff;color:#0065a3}.refNewsIcon-calendar{background:#eef4fa;color:#164e78}.refNewsIcon-glasses{background:#edf5fb;color:#0a4f82}.refNewsIcon-box{background:#f0f3f6;color:#47647b}
+.refNewsCopy{min-width:0;display:block}.refNewsCopy>b{display:block;font:600 15px/1.08 Georgia,"Times New Roman",serif;color:#0b3158}.refNewsCopy>span{display:block;margin-top:4px;font-size:10px;line-height:1.35;color:#647b8f}.refNewsCopy>small{display:block;margin-top:6px;font-size:8px;font-weight:700;color:#9a6b13;text-transform:none}
+.refNewsItem.unread .refNewsCopy>small{display:inline-block;padding:3px 6px;border-radius:999px;background:#eaf4fb;color:#075c95}
+.refNewsChevron{font-size:22px;color:#93a4b2;display:grid;place-items:center}
+.refNewsEmpty{padding:48px 20px;text-align:center;color:#6f8395}.refNewsEmpty>span{width:56px;height:56px;margin:0 auto 14px;border-radius:50%;background:#eaf5ef;color:#2d7652;display:grid;place-items:center}.refNewsEmpty svg{width:28px;height:28px;stroke:currentColor;fill:none;stroke-width:1.7}.refNewsEmpty b{display:block;font:600 18px Georgia,"Times New Roman",serif;color:#173b5d}.refNewsEmpty p{font-size:11px;line-height:1.45;margin:6px 0 0}
+.refNewsFoot{flex:0 0 auto;padding:11px 5px 3px;border-top:1px solid #e5ebf0;text-align:center;font-size:8px;letter-spacing:.06em;color:#8a99a5}
+.refBottomNav .refNavCenter{cursor:pointer}
+@media(max-width:420px){.refNewsDrawer{width:92vw}.refNewsHead h2{font-size:26px}.refNewsItem{grid-template-columns:40px 1fr 16px;padding:11px 9px}.refNewsIcon{width:40px;height:40px}}
+
 </style>
 </head>
 <body>
@@ -1703,6 +1729,163 @@ boot();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(applyAfterBoot,0));else setTimeout(applyAfterBoot,0);
   setTimeout(applyAfterBoot,500);
+})();
+
+/* OPTYKER_IPHONE_REFERENCE_INTERACTIONS_V1 */
+(function(){
+  const READ_KEY='optyker_news_read_v1';
+
+  function svg(name){
+    const common='viewBox="0 0 24 24" aria-hidden="true"';
+    const map={
+      chat:`<svg ${common}><path d="M4 4h16v12H9l-5 4z"/><path d="M8 9h.01M12 9h.01M16 9h.01"/></svg>`,
+      calendar:`<svg ${common}><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4M17 3v4M3 10h18"/></svg>`,
+      glasses:`<svg ${common}><circle cx="7" cy="13" r="4"/><circle cx="17" cy="13" r="4"/><path d="M11 13h2M2 10l2 1M22 10l-2 1"/></svg>`,
+      box:`<svg ${common}><path d="m4 7 8-4 8 4-8 4zM4 7v10l8 4 8-4V7M12 11v10"/></svg>`,
+      check:`<svg ${common}><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></svg>`
+    };
+    return map[name]||map.box;
+  }
+
+  function ts(v){
+    const d=v?new Date(v):null;
+    return d&&!isNaN(d)?d.getTime():0;
+  }
+  function when(v){
+    if(!v)return '';
+    try{return fmtDateTime(v)}catch{
+      try{return new Intl.DateTimeFormat('it-IT',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}).format(new Date(v))}catch{return ''}
+    }
+  }
+  function labKind(o){
+    const hay=[o?.order_type,o?.document_type,o?.reference,...(Array.isArray(o?.products)?o.products:[])].filter(Boolean).join(' ').toLowerCase();
+    return /occh|montatur|oftalm|eyewear/.test(hay)?'eyewear':(/lac|lenti a contatto|contatto/.test(hay)?'lac':'order');
+  }
+  function labNews(o){
+    const st=String(o?.status||'da_fare');
+    const kind=labKind(o);
+    const isEye=kind==='eyewear';
+    const ref=o?.reference||'Ordine laboratorio';
+    const products=Array.isArray(o?.products)&&o.products.length?o.products.slice(0,2).join(' · '):ref;
+    let title='Ordine aggiornato',detail=products,icon='box';
+    if(isEye){
+      icon='glasses';
+      if(st==='completato'){title='Occhiale pronto';detail='Il tuo occhiale ha terminato la lavorazione ed è pronto.'}
+      else if(st==='in_preparazione'||st==='costruzione'){title='Occhiale in lavorazione';detail=st==='costruzione'?'Il tuo occhiale è in fase di costruzione.':'Il laboratorio sta preparando il tuo occhiale.'}
+      else if(st==='in_spedizione'){title='Occhiale in arrivo';detail='Il tuo occhiale è in spedizione verso Ottica Visual Care.'}
+      else if(st==='da_fare'){title='Occhiale preso in carico';detail='Il laboratorio ha ricevuto il tuo ordine.'}
+      else if(st==='annullato'){title='Aggiornamento occhiale';detail='La lavorazione risulta annullata.'}
+    } else if(kind==='lac'){
+      if(st==='completato'){title='Lenti a contatto pronte';detail='La lavorazione delle tue lenti è completata.'}
+      else if(st==='in_preparazione'||st==='costruzione'){title='Lenti a contatto in lavorazione';detail='Il laboratorio sta lavorando il tuo ordine.'}
+      else if(st==='in_spedizione'){title='Lenti a contatto in arrivo';detail='Il tuo ordine è in spedizione verso Ottica Visual Care.'}
+      else if(st==='da_fare'){title='Ordine LAC preso in carico';detail='Il laboratorio ha ricevuto il tuo ordine.'}
+    } else {
+      if(st==='completato'){title='Ordine pronto';detail='La lavorazione del tuo ordine è completata.'}
+      else if(st==='in_preparazione'||st==='costruzione'){title='Ordine in lavorazione';detail='Il laboratorio sta lavorando il tuo ordine.'}
+      else if(st==='in_spedizione'){title='Ordine in arrivo';detail='Il tuo ordine è in spedizione verso Ottica Visual Care.'}
+    }
+    const date=o?.updated_at||o?.status_since||o?.created_at||'';
+    return {type:icon,title,detail,date,stamp:ts(date),tab:'home'};
+  }
+
+  function collectNews(){
+    const items=[];
+    const unread=Number(state?.home?.unread_chat||0);
+    if(unread>0){
+      items.push({type:'chat',title:'Messaggio arrivato',detail:unread===1?'Hai un nuovo messaggio da Ottica Visual Care.':`Hai ${unread} nuovi messaggi da Ottica Visual Care.`,date:'',stamp:Date.now()+1000,tab:'chat',unread:true});
+    }
+
+    const labs=Array.isArray(state?.home?.laboratory_orders)?state.home.laboratory_orders:[];
+    labs.map(labNews).sort((a,b)=>b.stamp-a.stamp).slice(0,5).forEach(x=>items.push(x));
+
+    let appts=[];
+    try{appts=futureAppointments()}catch{}
+    const a=appts&&appts[0];
+    if(a){
+      const detail=[a.service_name||'Appuntamento',when(a.starts_at),a.studio_name||'Ottica Visual Care'].filter(Boolean).join(' · ');
+      items.push({type:'calendar',title:'Promemoria appuntamento',detail,date:a.starts_at,stamp:ts(a.starts_at),tab:'agenda'});
+    }
+
+    return items.slice(0,8);
+  }
+
+  function itemMarkup(x){
+    const meta=x.unread?'Nuovo':when(x.date);
+    return `<button class="refNewsItem ${x.unread?'unread':''}" onclick="openNewsItem('${x.tab}')"><span class="refNewsIcon refNewsIcon-${x.type}">${svg(x.type)}</span><span class="refNewsCopy"><b>${esc(x.title)}</b><span>${esc(x.detail)}</span>${meta?`<small>${esc(meta)}</small>`:''}</span><span class="refNewsChevron">›</span></button>`;
+  }
+
+  function ensureDrawer(){
+    if(state?.me?.role!=='customer')return null;
+    let back=document.getElementById('refNewsBackdrop');
+    let drawer=document.getElementById('refNewsDrawer');
+    if(!back){
+      back=document.createElement('div');
+      back.id='refNewsBackdrop';
+      back.className='refNewsBackdrop';
+      back.setAttribute('onclick','toggleNewsDrawer(false)');
+      document.body.appendChild(back);
+    }
+    if(!drawer){
+      drawer=document.createElement('aside');
+      drawer.id='refNewsDrawer';
+      drawer.className='refNewsDrawer';
+      document.body.appendChild(drawer);
+    }
+    const news=collectNews();
+    drawer.innerHTML=`<div class="refNewsHead"><div><span>OTTICA VISUAL CARE</span><h2>Novità</h2><p>Gli ultimi aggiornamenti per te</p></div><button onclick="toggleNewsDrawer(false)" aria-label="Chiudi">×</button></div><div class="refNewsList">${news.length?news.map(itemMarkup).join(''):`<div class="refNewsEmpty"><span>${svg('check')}</span><b>Tutto aggiornato</b><p>Al momento non ci sono nuove comunicazioni.</p></div>`}</div><div class="refNewsFoot">Aggiornamenti sincronizzati con Optyker</div>`;
+    return drawer;
+  }
+
+  window.toggleNewsDrawer=function(open){
+    const drawer=ensureDrawer();
+    const back=document.getElementById('refNewsBackdrop');
+    if(!drawer||!back)return;
+    const on=open!==false;
+    drawer.classList.toggle('open',on);
+    back.classList.toggle('open',on);
+    document.body.classList.toggle('refNewsOpen',on);
+    if(on){
+      try{localStorage.setItem(READ_KEY,String(Date.now()))}catch{}
+      const first=drawer.querySelector('.refNewsHead button');
+      if(first)setTimeout(()=>first.focus({preventScroll:true}),120);
+    }
+  };
+
+  window.openNewsItem=function(tab){
+    toggleNewsDrawer(false);
+    if(tab==='home')goTab('home');
+    else if(tab)goTab(tab);
+  };
+
+  function wireBell(btn){
+    if(!btn)return;
+    btn.setAttribute('onclick','toggleNewsDrawer(true)');
+    btn.setAttribute('aria-label','Apri novità');
+  }
+
+  function enhance(){
+    if(state?.me?.role!=='customer')return;
+    const center=document.querySelector('.refBottomNav .refNavCenter');
+    if(center){
+      center.setAttribute('onclick',"goTab('home')");
+      center.setAttribute('aria-label','Dashboard');
+      center.classList.toggle('active',state.tab==='home');
+    }
+    wireBell(document.querySelector('.refBell'));
+    const navBell=Array.from(document.querySelectorAll('.refBottomNav .refNavBtn')).find(b=>/Notifiche/i.test(b.textContent||''));
+    wireBell(navBell);
+    ensureDrawer();
+  }
+
+  const newsBaseRender=render;
+  render=function(){newsBaseRender();setTimeout(enhance,0)};
+  const newsBaseShell=shell;
+  shell=function(){newsBaseShell();setTimeout(enhance,0)};
+
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')toggleNewsDrawer(false)});
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(enhance,0));else setTimeout(enhance,0);
+  setTimeout(enhance,700);
 })();
 
 </script>
