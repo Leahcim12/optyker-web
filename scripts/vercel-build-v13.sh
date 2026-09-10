@@ -77,6 +77,16 @@ test -s _site/workspace-version.json
 verify_desktop_aliases
 echo "Optyker Workspace production build OK"
 
+# Chat, Cassa and Documenti: additive screen styles and accessibility.
+node --check optyker-services.js
+python scripts/apply_services_design.py
+grep -q 'id="optykerServicesCss"' _site/index.html
+grep -q 'id="optykerServicesJs"' _site/index.html
+test -s _site/optyker-services.css
+test -s _site/services-version.json
+verify_desktop_aliases
+echo "Optyker Services production build OK"
+
 # GitHub Pages has a repository subpath; Vercel uses the domain root.
 python scripts/patch_public_asset_paths.py
 verify_desktop_aliases

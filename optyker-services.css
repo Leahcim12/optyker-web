@@ -1,0 +1,302 @@
+/* OPTYKER VISION SERVICES / 20260910-services1
+   Screen-only design: chat, cash register and documents.
+   No financial states, permission rules, print templates or API calls are changed. */
+@media screen {
+ html[data-ops] {
+  --svc-ink:#183b62;--svc-muted:#607895;--svc-line:#dbe7f5;--svc-blue:#187bea;
+  --svc-shadow:0 6px 24px #13396409,0 1px 3px #13396404;
+ }
+ html[data-ops] #mainApp :is(#optykerChatPanel,.optykerDocsPanel) {
+  min-width:0!important;padding:24px!important;border:1px solid #dce8f6!important;border-radius:22px!important;
+  background:#f8fbff!important;box-shadow:var(--svc-shadow)!important;color:var(--svc-ink)!important;
+ }
+ html[data-ops] :is(#optykerChatPanel,#clientChatSection,.optykerDocsPanel,.optykerDdtModal,.optykerCashOverlay,.optykerCashModal) * {box-sizing:border-box}
+ html[data-ops] :is(#optykerChatPanel,#clientChatSection,.optykerDocsPanel,.optykerDdtModal,.optykerCashOverlay,.optykerCashModal) :is(button,input,textarea,select) {font-family:inherit}
+ html[data-ops] :is(#optykerChatPanel,#clientChatSection,.optykerDocsPanel,.optykerDdtModal,.optykerCashOverlay,.optykerCashModal) :is(button,input,select,textarea,[tabindex]):focus-visible {outline:3px solid #2787ec!important;outline-offset:3px!important}
+ html[data-ops] :is(#optykerChatPanel,#clientChatSection,.optykerDocsPanel,.optykerDdtModal,.optykerCashOverlay,.optykerCashModal) :is(button,input:not([type=checkbox]):not([type=radio]),select,textarea):disabled {opacity:.58!important;cursor:not-allowed!important}
+ html[data-ops] :is(#optykerChatPanel,#clientChatSection,.optykerDocsPanel,.optykerDdtModal,.optykerCashOverlay,.optykerCashModal) button {transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease!important}
+ html[data-ops] :is(.optykerChatHead,.optykerDocsHead) {
+  display:flex;align-items:center!important;flex-wrap:wrap!important;gap:20px!important;padding:25px 27px!important;
+  margin:0 0 20px!important;border:1px solid #1a4872!important;border-radius:18px!important;
+  background:radial-gradient(ellipse at 100% 0%,#225d80 0,transparent 56%),linear-gradient(115deg,#0c284b,#153e67)!important;
+  box-shadow:0 10px 24px #1436570c!important;
+ }
+ html[data-ops] :is(.optykerChatKicker,.optykerDocsEyebrow) {font-size:10px!important;font-weight:600!important;letter-spacing:.14em!important;color:#a8cdeb!important;margin:0 0 9px!important}
+ html[data-ops] :is(.optykerChatTitle,.optykerDocsTitle) {font-size:29px!important;line-height:1.2!important;font-weight:600!important;letter-spacing:-.7px!important;color:#f5faff!important;margin:0!important}
+ html[data-ops] :is(.optykerChatSub,.optykerDocsSub) {font-size:12px!important;line-height:1.6!important;color:#c3d8ed!important;margin-top:9px!important}
+ html[data-ops] :is(.optykerChatHead,.optykerDocsHead) button {min-height:43px!important;padding:10px 16px!important;border:1px solid #6b96bd!important;border-radius:11px!important;background:#ffffff0c!important;color:#f1f8ff!important;font-size:12px!important;font-weight:600!important;box-shadow:none!important}
+ html[data-ops] :is(.optykerChatHead,.optykerDocsHead) button:hover {background:#ffffff1c!important}
+
+ /* CHAT: conversation and composer share one bounded workspace. */
+ html[data-ops] #optykerChatPanel .optykerChatStart {gap:10px!important;margin:0 0 18px!important}
+ html[data-ops] #optykerChatPanel .optykerChatStart select {min-width:0!important;height:45px!important;padding:0 14px!important;border:1px solid #d1e2f4!important;border-radius:11px!important;background:#fff!important;font-size:13px!important;color:#2e5178!important}
+ html[data-ops] #optykerChatPanel .optykerChatStart button {min-height:45px!important;flex:0 0 auto;border:1px solid #c8dff6!important;border-radius:11px!important;background:#edf5ff!important;color:#1c63ad!important;padding:10px 17px!important;font-size:12px!important;font-weight:600!important}
+ html[data-ops] #optykerChatPanel .optykerChatGrid {grid-template-columns:280px minmax(0,1fr)!important;height:clamp(400px,calc(100dvh - 385px),780px)!important;min-height:0!important;border:1px solid #d8e6f5!important;border-radius:17px!important;box-shadow:var(--svc-shadow)!important;background:#fff!important}
+ html[data-ops] #optykerChatPanel .optykerChatLeft {display:flex;flex-direction:column;padding:15px!important;border-right:1px solid #e0ebf7!important;background:#f0f5fc!important;min-height:0!important}
+ html[data-ops] #optykerChatSearch {width:100%!important;min-width:0!important;height:43px!important;flex:0 0 43px;padding:10px 12px!important;border:1px solid #d7e4f4!important;border-radius:11px!important;background:#fff!important;font-size:12px!important;color:#2e5178!important}
+ html[data-ops] #optykerChatThreads {flex:1;min-height:0!important;max-height:none!important;margin-top:12px!important;border:0!important;background:transparent!important;border-radius:0!important;overflow:auto;scrollbar-width:thin;scrollbar-color:#bdcfe5 transparent}
+ html[data-ops] #optykerChatPanel .optykerChatThread {padding:15px 12px!important;margin-bottom:7px!important;border:1px solid transparent!important;border-radius:12px!important;background:transparent!important;box-shadow:none!important;color:#224469!important}
+ html[data-ops] #optykerChatPanel .optykerChatThread:hover {background:#ffffffa8!important;border-color:#dce8f6!important}
+ html[data-ops] #optykerChatPanel .optykerChatThread.active {background:#fff!important;border-color:#b8d7f7!important;box-shadow:inset 3px 0 #2887e7,0 3px 10px #21497108!important}
+ html[data-ops] #optykerChatPanel .optykerChatThreadName {font-size:13px!important;font-weight:600!important;line-height:1.5!important}
+ html[data-ops] #optykerChatPanel .optykerChatThreadTime {font-size:10px!important;color:#6c839b!important;line-height:1.8}
+ html[data-ops] #optykerChatPanel .optykerChatThreadLast {font-size:11px!important;line-height:1.6!important;margin-top:6px!important;color:#687f9a!important}
+ html[data-ops] #optykerChatPanel .optykerChatUnread {background:#187bea!important;font-size:10px!important;font-weight:600!important;min-width:21px!important;height:21px!important}
+ html[data-ops] #optykerChatPanel .optykerChatRight {min-width:0!important;min-height:0!important;height:100%}
+ html[data-ops] #optykerChatConversation {height:100%;min-height:0}
+ html[data-ops] #optykerChatConversation[style*="block"] {display:flex!important;flex-direction:column}
+ html[data-ops] #optykerChatBlank {height:100%;min-height:0!important;font-size:14px!important;color:#647e9c!important;background:radial-gradient(ellipse at 60% 40%,#e8f2ff,transparent 62%),#f9fbff!important;padding:24px!important;text-align:center}
+ html[data-ops] .optykerChatConvHead {flex:0 0 auto;min-height:76px!important;padding:16px 20px!important;border-color:#e0eaf6!important;background:#fff!important;flex-wrap:wrap!important}
+ html[data-ops] #optykerChatClientName {font-size:17px!important;letter-spacing:-.2px!important;font-weight:600!important;color:#25486e!important}
+ html[data-ops] #optykerChatOperator {font-size:11px!important;color:#6b819b!important;margin-top:5px!important}
+ html[data-ops] :is(.optykerChatConvHead,.clientChatSectionActions) button {min-height:38px!important;border:1px solid #d2e3f6!important;border-radius:10px!important;background:#f5f9ff!important;color:#336796!important;padding:9px 12px!important;font-size:11px!important;font-weight:550!important}
+ html[data-ops] :is(#optykerChatPanel,#clientChatSection) :is(.optykerChatChannelBar,.clientChatChannelBar) {flex:0 0 auto;flex-wrap:wrap!important;justify-content:flex-start!important;gap:8px!important;padding:10px 18px!important;background:#f9fbff!important;border-color:#e1ebf7!important}
+ html[data-ops] :is(#optykerChatPanel,#clientChatSection) .optykerChatChannelLabel {font-size:11px!important;font-weight:550!important;color:#5e7997!important}
+ html[data-ops] :is(#optykerChatPanel,#clientChatSection) .optykerChatChannelBtn {border-radius:9px!important;font-size:11px!important;font-weight:600!important;padding:0 12px!important;border-color:#d4e3f5!important;min-height:35px!important}
+ html[data-ops] :is(#optykerChatPanel,#clientChatSection) .optykerChatChannelBtn.active {background:#e7f2ff!important;color:#1269bd!important;border-color:#afcff3!important}
+ html[data-ops] :is(#optykerChatPanel,#clientChatSection) .optykerChatChannelBtn[data-channel="whatsapp"].active {background:#eaf8f0!important;color:#17613a!important;border-color:#aad7ba!important}
+ html[data-ops] :is(#optykerChatPanel,#clientChatSection) .optykerWaMissing {font-size:10px!important;line-height:1.5!important;color:#946214!important}
+ html[data-ops] #optykerChatMessages {flex:1 1 auto;height:auto!important;min-height:100px!important;padding:20px!important;overflow:auto!important;background:linear-gradient(140deg,#f6f9ff,#edf4fc)!important;scrollbar-width:thin;scrollbar-color:#b9cee6 transparent;overscroll-behavior:contain}
+ html[data-ops] :is(.optykerChatMsg,.clientChatMsg) {margin:12px 0!important;gap:10px!important;align-items:flex-end!important}
+ html[data-ops] :is(.optykerChatBubble,.clientChatBubble) {min-width:0!important;max-width:80%!important;padding:13px 16px!important;border:1px solid #d8e5f5!important;border-radius:16px 16px 16px 5px!important;background:#fff!important;box-shadow:0 3px 10px #173f6505!important;color:#25466b!important}
+ html[data-ops] :is(.optykerChatMsg.staff .optykerChatBubble,.clientChatMsg.staff .clientChatBubble) {background:linear-gradient(120deg,#176ad0,#1c7ee6)!important;border-color:#1a74d9!important;border-radius:16px 16px 5px 16px!important;color:#fff!important;box-shadow:0 4px 12px #126dca17!important}
+ html[data-ops] :is(.optykerChatText,.clientChatText) {font-size:13px!important;line-height:1.65!important;font-weight:400!important;overflow-wrap:anywhere}
+ html[data-ops] :is(.optykerChatSender,.clientChatSender) {font-size:10px!important;font-weight:600!important;color:#55789f!important;margin-bottom:6px!important}
+ html[data-ops] :is(.optykerChatTime,.clientChatTime) {font-size:10px!important;color:#7086a0!important;margin-top:7px!important;line-height:1.4!important}
+ html[data-ops] :is(.optykerChatMsg.staff,.clientChatMsg.staff) :is(.optykerChatSender,.clientChatSender,.optykerChatTime,.clientChatTime) {color:#dfedff!important}
+ html[data-ops] :is(.optykerChatAvatar,.clientChatAvatar) {width:32px!important;height:32px!important;flex:0 0 32px!important;border:1px solid #c5ddf5!important;border-radius:11px!important;background:#e0efff!important;color:#2868a2!important;font-size:12px!important;font-weight:600!important;overflow:hidden}
+ html[data-ops] :is(.optykerChatComposer,.clientChatComposer) {flex:0 0 auto;padding:14px 17px!important;gap:10px!important;align-items:flex-end!important;background:#fff!important;border-top:1px solid #dfeaf7!important}
+ html[data-ops] :is(#optykerChatText,#clientChatText) {min-width:0!important;min-height:48px!important;max-height:110px!important;border:1px solid #d2e2f4!important;border-radius:12px!important;background:#f6f9fe!important;color:#234569!important;padding:13px!important;font-size:13px!important;font-weight:400!important;line-height:1.5!important;resize:vertical!important}
+ html[data-ops] :is(#optykerChatSend,#clientChatSend) {min-width:86px!important;min-height:48px!important;padding:11px 17px!important;border:1px solid #197bdc!important;border-radius:12px!important;background:linear-gradient(110deg,#1a78dc,#3195f0)!important;color:#fff!important;font-size:12px!important;font-weight:600!important;box-shadow:0 4px 12px #177bde15!important}
+ html[data-ops] :is(.optykerChatStatus,.clientChatStatus) {flex:0 0 auto;padding:0 18px 12px!important;background:#fff!important;font-size:10px!important;line-height:1.5!important;color:#67809d!important}
+ html[data-ops] :is(.optykerChatStatus.bad,.clientChatStatus.bad) {color:#ac3544!important}
+ html[data-ops] :is(.optykerChatEmpty,.clientChatEmpty) {font-size:12px!important;line-height:1.7!important;color:#647f9b!important;padding:30px 18px!important}
+ html[data-ops] #clientsPanel #clientChatSection {padding:0!important;border:1px solid #d7e5f6!important;border-radius:18px!important;background:#fff!important;box-shadow:var(--svc-shadow)!important;overflow:hidden}
+ html[data-ops] #clientChatSection .clientChatSectionHead {align-items:center!important;flex-wrap:wrap!important;padding:21px!important;margin:0!important;border-color:#dfeaf6!important;background:#f4f8ff!important}
+ html[data-ops] #clientChatSection .clientBoxTitle {font-size:19px!important;font-weight:600!important;color:#24476d!important}
+ html[data-ops] #clientChatSectionSub {font-size:12px!important;line-height:1.6!important;color:#657e9a!important}
+ html[data-ops] #clientChatSection .clientChatChannelBar {margin:0!important;border-width:0 0 1px!important;border-radius:0!important}
+ html[data-ops] #clientChatMessages {margin:0!important;border:0!important;border-radius:0!important;padding:23px!important;height:clamp(300px,48dvh,580px)!important;min-height:260px!important;background:linear-gradient(140deg,#f6f9ff,#edf4fc)!important;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#bbd0e7 transparent}
+ html[data-ops] .clientChatComposer {margin:0!important}
+ html[data-ops] .clientChatPhoto {max-width:min(100%,360px)!important;height:auto;border-radius:12px!important;object-fit:contain!important}
+ html[data-ops] #optykerChatImageViewer {backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
+
+ /* DOCUMENTS: actual document statuses remain unchanged. */
+ html[data-ops] #optykerDdtNewBtn {background:linear-gradient(115deg,#1680ee,#3399f2)!important;border-color:#4da6f5!important;color:#fff!important;margin:0!important}
+ html[data-ops] .optykerDdtHeadActions {gap:9px!important;flex-wrap:wrap!important}
+ html[data-ops] .optykerDocsToolbar {grid-template-columns:minmax(180px,1fr) 150px 170px auto!important;gap:10px!important;padding:17px!important;margin:0 0 18px!important;border:1px solid #deebf7!important;border-radius:15px!important;background:#eff5fd!important}
+ html[data-ops] .optykerDocsToolbar :is(input,select) {width:100%!important;min-width:0!important;height:44px!important;padding:10px 12px!important;border:1px solid #d1e2f5!important;border-radius:10px!important;background:#fff!important;color:#335678!important;font-size:12px!important;font-weight:450!important}
+ html[data-ops] .optykerDocsToolbar button {min-height:44px!important;padding:10px 15px!important;border:1px solid #bed7f2!important;border-radius:10px!important;background:#e4f0ff!important;color:#1761ac!important;font-size:12px!important;font-weight:600!important}
+ html[data-ops] .optykerDocsTableWrap {border:1px solid #d8e6f6!important;border-radius:15px!important;background:#fff!important;box-shadow:var(--svc-shadow)!important;max-height:68dvh;overflow:auto!important;scrollbar-width:thin;scrollbar-color:#b7cde4 #f5f9ff;overscroll-behavior:contain}
+ html[data-ops] .optykerDocsTable {min-width:800px!important}
+ html[data-ops] .optykerDocsTable th {position:sticky;top:0;z-index:2;padding:17px 18px!important;background:#f0f6fd!important;border-color:#dce8f7!important;font-size:10px!important;font-weight:600!important;letter-spacing:.055em!important;color:#557899!important;white-space:nowrap}
+ html[data-ops] .optykerDocsTable td {padding:18px!important;border-color:#e8f0f9!important;font-size:12px!important;line-height:1.6!important;color:#395c7c!important;vertical-align:middle!important}
+ html[data-ops] .optykerDocsTable tbody tr:nth-child(even) {background:#fafcff}
+ html[data-ops] .optykerDocsTable tbody tr:hover {background:#f1f7ff}
+ html[data-ops] .optykerDocsMain {font-size:13px!important;font-weight:600!important;color:#21456b!important}
+ html[data-ops] .optykerDocsMeta {font-size:10px!important;line-height:1.5!important;color:#6b84a0!important;margin-top:5px!important}
+ html[data-ops] .optykerDocsMoney {font-size:15px!important;font-weight:600!important;font-variant-numeric:tabular-nums;color:#214e7e!important}
+ html[data-ops] .optykerDocsStatus {border:1px solid #dde7f3;padding:6px 10px!important;border-radius:9px!important;background:#f0f4fa!important;color:#5c7390!important;font-size:10px!important;font-weight:600!important;letter-spacing:.02em!important}
+ html[data-ops] .optykerDocsStatus.ok {background:#eaf8f1!important;border-color:#c4e7d4!important;color:#246f4d!important}
+ html[data-ops] .optykerDocsStatus.warn {background:#fff7e8!important;border-color:#efdcb7!important;color:#8c621b!important}
+ html[data-ops] .optykerDocsStatus.error {background:#fff0f2!important;border-color:#f1cad3!important;color:#a9324f!important}
+ html[data-ops] :is(.optykerDocsEmpty,.optykerDocsLoading) {padding:55px 24px!important;font-size:13px!important;line-height:1.7!important;color:#617e9d!important}
+ html[data-ops] .optykerDdtModal {background:#0a203f85!important;padding:24px!important;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+ html[data-ops] .optykerDdtCard {width:min(1080px,96vw)!important;max-height:calc(100dvh - 48px)!important;padding:24px!important;border:1px solid #d8e5f6!important;border-radius:22px!important;background:#f5f9fe!important;box-shadow:0 28px 90px #0b203c44!important;scrollbar-width:thin;scrollbar-color:#b4cce6 transparent;overscroll-behavior:contain}
+ html[data-ops] .optykerDdtModalHead {align-items:center!important;gap:14px!important;margin:0 0 20px!important;padding:0 0 20px!important;border-bottom:1px solid #dce8f6!important}
+ html[data-ops] .optykerDdtModalTitle {font-size:26px!important;font-weight:600!important;letter-spacing:-.5px!important;color:#1c426b!important}
+ html[data-ops] .optykerDdtModalSub {font-size:12px!important;line-height:1.6!important;color:#637f9d!important;margin-top:6px!important}
+ html[data-ops] .optykerDdtClose {width:40px!important;height:40px!important;flex:0 0 40px;border-radius:11px!important;border-color:#d2e2f4!important;color:#446c94!important;font-size:22px!important}
+ html[data-ops] .optykerDdtSection {padding:20px!important;margin-top:16px!important;border-color:#dbe7f6!important;border-radius:16px!important;background:#fff!important;box-shadow:var(--svc-shadow)!important}
+ html[data-ops] .optykerDdtSectionTitle {font-size:13px!important;font-weight:600!important;letter-spacing:.02em!important;color:#355b82!important;margin-bottom:16px!important}
+ html[data-ops] :is(.optykerDdtGrid,.optykerDdtClientSearch) {gap:14px!important}
+ html[data-ops] .optykerDdtClientSearch {grid-template-columns:160px minmax(0,1fr) minmax(0,1fr)!important}
+ html[data-ops] :is(.optykerDdtField,.optykerDdtItem) label {font-size:11px!important;line-height:1.5!important;font-weight:550!important;text-transform:none!important;letter-spacing:0!important;color:#5a7693!important}
+ html[data-ops] :is(.optykerDdtField,.optykerDdtItem) :is(input,select,textarea) {min-width:0!important;width:100%!important;min-height:43px!important;height:43px!important;padding:10px 12px!important;border:1px solid #d1e1f3!important;border-radius:10px!important;background:#f9fbff!important;font-size:12px!important;font-weight:450!important;color:#2b5177!important}
+ html[data-ops] .optykerDdtField textarea {height:auto!important;min-height:84px!important;resize:vertical!important}
+ html[data-ops] .optykerDdtItem {grid-template-columns:110px minmax(160px,1fr) 82px 78px 110px 38px!important;gap:10px!important;padding:13px!important;border:1px solid #e0ebf7;border-radius:12px;background:#f5f9ff}
+ html[data-ops] .optykerDdtRemove {min-height:43px!important;border-color:#edcbd2!important;border-radius:10px!important;background:#fff2f4!important;color:#a34254!important;font-size:17px!important}
+ html[data-ops] .optykerDdtAddItem {margin-top:14px!important;min-height:40px!important;padding:9px 14px!important;border:1px solid #c6ddf5!important;border-radius:10px!important;background:#edf5ff!important;font-size:12px!important;font-weight:600!important;color:#246cb1!important}
+ html[data-ops] .optykerDdtFooter {position:sticky;bottom:-24px;z-index:25;padding:16px 0!important;margin-top:18px!important;border-color:#d8e6f5!important;background:#f5f9fefa!important;box-shadow:0 -5px 16px #1a4e7205}
+ html[data-ops] .optykerDdtHint {font-size:11px!important;line-height:1.6!important;color:#5e7d9a!important}
+ html[data-ops] .optykerDdtFooterRight {gap:9px!important;flex-wrap:wrap}
+ html[data-ops] .optykerDdtBtn {min-height:44px!important;padding:10px 16px!important;border-radius:11px!important;border-color:#c9def3!important;color:#2d68a3!important;font-size:12px!important;font-weight:600!important}
+ html[data-ops] .optykerDdtBtn.primary {background:linear-gradient(110deg,#1678e3,#3196ee)!important;border-color:#197ddd!important;color:#fff!important}
+ html[data-ops] .optykerDdtSearchResults {border-radius:12px!important;border-color:#c8def3!important;box-shadow:0 15px 38px #14395e25!important}
+ html[data-ops] .optykerDdtSearchRow {padding:12px!important}
+ html[data-ops] .optykerDdtSearchName {font-size:12px!important;font-weight:600!important}
+ html[data-ops] .optykerDdtSearchMeta {font-size:10px!important}
+ html[data-ops] #clientsPanel #clientInformativeSection {padding:23px!important;border:1px solid #dbe8f6!important;border-radius:17px!important;background:#fff!important;box-shadow:var(--svc-shadow)!important}
+ html[data-ops] #clientInformativeSection .clientBoxTitle {font-size:18px!important;font-weight:600!important;color:#294e74!important}
+ html[data-ops] #clientInformativeSection .clientVisitHint {font-size:12px!important;line-height:1.6!important;color:#637e9a!important}
+ html[data-ops] #clientConsentList {margin-top:17px!important}
+ html[data-ops] #clientConsentList button {min-height:38px!important;padding:9px 13px!important;border-radius:10px!important;font-size:12px!important;font-weight:550!important}
+
+ /* CASH: retain the established catalog / payment columns. No hidden controls. */
+ html[data-ops] .optykerCashOverlay {background:#f1f6fe!important;color:#21446a!important;--cash-blue:#187bea;--cash-muted:#637e99;--cash-line:#d9e7f6}
+ html[data-ops] .optykerCashHeader {background:radial-gradient(ellipse at 95% 0%,#245b83,transparent 60%),linear-gradient(110deg,#0c2647,#143b64)!important;border-color:#244969!important;box-shadow:0 6px 22px #12345220!important}
+ html[data-ops] .optykerCashBrandMark {background:#e6f3ff!important;border:1px solid #b7d7fa!important;border-radius:14px!important;color:#1971c1!important;font-weight:600!important}
+ html[data-ops] .optykerCashBrandTitle {font-size:25px!important;font-weight:600!important;letter-spacing:-.5px!important;color:#f5faff!important}
+ html[data-ops] .optykerCashBrandSub {font-size:11px!important;line-height:1.6!important;color:#c0d7ed!important}
+ html[data-ops] #optykerCashSearch {height:46px!important;border:1px solid #adcdef!important;border-radius:12px!important;background:#f5faff!important;color:#22456b!important;font-size:13px!important;font-weight:450!important;padding:12px 16px!important;box-shadow:none!important}
+ html[data-ops] #optykerCashSearch::placeholder {color:#617e9e!important}
+ html[data-ops] .optykerCashHeaderRight {gap:9px!important}
+ html[data-ops] .optykerCashHeaderRight :is(button,.optykerCashHeaderBadge) {min-height:40px!important;padding:9px 12px!important;border-radius:10px!important;font-size:11px!important;font-weight:550!important}
+ html[data-ops] #optykerCashClose {min-width:40px!important;width:40px!important;padding:0!important;font-size:24px!important}
+ html[data-ops] .optykerCashCatalogTop {padding:15px 20px!important;border-color:#dce8f6!important;background:#f4f8fe!important;gap:10px!important}
+ html[data-ops] #optykerCashTypes {gap:7px!important}
+ html[data-ops] .optykerCashType {min-height:38px!important;padding:9px 13px!important;border-radius:10px!important;border-color:#d3e3f5!important;background:#fff!important;font-size:11px!important;font-weight:550!important;color:#4c6b8d!important}
+ html[data-ops] .optykerCashType.active {background:#197de7!important;border-color:#197de7!important;color:#fff!important;box-shadow:0 3px 10px #197de713!important}
+ html[data-ops] #optykerCashRefresh {min-height:38px!important;border-radius:10px!important;border-color:#cfdef1!important;padding:9px 13px!important;font-size:11px!important;font-weight:550!important;color:#456d98!important}
+ html[data-ops] .optykerCashProducts {padding:20px!important;gap:16px!important;background:#edf4fd!important}
+ html[data-ops] .optykerCashProduct {border:1px solid #d8e6f6!important;border-radius:17px!important;background:#fff!important;box-shadow:0 4px 15px #1b446e08!important;transform:none!important}
+ html[data-ops] .optykerCashProduct:hover {border-color:#8fc1f0!important;box-shadow:0 8px 22px #24548014!important;transform:none!important}
+ html[data-ops] .optykerCashProductImage {background:linear-gradient(145deg,#f8fbff,#eaf3ff)!important;border-bottom:1px solid #e0ecfa!important}
+ html[data-ops] .optykerCashProductPlaceholder {color:#4b88bd!important;opacity:.5!important;font-size:32px!important}
+ html[data-ops] .optykerCashProductBody {padding:15px!important}
+ html[data-ops] .optykerCashProductTitle {font-size:13px!important;font-weight:600!important;line-height:1.5!important;color:#274c73!important}
+ html[data-ops] .optykerCashProductVariant {font-size:10px!important;color:#637e9b!important;line-height:1.5!important;margin-top:7px!important}
+ html[data-ops] .optykerCashProductFoot {gap:7px!important;margin-top:12px!important}
+ html[data-ops] .optykerCashProductPrice {font-size:19px!important;font-weight:600!important;color:#176ab7!important;font-variant-numeric:tabular-nums}
+ html[data-ops] .optykerCashProductStock {font-size:10px!important;font-weight:450!important;color:#587c99!important;background:#f0f6fd!important;border-color:#dce9f8!important}
+ html[data-ops] .optykerCashCart {background:#fff!important;border-color:#cfdef1!important;box-shadow:-7px 0 24px #234c7108!important}
+ html[data-ops] .optykerCashCartHead {padding:18px!important;border-color:#dce8f6!important;background:#fff!important}
+ html[data-ops] .optykerCashCartTitle {font-size:23px!important;line-height:1.2!important;font-weight:600!important;letter-spacing:-.5px!important;color:#244a71!important}
+ html[data-ops] .optykerCashCartCount {font-size:11px!important;color:#2d70ab!important;background:#edf5ff!important;font-weight:550!important}
+ html[data-ops] .optykerCashClientBox {margin-top:12px!important;padding-top:12px!important;border-color:#e2ecf8!important}
+ html[data-ops] .optykerCashClientBox label {font-size:10px!important;font-weight:550!important;color:#577593!important;letter-spacing:.015em!important;text-transform:none!important}
+ html[data-ops] :is(#optykerCashClientSearch,#optykerCashClient) {height:40px!important;border:1px solid #d3e3f4!important;border-radius:10px!important;background:#f8fbff!important;font-size:12px!important;font-weight:450!important;color:#2e5378!important;padding:9px 11px!important}
+ html[data-ops] .optykerCashCartItems {padding:12px 17px!important;background:#f8fbff!important;border-color:#dbe7f6!important;scrollbar-width:thin;scrollbar-color:#b7cee5 transparent}
+ html[data-ops] .optykerCashCartEmpty {border:1px dashed #c8def4!important;border-radius:12px!important;background:#f3f8ff!important;color:#66819d!important;font-size:12px!important;line-height:1.6!important;padding:24px 14px!important}
+ html[data-ops] .optykerCashCartItem {padding:12px!important;border:1px solid #dce8f6!important;border-radius:12px!important;background:#fff!important;margin-bottom:9px!important}
+ html[data-ops] .optykerCashCartItemTitle {font-size:12px!important;font-weight:600!important;color:#2c537b!important}
+ html[data-ops] .optykerCashCheckout {padding:17px 18px!important;border-color:#dce8f6!important;background:#f4f8fe!important;scrollbar-width:thin;scrollbar-color:#b7cee5 transparent;overscroll-behavior:contain}
+ html[data-ops] .optykerCashTotalRow {padding:0 0 14px!important;margin-bottom:14px!important;border-color:#d7e5f6!important}
+ html[data-ops] .optykerCashTotalLabel {font-size:12px!important;font-weight:550!important;color:#456c92!important}
+ html[data-ops] #optykerCashTotal {font-size:29px!important;font-weight:600!important;letter-spacing:-.7px!important;color:#1c4878!important;font-variant-numeric:tabular-nums}
+ html[data-ops] .optykerCashPayLabel {font-size:10px!important;font-weight:600!important;color:#5c7b9a!important;letter-spacing:.055em!important;line-height:1.5!important}
+ html[data-ops] :is(.optykerCashStages,.optykerCashPayModes) {gap:6px!important}
+ html[data-ops] :is(.optykerCashStage,.optykerCashPayMode) {min-height:39px!important;padding:9px 7px!important;border-radius:10px!important;border-color:#ccdef3!important;font-size:11px!important;font-weight:550!important;line-height:1.4!important;white-space:normal!important;color:#375f87!important;box-shadow:none!important}
+ html[data-ops] .optykerCashStage.active {background:#e4f1ff!important;border-color:#82b7ef!important;color:#1266b6!important;box-shadow:inset 0 -2px #2987e7!important}
+ html[data-ops] .optykerCashPayMode.active {background:#197be1!important;border-color:#197be1!important;color:#fff!important}
+ html[data-ops] :is(.optykerCashInvoiceBox,.optykerCashTsBox) {border-radius:12px!important;padding:12px!important;margin-top:11px!important}
+ html[data-ops] :is(.optykerCashInvoiceBox,.optykerCashTsBox) b {font-size:11px!important;font-weight:550!important;line-height:1.45!important}
+ html[data-ops] :is(.optykerCashInvoiceBox,.optykerCashTsBox) small {font-size:10px!important;line-height:1.5!important}
+ html[data-ops] :is(.optykerCashInvoiceBox,.optykerCashTsBox):focus-within {outline:2px solid #2885df;outline-offset:2px}
+ html[data-ops] :is(.optykerCashDepositWrap,.optykerCashTsOptions) {border-radius:11px!important;padding:12px!important}
+ html[data-ops] :is(#optykerCashDeposit,#optykerCashTsCode) {height:40px!important;font-size:12px!important;border-radius:9px!important}
+ html[data-ops] #optykerCashNote {padding:11px!important;font-size:12px!important;line-height:1.5!important;border:1px solid #d1e2f4!important;border-radius:11px!important;background:#fff!important;color:#365c81!important}
+ html[data-ops] .optykerCashRchHelp {padding:11px!important;border:1px solid #efe0ba!important;border-radius:11px!important;font-size:10px!important;line-height:1.55!important;background:#fff8e9!important;color:#886018!important}
+ html[data-ops] #optykerCashCheckoutBtn {min-height:49px!important;border:1px solid #1573d2!important;border-radius:12px!important;background:linear-gradient(110deg,#156bd1,#2d8eee)!important;color:#fff!important;font-size:14px!important;font-weight:600!important;box-shadow:0 5px 16px #126bcb20!important}
+ html[data-ops] .optykerCashSecondaryActions {grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}
+ html[data-ops] .optykerCashSecondaryActions button {min-height:38px!important;padding:9px!important;border-radius:10px!important;font-size:11px!important;font-weight:550!important;line-height:1.45!important}
+ /* Utility dialogs: same controls and warnings, including non-fiscal copy text. */
+ html[data-ops] .optykerCashModal {padding:24px 16px!important;background:#0a203f80!important;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+ html[data-ops] .optykerCashModalCard {max-height:calc(100dvh - 48px)!important;overflow:auto!important;padding:26px!important;border:1px solid #d9e7f6!important;border-radius:20px!important;background:#f8fbff!important;box-shadow:0 26px 80px #091c3b44!important;scrollbar-width:thin;scrollbar-color:#b9cee7 transparent}
+ html[data-ops] .optykerCashModalTitle {font-size:25px!important;font-weight:600!important;letter-spacing:-.5px!important;color:#224c74!important}
+ html[data-ops] .optykerCashModalSub {font-size:12px!important;line-height:1.65!important;color:#5d7994!important;margin-top:8px!important}
+ html[data-ops] :is(.optykerCashModalClose,.optykerCashHistoryActions button,.optykerCashHistoryToolbar button,.optykerReceiptPrintActions button) {min-height:40px!important;padding:10px 14px!important;border-radius:10px!important;border-color:#cfdef1!important;font-size:12px!important;font-weight:550!important}
+ html[data-ops] :is(.optykerCashSaleRow,.optykerCashDepositRow,.optykerCashTsRow) {border-radius:12px!important;border-color:#d6e6f6!important;padding:15px!important;background:#fff!important}
+ html[data-ops] :is(.optykerCashEmpty,.optykerCashLoading) {font-size:12px!important;padding:30px 18px!important;line-height:1.7!important}
+}
+@media screen and (min-width:761px) {
+ /* Only the row allocation changes. Catalog and payment remain in their original columns. */
+ html[data-ops] .optykerCashMain {height:calc(100dvh - 76px)!important}
+ html[data-ops] .optykerCashCart {display:grid!important;grid-template-rows:auto minmax(90px,.5fr) minmax(140px,1.7fr) auto!important;gap:0!important;overflow:hidden!important}
+ html[data-ops] .optykerCashCartItems {height:auto!important;max-height:none!important;min-height:0!important;overflow:auto!important}
+ html[data-ops] .optykerCashCheckout {height:auto!important;max-height:none!important;min-height:0!important;overflow:auto!important}
+}
+@media screen and (max-width:1100px) {
+ html[data-ops] .optykerDocsToolbar {grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}
+ html[data-ops] #optykerChatPanel .optykerChatGrid {grid-template-columns:240px minmax(0,1fr)!important}
+ html[data-ops] .optykerDdtItem {grid-template-columns:100px minmax(140px,1fr) 75px 65px 90px 36px!important;gap:7px!important}
+}
+@media screen and (max-width:900px) {
+ html[data-ops] #mainApp :is(#optykerChatPanel,.optykerDocsPanel) {padding:18px!important}
+ html[data-ops] #optykerChatPanel .optykerChatGrid {grid-template-columns:1fr!important;height:auto!important}
+ html[data-ops] #optykerChatPanel .optykerChatLeft {max-height:236px;border:0!important;border-bottom:1px solid #d9e7f6!important}
+ html[data-ops] #optykerChatThreads {max-height:150px!important}
+ html[data-ops] #optykerChatConversation {height:580px;max-height:85dvh;min-height:360px}
+ html[data-ops] #optykerChatBlank {min-height:230px!important}
+ html[data-ops] .optykerDdtItem {grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ html[data-ops] .optykerDdtItem :is(.desc,.lot) {grid-column:1/-1!important}
+ html[data-ops] .optykerDdtClientSearch {grid-template-columns:1fr 1fr!important}
+}
+@media screen and (max-width:760px) {
+ html[data-ops] .optykerCashHeader {height:auto!important;min-height:76px!important;flex:0 0 auto!important;flex-wrap:wrap!important;padding:13px 15px!important;gap:12px!important}
+ html[data-ops] .optykerCashSearchWrap {order:3;flex:1 1 100%!important;width:100%!important;min-width:0!important}
+ html[data-ops] .optykerCashHeaderRight {margin-left:auto!important;flex-wrap:wrap!important;gap:5px!important}
+ html[data-ops] .optykerCashHeaderRight button {padding:8px!important;font-size:10px!important}
+ html[data-ops] .optykerCashBrand {min-width:0!important}
+ html[data-ops] .optykerCashBrandTitle {font-size:23px!important}
+ html[data-ops] .optykerCashMain {min-height:0!important;flex:1 1 auto!important;overflow:auto!important;overscroll-behavior:contain}
+ html[data-ops] .optykerCashCatalog {min-height:0!important;max-height:none!important}
+ html[data-ops] .optykerCashCatalogTop {padding:13px!important;flex-wrap:wrap!important}
+ html[data-ops] .optykerCashProducts {padding:13px!important;gap:11px!important;max-height:48dvh!important;min-height:180px!important;overflow:auto!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ html[data-ops] .optykerCashCart {min-height:0!important;height:auto!important;max-height:none!important;overflow:visible!important;display:flex!important}
+ html[data-ops] .optykerCashCartItems {min-height:90px!important;max-height:230px!important;overflow:auto!important;flex:0 0 auto!important}
+ html[data-ops] .optykerCashCheckout {height:auto!important;max-height:none!important;overflow:visible!important}
+ html[data-ops] .optykerCashProductImage {height:110px!important;min-height:110px!important;max-height:110px!important;flex-basis:110px!important}
+}
+@media screen and (max-width:600px) {
+ html[data-ops] #mainApp :is(#optykerChatPanel,.optykerDocsPanel) {padding:12px!important;border-radius:17px!important}
+ html[data-ops] :is(.optykerChatHead,.optykerDocsHead) {padding:20px!important;border-radius:14px!important;gap:16px!important}
+ html[data-ops] :is(.optykerChatTitle,.optykerDocsTitle) {font-size:25px!important}
+ html[data-ops] #optykerChatPanel .optykerChatStart {flex-wrap:wrap!important}
+ html[data-ops] #optykerChatPanel .optykerChatStart select {flex-basis:100%!important;width:100%!important}
+ html[data-ops] #optykerChatPanel .optykerChatStart button {width:100%!important}
+ html[data-ops] :is(.optykerChatConvHead,.clientChatSectionHead) {padding:16px!important}
+ html[data-ops] :is(#optykerChatMessages,#clientChatMessages) {padding:13px!important}
+ html[data-ops] :is(.optykerChatBubble,.clientChatBubble) {max-width:87%!important;padding:11px 12px!important}
+ html[data-ops] :is(.optykerChatComposer,.clientChatComposer) {padding:12px!important;gap:7px!important}
+ html[data-ops] :is(#optykerChatSend,#clientChatSend) {min-width:68px!important;padding:11px!important}
+ html[data-ops] .optykerDocsToolbar {padding:13px!important;gap:9px!important}
+ html[data-ops] .optykerDocsSearch {grid-column:1/-1!important}
+ html[data-ops] .optykerDocsApply {grid-column:1/-1!important}
+ html[data-ops] .optykerDdtModal {padding:10px!important}
+ html[data-ops] .optykerDdtCard {width:100%!important;max-height:calc(100dvh - 20px)!important;padding:16px!important;border-radius:17px!important}
+ html[data-ops] .optykerDdtModalTitle {font-size:23px!important}
+ html[data-ops] :is(.optykerDdtClientSearch,.optykerDdtGrid) {grid-template-columns:1fr!important;gap:12px!important}
+ html[data-ops] .optykerDdtSection {padding:15px!important;border-radius:13px!important}
+ html[data-ops] .optykerDdtFooter {bottom:-16px;padding:13px 0!important;gap:9px!important}
+ html[data-ops] .optykerDdtFooterRight {width:100%;justify-content:stretch!important}
+ html[data-ops] .optykerDdtFooterRight button {flex:1 1 auto;padding:10px 12px!important}
+ html[data-ops] .optykerCashModalCard {padding:20px!important;border-radius:17px!important}
+}
+@media screen and (prefers-reduced-motion:reduce) {
+ html[data-ops] :is(#optykerChatPanel,#clientChatSection,.optykerDocsPanel,.optykerDdtModal,.optykerCashOverlay,.optykerCashModal) * {transition:none!important;animation:none!important;scroll-behavior:auto!important}
+}
+
+@media screen {
+ html[data-ops] .optykerServicesCashFooter {min-width:0;padding:12px 18px 14px;background:#fff;border-top:1px solid #d6e5f6;box-shadow:0 -5px 20px #1c457209}
+ html[data-ops] .optykerServicesCashFooter .optykerCashRchHelp {margin:0 0 9px!important;padding:8px 10px!important}
+ html[data-ops] .optykerServicesCashFooter #optykerCashCheckoutBtn {width:100%!important;margin:0!important}
+ html[data-ops] .optykerServicesCashFooter .optykerCashSecondaryActions {margin-top:9px!important}
+ html[data-ops] .optykerCashQty button {min-width:30px!important;min-height:30px!important;border-radius:8px!important;font-size:15px!important}
+ html[data-ops] .optykerCashCartItemMeta {font-size:10px!important;line-height:1.4!important;color:#6b8097!important}
+ html[data-ops] .optykerCashCartItemPrice {font-size:16px!important;font-weight:600!important;color:#225b91!important}
+}
+@media screen and (min-width:761px) and (max-height:840px) {
+ html[data-ops] .optykerCashCartHead {padding:12px 16px!important}
+ html[data-ops] .optykerCashCartTitle {display:inline;font-size:21px!important}
+ html[data-ops] .optykerCashCartCount {display:inline-flex;margin:0 0 0 8px!important}
+ html[data-ops] .optykerCashClientBox {margin-top:9px!important;padding-top:9px!important}
+ html[data-ops] :is(#optykerCashClientSearch,#optykerCashClient) {height:35px!important}
+ html[data-ops] .optykerCashCheckout {padding:12px 16px!important}
+ html[data-ops] .optykerServicesCashFooter {padding:10px 16px}
+ html[data-ops] .optykerCashSecondaryActions button {min-height:33px!important;padding:6px!important}
+}
+@media screen and (min-width:761px) and (max-height:660px) {
+ html[data-ops] .optykerCashCart {grid-template-rows:auto 110px auto auto!important;overflow:auto!important}
+ html[data-ops] .optykerCashCheckout {overflow:visible!important}
+}
+@media screen {
+ /* Existing sidebar uses an inline high z-index; dialogs must sit above it. */
+ html[data-ops] :is(.optykerDdtModal,#optykerChatImageViewer) {z-index:2147483400!important}
+ html[data-ops] .optykerDdtToast {z-index:2147483610!important}
+}
+@media screen and (max-width:600px) {
+ html[data-ops] .optykerCashHeaderRight {flex:1 1 100%!important;order:2;justify-content:flex-start!important;margin:0!important;gap:8px!important}
+ html[data-ops] .optykerCashHeaderRight button {flex:0 0 auto!important;white-space:nowrap!important}
+ html[data-ops] #optykerCashClose {margin-left:auto!important}
+}
