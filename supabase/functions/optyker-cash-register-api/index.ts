@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { listHistory, receiptDetail, setHistoryVisibility } from './history.ts';
+import { esoformProduct, listEsoformProducts, cashDraftLine, pricingTotals, assertEsoformTotal, ESOFORM_VERSION } from './esoform.mjs';
 
 const U=Deno.env.get("SUPABASE_URL")||"";
 const S=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
@@ -107,7 +108,7 @@ async function products(search:string,first:number){
       });
     }
   }
-  return outRows;
+  return [...listEsoformProducts(search), ...outRows];
 }
 async function clients(search:string){
   let q=db.from("optyker_clients")
@@ -118,8 +119,9 @@ async function clients(search:string){
   const {data,error}=await q;if(error)throw error;return data||[];
 }
 async function lookupVariants(ids:string[]){
-  const uniq=[...new Set(ids.map(x=>gid("ProductVariant",x)).filter(Boolean))].slice(0,100);
-  if(!uniq.length)return [];
+  const uniq=[...new Set(ids.filter(x=>!x.startsWith("esoform:")).map(x=>gid("ProductVariant",x)).filter(Boolean))].slice(0,100);
+  const local=ids.map(esoformProduct).filter(Boolean);
+  if(!uniq.length)return local;
   const q=[
     "query CashVariants($ids:[ID!]!){",
     "nodes(ids:$ids){",
@@ -131,11 +133,11 @@ async function lookupVariants(ids:string[]){
     "}"
   ].join("\n");
   const data=await gql(q,{ids:uniq});
-  return (Array.isArray(data?.nodes)?data.nodes:[]).filter(Boolean).map((v:any)=>({
+  return local.concat((Array.isArray(data?.nodes)?data.nodes:[]).filter(Boolean).map((v:any)=>({
     variant_id:String(v.id),title:String(v?.product?.title||"Prodotto"),variant_title:String(v?.title||""),
     sku:String(v?.sku||""),barcode:String(v?.barcode||""),price:money(v?.price),available:v?.availableForSale!==false,
     product_id:String(v?.product?.id||""),image:img(v?.product),vendor:String(v?.product?.vendor||""),product_type:String(v?.product?.productType||"")
-  }));
+  })));
 }
 async function saveSale(payload:any){
   const {data,error}=await db.from("optyker_pos_sales").insert(payload).select("*").single();
@@ -232,12 +234,19 @@ async function createInvoiceDraft(sale:any,payment:any,client:any,operator:strin
   if(!vat&&!fiscal)throw new Error("Per creare la fattura completa P.IVA o Codice Fiscale nella scheda cliente.");
   const who=(norm(client.surname)+" "+norm(client.name)).trim()||"Cliente";
   const issueDate=new Date().toISOString().slice(0,10);
-  const header="Pagamento cassa Optyker · "+stageLabel(stage)+(sale.shopify_order_name?(" · "+sale.shopify_order_name):"");
+  let header="Pagamento cassa Optyker · "+stageLabel(stage)+(sale.shopify_order_name?(" · "+sale.shopify_order_name):"");
+  const discount=Number(sale?.data?.pricing?.discount_total||0);
+  if(discount>0)header+=" · Sconto Esoform 15% già applicato (sconto complessivo vendita: "+money(discount).toFixed(2)+" EUR)";
   const payload={
     source:"optyker_pos",
     provider:"FOCUS FE · Bludata",
     provider_connection:"not_configured",
     pos_sale_id:sale.id,
+    lines:Array.isArray(sale?.data?.lines)?sale.data.lines:[],
+    pricing:sale?.data?.pricing||null,
+    payment_amount:money(amount),
+    sale_total:money(sale.total),
+    remaining_before_payment:money(sale.due_amount),
     pos_payment_id:payment?.id||null,
     payment_stage:stage,
     payment_method:method,
@@ -300,17 +309,15 @@ async function markOrderPaid(orderId:string){
     return {ok:false,error:e instanceof Error?e.message:String(e)};
   }
 }
-async function checkout(body:any,operator:string){
-  const p=body?.payload||{};
-  const linesIn=Array.isArray(p.lines)?p.lines:[];
-  if(!linesIn.length)throw new Error("Il carrello è vuoto");
-  if(linesIn.length>100)throw new Error("Troppi articoli nel carrello");
-
+async function quoteLines(linesIn:any[]){
+  if(!linesIn.length||linesIn.length>100)throw new Error("Carrello non valido");
   const quantities=new Map<string,number>();
   for(const l of linesIn){
-    const id=gid("ProductVariant",l?.variant_id);
-    const qty=Math.max(1,Math.min(99,Math.floor(Number(l?.quantity||1))));
-    if(id)quantities.set(id,(quantities.get(id)||0)+qty);
+    const rawId=norm(l?.variant_id);
+    const id=rawId.startsWith("esoform:")?rawId:gid("ProductVariant",rawId);
+    const qty=Number(l?.quantity);
+    if(!id||!Number.isInteger(qty)||qty<1||qty>99||(quantities.get(id)||0)+qty>99)throw new Error("Articolo o quantità non valida");
+    quantities.set(id,(quantities.get(id)||0)+qty);
   }
   const current=await lookupVariants([...quantities.keys()]);
   const byId=new Map(current.map((x:any)=>[x.variant_id,x]));
@@ -321,8 +328,21 @@ async function checkout(body:any,operator:string){
     if(!v)throw new Error("Un articolo non è più disponibile");
     if(!v.available)throw new Error(v.title+" non è disponibile");
     const total=money(v.price*qty);subtotal=money(subtotal+total);
-    lines.push({...v,quantity:qty,total});
+    lines.push({...v,quantity:qty,total,discount_total:money((v.discount_amount||0)*qty)});
   }
+
+  return {lines,...pricingTotals(lines),catalog_version:ESOFORM_VERSION};
+}
+
+async function checkout(body:any,operator:string){
+  const p=body?.payload||{};
+  const linesIn=Array.isArray(p.lines)?p.lines:[];
+  if(!linesIn.length)throw new Error("Il carrello è vuoto");
+  if(linesIn.length>100)throw new Error("Troppi articoli nel carrello");
+
+  const quoted=await quoteLines(linesIn);
+  const lines=quoted.lines,subtotal=quoted.total;
+  if(p.expected_total!=null)assertEsoformTotal(lines,p.expected_total);
 
   const clientId=norm(p.client_id);
   const client=clientId?await clientById(clientId):null;
@@ -365,7 +385,7 @@ async function checkout(body:any,operator:string){
     subtotal,total:subtotal,paid_amount:paidNow,due_amount:due,currency:"EUR",note,
     invoice_requested:invoiceRequested,
     delivered_at:paymentStage==="delivery_balance"&&due===0?new Date().toISOString():null,
-    data:{source:"optyker_pos",client_snapshot:client||null,lines,payment_stage:paymentStage,paid_now:paidNow,due_amount:due}
+    data:{source:"optyker_pos",pricing:pricingTotals(lines),client_snapshot:client||null,lines,payment_stage:paymentStage,paid_now:paidNow,due_amount:due}
   });
 
   try{
@@ -387,7 +407,7 @@ async function checkout(body:any,operator:string){
     if(tsRequested)tags.push("Sistema TS");
 
     const draftInput:any={
-      lineItems:lines.map(x=>({variantId:x.variant_id,quantity:x.quantity})),
+      lineItems:lines.map(cashDraftLine),
       note:note||("Vendita cassa Optyker · "+stageLabel(paymentStage)+" · Operatore: "+operator),
       tags,
       customAttributes:attrs
@@ -408,6 +428,7 @@ async function checkout(body:any,operator:string){
     const draft=created?.draftOrderCreate?.draftOrder;
     if(!draft?.id)throw new Error("Ordine Shopify non creato");
     sale=await patchSale(sale.id,{shopify_draft_order_id:draft.id,status:"draft"});
+    assertEsoformTotal(lines,draft.totalPriceSet?.shopMoney?.amount,draft.totalPriceSet?.shopMoney?.currencyCode);
 
     const completeQ=[
       "mutation CashDraftComplete($id:ID!,$paymentPending:Boolean!){",
@@ -432,12 +453,12 @@ async function checkout(body:any,operator:string){
       paid_amount:paidNow,
       due_amount:money(Math.max(0,finalTotal-paidNow)),
       completed_at:order?.id?new Date().toISOString():null,
-      data:{source:"optyker_pos",client_snapshot:client||null,lines,shopify:{draft,order},payment_stage:paymentStage,paid_now:paidNow,due_amount:money(Math.max(0,finalTotal-paidNow))}
+      data:{source:"optyker_pos",pricing:pricingTotals(lines),client_snapshot:client||null,lines,shopify:{draft,order},payment_stage:paymentStage,paid_now:paidNow,due_amount:money(Math.max(0,finalTotal-paidNow))}
     });
 
     const {error:itemsErr}=await db.from("optyker_pos_sale_items").insert(lines.map(x=>({
-      sale_id:sale.id,shopify_product_id:x.product_id,shopify_variant_id:x.variant_id,title:x.title,variant_title:x.variant_title,
-      sku:x.sku,barcode:x.barcode,quantity:x.quantity,unit_price:x.price,total:x.total,data:{image:x.image,vendor:x.vendor,product_type:x.product_type}
+      sale_id:sale.id,shopify_product_id:x.product_id,shopify_variant_id:x.catalog_id?"":x.variant_id,title:x.title,variant_title:x.variant_title,
+      sku:x.sku,barcode:x.barcode,quantity:x.quantity,unit_price:x.price,total:x.total,data:{image:x.image,vendor:x.vendor,product_type:x.product_type,list_price:x.list_price??x.price,discount_percent:x.discount_percent||0,discount_amount:x.discount_amount||0,discount_total:x.discount_total||0,catalog_id:x.catalog_id||null,price_unit:x.price_unit||null}
     })));
     if(itemsErr)console.error(itemsErr.message);
 
@@ -556,6 +577,7 @@ Deno.serve(async(req:Request)=>{
     const action=norm(body.action);
     const p=body?.payload||{};
     if(action==="products")return out({ok:true,data:await products(norm(p.search),Number(p.first||60))});
+    if(action==="quote_lines")return out({ok:true,data:await quoteLines(Array.isArray(p.lines)?p.lines:[])});
     if(action==="clients")return out({ok:true,data:await clients(norm(p.search))});
     if(action==="checkout")return out({ok:true,data:await checkout(body,operator)});
     if(action==="settle")return out({ok:true,data:await settleSale(body,operator)});
@@ -570,3 +592,4 @@ Deno.serve(async(req:Request)=>{
     return out({ok:false,error:m},/AUTH_REQUIRED|Credenziali|Troppi tentativi/.test(m)?401:400);
   }
 });
+

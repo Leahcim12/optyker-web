@@ -260,7 +260,7 @@ function renderProducts(){
   var h='';
   rows.forEach(function(p){
     var v=String(p.variant_title||'');if(v==='Default Title')v='';
-    h+='<div class="optykerCashProduct" role="button" tabindex="0" data-variant="'+esc(p.variant_id)+'"><div class="optykerCashProductImage">'+(p.image?'<img src="'+esc(p.image)+'" alt="">':'<div class="optykerCashProductPlaceholder">◉</div>')+'</div><div class="optykerCashProductBody"><div class="optykerCashProductTitle">'+esc(p.title)+'</div><div class="optykerCashProductVariant">'+esc([v,p.sku].filter(Boolean).join(' · '))+'</div><div class="optykerCashProductFoot"><div class="optykerCashProductPrice">'+esc(euro(p.price))+'</div><div class="optykerCashProductStock">'+(p.inventory_quantity==null?'':('Disp. '+esc(p.inventory_quantity)))+'</div></div></div></div>'
+    h+='<div class="optykerCashProduct" role="button" tabindex="0" data-variant="'+esc(p.variant_id)+'"><div class="optykerCashProductImage">'+(p.image?'<img src="'+esc(p.image)+'" alt="">':'<div class="optykerCashProductPlaceholder">◉</div>')+'</div><div class="optykerCashProductBody"><div class="optykerCashProductTitle">'+esc(p.title)+'</div><div class="optykerCashProductVariant">'+esc([v,p.sku,discountLabel(p,1)].filter(Boolean).join(' · '))+'</div><div class="optykerCashProductFoot"><div class="optykerCashProductPrice">'+esc(euro(p.price))+'</div><div class="optykerCashProductStock">'+(p.inventory_quantity==null?'':('Disp. '+esc(p.inventory_quantity)))+'</div></div></div></div>'
   });
   box.innerHTML=h;var cards=box.querySelectorAll('[data-variant]');for(var i=0;i<cards.length;i++){cards[i].onclick=function(){add(this.getAttribute('data-variant'))};cards[i].onkeydown=function(ev){if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();add(this.getAttribute('data-variant'))}}}
 }
@@ -271,6 +271,10 @@ function add(id){
 function qty(id,d){if(!S.cart[id])return;S.cart[id].qty+=d;if(S.cart[id].qty<=0)delete S.cart[id];renderCart()}
 function removeLine(id){delete S.cart[id];renderCart()}
 function cartRows(){return Object.keys(S.cart).map(function(k){return S.cart[k]}).filter(function(x){return x&&x.qty>0})}
+function discountLabel(p,quantity){
+  if(!p.discount_percent)return '';
+  return 'Listino '+euro(Number(p.list_price)*quantity)+' · sconto '+p.discount_percent+'%: −'+euro(Number(p.discount_amount)*quantity);
+}
 function cartTotal(){
   var total=0;cartRows().forEach(function(x){total+=Number(x.item.price||0)*x.qty});return Math.round(total*100)/100
 }
@@ -288,7 +292,7 @@ function renderCart(){
   cb.textContent=rows.length?(stageLabel(S.stage)+' · '+euro(payNow)):'Conferma vendita';
   if(!rows.length){box.innerHTML='<div class="optykerCashCartEmpty">Il carrello è vuoto.<br>Seleziona un prodotto per iniziare.</div>';return}
   var h='';rows.forEach(function(x){var p=x.item,v=String(p.variant_title||'');if(v==='Default Title')v='';
-    h+='<div class="optykerCashCartItem"><div><div class="optykerCashCartItemTitle">'+esc(p.title)+'</div><div class="optykerCashCartItemMeta">'+esc([v,p.sku].filter(Boolean).join(' · '))+'</div><div class="optykerCashQty"><button type="button" data-minus="'+esc(p.variant_id)+'">−</button><span>'+x.qty+'</span><button type="button" data-plus="'+esc(p.variant_id)+'">+</button></div><button type="button" class="optykerCashRemove" data-remove="'+esc(p.variant_id)+'">Rimuovi</button></div><div class="optykerCashCartItemPrice">'+esc(euro(Number(p.price||0)*x.qty))+'</div></div>'
+    h+='<div class="optykerCashCartItem"><div><div class="optykerCashCartItemTitle">'+esc(p.title)+'</div><div class="optykerCashCartItemMeta">'+esc([v,p.sku,discountLabel(p,x.qty)].filter(Boolean).join(' · '))+'</div><div class="optykerCashQty"><button type="button" data-minus="'+esc(p.variant_id)+'">−</button><span>'+x.qty+'</span><button type="button" data-plus="'+esc(p.variant_id)+'">+</button></div><button type="button" class="optykerCashRemove" data-remove="'+esc(p.variant_id)+'">Rimuovi</button></div><div class="optykerCashCartItemPrice">'+esc(euro(Number(p.price||0)*x.qty))+'</div></div>'
   });box.innerHTML=h;
   var ms=box.querySelectorAll('[data-minus]'),ps=box.querySelectorAll('[data-plus]'),rs=box.querySelectorAll('[data-remove]');
   for(var i=0;i<ms.length;i++)ms[i].onclick=function(){qty(this.getAttribute('data-minus'),-1)};
@@ -356,7 +360,7 @@ function checkout(){
   if(!window.confirm(msg+'\n\nConfermare?'))return;
   S.busy=true;renderCart();
   api('checkout',{
-    client_id:S.clientId,payment_method:S.payment,payment_stage:S.stage,deposit_amount:dep,
+    client_id:S.clientId,payment_method:S.payment,payment_stage:S.stage,deposit_amount:dep,expected_total:total,
     invoice_requested:inv,ts_requested:ts,ts_expense_code:tsCode,ts_opposition:tsOpp,
     note:String(E('optykerCashNote').value||''),
     lines:rows.map(function(x){return {variant_id:x.item.variant_id,quantity:x.qty}})
@@ -470,7 +474,7 @@ function openReceiptCopy(id,clientId,button){
       '<p><b>'+esc(r.shopify_order_name||'Vendita')+'</b> · '+esc(receiptDate(r.created_at))+'<br>Cliente: '+esc(r.client_name)+'<br>Operatore: '+esc(r.operator_username)+'</p>'+
       (r.hidden_at?'<p><b>Registrazione eliminata dalla cronologia</b></p>':'')+
       (r.status==='error'?'<p><b>Registrazione con errore: verificare l’esito della vendita.</b></p>':'')+
-      '<table><thead><tr><th>Articolo</th><th>Qtà</th><th>Prezzo</th><th>Totale</th></tr></thead><tbody>'+r.items.map(function(l){return '<tr><td>'+esc(l.title)+(l.variant_title&&l.variant_title!=='Default Title'?'<br><small>'+esc(l.variant_title)+'</small>':'')+'</td><td>'+esc(l.quantity)+'</td><td>'+esc(euro(l.unit_price))+'</td><td>'+esc(euro(l.total))+'</td></tr>'}).join('')+'</tbody></table><p class="optykerReceiptTotal">Totale vendita: <b>'+esc(euro(r.total))+'</b></p><p>Pagato: '+esc(euro(r.paid_amount))+'<br>Da saldare: '+esc(euro(r.due_amount))+'</p>'+
+      '<table><thead><tr><th>Articolo</th><th>Qtà</th><th>Prezzo</th><th>Sconto</th><th>Totale</th></tr></thead><tbody>'+r.items.map(function(l){return '<tr><td>'+esc(l.title)+(l.variant_title&&l.variant_title!=='Default Title'?'<br><small>'+esc(l.variant_title)+'</small>':'')+'</td><td>'+esc(l.quantity)+'</td><td>'+esc(euro(l.data&&l.data.list_price!=null?l.data.list_price:l.unit_price))+'</td><td>'+esc(l.data&&l.data.discount_percent?l.data.discount_percent+'% (−'+euro(l.data.discount_total)+')':'—')+'</td><td>'+esc(euro(l.total))+'</td></tr>'}).join('')+'</tbody></table><p class="optykerReceiptTotal">Totale vendita: <b>'+esc(euro(r.total))+'</b></p><p>Pagato: '+esc(euro(r.paid_amount))+'<br>Da saldare: '+esc(euro(r.due_amount))+'</p>'+
       (r.payments.length?'<h3>Pagamenti registrati</h3>'+r.payments.map(function(p){return '<p>'+esc(receiptDate(p.created_at)+' · '+stageLabel(p.payment_stage)+' · '+paymentLabel(p.payment_method)+' · '+euro(p.amount))+'</p>'}).join(''):'<p>Nessun movimento di pagamento registrato.</p>')+
       '<small>Riferimento Optyker: '+esc(r.id)+'</small></article></div>';
     m.classList.add('open');
@@ -521,3 +525,4 @@ function installCashObserver(){
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){tick();installCashObserver()});else{tick();installCashObserver()}
 setInterval(tick,250);
 })();
+

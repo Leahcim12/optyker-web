@@ -98,6 +98,13 @@ test -s _site/cart-privacy-version.json
 verify_desktop_aliases
 echo "Optyker Cart Privacy build OK"
 
+# Canonical Esoform prices and per-line discount, after cart patches.
+python scripts/apply_esoform_catalog.py
+node --check _site/cash-register.js
+node --test tests/esoform-pricing.test.mjs
+verify_desktop_aliases
+
 # GitHub Pages has a repository subpath; Vercel uses the domain root.
 python scripts/patch_public_asset_paths.py
 verify_desktop_aliases
+

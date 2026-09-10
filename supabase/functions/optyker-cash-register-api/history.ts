@@ -24,21 +24,21 @@ export async function listHistory(db:any,p:any){
 export async function receiptDetail(db:any,p:any){
   const sale=await getSale(db,p);
   const results=await Promise.all([
-    db.from('optyker_pos_sale_items').select('title,variant_title,sku,quantity,unit_price,total').eq('sale_id',sale.id).order('created_at'),
+    db.from('optyker_pos_sale_items').select('title,variant_title,sku,quantity,unit_price,total,data').eq('sale_id',sale.id).order('created_at'),
     db.from('optyker_pos_payments').select('payment_stage,payment_method,amount,currency,created_at').eq('sale_id',sale.id).order('created_at'),
     db.from('optyker_pos_history_visibility').select('hidden_at').eq('sale_id',sale.id).maybeSingle()
   ]);
   for(const result of results)if(result.error)throw result.error;
   const c=sale.data?.client_snapshot||{};
   let items=results[0].data||[];
-  if(!items.length)items=(sale.data?.lines||[]).map((l:any)=>({title:l.title,variant_title:l.variant_title,sku:l.sku,quantity:l.quantity,unit_price:l.price,total:l.total}));
+  if(!items.length)items=(sale.data?.lines||[]).map((l:any)=>({title:l.title,variant_title:l.variant_title,sku:l.sku,quantity:l.quantity,unit_price:l.price,total:l.total,data:{list_price:l.list_price??l.price,discount_percent:l.discount_percent||0,discount_amount:l.discount_amount||0,discount_total:l.discount_total||0}}));
   // Return the recorded sale snapshot; no new order, payment or fiscal document is issued.
   return {
     id:sale.id,client_id:sale.client_id,client_name:([c.surname,c.name].filter(Boolean).join(' ')||'Cliente occasionale'),
     shopify_order_name:sale.shopify_order_name,created_at:sale.created_at,status:sale.status,
     total:sale.total,paid_amount:sale.paid_amount,due_amount:sale.due_amount,currency:sale.currency,
     payment_method:sale.payment_method,payment_stage:sale.payment_stage,operator_username:sale.operator_username,
-    hidden_at:results[2].data?.hidden_at||null,items,payments:results[1].data||[]
+    pricing:sale.data?.pricing||null,hidden_at:results[2].data?.hidden_at||null,items,payments:results[1].data||[]
   };
 }
 export async function setHistoryVisibility(db:any,p:any,operator:string){
@@ -52,3 +52,4 @@ export async function setHistoryVisibility(db:any,p:any,operator:string){
   if(error)throw error;
   return {id:sale.id,hidden:p.hidden};
 }
+

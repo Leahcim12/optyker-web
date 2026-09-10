@@ -1,0 +1,201 @@
+{
+  "version": "20260910-esoform15-v1",
+  "brand": "Esoform",
+  "currency": "EUR",
+  "price_unit": "occhio",
+  "discount_percent": 15,
+  "products": [
+    {
+      "id": "esoform_mensili_sferiche_hydrogel_3l",
+      "name": "Mensili sferiche hydrogel 3L",
+      "price": 45,
+      "pack_lenses": 3
+    },
+    {
+      "id": "esoform_mensili_sferiche_silicone_hydrogel_3l",
+      "name": "Mensili sferiche silicone hydrogel 3L",
+      "price": 50,
+      "pack_lenses": 3
+    },
+    {
+      "id": "esoform_mensili_toriche_hydrogel_3l",
+      "name": "Mensili toriche hydrogel 3L",
+      "price": 65,
+      "pack_lenses": 3
+    },
+    {
+      "id": "esoform_mensili_toriche_silicone_hydrogel_3l",
+      "name": "Mensili toriche silicone hydrogel 3L",
+      "price": 75,
+      "pack_lenses": 3
+    },
+    {
+      "id": "esoform_mensili_sferiche_multifocali_3l",
+      "name": "Mensili sferiche multifocali 3L",
+      "price": 88,
+      "pack_lenses": 3
+    },
+    {
+      "id": "esoform_mensili_toriche_multifocali_3l",
+      "name": "Mensili toriche multifocali 3L",
+      "price": 110,
+      "pack_lenses": 3
+    },
+    {
+      "id": "esoform_mensili_sferiche_supporto_accomodativo_3l",
+      "name": "Mensili sferiche supporto-accomodativo 3L",
+      "price": 70,
+      "pack_lenses": 3
+    },
+    {
+      "id": "esoform_mensili_toriche_supporto_accomodativo_3l",
+      "name": "Mensili toriche supporto-accomodativo 3L",
+      "price": 90,
+      "pack_lenses": 3
+    },
+    {
+      "id": "esoform_mensili_sferiche_myopia_3l",
+      "name": "Mensili sferiche Myopia 3L",
+      "price": 90,
+      "pack_lenses": 3
+    },
+    {
+      "id": "esoform_mensili_toriche_myopia_3l",
+      "name": "Mensili toriche Myopia 3L",
+      "price": 110,
+      "pack_lenses": 3
+    },
+    {
+      "id": "esoform_mensili_sferiche_spessorate_3l",
+      "name": "Mensili sferiche spessorate 3L",
+      "price": 80,
+      "pack_lenses": 3
+    },
+    {
+      "id": "esoform_mensili_toriche_spessorate_3l",
+      "name": "Mensili toriche spessorate 3L",
+      "price": 85,
+      "pack_lenses": 3
+    },
+    {
+      "id": "esoform_mensili_sferiche_inverse_3l",
+      "name": "Mensili sferiche inverse 3L",
+      "price": 80,
+      "pack_lenses": 3
+    },
+    {
+      "id": "esoform_mensili_toriche_inverse_3l",
+      "name": "Mensili toriche inverse 3L",
+      "price": 85,
+      "pack_lenses": 3
+    },
+    {
+      "id": "esoform_mensili_sferiche_pediatriche_3l",
+      "name": "Mensili sferiche pediatriche 3L",
+      "price": 80,
+      "pack_lenses": 3
+    },
+    {
+      "id": "esoform_mensili_toriche_pediatriche_3l",
+      "name": "Mensili toriche pediatriche 3L",
+      "price": 95,
+      "pack_lenses": 3
+    },
+    {
+      "id": "esoform_mensili_aberrometriche_3l",
+      "name": "Mensili aberrometriche 3L",
+      "price": 140,
+      "pack_lenses": 3
+    },
+    {
+      "id": "esoform_trimestrali_sferiche_silicone_hydrogel",
+      "name": "Trimestrali sferiche silicone hydrogel",
+      "price": 45,
+      "pack_lenses": 1
+    },
+    {
+      "id": "esoform_trimestrali_toriche_hydrogel",
+      "name": "Trimestrali toriche hydrogel",
+      "price": 60,
+      "pack_lenses": 1
+    },
+    {
+      "id": "esoform_trimestrali_toriche_silicone_hydrogel",
+      "name": "Trimestrali toriche silicone hydrogel",
+      "price": 70,
+      "pack_lenses": 1
+    },
+    {
+      "id": "esoform_trimestrali_sferiche_multifocali",
+      "name": "Trimestrali sferiche multifocali",
+      "price": 75,
+      "pack_lenses": 1
+    },
+    {
+      "id": "esoform_trimestrali_toriche_multifocali",
+      "name": "Trimestrali toriche multifocali",
+      "price": 95,
+      "pack_lenses": 1
+    },
+    {
+      "id": "esoform_trimestrali_myopia",
+      "name": "Trimestrali Myopia",
+      "price": 85,
+      "pack_lenses": 1
+    },
+    {
+      "id": "esoform_trimestrali_spessorate",
+      "name": "Trimestrali spessorate",
+      "price": 110,
+      "pack_lenses": 1
+    },
+    {
+      "id": "esoform_trimestrali_terapeutiche",
+      "name": "Trimestrali terapeutiche",
+      "price": 100,
+      "pack_lenses": 1
+    },
+    {
+      "id": "esoform_annuali_sferiche_hydrogel",
+      "name": "Annuali sferiche hydrogel",
+      "price": 200,
+      "pack_lenses": 1
+    },
+    {
+      "id": "esoform_annuali_toriche_hydrogel",
+      "name": "Annuali toriche hydrogel",
+      "price": 280,
+      "pack_lenses": 1
+    },
+    {
+      "id": "esoform_annuali_sferiche_spessorate",
+      "name": "Annuali sferiche spessorate",
+      "price": 290,
+      "pack_lenses": 1
+    },
+    {
+      "id": "esoform_semestrali_sferiche_multifocali",
+      "name": "Semestrali sferiche multifocali",
+      "price": 100,
+      "pack_lenses": 1
+    },
+    {
+      "id": "esoform_semestrali_toriche_multifocali",
+      "name": "Semestrali toriche multifocali",
+      "price": 120,
+      "pack_lenses": 1
+    },
+    {
+      "id": "esoform_annuali_sferiche_multifocali",
+      "name": "Annuali sferiche multifocali",
+      "price": 320,
+      "pack_lenses": 1
+    },
+    {
+      "id": "esoform_annuali_toriche_multifocali",
+      "name": "Annuali toriche multifocali",
+      "price": 380,
+      "pack_lenses": 1
+    }
+  ]
+}
