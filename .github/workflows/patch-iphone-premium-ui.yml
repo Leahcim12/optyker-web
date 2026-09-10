@@ -1,0 +1,36 @@
+name: Restyling premium app iPhone Optyker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'iphone-app-v13/premium-ui-v1.css'
+      - 'iphone-app-v13/premium-ui-v1.js'
+      - 'booking/premium-ui-v1.css'
+      - 'scripts/patch_iphone_premium_ui_v1.py'
+      - '.github/workflows/patch-iphone-premium-ui.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Applica restyling premium iPhone
+        run: python scripts/patch_iphone_premium_ui_v1.py
+      - name: Verifica JavaScript premium
+        run: node --check iphone-app-v13/premium-ui-v1.js
+      - name: Salva layout aggiornato
+        run: |
+          if git diff --quiet -- iphone-app-v13/index.html booking/index.html; then
+            echo "Nessuna modifica necessaria"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add iphone-app-v13/index.html booking/index.html
+          git commit -m "Aggiorna layout premium app iPhone Optyker"
+          git push
