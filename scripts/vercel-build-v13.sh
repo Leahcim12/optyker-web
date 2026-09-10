@@ -120,3 +120,9 @@ verify_desktop_aliases
 # GitHub Pages has a repository subpath; Vercel uses the domain root.
 python scripts/patch_public_asset_paths.py
 verify_desktop_aliases
+
+# Staff uses the customer iPhone design without altering its existing services.
+# Embed into the actual deployment artifact, not a separate async source commit.
+node --check iphone-app-v13/staff-reference-ui-v1.js
+python scripts/apply_iphone_staff_reference.py
+node scripts/test_iphone_staff_reference.cjs

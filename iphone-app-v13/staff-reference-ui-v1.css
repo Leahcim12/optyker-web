@@ -1,0 +1,100 @@
+/* OPTYKER_IPHONE_STAFF_REFERENCE_V1
+   Customer design tokens and components are shared, not approximated per role. */
+.referenceStaffShell{--blue:#07598f;--navy:var(--ref-navy);--bg:var(--ref-bg);--text:var(--ref-ink);--muted:var(--ref-muted);--line:var(--ref-line)}
+.referenceStaffShell>.topBar{display:none!important}
+.referenceStaffShell>.content{padding-top:env(safe-area-inset-top)!important;padding-bottom:calc(84px + env(safe-area-inset-bottom))!important}
+.referenceStaffShell .refStaffPage{padding:0 15px 28px!important;max-width:500px!important;min-width:0}
+.referenceStaffShell .refStaffPageIntro{padding:0 2px 12px;margin:0}
+.referenceStaffShell .refStaffPageIntro .eyebrow{display:none}
+.referenceStaffShell .refStaffPageIntro .sub{font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+.referenceStaffShell .refPageTitle{height:auto;min-height:70px;grid-template-columns:44px minmax(0,1fr) 44px}
+.referenceStaffShell .refPageTitle h1{padding:12px 3px;line-height:1.18!important;overflow-wrap:anywhere}
+.referenceStaffShell .refPageTitle button{width:44px;height:44px}
+.referenceStaffShell .refHero{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)}
+.referenceStaffShell .refHeroCopy{min-width:0}
+.referenceStaffShell .refHeroCopy h1{overflow-wrap:anywhere}
+.referenceStaffShell .refQuick{min-width:0;gap:8px}
+.referenceStaffShell .refQuickCopy small{line-height:1.35}
+.referenceStaffShell .refStaffOverview{margin-top:20px}
+.referenceStaffShell .refStaffOverview h2{font-size:17px;font-weight:600;margin:0 0 10px;color:var(--ref-navy)}
+.referenceStaffShell .staffStats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.referenceStaffShell .staffStat{border:1px solid #e3eaf0;border-radius:14px;box-shadow:0 7px 22px rgba(21,50,76,.045);padding:14px;background:var(--ref-card)}
+.referenceStaffShell .staffStat b{font:600 25px/1.1 Georgia,"Times New Roman",serif;color:var(--ref-navy)}
+.referenceStaffShell .staffStat span{font-size:10px;text-transform:none;letter-spacing:0;font-weight:500;color:var(--ref-muted)}
+.referenceStaffShell .refStaffNavCenter .refNavOrb{display:grid;place-items:center}
+.referenceStaffShell .refStaffNavCenter .refNavOrb:before,.referenceStaffShell .refStaffNavCenter .refNavOrb:after{display:none}
+.referenceStaffShell .refStaffNavCenter .refNavOrb svg{width:25px;height:25px;stroke:#fff;fill:none;stroke-width:1.55}
+.referenceStaffShell .refNavBtn{min-height:44px}
+.referenceStaffShell .refStaffNavCenter.active .refNavOrb{box-shadow:0 0 0 4px rgba(15,100,156,.12),0 10px 22px rgba(7,55,91,.22)}
+.referenceStaffShell .refStaffProfile .refInfoRow{min-height:28px}
+.referenceStaffShell .refStaffProfile .refInfoRow b{font-size:11px;white-space:normal;overflow-wrap:anywhere}
+.referenceStaffShell .refProfileIdentity h2{overflow-wrap:anywhere}
+.referenceStaffShell .refStaffProfile .refDataHead button{min-height:44px;padding:0 4px}
+.referenceStaffShell .refStaffProfile .refProfileMenu{margin-top:12px}
+.referenceStaffShell .refStaffProfile .refProfileForm{margin-top:0}
+.referenceStaffShell .staffProfileForm label{text-transform:none;font-size:11px;font-weight:600;line-height:1.4}
+/* Existing operational cards and controls: same surfaces, typography and shape. */
+.referenceStaffShell :is(.staffSection,.staffDay,.staffShiftOp,.staffOrder,.staffClientBtn,.staffThreadBtn,.staffChatBox){border:1px solid #e1e9ef;border-radius:14px;background:var(--ref-card);box-shadow:0 8px 24px rgba(16,49,75,.045)}
+.referenceStaffShell .staffSection{padding:14px;margin:12px 0}
+.referenceStaffShell .staffSection h2{font:600 17px/1.2 Georgia,"Times New Roman",serif;color:var(--ref-navy)}
+.referenceStaffShell .staffSectionHead{flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.referenceStaffShell :is(.staffClientBtn b,.staffThreadBtn b,.staffApptTitle,.staffOrderTitle,.staffVisitTitle,.staffLacSheet>b){font:600 16px/1.25 Georgia,"Times New Roman",serif;color:var(--ref-navy)}
+.referenceStaffShell :is(.staffClientBtn,.staffThreadBtn){padding:15px;min-height:65px}
+.referenceStaffShell :is(.staffClientBtn span,.staffThreadBtn span,.staffApptMeta,.staffOrderMeta,.staffLacSheet div){font-size:11px;line-height:1.45;overflow-wrap:anywhere}
+.referenceStaffShell .staffToolbar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:2px 0 14px;min-width:0}
+.referenceStaffShell .staffToolbar :is(button,input,select){min-height:44px;border:1px solid #d7e3eb;border-radius:11px;background:#fff;color:var(--ref-ink);padding:8px 11px;font-size:12px;min-width:0;max-width:100%}
+.referenceStaffShell .staffToolbar input{font-size:16px}
+.referenceStaffShell .staffToolbar .grow{flex:1 1 100%;min-width:0}
+.referenceStaffShell .staffToolbar .staffCreateAppt{flex:1 1 auto}
+.referenceStaffShell :is(.staffMiniBtn,.staffSaveBtn,.staffProfileSave,.staffPrimaryBtn,.staffProfilePhotoBtn){min-height:44px;border-radius:11px;padding:10px 12px;font-size:11px;line-height:1.3;font-weight:700;white-space:normal}
+.referenceStaffShell :is(.staffPrimaryBtn,.staffSaveBtn,.staffProfileSave,.staffChatComposer button){background:#07598f!important;border-color:#07598f!important;color:#fff!important;box-shadow:none}
+.referenceStaffShell .staffMiniBtn{color:#07598f;border:1px solid #cbdce8;background:#fff}
+.referenceStaffShell :is(.staffReadOnly,.staffRefBadge,.staffSupplyRef){background:#edf5fa;color:#07598f;border-color:#d8e6ef;font-size:9px}
+.referenceStaffShell :is(.staffDayHead,.staffShiftOpHead){background:#f7f9fb;color:var(--ref-navy);font:600 16px/1.3 Georgia,"Times New Roman",serif;border-color:#e6edf2;padding:12px 14px}
+.referenceStaffShell .staffApptTime{color:#07598f;font-size:12px;font-weight:700}
+.referenceStaffShell .staffApptRow{padding:13px 14px}
+.referenceStaffShell .staffShiftRow{grid-template-columns:minmax(60px,.7fr) minmax(0,1fr);padding:12px;gap:6px 10px}
+.referenceStaffShell .staffShiftDate{font-size:11px}
+.referenceStaffShell .staffShiftTime{font-size:11px;line-height:1.45}
+.referenceStaffShell .staffShiftRow>.staffBadge{grid-column:2;justify-self:start}
+.referenceStaffShell .staffBadge{font-size:9px;font-weight:600}
+.referenceStaffShell .staffOrderTop>div:first-child{min-width:0}
+.referenceStaffShell .staffOrderTotal{font-size:13px;color:#07598f;flex-shrink:0}
+.referenceStaffShell .staffOrderToggle>summary{color:#07598f;font-size:11px;min-height:44px;padding:12px 0}
+.referenceStaffShell .staffOrderItem{grid-template-columns:48px minmax(0,1fr);border-color:#e5ecf1;border-radius:11px;background:#fbfcfd}
+.referenceStaffShell .staffOrderImg{width:48px;height:48px;object-fit:contain}
+.referenceStaffShell .staffOrderItemTitle{font-size:12px;overflow-wrap:anywhere}
+.referenceStaffShell :is(.staffOrderItemMeta,.staffOrderExtra,.staffOrderAttr){font-size:10px;overflow-wrap:anywhere}
+.referenceStaffShell .staffOrderItemPrice{grid-column:2;font-size:12px;color:#07598f}
+.referenceStaffShell :is(.staffEditField label,.staffClinicalField label){font-size:10px;font-weight:600;text-transform:none}
+.referenceStaffShell :is(.staffProfileInput,.staffEditInput,.staffEditArea,.staffClinicalField input,.staffClinicalField textarea){font-size:16px;min-height:44px;border-color:#d3e0e9;border-radius:11px;background:#fbfdff;color:var(--ref-ink);max-width:100%}
+.referenceStaffShell .staffProfileRead{background:#f2f5f8;color:#71869a}
+.referenceStaffShell :is(.staffRxEdit,.staffClinicalEdit,.staffLacSheet,.staffVisit){border:1px solid #e1e9ef;border-radius:12px}
+.referenceStaffShell :is(.staffRxEdit,.staffClinicalEdit)>summary{font-size:12px;line-height:1.5;padding:12px;background:#f7f9fb;min-height:44px;color:var(--ref-ink)}
+.referenceStaffShell .staffRxEye{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;overflow:visible;padding:10px;background:#f8fbfd;border-radius:11px}
+.referenceStaffShell .staffRxEye>b{grid-column:1/-1;font-size:12px;color:#07598f}
+.referenceStaffShell .staffRxEye label{font-size:10px}
+.referenceStaffShell .staffRxEye input{min-height:44px;font-size:16px;border-radius:9px}
+.referenceStaffShell .staffRxEye input:disabled{background:#edf1f4;color:#8797a4}
+.referenceStaffShell .staffChatMsgs{background:var(--ref-bg);padding:14px;min-height:240px;max-height:50dvh}
+.referenceStaffShell .staffChatBubble{border-radius:15px;border-color:var(--ref-line);padding:10px 12px;max-width:86%;box-shadow:0 3px 10px rgba(23,50,74,.04)}
+.referenceStaffShell .staffChatRow.staff .staffChatBubble{background:#07598f;border-color:#07598f;border-bottom-right-radius:5px}
+.referenceStaffShell .staffChatRow.customer .staffChatBubble{border-bottom-left-radius:5px}
+.referenceStaffShell .staffChatText{font-size:13px;line-height:1.4}
+.referenceStaffShell .staffChatComposer{gap:7px;background:#fff;align-items:flex-end}
+.referenceStaffShell .staffChatComposer textarea{min-width:0;flex:1 1 0;min-height:44px;max-height:120px;font-size:16px;border-radius:13px;border-color:#c8d6e1;background:#fbfdff;resize:vertical}
+.referenceStaffShell .staffChatComposer button{min-height:44px;border-radius:12px;font-size:11px;padding:0 10px}
+.referenceStaffShell :is(.staffChatMedia,.staffChatVideo){max-width:100%;height:auto}
+.referenceStaffShell .staffChatFile{overflow-wrap:anywhere}
+.referenceStaffActive .staffModalCard{border-radius:20px;border:1px solid #e1e9ef;max-width:500px;padding:20px}
+.referenceStaffActive .staffModalHead h2{font:600 22px Georgia,"Times New Roman",serif;color:var(--ref-navy)}
+.referenceStaffActive .staffModal :is(input,textarea){min-height:44px;font-size:16px;border-radius:11px;border-color:#d3e0e9;background:#fbfdff}
+.referenceStaffActive .staffModal button{min-height:44px;border-radius:11px}
+.referenceStaffActive .staffModal .staffProfileSave{background:#07598f}
+.referenceStaffActive .staffCreateGrid label{font-size:11px;text-transform:none}
+.referenceStaffShell :is(button,input,textarea,select,summary):focus-visible,#staffRefNewsDrawer button:focus-visible{outline:2px solid #0e6da8;outline-offset:3px}
+.refStaffError{margin:10px 15px;padding:12px;border:1px solid #ecc7c2;background:#fff6f4;border-radius:12px;color:#8d3429;font-size:12px;line-height:1.45}
+.refStaffNewsStatus{font-size:12px;color:var(--ref-muted);padding:8px 12px}
+#staffRefNewsDrawer .refNewsHead button{width:44px;height:44px}
+#staffRefNewsDrawer .refNewsItem{min-height:70px}
+@media(prefers-reduced-motion:reduce){#staffRefNewsDrawer,#staffRefNewsBackdrop{transition:none}}
