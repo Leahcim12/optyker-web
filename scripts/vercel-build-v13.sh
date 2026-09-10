@@ -1,5 +1,27 @@
 #!/usr/bin/env bash
 set -e
+
+# Vercel's build image may not include cmp. Keep byte-for-byte checks using
+# Python, which is already required by every patch step in this build.
+verify_desktop_aliases() {
+  python - <<'VERIFY_ALIASES'
+from pathlib import Path
+
+root = Path('_site')
+try:
+    original = (root / 'index.html').read_bytes()
+    if not original:
+        raise SystemExit('Desktop verification failed: index.html is empty')
+    for alias in ('gestionale-v2', 'gestionale-v3'):
+        target = root / alias / 'index.html'
+        if target.read_bytes() != original:
+            raise SystemExit('Desktop verification failed: ' + str(target) + ' differs from index.html')
+except OSError as exc:
+    raise SystemExit('Desktop verification failed: ' + str(exc))
+print('Desktop entry points verified byte-for-byte (Python; no cmp dependency)')
+VERIFY_ALIASES
+}
+
 bash scripts/vercel-build-v12.sh
 python scripts/patch_eyewear_summary_stability_v13.py
 python scripts/patch_quote_dates_red.py
@@ -42,11 +64,9 @@ python scripts/apply_vision_design.py
 grep -q 'id="optykerVisionCss"' _site/index.html
 grep -q 'id="optykerVisionJs"' _site/index.html
 test -s _site/optyker-vision-eye.webp
-cmp _site/index.html _site/gestionale-v2/index.html
-cmp _site/index.html _site/gestionale-v3/index.html
+verify_desktop_aliases
 echo "Optyker Vision production build OK"
 
 # GitHub Pages has a repository subpath; Vercel uses the domain root.
 python scripts/patch_public_asset_paths.py
-cmp _site/index.html _site/gestionale-v2/index.html
-cmp _site/index.html _site/gestionale-v3/index.html
+verify_desktop_aliases
