@@ -1,0 +1,94 @@
+name: Prepara OVC Card e Laboratorio
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/stage-ovc-release.yml']
+permissions:
+  contents: write
+concurrency:
+  group: optyker-ovc-source-stage
+  cancel-in-progress: false
+jobs:
+  stage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Recupera solo il pacchetto sorgente verificato
+        run: |
+          python3 - <<'PY'
+          import json,hashlib,zipfile,io,urllib.request
+          from pathlib import Path
+          expected={'optyker-ovc.js','optyker-ovc.css','cash-ovc-hooks.js','ovc-card-logo.png','scripts/apply_ovc_release.py','scripts/finalize_ovc_manifest.py','scripts/ovc-backend-check.py','supabase/functions/optyker-cash-register-api-ovc/index.ts','supabase/functions/optyker-cash-register-api-ovc/ovc-pricing.ts','supabase/functions/optyker-cash-register-api-ovc/history.ts','tests/ovc-pricing.test.ts'}
+          url='https://whgziwaegjzqsgcntesr.supabase.co/storage/v1/object/public/optyker-web/ovc-release-20260910-7e5b92d4.zip'
+          with urllib.request.urlopen(url,timeout=30) as r: raw=r.read(2000001)
+          assert 1000<len(raw)<=2000000,'Unexpected release package size'
+          z=zipfile.ZipFile(io.BytesIO(raw))
+          assert set(z.namelist())==expected|{'release-manifest.json'},'Unexpected archive paths'
+          assert sum(x.file_size for x in z.infolist())<3000000,'Oversized source package'
+          m=json.loads(z.read('release-manifest.json'))
+          assert m['release']=='20260910-ovc1'
+          assert m['base_commit']=='48caac8e87d9b1e1d9042aba7dfbfec84e8b4c37'
+          for n in ('local-report.json','browser-report.json'):
+              report=m['local_verification'][n]
+              assert report.get('ok') is True or report.get('success') is True,'Local verification incomplete'
+              assert not report.get('errors'),'Local test errors'
+          for name in sorted(expected):
+              data=z.read(name)
+              assert hashlib.sha256(data).hexdigest()==m['files'][name],'Corrupt source file: '+name
+              p=Path(name)
+              if p.exists(): assert p.read_bytes()==data,'Existing source changed concurrently: '+name
+              p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(data)
+          assert z.read('ovc-card-logo.png').startswith(b'\x89PNG\r\n\x1a\n'),'Original PNG logo required'
+          Path('docs').mkdir(exist_ok=True)
+          Path('docs/ovc-release-validation.json').write_text(json.dumps({'release':m['release'],'files':m['files'],'local_tests_passed':True},indent=2)+'\n')
+          PY
+      - name: Verifica sintassi e prezzi senza vendite reali
+        run: |
+          node --check optyker-ovc.js
+          node --check cash-ovc-hooks.js
+          python3 -m py_compile scripts/apply_ovc_release.py scripts/finalize_ovc_manifest.py scripts/ovc-backend-check.py
+          npx --yes --package=tsx@4.19.4 tsx tests/ovc-pricing.test.ts
+      - name: Verifica integrazione sulla build completa
+        env:
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          bash scripts/vercel-build-v13.sh
+          python3 scripts/apply_ovc_release.py
+          node --check _site/cash-register.js
+          node --check _site/optyker-ovc.js
+          python3 scripts/apply_ovc_release.py
+          GITHUB_PAGES=true python3 scripts/patch_public_asset_paths.py
+          python3 scripts/finalize_ovc_manifest.py
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,hashlib
+          p=Path('_site');s=(p/'index.html').read_bytes()
+          assert s==(p/'gestionale-v2/index.html').read_bytes()==(p/'gestionale-v3/index.html').read_bytes()
+          assert b'optyker-ovc' in s
+          assert (p/'ovc-card-logo.png').read_bytes()==Path('ovc-card-logo.png').read_bytes()
+          m=json.loads((p/'ovc-version.json').read_text())
+          assert m['version']=='20260910-ovc1'
+          for name,value in m['assets'].items():
+              assert hashlib.sha256((p/name).read_bytes()).hexdigest()==value
+          PY
+      - name: Salva sorgenti e riferimento immutabile
+        run: |
+          git config user.name 'Optyker Release'
+          git config user.email '30346110+Leahcim12@users.noreply.github.com'
+          git add optyker-ovc.js optyker-ovc.css cash-ovc-hooks.js ovc-card-logo.png scripts/apply_ovc_release.py scripts/finalize_ovc_manifest.py scripts/ovc-backend-check.py supabase/functions/optyker-cash-register-api-ovc tests/ovc-pricing.test.ts docs/ovc-release-validation.json
+          if ! git diff --cached --quiet; then git commit -m 'Implement OVC Card service pricing, warehouse and clinical design, and eyewear laboratory ordering'; fi
+          if git rev-parse -q --verify refs/tags/optyker-ovc-release-20260910 >/dev/null; then
+            test "$(git rev-parse optyker-ovc-release-20260910^{tree})" = "$(git rev-parse HEAD^{tree})"
+          else
+            git tag optyker-ovc-release-20260910
+          fi
+          git push --atomic origin HEAD:main refs/tags/optyker-ovc-release-20260910
+          echo 'Sorgenti verificati. Attivazione frontend subordinata al backend OVC autenticato.' >> "$GITHUB_STEP_SUMMARY"
