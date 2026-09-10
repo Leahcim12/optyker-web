@@ -1,102 +1,125 @@
 <!doctype html>
 <html lang="it">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="referrer" content="no-referrer">
-  <meta name="theme-color" content="#ffffff">
-  <title>Recupera password · Optyker</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <style>
-    *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#eef3f7;color:#19384d}
-    body{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px 18px}
-    .card{width:100%;max-width:430px;background:#fff;border:1px solid #d6e0e8;border-radius:20px;padding:28px 24px;box-shadow:0 18px 45px rgba(23,50,74,.14)}
-    .brand{text-align:center;margin-bottom:22px}.brand b{display:block;font-size:29px;color:#122e47}.brand span{font-size:9px;font-weight:900;letter-spacing:.11em;color:#748697}
-    h1{text-align:center;font-size:20px;margin:0 0 8px;color:#173e69}.help{text-align:center;font-size:12px;line-height:1.5;color:#6d8291;margin-bottom:18px}
-    label{display:block;font-size:11px;font-weight:800;color:#52677a;margin:12px 0 6px}
-    input{width:100%;height:46px;border:1px solid #c7d4e1;border-radius:10px;padding:0 12px;background:#fbfdff;color:#19384d;font-size:16px}
-    button,.btn{width:100%;min-height:46px;border:0;border-radius:11px;background:#1769aa;color:#fff;font-weight:900;margin-top:16px;text-decoration:none;display:flex;align-items:center;justify-content:center}
-    button:disabled{opacity:.55}.status{min-height:18px;margin-top:12px;text-align:center;font-size:12px;color:#6d8291}.status.bad{color:#b42318}.status.ok{color:#247047}
-    .hidden{display:none}.small{text-align:center;color:#80909d;font-size:10px;margin-top:12px}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Cache-Control" content="no-store">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#ffffff">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src https://cdn.shopify.com; connect-src https://whgziwaegjzqsgcntesr.supabase.co; base-uri 'none'; form-action 'none'; object-src 'none'">
+<title>Recupera password · Ottica Visual Care</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100dvh;display:grid;place-items:center;padding:24px 18px;background:linear-gradient(160deg,#fff,#edf3f7);color:#12385b;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.card{width:min(100%,430px);padding:28px 24px;border:1px solid #dfe8ef;border-radius:24px;background:#fff;box-shadow:0 20px 65px #12385b12}.brand{display:flex;gap:12px;align-items:center;margin-bottom:28px}.brand img{width:58px;height:58px;object-fit:contain}.brand b{font-size:14px;letter-spacing:.1em}.brand small{display:block;font-size:9px;letter-spacing:.14em;margin-top:5px;color:#71869a}h1{font:600 29px/1.1 Georgia,serif;color:#082f57;margin:0 0 12px}p{font-size:14px;line-height:1.55;color:#60778b;margin:10px 0 18px}.account{background:#eef5fa;border:1px solid #d9e7f0;border-radius:13px;padding:11px 12px;font-size:12px;color:#254e70;overflow-wrap:anywhere}label{display:block;font-size:13px;font-weight:600;margin:18px 0 7px}input{width:100%;height:48px;padding:0 12px;border:1px solid #c9d9e5;border-radius:12px;font-size:16px;background:#fbfdff;color:#12385b}input:focus{outline:2px solid #0d659f;outline-offset:2px}button,.button{display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;margin-top:20px;padding:12px;border:0;border-radius:12px;background:#07598f;color:#fff;font:600 14px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-decoration:none;cursor:pointer}button:disabled{opacity:.55;cursor:wait}.secondary{color:#07598f;background:#eef5fa}.status{font-size:13px;line-height:1.5;min-height:18px;margin-top:12px;overflow-wrap:anywhere;color:#b42318}.foot{font-size:11px;line-height:1.5;color:#71869a;margin:20px 0 0}.hidden{display:none!important}
+</style>
 </head>
 <body>
-  <main class="card">
-    <div class="brand"><b>Optyker</b><span>OTTICA VISUAL CARE · AREA CLIENTE</span></div>
-    <section id="loading">
-      <h1>Recupero password</h1>
-      <div class="help">Verifica del link di recupero in corso…</div>
-      <div id="loadingStatus" class="status"></div>
-    </section>
-    <section id="form" class="hidden">
-      <h1>Crea una nuova password</h1>
-      <div class="help">Inserisci la nuova password e confermala.</div>
-      <label>Nuova password</label>
-      <input id="pwd1" type="password" autocomplete="new-password" placeholder="Minimo 8 caratteri">
-      <label>Ripeti password</label>
-      <input id="pwd2" type="password" autocomplete="new-password" placeholder="Ripeti la password">
-      <button id="save" type="button">SALVA NUOVA PASSWORD</button>
-      <div id="msg" class="status"></div>
-    </section>
-    <section id="done" class="hidden">
-      <h1>Password aggiornata</h1>
-      <div class="help">La nuova password è stata salvata. Ora puoi tornare nell’app e accedere.</div>
-      <a class="btn" href="../iphone-app-v9/">APRI OPTYKER</a>
-      <div class="small">Puoi anche chiudere questa pagina e tornare direttamente all’app.</div>
-    </section>
-    <section id="invalid" class="hidden">
-      <h1>Link non valido o scaduto</h1>
-      <div class="help">Richiedi un nuovo recupero password dalla schermata di accesso Optyker.</div>
-      <a class="btn" href="../iphone-app-v9/">TORNA A OPTYKER</a>
-      <div id="invalidMsg" class="status bad"></div>
-    </section>
-  </main>
+<main class="card">
+ <div class="brand"><img src="https://cdn.shopify.com/s/files/1/0917/4289/6503/files/visual-care-logo-app-original.png?v=1787903859" alt="Ottica Visual Care"><div><b>OTTICA<br>VISUAL CARE</b><small>ACCESSO OPTYKER</small></div></div>
+ <section id="loading"><h1>Verifica del link</h1><p>Stiamo verificando il link ricevuto nella tua email.</p></section>
+ <section id="passwordSection" class="hidden">
+  <h1>Scegli una nuova password</h1><p>Questa modifica riguarda esclusivamente l’account verificato dal link.</p>
+  <div id="accountEmail" class="account"></div>
+  <form id="passwordForm">
+   <label for="pwd1">Nuova password</label><input id="pwd1" type="password" autocomplete="new-password" minlength="8" maxlength="128" required placeholder="Almeno 8 caratteri">
+   <label for="pwd2">Ripeti la nuova password</label><input id="pwd2" type="password" autocomplete="new-password" minlength="8" maxlength="128" required>
+   <button id="save" type="submit">SALVA NUOVA PASSWORD</button>
+  </form>
+  <div id="msg" class="status" role="status" aria-live="polite"></div>
+  <p class="foot">Non condividere il link. Non ti verrà chiesto di selezionare un altro account.</p>
+ </section>
+ <section id="done" class="hidden"><h1>Password aggiornata</h1><p id="doneText">Ora torna all’app ed effettua l’accesso con la nuova password.</p><a class="button" href="../iphone-app-v13/?app=13&amp;fresh=20260911-secure-auth-v1">TORNA ALL’ACCESSO</a></section>
+ <section id="confirmed" class="hidden"><h1>Email confermata</h1><p>Ora puoi accedere a Optyker con l’email e la password scelte durante la registrazione.</p><a class="button" href="../iphone-app-v13/?app=13&amp;fresh=20260911-secure-auth-v1">APRI OPTYKER</a></section>
+ <section id="invalid" class="hidden"><h1>Link non valido o scaduto</h1><p>Apri il link ricevuto via email. Se è già stato utilizzato o è scaduto, richiedine uno nuovo da “Password dimenticata”. Nessuna password è stata modificata.</p><a class="button" href="../iphone-app-v13/?app=13&amp;fresh=20260911-secure-auth-v1">RICHIEDI UN NUOVO LINK</a></section>
+</main>
 <script>
-const U='https://whgziwaegjzqsgcntesr.supabase.co';
-const K='sb_publishable_DndhLvY32YeCmqWMNRi30g_dEDm8upv';
-const sb=window.supabase.createClient(U,K,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:true}});
-const $=id=>document.getElementById(id);
-function show(id){['loading','form','done','invalid'].forEach(x=>$(x).classList.toggle('hidden',x!==id))}
-function bad(text){$('invalidMsg').textContent=text||'';show('invalid')}
-async function establish(){
-  const hash=new URLSearchParams((location.hash||'').replace(/^#/,''));
-  const qs=new URLSearchParams(location.search||'');
-  const err=hash.get('error_description')||qs.get('error_description')||hash.get('error')||qs.get('error');
-  if(err){bad(decodeURIComponent(err));return}
+/* OPTYKER_ISOLATED_PASSWORD_RECOVERY_V1 */
+(function(){
+ 'use strict';
+ const U='https://whgziwaegjzqsgcntesr.supabase.co';
+ const K='sb_publishable_DndhLvY32YeCmqWMNRi30g_dEDm8upv';
+ const hash=new URLSearchParams(location.hash.slice(1));
+ const query=new URLSearchParams(location.search);
+ let access=hash.get('access_token')||'';
+ let refresh=hash.get('refresh_token')||'';
+ const kind=hash.get('type')||query.get('type')||'';
+ const tokenHash=query.get('token_hash')||'';
+ const linkError=hash.has('error')||hash.has('error_code')||query.has('error')||query.has('error_code');
+ let verifiedUser=null,consumed=false,busy=false;
+ // Tokens are kept in this closure only, never in local/session storage.
+ history.replaceState(null,'',location.pathname);
+ const $=id=>document.getElementById(id);
+ function show(id){['loading','passwordSection','done','confirmed','invalid'].forEach(x=>$(x).classList.toggle('hidden',x!==id))}
+ function invalid(){access='';refresh='';verifiedUser=null;show('invalid')}
+ async function request(path,method,body,bearer=''){
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
   try{
-    const access=hash.get('access_token'),refresh=hash.get('refresh_token');
-    if(access&&refresh){
-      const {error}=await sb.auth.setSession({access_token:access,refresh_token:refresh});
-      if(error)throw error;
-    }else if(qs.get('code')){
-      const {error}=await sb.auth.exchangeCodeForSession(qs.get('code'));
-      if(error)throw error;
-    }
-    const {data,error}=await sb.auth.getSession();
-    if(error)throw error;
-    if(data?.session){show('form');return}
-    setTimeout(async()=>{
-      const r=await sb.auth.getSession();
-      if(r.data?.session)show('form');else bad('Il link di recupero non contiene una sessione valida.');
-    },700);
-  }catch(e){bad(e?.message||'Impossibile verificare il link di recupero.')}
-}
-sb.auth.onAuthStateChange((event,session)=>{
-  if((event==='PASSWORD_RECOVERY'||event==='SIGNED_IN')&&session)show('form');
-});
-$('save').onclick=async()=>{
-  const p1=$('pwd1').value,p2=$('pwd2').value,msg=$('msg'),btn=$('save');
-  msg.className='status';msg.textContent='';
-  if(p1.length<8){msg.className='status bad';msg.textContent='La password deve avere almeno 8 caratteri.';return}
-  if(p1!==p2){msg.className='status bad';msg.textContent='Le due password non coincidono.';return}
-  btn.disabled=true;btn.textContent='SALVATAGGIO…';
-  const {error}=await sb.auth.updateUser({password:p1});
-  if(error){msg.className='status bad';msg.textContent=error.message;btn.disabled=false;btn.textContent='SALVA NUOVA PASSWORD';return}
-  await sb.auth.signOut().catch(()=>{});
-  history.replaceState(null,'',location.pathname);
-  show('done');
-};
-establish();
+   const response=await fetch(U+'/auth/v1/'+path,{method,credentials:'omit',cache:'no-store',signal:controller.signal,
+    headers:{'apikey':K,'Content-Type':'application/json',...(bearer?{'Authorization':'Bearer '+bearer}:{})},
+    ...(body?{body:JSON.stringify(body)}:{})});
+   const value=await response.json().catch(()=>({}));
+   if(!response.ok)throw Object.assign(new Error('AUTH_REQUEST_FAILED'),{status:response.status,code:value.code||value.error_code||''});
+   return value;
+  }finally{clearTimeout(timer)}
+ }
+ async function establish(){
+  if(linkError||!['recovery','signup'].includes(kind)){invalid();return}
+  try{
+   if(tokenHash){
+    const verified=await request('verify','POST',{type:kind,token_hash:tokenHash});
+    access=verified.access_token||'';refresh=verified.refresh_token||'';
+   }
+   // A login already stored elsewhere is deliberately never consulted.
+   if(!access||!refresh){invalid();return}
+   const user=await request('user','GET',null,access);
+   if(!user.id||!user.email||!user.email_confirmed_at){invalid();return}
+   verifiedUser=user;
+   if(kind==='signup'){
+    await request('logout?scope=local','POST',null,access).catch(()=>{});
+    access='';refresh='';verifiedUser=null;show('confirmed');return;
+   }
+   $('accountEmail').textContent='Account: '+user.email;
+   show('passwordSection');
+  }catch(_){invalid()}
+ }
+ $('passwordForm').onsubmit=async(event)=>{
+  event.preventDefault();
+  if(busy||consumed||!access||!verifiedUser||kind!=='recovery')return;
+  if(!$('passwordForm').reportValidity())return;
+  const password=$('pwd1').value;
+  $('msg').textContent='';
+  if(password!==$('pwd2').value){$('msg').textContent='Le due password non coincidono.';return}
+  busy=true;$('save').disabled=true;$('save').textContent='SALVATAGGIO…';
+  try{
+   // No email, user id or client id can be supplied as a reset target.
+   const updated=await request('user','PUT',{password},access);
+   if(updated.id!==verifiedUser.id)throw new Error('ACCOUNT_MISMATCH');
+   consumed=true;
+   // Staff also has a legacy practice-management password. The existing
+   // endpoint validates this same bearer and derives the email server-side.
+   const staff=verifiedUser.app_metadata?.optyker_staff===true||verifiedUser.user_metadata?.optyker_staff===true;
+   if(staff){
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
+    try{
+     const response=await fetch(U+'/functions/v1/optyker-staff-auth',{method:'POST',credentials:'omit',cache:'no-store',signal:controller.signal,
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+access},body:JSON.stringify({action:'reset',password})});
+     const data=await response.json();
+     if(!response.ok||data.ok===false)throw new Error('STAFF_SYNC_FAILED');
+    }catch(_){$('doneText').textContent='La password dell’app è stata aggiornata. Non è stato possibile allineare la password operatore del gestionale: contatta Ottica Visual Care.'}
+    finally{clearTimeout(timer)}
+   }
+   // Revoke refresh sessions for this verified account, not for another user.
+   await request('logout?scope=global','POST',null,access).catch(()=>{});
+   access='';refresh='';verifiedUser=null;$('pwd1').value='';$('pwd2').value='';
+   show('done');
+  }catch(error){
+   if(error.status===401||error.status===403){invalid();return}
+   $('msg').textContent=error.status===429?'Troppe richieste. Attendi e riprova.':'Salvataggio non riuscito. Controlla che la password abbia almeno 8 caratteri e riprova. Se il problema continua, richiedi un nuovo link.';
+   $('save').disabled=false;$('save').textContent='SALVA NUOVA PASSWORD';
+  }finally{busy=false}
+ };
+ establish();
+})();
 </script>
 </body>
 </html>

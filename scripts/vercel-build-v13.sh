@@ -126,3 +126,11 @@ verify_desktop_aliases
 node --check iphone-app-v13/staff-reference-ui-v1.js
 python scripts/apply_iphone_staff_reference.py
 node scripts/test_iphone_staff_reference.cjs
+
+# Password recovery requires verified email, not biographical information.
+# Apply to the final artifact after all UI patches, and fail closed on regression.
+node --check iphone-app-v13/secure-auth-v1.js
+node --check iphone-app-v13/secure-sw-v1.js
+python scripts/apply_secure_auth.py
+node --test tests/secure-auth.test.cjs
+python scripts/check_live_auth_security.py
