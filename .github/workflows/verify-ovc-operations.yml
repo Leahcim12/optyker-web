@@ -1,0 +1,71 @@
+name: Verifica OVC Card e Laboratorio live
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ['Pubblica Optyker']
+    types: [completed]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verifica commit, asset pubblicati e autenticazione senza dati cliente
+        env:
+          EXPECTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          python3 - <<'PY'
+          import hashlib,json,os,time,urllib.request,urllib.error
+          from pathlib import Path
+          from concurrent.futures import ThreadPoolExecutor
+          def get(url):
+              req=urllib.request.Request(url,headers={'Cache-Control':'no-cache','User-Agent':'Optyker-OVC-Verification/2.0'})
+              with urllib.request.urlopen(req,timeout=15) as r:
+                  return r.read(4000000)
+          def check(base):
+              err=''
+              for attempt in range(12):
+                  try:
+                      m=json.loads(get(base+'operations-version.json'))
+                      assert m['commit']==os.environ['EXPECTED_COMMIT'],'Public deployment not yet current'
+                      assert m['version']=='20260910-ovc2','Wrong release version'
+                      assets={}
+                      for name,expected in m['assets'].items():
+                          raw=get(base+name+'?v='+m['version'])
+                          assert hashlib.sha256(raw).hexdigest()==expected,'Hash mismatch '+name
+                          assets[name]={'http':200,'bytes':len(raw),'sha256':expected}
+                          if name=='cash-register.js':assert b'function ovcCartKey' in raw and b'ovc_version' in raw
+                          if name=='optyker-vision.js':assert b"cashNav.id='visionNavCash'" not in raw
+                      for alias in ('','gestionale-v2/','gestionale-v3/'):
+                          h=get(base+alias).decode('utf-8')
+                          assert 'data-ovc-ui="2"' in h and 'id="optykerOperationsJs"' in h
+                          assert 'window.optykerEyewearOrderBridge=' in h
+                          assert 'OPTYKER_TS_CATALOG_V1' in h and 'OPTYKER_ESOFORM_CATALOG_V1' in h
+                      return {'base':base,'ok':True,'commit':m['commit'],'version':m['version'],'assets':assets}
+                  except Exception as e:
+                      err=str(e)
+                      if attempt<11:time.sleep(5)
+              return {'base':base,'ok':False,'error':err}
+          with ThreadPoolExecutor(max_workers=2) as pool:
+              results=list(pool.map(check,['https://www.optyker.it/','https://leahcim12.github.io/optyker-web/']))
+          auth={'ok':False}
+          req=urllib.request.Request('https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-cash-register-api',method='POST',headers={'Content-Type':'application/json'},data=json.dumps({'action':'quote_lines','payload':{'lines':[]}}).encode())
+          try:
+              urllib.request.urlopen(req,timeout=20)
+              auth['error']='Unauthenticated request unexpectedly accepted'
+          except urllib.error.HTTPError as e:
+              body=json.loads(e.read())
+              auth={'http':e.code,'ok':e.code==401 and body.get('error')=='AUTH_REQUIRED'}
+          except Exception as e:auth['error']=str(e)
+          report={'sites':results,'anonymous_quote_denied':auth}
+          Path('ovc-operations-live.json').write_text(json.dumps(report,indent=2))
+          print(json.dumps(report,indent=2))
+          if not all(x['ok'] for x in results) or not auth['ok']:raise SystemExit('OVC public verification failed')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ovc-operations-live
+          path: ovc-operations-live.json
+          retention-days: 7

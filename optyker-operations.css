@@ -1,0 +1,133 @@
+/* OPTYKER / Vision Operations. Screen-only: preserve clinical and print geometry. */
+@media screen {
+ html[data-ovc-ui] {--ovc-ink:#15365b;--ovc-muted:#63809b;--ovc-line:#d9e6f4;--ovc-blue:#167fe8;--ovc-shadow:0 6px 24px #16395c09}
+ html[data-ovc-ui] #moduleNav #visionNavCash {display:none!important}
+ html[data-ovc-ui] #mainApp :is(#warehousePanel,#analysisPanel,#prescriptionPanel,#visualExamPanel,#indicationsPanel,#hearingPanel,#lacPanel,#eyewearPanel,#labOrdersPanel) {padding:24px!important;background:#f7faff!important;border:1px solid #dae7f5!important;border-radius:21px!important;box-shadow:var(--ovc-shadow)!important;min-width:0!important;color:var(--ovc-ink)}
+ html[data-ovc-ui] #mainApp :is(.whHead,.eyHead,.lacHead,.veTitleRow,.rxTitleRow,.hearingTitleRow,.iuTitleRow,.labHead) {position:relative;isolation:isolate;overflow:hidden;padding:25px 27px!important;margin:0 0 20px!important;border:1px solid #245172!important;border-radius:17px!important;background:radial-gradient(ellipse at 100% 10%,#1e6382,transparent 62%),linear-gradient(112deg,#0b2548,#163f65)!important;display:flex;align-items:center!important;justify-content:space-between!important;gap:22px!important;flex-wrap:wrap!important}
+ html[data-ovc-ui] #mainApp :is(.whHead,.eyHead,.lacHead,.veTitleRow,.rxTitleRow,.hearingTitleRow,.iuTitleRow,.labHead)::after {content:'';position:absolute;z-index:-1;width:230px;height:230px;border:1px solid #9fdbff23;border-radius:50%;right:13%;top:-110px;box-shadow:0 0 0 36px #9bdaf709,0 0 0 37px #9bdaf712;pointer-events:none}
+ html[data-ovc-ui] #mainApp :is(.whTitle,.eyTitle,.lacTitle,.veTitle,.rxTitle,.hearingTitle,.iuTitle,.labTitle) {font-size:27px!important;font-weight:600!important;letter-spacing:-.7px!important;line-height:1.3!important;margin:0!important;color:#f4faff!important;text-transform:none!important}
+ html[data-ovc-ui] #mainApp :is(.whEyebrow,.eyEyebrow,.lacEyebrow,.labEyebrow) {font-size:10px!important;font-weight:550!important;color:#9bcced!important;letter-spacing:.16em!important;margin-bottom:8px!important}
+ html[data-ovc-ui] #mainApp :is(.whSub,.eySub,.lacSubtitle,.veHint,.hearingHint,.iuHint,.labSub) {font-size:12px!important;line-height:1.65!important;color:#bed6eb!important;font-weight:400!important;margin-top:8px!important}
+ html[data-ovc-ui] #mainApp :is(.whHeadActions,.eyHeadActions,.labHeadActions) {gap:9px!important;flex-wrap:wrap!important}
+ html[data-ovc-ui] #mainApp :is(.whHead,.eyHead,.lacHead,.labHead) button {border:1px solid #78a4c7!important;background:#ffffff0d!important;color:#f3faff!important;box-shadow:none!important;min-height:41px!important;font-size:12px!important;font-weight:550!important;border-radius:10px!important;padding:10px 14px!important}
+ html[data-ovc-ui] #mainApp :is(.whHead,.eyHead,.lacHead,.labHead) button.primary {background:#2189ed!important;border-color:#3ea2fb!important}
+ html[data-ovc-ui] #warehousePanel .whStats {gap:14px!important;margin-bottom:20px!important}
+ html[data-ovc-ui] #warehousePanel .whStat {padding:20px!important;min-height:95px!important;border:1px solid #dce8f6!important;border-radius:15px!important;background:linear-gradient(135deg,#fff,#f3f9ff)!important;box-shadow:var(--ovc-shadow)!important}
+ html[data-ovc-ui] #warehousePanel .whStat b {font-size:29px!important;letter-spacing:-1px!important;line-height:1.3!important;color:#1c5289!important;font-weight:600!important;font-variant-numeric:tabular-nums}
+ html[data-ovc-ui] #warehousePanel .whStat span {font-size:11px!important;line-height:1.6!important;color:#657f99!important;font-weight:450!important}
+ html[data-ovc-ui] #warehousePanel .whToolbar {padding:14px!important;border:1px solid #dce8f5!important;border-radius:14px!important;background:#fff!important;gap:10px!important;flex-wrap:wrap!important;margin-bottom:15px!important}
+ html[data-ovc-ui] #warehousePanel :is(.whToolbar input,.whToolbar select) {border:1px solid #cddff3!important;border-radius:10px!important;height:43px!important;padding:10px 13px!important;color:#244a70!important;background:#f9fbff!important;font-size:13px!important;min-width:0!important}
+ html[data-ovc-ui] #warehousePanel #whSearch {flex:1 1 340px!important;width:auto!important}
+ html[data-ovc-ui] #warehousePanel :is(.whBtn,.whPager button) {min-height:38px!important;border-radius:9px!important;padding:9px 13px!important;font-size:12px!important;font-weight:550!important;border-color:#cbdff3!important;box-shadow:none!important}
+ html[data-ovc-ui] #warehousePanel .whBtn.primary {background:#197ce4!important;border-color:#197ce4!important;color:#fff!important}
+ html[data-ovc-ui] #warehousePanel .whBulkBar {border-color:#d8e6f6!important;border-radius:12px!important;background:#eef5ff!important;padding:14px 17px!important}
+ html[data-ovc-ui] #warehousePanel .whSyncInfo {font-size:11px!important;line-height:1.8!important;color:#66809d!important;margin:14px 3px!important}
+ html[data-ovc-ui] #warehousePanel .whTableWrap {border:1px solid #d8e6f4!important;border-radius:15px!important;overflow:auto!important;background:#fff;box-shadow:var(--ovc-shadow);scrollbar-width:thin;scrollbar-color:#b7cee6 transparent}
+ html[data-ovc-ui] #warehousePanel .whTable {font-size:12px!important;min-width:900px!important}
+ html[data-ovc-ui] #warehousePanel .whTable th {padding:15px 12px!important;background:#ecf4fd!important;color:#4f7398!important;font-size:10px!important;font-weight:600!important;letter-spacing:.04em!important;border-color:#dce8f6!important}
+ html[data-ovc-ui] #warehousePanel .whTable td {padding:15px 12px!important;border-color:#e8eff8!important;vertical-align:middle!important}
+ html[data-ovc-ui] #warehousePanel .whTable tr:hover td {background:#f7fbff!important}
+ html[data-ovc-ui] #warehousePanel :is(.whProductTitle,.whName) {font-size:13px!important;font-weight:600!important;color:#274d74!important}
+ html[data-ovc-ui] #warehousePanel :is(.whProductMeta,.whMeta) {font-size:11px!important;line-height:1.6!important;color:#69839d!important}
+ html[data-ovc-ui] #warehousePanel .whTable img {border-radius:11px!important;background:#f6f9fd!important;object-fit:contain!important}
+ html[data-ovc-ui] .whModal :is(.whModalCard,.whCard) {border-radius:19px!important;border-color:#d7e7f5!important;box-shadow:0 22px 70px #09284a45!important}
+ html[data-ovc-ui] .whModal :is(input:not([type=checkbox]),select,textarea) {border-color:#ccdeef!important;border-radius:10px!important;min-height:41px!important;font-size:13px!important;background:#fbfdff!important}
+ /* Clinical controls retain their IDs, calculations, OD/OS color coding and visibility. */
+ html[data-ovc-ui] #mainApp :is(#analysisPanel,#prescriptionPanel,#visualExamPanel,#indicationsPanel,#hearingPanel,#lacPanel,#eyewearPanel) :is(.field>label,.eyField>label,.lacField>label) {font-size:12px!important;font-weight:550!important;line-height:1.5!important;color:#4b6c8e!important;letter-spacing:0!important}
+ html[data-ovc-ui] #mainApp :is(#analysisPanel,#prescriptionPanel,#visualExamPanel,#indicationsPanel,#hearingPanel,#lacPanel,#eyewearPanel) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea) {border:1px solid #ccdeef!important;border-radius:9px!important;background:#fff!important;color:#153c65!important;font-family:inherit!important;font-size:13px!important;box-shadow:inset 0 1px 2px #17375b04!important}
+ html[data-ovc-ui] #mainApp :is(#analysisPanel,#visualExamPanel,#indicationsPanel,#hearingPanel,#lacPanel,#eyewearPanel) :is(.field input,.field select,.eyField input,.eyField select,.lacField input,.lacField select) {min-height:40px!important;padding:9px 11px!important}
+ html[data-ovc-ui] #mainApp :is(#analysisPanel,#prescriptionPanel,#visualExamPanel,#indicationsPanel,#hearingPanel,#lacPanel,#eyewearPanel) :is(input,select,textarea):focus {border-color:#479ae8!important;box-shadow:0 0 0 3px #1988ef0e!important}
+ html[data-ovc-ui] #mainApp :is(#analysisPanel,#prescriptionPanel,#visualExamPanel,#indicationsPanel,#hearingPanel,#lacPanel,#eyewearPanel) :is(.primary,.secondary,.eyBtn) {border-radius:10px!important;min-height:40px!important;padding:10px 15px!important;font-weight:550!important;font-size:12px!important;box-shadow:none!important}
+ html[data-ovc-ui] #mainApp :is(#analysisPanel,#prescriptionPanel,#visualExamPanel,#indicationsPanel,#hearingPanel,#lacPanel,#eyewearPanel) :is(.primary,.eyBtn.primary) {background:#197ee7!important;border-color:#197ee7!important;color:#fff!important}
+ html[data-ovc-ui] #mainApp :is(.veButtons,.lacTabs,.eyModeBar) {gap:7px!important;padding:5px!important;border-radius:13px!important;background:#eaf2fc!important;border:1px solid #d9e7f5!important;flex-wrap:wrap!important}
+ html[data-ovc-ui] #mainApp :is(.veChoiceBtn,.lacTab,.eyModeBtn) {border:1px solid transparent!important;border-radius:9px!important;min-height:40px!important;font-size:12px!important;padding:9px 17px!important;color:#587695!important;font-weight:550!important;background:transparent!important;box-shadow:none!important}
+ html[data-ovc-ui] #mainApp :is(.veChoiceBtn,.lacTab,.eyModeBtn).active {background:#fff!important;border-color:#d7e6f6!important;color:#1667b3!important;box-shadow:0 3px 9px #183d6710!important}
+ html[data-ovc-ui] #mainApp :is(.hearingSection,.veSection,.lacCard,.lacProductCard,.eyStage,.eyCatalogBox,.eyRecent,.iuDocumentCard) {padding:22px!important;border:1px solid #dce8f6!important;border-radius:16px!important;background:#fff!important;box-shadow:var(--ovc-shadow)!important}
+ html[data-ovc-ui] #mainApp :is(.hearingSectionTitle,.veSectionTitle,.lacSectionTitle,.eyStageTitle,.eyRecentTitle,.analysisCombinedTitle) {font-size:18px!important;font-weight:600!important;line-height:1.5!important;letter-spacing:-.3px!important;color:#284f79!important}
+ html[data-ovc-ui] #analysisPanel .analysisCombinedTitle {padding:18px 20px!important;border-radius:13px!important;background:#eaf4ff!important;margin-bottom:20px!important}
+ html[data-ovc-ui] #analysisPanel .analysisCombinedGrid {gap:18px!important;padding:20px!important;border-radius:15px!important;border:1px solid #dce9f6!important;background:#fff!important}
+ html[data-ovc-ui] #eyewearPanel :is(.eyLayout,.eyGrid2,.eyGrid3,.eyGrid4) {gap:18px!important}
+ html[data-ovc-ui] #eyewearPanel .eySteps {border:1px solid #dce7f5!important;border-radius:14px!important;padding:8px!important;background:#eef5fd!important}
+ html[data-ovc-ui] #eyewearPanel .eyStep {border-radius:10px!important;padding:13px!important;border-color:transparent!important;font-size:12px!important;background:transparent!important;color:#567494!important}
+ html[data-ovc-ui] #eyewearPanel .eyStep.active {background:#fff!important;border-color:#c5dcf5!important;color:#176ec2!important;box-shadow:0 3px 12px #12345c0c!important}
+ html[data-ovc-ui] #eyewearPanel :is(.eyColorMode,.eyCheck) {border-radius:11px!important;border-color:#d7e5f5!important;background:#f7fbff!important;padding:15px!important;font-size:12px!important}
+ html[data-ovc-ui] #eyewearPanel .eySummary {padding:20px!important;border-color:#ccdfef!important;border-radius:14px!important;background:linear-gradient(110deg,#edf6ff,#f5fcfb)!important}
+ html[data-ovc-ui] #eyewearPanel .eySummaryRow {font-size:13px!important;line-height:1.6!important;padding:10px 0!important;border-color:#dfeaf6!important}
+ html[data-ovc-ui] #eyewearPanel .eySummaryRow.total {font-size:23px!important;font-weight:650!important;color:#175389!important;padding-top:16px!important}
+ html[data-ovc-ui] #eyewearPanel .eyFinalActions {display:flex!important;flex-wrap:wrap!important;gap:10px!important;padding-top:18px!important}
+ html[data-ovc-ui] #eyOrderProduct {background:linear-gradient(100deg,#077f86,#16a396)!important;border-color:#078987!important;color:white!important;padding:13px 22px!important;min-height:48px!important;font-size:14px!important;border-radius:11px!important;font-weight:600!important;margin-left:auto!important}
+ html[data-ovc-ui] #eyOrderProduct[hidden] {display:none!important}
+ html[data-ovc-ui] #eyOrderStatus {font-size:12px;line-height:1.65;color:#386e8d;padding:12px 2px}
+ html[data-ovc-ui] .ovcRecentOrder {margin-top:9px;padding:7px 12px;border:1px solid #bed5ee;border-radius:8px;background:#eef7ff;color:#205c99;font-size:11px}
+ html[data-ovc-ui] #labOrdersPanel .labCard {padding:23px!important;border-radius:16px!important;background:#fff!important;border:1px solid #d7e5f4!important;box-shadow:var(--ovc-shadow)!important;gap:22px!important}
+ html[data-ovc-ui] #labOrdersPanel :is(.labRef,.labClient) {font-size:16px!important;font-weight:600!important;color:#215186!important}
+ html[data-ovc-ui] #labOrdersPanel .labPill {font-size:10px!important;border:1px solid #c2ddec!important;border-radius:6px!important;padding:4px 7px!important;background:#edf8f7!important;color:#237b73!important}
+ html[data-ovc-ui] #labOrdersPanel :is(.labProduct,.labMeta,.labStatusHint) {font-size:12px!important;line-height:1.7!important}
+ html[data-ovc-ui] #labOrdersPanel .labStatusBox select {padding:10px 12px!important;font-size:12px!important;border-color:#c8ddf1!important;border-radius:9px!important;min-height:42px!important}
+ /* Red membership card with original supplied logo. */
+ #ovcCardSection {display:grid;grid-template-columns:minmax(280px,430px) minmax(220px,1fr);gap:25px;align-items:center;padding:23px;margin:0 0 22px;border:1px solid #d9e6f5;border-radius:18px;background:#fff;box-shadow:var(--ovc-shadow)}
+ #ovcCardSection[hidden] {display:none!important}
+ .ovcMembership {position:relative;overflow:hidden;isolation:isolate;aspect-ratio:1.75;min-height:205px;padding:23px 25px;border-radius:17px;color:#fff;background:radial-gradient(ellipse at 90% 0%,#e95169,transparent 55%),linear-gradient(112deg,#970f2e,#c02242 60%,#8b1730);box-shadow:0 15px 30px #a318342a;border:1px solid #dc6076;display:flex;flex-direction:column;justify-content:space-between}
+ .ovcMembership::after {content:'';position:absolute;right:-80px;bottom:-125px;width:330px;height:330px;border:1px solid #ffe1e22b;border-radius:50%;box-shadow:0 0 0 32px #fff1f110,0 0 0 33px #ffcdce17;pointer-events:none;z-index:-1}
+ .ovcMembershipTop {display:flex;gap:18px;align-items:center;justify-content:space-between}
+ .ovcMembershipLogo {width:72px;height:72px;object-fit:contain;background:#fff;border:4px solid white;border-radius:50%;flex:0 0 auto}
+ .ovcMembershipTitle {font-size:25px;letter-spacing:.08em;font-weight:550;line-height:1.2;color:#fff}
+ .ovcMembershipEyebrow {font-size:8px;letter-spacing:.15em;color:#ffe6e9;line-height:1.7;margin-bottom:8px}
+ .ovcMembershipName {font-size:16px;color:#fff;font-weight:500;overflow-wrap:anywhere;margin-top:15px;line-height:1.5}
+ .ovcMembershipBottom {display:flex;justify-content:space-between;gap:12px;margin-top:9px;color:#f9d5dd;font-size:10px;letter-spacing:.035em}
+ .ovcMembership[data-active='false'] {filter:saturate(.65)}
+ .ovcCardControls h3 {font-size:20px;font-weight:600;letter-spacing:-.4px;color:#234669;margin:0 0 12px}
+ .ovcCardControls p {font-size:12px;line-height:1.7;color:#66809a;margin:12px 0}
+ .ovcToggle {display:flex;align-items:center;gap:11px;font-size:13px;color:#284c70;font-weight:550;cursor:pointer}
+ .ovcToggle input {appearance:none!important;width:42px!important;min-width:42px;height:24px!important;border:1px solid #c9d8e7!important;border-radius:99px!important;background:#ccd7e2!important;position:relative;margin:0;cursor:pointer;padding:0!important}
+ .ovcToggle input::before {content:'';width:18px;height:18px;position:absolute;top:2px;left:2px;background:#fff;border-radius:50%;box-shadow:0 1px 3px #173c5125;transition:transform .15s}
+ .ovcToggle input:checked {background:#b71b3b!important;border-color:#b71b3b!important}
+ .ovcToggle input:checked::before {transform:translateX(17px)}
+ .ovcButton {min-height:41px;padding:10px 16px;border:1px solid #bfd6ee;border-radius:10px;background:#f2f8ff;color:#1c609c;font-family:inherit;font-size:12px;font-weight:550;cursor:pointer}
+ .ovcButton.red {background:#b82041!important;color:#fff!important;border-color:#b82041!important}
+ .ovcButton:disabled {opacity:.55;cursor:not-allowed}
+ #ovcCardFeedback {font-size:12px;line-height:1.6;color:#9c2f45;margin-top:10px}
+ #optykerCashOvcStatus {grid-column:1/-1;font-size:12px;line-height:1.65;color:#577995;background:#eff6fe;border:1px solid #d6e5f4;padding:10px 12px;border-radius:10px;margin-top:12px}
+ #optykerCashOvcStatus[data-active='true'] {color:#a32240;background:#fff0f3;border-color:#edc0cb}
+ #optykerCashOvcStatus[data-error='true'] {color:#a02a3e;background:#fff0ed}
+ #optykerCashOvcStatus button {margin-left:10px;background:#fff;color:inherit;border:1px solid currentColor;border-radius:7px;padding:4px 9px;font:inherit}
+ .ovcDialog {width:min(960px,96vw);max-width:96vw;max-height:92dvh;border:1px solid #c8dcee;border-radius:20px;padding:0;background:#f7faff;color:#23496d;box-shadow:0 25px 90px #09254850;font-family:'Segoe UI',system-ui,sans-serif;overflow:auto}
+ .ovcDialog:not([open]) {display:none!important}
+ .ovcDialog::backdrop {background:#0a224477;backdrop-filter:blur(5px)}
+ .ovcDialogHead {display:flex;justify-content:space-between;align-items:center;gap:18px;padding:23px 26px;background:linear-gradient(112deg,#a31c39,#c63850);color:#fff;position:sticky;top:0;z-index:2}
+ .ovcDialogHead h2 {font-size:22px;letter-spacing:-.45px;margin:0;color:#fff}
+ .ovcDialogHead p {font-size:12px;margin:7px 0 0;color:#ffdee5;line-height:1.5}
+ .ovcDialogHead button {border:1px solid #ffffff44;background:#ffffff12;width:38px;height:38px;border-radius:9px;color:#fff;font-size:25px;cursor:pointer}
+ .ovcDialogBody {padding:23px;display:grid;gap:18px}
+ .ovcDialogBody p {font-size:12px;line-height:1.75;color:#627b95;margin:0}
+ #ovcTariffSearch {min-height:44px;padding:11px 14px;border:1px solid #c9deef;border-radius:11px;background:#fff;color:#22466c;font-size:14px;width:100%;box-sizing:border-box}
+ .ovcServiceRow {display:grid;grid-template-columns:minmax(150px,1fr) 110px 150px 95px;align-items:center;gap:18px;padding:17px;border:1px solid #dbe7f4;border-radius:13px;background:#fff;margin-bottom:10px}
+ .ovcServiceRow h3 {margin:0 0 4px;font-size:14px;font-weight:600;color:#254d72}
+ .ovcServiceRow small {display:block;font-size:11px;color:#6a8098;line-height:1.6}
+ .ovcServiceRow label {display:grid;gap:6px;font-size:10px;color:#a3213e;font-weight:550}
+ .ovcServiceRow input {width:100%;min-width:0;padding:9px 11px;min-height:43px;box-sizing:border-box;border:1px solid #e5aebb;border-radius:9px;font-size:14px;color:#92243b;background:#fffafd}
+ .ovcDialogFoot {padding:17px 23px;background:#f7faff;position:sticky;bottom:0;border-top:1px solid #d7e7f5;font-size:12px;color:#466f8b;line-height:1.6}
+ .ovcInlineMessage {color:#a32e42;font-size:12px;padding:7px 0;line-height:1.6}
+ html[data-ovc-ui] :is(.ovcDialog,#ovcCardSection,#eyewearPanel,#warehousePanel) :is(button,input,select,textarea):focus-visible {outline:3px solid #268cf0!important;outline-offset:3px!important}
+}
+@media screen and (max-width:1100px){#ovcCardSection{grid-template-columns:1fr}.ovcMembership{max-width:450px;width:100%;box-sizing:border-box}.ovcCardControls{min-width:0}html[data-ovc-ui] #warehousePanel .whStats{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media screen and (max-width:700px){
+ html[data-ovc-ui] #mainApp :is(#warehousePanel,#analysisPanel,#prescriptionPanel,#visualExamPanel,#indicationsPanel,#hearingPanel,#lacPanel,#eyewearPanel,#labOrdersPanel){padding:13px!important;border-radius:15px!important}
+ html[data-ovc-ui] #mainApp :is(.whHead,.eyHead,.lacHead,.veTitleRow,.rxTitleRow,.hearingTitleRow,.iuTitleRow,.labHead){padding:20px!important;border-radius:13px!important}
+ html[data-ovc-ui] #mainApp :is(.whTitle,.eyTitle,.lacTitle,.veTitle,.rxTitle,.hearingTitle,.iuTitle,.labTitle){font-size:23px!important}
+ html[data-ovc-ui] #mainApp :is(.hearingSection,.veSection,.lacCard,.lacProductCard,.eyStage,.eyCatalogBox,.eyRecent){padding:16px!important}
+ html[data-ovc-ui] #eyOrderProduct{margin-left:0!important;width:100%}
+ #ovcCardSection{padding:16px;grid-template-columns:minmax(0,1fr);gap:21px}.ovcMembership{padding:20px;min-height:190px}.ovcMembershipTitle{font-size:22px}.ovcMembershipLogo{width:64px;height:64px}
+ .ovcServiceRow{grid-template-columns:minmax(0,1fr) 100px;gap:14px}.ovcServiceRow>div:first-child{grid-column:1/-1}.ovcDialogBody{padding:16px}.ovcDialogHead{padding:19px}
+}
+@media screen and (prefers-reduced-motion:reduce){#ovcCardSection *,.ovcDialog *{transition:none!important;animation:none!important}}
+@media print{#ovcCardSection,.ovcDialog,#eyOrderProduct,#eyOrderStatus,.ovcRecentOrder,#whOvcTariffs{display:none!important}}
+
+@media screen {
+ html[data-ovc-ui] #eyewearPanel .eyHead .eyModeBtn {color:#e4f3ff!important;background:#ffffff10!important}
+ html[data-ovc-ui] #eyewearPanel .eyHead .eyModeBtn.active {color:#185a91!important;background:#fff!important}
+ html[data-ovc-ui] #eyewearPanel .eyHead .eyModeBtn :is(b,small,span) {color:inherit!important}
+}
+@media screen and (min-width:901px) {
+ html[data-ovc-ui] #mainApp #moduleNav {position:fixed!important;inset:0 auto 0 0!important;width:var(--vision-sidebar,216px)!important;height:100dvh!important}
+}

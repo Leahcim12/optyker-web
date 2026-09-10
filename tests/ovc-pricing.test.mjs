@@ -1,0 +1,16 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {serviceProduct,serviceForId,serviceDraftLine,assertOvcTotal} from '../supabase/functions/optyker-cash-register-api/ovc.mjs';
+import {esoformProduct,pricingTotals,cashDraftLine} from '../supabase/functions/optyker-cash-register-api/esoform.mjs';
+import {lensProduct} from '../supabase/functions/optyker-cash-register-api/lens-pricing.mjs';
+const id='11111111-1111-4111-8111-111111111111';
+const item={id,active:true,category:'services',title:'Test servizio',price:75,shopify_variant_id:'123456',ovc_price:{card_price:40,revision:4}};
+const active={active:true,card_number:7,revision:2};
+test('OVC price applied only to active cards',()=>{assert.equal(serviceProduct(item,active).price,40);assert.equal(serviceProduct(item,{active:false}).price,75);assert.equal(serviceProduct(item,null).price,75)});
+test('missing OVC tariff is standard; zero is free',()=>{assert.equal(serviceProduct({...item,ovc_price:null},active).price,75);assert.equal(serviceProduct({...item,ovc_price:{card_price:0}},active).price,0)});
+test('non service and inactive item cannot receive service pricing',()=>{assert.equal(serviceProduct({...item,category:'frames'},active),null);assert.equal(serviceProduct({...item,active:false},active),null)});
+test('standard product remains unaffected; mapped service cannot bypass card price',()=>{const context={card:active,services:[item]};assert.equal(serviceForId('gid://shopify/ProductVariant/888',context),null);assert.equal(serviceForId('gid://shopify/ProductVariant/123456',context).price,40);assert.equal(serviceForId('service:'+id,context).price,40)});
+test('Shopify variant price override uses authoritative tariff',()=>{const l={...serviceProduct(item,active),quantity:2};assert.deepEqual(serviceDraftLine(l).priceOverride,{amount:'40.00',currencyCode:'EUR'});assert.equal(serviceDraftLine(l).variantId,'gid://shopify/ProductVariant/123456')});
+test('free service, anonymous customer, higher dedicated price',()=>{const l={...serviceProduct({...item,ovc_price:{card_price:0}},active),quantity:1};assert.equal(serviceDraftLine(l).priceOverride.amount,'0.00');assert.equal(serviceProduct(item,null).ovc_card_applied,false);assert.equal(serviceProduct({...item,ovc_price:{card_price:90}},active).price,90)});
+test('stale expected total blocks before completion',()=>{const l=[{...serviceProduct(item,active),quantity:2}];assert.doesNotThrow(()=>assertOvcTotal(l,80));assert.throws(()=>assertOvcTotal(l,150));assert.throws(()=>assertOvcTotal(l,null));assert.throws(()=>assertOvcTotal(l,80,'USD'))});
+test('Esoform 15 percent discount coexists without stacking OVC',()=>{const lens=esoformProduct('esoform:esoform_mensili_sferiche_hydrogel_3l');assert.equal(lens.price,38.25);const s={...serviceProduct(item,active),quantity:1};const l={...lens,quantity:2};assert.equal(pricingTotals([s,l]).total,116.5);assert.equal(cashDraftLine(l).appliedDiscount.value,15);assert.equal(serviceDraftLine(l),null)});
+test('Both catalogs retain their own canonical lookup',()=>{assert.equal(lensProduct('esoform:esoform_mensili_sferiche_hydrogel_3l').vendor,'Esoform');assert.equal(lensProduct('ts:invalid'),null)});

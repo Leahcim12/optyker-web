@@ -109,7 +109,14 @@ python scripts/apply_ts_catalog.py
 node --test tests/ts-pricing.test.mjs
 verify_desktop_aliases
 
+# Complete OVC Card, service repricing and eyewear laboratory integration.
+node --check optyker-operations.js
+python scripts/apply_ovc_operations.py
+node --check _site/cash-register.js
+node --check _site/optyker-vision.js
+node --test tests/ovc-pricing.test.mjs
+verify_desktop_aliases
+
 # GitHub Pages has a repository subpath; Vercel uses the domain root.
 python scripts/patch_public_asset_paths.py
 verify_desktop_aliases
-
