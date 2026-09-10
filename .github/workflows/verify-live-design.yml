@@ -1,0 +1,69 @@
+name: Verifica grafica pubblicata
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/verify-live-design.yml']
+  workflow_run:
+    workflows: ['Pubblica Optyker']
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Verifica HTTP senza accesso a dati o credenziali
+        run: |
+          python3 - <<'PY'
+          import concurrent.futures, hashlib, json, socket
+          import urllib.request, urllib.error, urllib.parse
+          from html.parser import HTMLParser
+          from pathlib import Path
+          class Assets(HTMLParser):
+              def __init__(self):
+                  super().__init__(); self.items=[]
+              def handle_starttag(self, tag, attrs):
+                  a=dict(attrs)
+                  if a.get('id') in ('optykerVisionCss','optykerVisionJs','optykerAuroraCss'):
+                      self.items.append({'id':a.get('id'),'tag':tag,'url':a.get('href',a.get('src','inline'))})
+          def get(url):
+              try:
+                  req=urllib.request.Request(url, headers={'User-Agent':'Optyker-Deployment-Check/1.0','Cache-Control':'no-cache'})
+                  with urllib.request.urlopen(req, timeout=20) as r:
+                      body=r.read(4000000)
+                      return {'url':url,'final_url':r.url,'status':r.status,'bytes':len(body),'content_type':r.headers.get('Content-Type'),'server':r.headers.get('Server'),'age':r.headers.get('Age'),'etag':r.headers.get('ETag'),'sha256':hashlib.sha256(body).hexdigest()},body
+              except urllib.error.HTTPError as e:
+                  return {'url':url,'final_url':e.url,'status':e.code,'error':str(e)},b''
+              except Exception as e:
+                  return {'url':url,'error':str(e)},b''
+          def check(url):
+              out,body=get(url)
+              if body and 'html' in str(out.get('content_type','')):
+                  s=body.decode('utf-8',errors='replace'); parser=Assets();parser.feed(s)
+                  out['vision_marker']='optykerVisionJs' in s
+                  out['aurora_marker']='optykerAuroraCss' in s
+                  out['app_marker']='id="mainApp"' in s
+                  out['assets']=[]
+                  for item in parser.items:
+                      if item['url']=='inline': out['assets'].append(item); continue
+                      asset=urllib.parse.urljoin(out['final_url'],item['url'])
+                      info,_=get(asset);info['id']=item['id'];out['assets'].append(info)
+              return out
+          urls=['https://optyker.it/','https://www.optyker.it/','https://optyker.it/gestionale-v2/','https://optyker.it/gestionale-v3/','https://leahcim12.github.io/optyker-web/','https://leahcim12.github.io/optyker-web/gestionale-v3/','https://optyker-web.vercel.app/']
+          with concurrent.futures.ThreadPoolExecutor(max_workers=7) as pool:
+              results=list(pool.map(check,urls))
+          text=json.dumps(results,ensure_ascii=False,indent=2)
+          print('OPTYKER_PUBLIC_DESIGN_REPORT_BEGIN\n'+text+'\nOPTYKER_PUBLIC_DESIGN_REPORT_END')
+          Path('optyker-live-design.json').write_text(text)
+          PY
+      - name: Conserva rapporto tecnico pubblico
+        uses: actions/upload-artifact@v4
+        with:
+          name: optyker-live-design
+          path: optyker-live-design.json
+          retention-days: 7
