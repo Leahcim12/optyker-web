@@ -1,0 +1,32 @@
+name: Verifica OVC prima della pubblicazione
+on:
+  push:
+    branches: [ovc-operations-20260910]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build e controlli
+        run: |
+          bash scripts/vercel-build-v13.sh
+          node --test tests/*pricing*.test.mjs
+          git archive --format=zip HEAD -o ovc-source.zip
+          python -m compileall -q scripts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ovc-preflight
+          path: |
+            ovc-source.zip
+            _site
+          retention-days: 1
