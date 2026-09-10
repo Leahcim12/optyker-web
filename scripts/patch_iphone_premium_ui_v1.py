@@ -33,10 +33,8 @@ book_style = '<style id="optykerPremiumBookingInlineV2">\n' + book_css + '\n</st
 app = app.replace('</head>', app_style + '</head>', 1)
 book = book.replace('</head>', book_style + '</head>', 1)
 
-# The premium JavaScript overrides dashboardMarkup/render/shell and therefore
-# MUST run after the application's original JavaScript has defined them.
-# Putting it immediately before </body> preserves the semantics of the old
-# external `defer` script while remaining self-contained in the deployed HTML.
+# The reference UI JavaScript overrides dashboardMarkup/render/shell and MUST
+# run after the original application JavaScript has defined those functions.
 app_script = '<script id="optykerPremiumUiInlineV2">\n' + app_js + '\n</script>\n'
 app = app.replace('</body>', app_script + '</body>', 1)
 
@@ -45,17 +43,19 @@ BOOK.write_text(book, encoding='utf-8')
 
 checks = [
     'id="optykerPremiumUiInlineV2"',
-    'OPTYKER_IPHONE_PREMIUM_UI_V1',
-    'premiumBottomNav',
-    'premiumHomeHero',
+    'OPTYKER_IPHONE_REFERENCE_UI_V2',
+    'refBottomNav',
+    'refHomeTop',
+    'refProfilePage',
+    'refEyewearPage',
     'const baseRender=render',
 ]
 for item in checks:
     if item not in app:
         raise SystemExit('Restyling iPhone incompleto: ' + item)
 if app.rfind('<script id="optykerPremiumUiInlineV2">') < app.rfind('async function boot'):
-    raise SystemExit('Il JavaScript premium viene ancora eseguito prima del codice base')
+    raise SystemExit('Il JavaScript reference UI viene ancora eseguito prima del codice base')
 if 'id="optykerPremiumBookingInlineV2"' not in book:
     raise SystemExit('Restyling booking incompleto')
 
-print('Restyling premium iPhone incorporato ed eseguito dopo il codice base')
+print('UI iPhone Optyker allineata alla foto di riferimento e incorporata correttamente')
