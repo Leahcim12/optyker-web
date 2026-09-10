@@ -14,9 +14,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - run: git archive --format=zip HEAD -o source.zip
+      - name: Archive exact source and revision
+        run: |
+          git archive --format=zip HEAD -o source.zip
+          git rev-parse HEAD > source-commit.txt
       - uses: actions/upload-artifact@v4
         with:
           name: optyker-source
-          path: source.zip
+          path: |
+            source.zip
+            source-commit.txt
           retention-days: 1
