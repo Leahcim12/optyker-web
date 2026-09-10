@@ -67,6 +67,16 @@ test -s _site/optyker-vision-eye.webp
 verify_desktop_aliases
 echo "Optyker Vision production build OK"
 
+# Agenda and anagrafica presentation, preserving existing scripts and controls.
+node --check optyker-workspace.js
+python scripts/apply_workspace_design.py
+grep -q 'id="optykerWorkspaceCss"' _site/index.html
+grep -q 'id="optykerWorkspaceJs"' _site/index.html
+test -s _site/optyker-workspace.css
+test -s _site/workspace-version.json
+verify_desktop_aliases
+echo "Optyker Workspace production build OK"
+
 # GitHub Pages has a repository subpath; Vercel uses the domain root.
 python scripts/patch_public_asset_paths.py
 verify_desktop_aliases

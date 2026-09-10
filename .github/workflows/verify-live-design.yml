@@ -29,7 +29,7 @@ jobs:
                   super().__init__(); self.items=[]
               def handle_starttag(self, tag, attrs):
                   a=dict(attrs)
-                  if a.get('id') in ('optykerVisionCss','optykerVisionJs','optykerAuroraCss'):
+                  if a.get('id') in ('optykerVisionCss','optykerVisionJs','optykerAuroraCss','optykerWorkspaceCss','optykerWorkspaceJs'):
                       self.items.append({'id':a.get('id'),'tag':tag,'url':a.get('href',a.get('src','inline'))})
           def get(url):
               try:
@@ -47,6 +47,7 @@ jobs:
                   s=body.decode('utf-8',errors='replace'); parser=Assets();parser.feed(s)
                   out['vision_marker']='optykerVisionJs' in s
                   out['aurora_marker']='optykerAuroraCss' in s
+                  out['workspace_marker']='optykerWorkspaceJs' in s
                   out['app_marker']='id="mainApp"' in s
                   out['assets']=[]
                   for item in parser.items:
