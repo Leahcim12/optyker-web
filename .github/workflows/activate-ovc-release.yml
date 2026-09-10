@@ -1,0 +1,138 @@
+name: Pubblica OVC Card e Laboratorio verificati
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/activate-ovc-release.yml']
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Attendi il completamento dei sorgenti verificati
+        run: |
+          ready=0
+          for i in $(seq 1 24); do
+            git fetch origin main --tags
+            git checkout -B main origin/main
+            if test -f docs/ovc-release-validation.json && test -f scripts/ovc-backend-check.py; then ready=1; break; fi
+            sleep 5
+          done
+          test "$ready" = 1
+          git rev-parse refs/tags/optyker-ovc-release-20260910
+      - name: Blocca la pubblicazione se il backend non è pronto
+        run: |
+          python3 scripts/ovc-backend-check.py
+          node --check optyker-ovc.js
+          node --check cash-ovc-hooks.js
+          npx --yes --package=tsx@4.19.4 tsx tests/ovc-pricing.test.ts
+      - name: Integra la nuova fase di build senza cambiare quelle esistenti
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          wrapper=Path('scripts/vercel-build-ovc-v1.sh')
+          wrapper.write_text('''#!/usr/bin/env bash
+          set -euo pipefail
+          python3 scripts/ovc-backend-check.py
+          bash scripts/vercel-build-v13.sh
+          python3 scripts/apply_ovc_release.py
+          node --check _site/cash-register.js
+          node --check _site/optyker-ovc.js
+          python3 scripts/patch_public_asset_paths.py
+          python3 scripts/finalize_ovc_manifest.py
+          echo "Optyker OVC release verified"
+          ''')
+          p=Path('vercel.json');x=json.loads(p.read_text())
+          assert x.get('buildCommand') in ('bash scripts/vercel-build-v13.sh','bash scripts/vercel-build-ovc-v1.sh'),'Build command changed concurrently'
+          x['buildCommand']='bash scripts/vercel-build-ovc-v1.sh';p.write_text(json.dumps(x,indent=2)+'\n')
+          p=Path('.github/workflows/pages.yml');s=p.read_text()
+          old='bash scripts/vercel-build-v13.sh';new='bash scripts/vercel-build-ovc-v1.sh'
+          assert s.count(old)==1 or s.count(new)==1,'Pages build contract changed'
+          p.write_text(s.replace(old,new))
+          PY
+      - name: Verifica build Vercel prima di aggiornare main
+        run: |
+          unset GITHUB_PAGES
+          export VERCEL_GIT_COMMIT_SHA="$(git rev-parse HEAD)"
+          bash scripts/vercel-build-ovc-v1.sh
+      - name: Salva attivazione della versione verificata
+        run: |
+          git config user.name 'Optyker Release'
+          git config user.email '30346110+Leahcim12@users.noreply.github.com'
+          git add scripts/vercel-build-ovc-v1.sh vercel.json .github/workflows/pages.yml
+          if ! git diff --cached --quiet; then git commit -m 'Activate OVC Card, service pricing and eyewear laboratory release after backend validation'; fi
+          git push origin HEAD:main
+          echo "OVC_RELEASE_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - uses: actions/configure-pages@v5
+      - name: Prepara la stessa versione per GitHub Pages
+        run: |
+          export VERCEL_GIT_COMMIT_SHA="$OVC_RELEASE_COMMIT"
+          export GITHUB_PAGES=true
+          bash scripts/vercel-build-ovc-v1.sh
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - uses: actions/deploy-pages@v4
+        id: deployment
+      - name: Controlla la versione effettivamente servita dai due domini
+        run: |
+          python3 - <<'PY'
+          from concurrent.futures import ThreadPoolExecutor
+          from pathlib import Path
+          import urllib.request,hashlib,json,time,os
+          def get(url):
+              req=urllib.request.Request(url,headers={'Cache-Control':'no-cache','User-Agent':'Optyker-OVC-Release-Check/1.0'})
+              with urllib.request.urlopen(req,timeout=15) as r:return r.read(4000000)
+          def check(base):
+              result={'base':base,'ok':False}
+              for attempt in range(25):
+                  try:
+                      m=json.loads(get(base+'ovc-version.json'))
+                      assert m['version']=='20260910-ovc1','OVC release missing'
+                      assert m['commit']==os.environ['OVC_RELEASE_COMMIT'],'Domain has previous version'
+                      checked={}
+                      for name,digest in m['assets'].items():
+                          raw=get(base+name+'?v='+m['version'])
+                          assert hashlib.sha256(raw).hexdigest()==digest,'Asset differs: '+name
+                          checked[name]={'bytes':len(raw),'sha256':digest}
+                      for alias in ('','gestionale-v2/','gestionale-v3/'):
+                          body=get(base+alias).decode('utf-8')
+                          assert 'optyker-ovc.js' in body and 'optyker-ovc.css' in body
+                      return {'base':base,'ok':True,'commit':m['commit'],'version':m['version'],'assets':checked}
+                  except Exception as e:
+                      result['error']=str(e)
+                      if attempt<24:time.sleep(7)
+              return result
+          with ThreadPoolExecutor(max_workers=2) as pool:
+              results=list(pool.map(check,['https://www.optyker.it/','https://leahcim12.github.io/optyker-web/']))
+          Path('ovc-live-verification.json').write_text(json.dumps(results,indent=2)+'\n')
+          print(json.dumps(results,indent=2))
+          assert all(r['ok'] for r in results),'Public version verification incomplete'
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+              f.write('OVC Card, Magazzino, Schede e ordini Occhiali: versione verificata su entrambi i domini. Nessuna vendita o ordine cliente è stato creato dai controlli.\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: optyker-ovc-live-verification
+          path: ovc-live-verification.json
+          if-no-files-found: ignore
+          retention-days: 7
