@@ -45,3 +45,8 @@ test -s _site/optyker-vision-eye.webp
 cmp _site/index.html _site/gestionale-v2/index.html
 cmp _site/index.html _site/gestionale-v3/index.html
 echo "Optyker Vision production build OK"
+
+# GitHub Pages has a repository subpath; Vercel uses the domain root.
+python scripts/patch_public_asset_paths.py
+cmp _site/index.html _site/gestionale-v2/index.html
+cmp _site/index.html _site/gestionale-v3/index.html
