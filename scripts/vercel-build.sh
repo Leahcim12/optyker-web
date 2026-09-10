@@ -220,7 +220,7 @@ test -s _site/visual-training/Sport.pdf
 python - <<'PY'
 from pathlib import Path
 import re
-files=['_site/index.html','_site/staff-embed/index.html','_site/booking/index.html','_site/iphone-app-v13/index.html']
+files=['_site/index.html','_site/staff-embed/index.html','_site/booking/index.html','_site/iphone-app-v13/index.html','_site/reset-password/index.html']
 for n,path in enumerate(files):
     text=Path(path).read_text(encoding='utf-8')
     for i,code in enumerate(re.findall(r'<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>',text,re.I)):
@@ -230,7 +230,12 @@ booking=Path('_site/booking/index.html').read_text(encoding='utf-8')
 required_main=['DOCUMENTI DA STAMPARE MANUTENZIONE LAC','DOCUMENTI DA STAMPARE VISUAL TRAINING','OPTYKER_VISUAL_TRAINING_DOCUMENTS_V1','visual-training/Motorio.pdf','OPTYKER_APPOINTMENTS_UI_V9_GRAPHICS','OPTYKER_APPOINTMENTS_UI_V10_MANAGE','OPTYKER_APPOINTMENTS_UI_V11_SECURE','OPTYKER_APPOINTMENTS_UI_V12_SETTINGS_SAVE','OPTYKER_APPOINTMENTS_UI_V13_SINGLE_SETTINGS','OPTYKER_APPOINTMENTS_FORCE_TIME_V20','OPTYKER_APPOINTMENT_OPERATOR_AVAILABILITY_V21','OPTYKER_CHAT_IMAGES_CUSTOMER_AVATAR_V2','id="oaManageModal"','oaV10Save','oaV10Cancel','optyker-appointments-staff','id="navAppointments"','OPTYKER_DOM_READY_BOOT_V1','OPTYKER_STAFF_AUTH_V1','optyker-staff-auth','Password dimenticata?','optykerAuthPassword','OPTYKER_DIEGO_PANSERI_NAME_FIX_V1','Diego Panseri','can_force_appointment','force_studios','OPTYKER_LABORATORY_V1','>Laboratorio<',"Invia l'ordine",'OPTYKER_LAC_WARRANTY_SUBJECT_V1','GARANZIA ATTIVA','Crea ordine in garanzia','Cambio diottria','Tutte le schede LAC del cliente','OPTYKER_CLIENT_PAGES_NAV_V1','clientPageNav','Documenti','Lenti a contatto']
 reset=Path('_site/reset-password/index.html').read_text(encoding='utf-8')
 app13=Path('_site/iphone-app-v13/index.html').read_text(encoding='utf-8')
-required_reset=['Recupero password','SALVA NUOVA PASSWORD','updateUser','exchangeCodeForSession']
+# The reset page now verifies the email-link bearer in isolation. Checking for
+# the old SDK shared-session functions would reject the safer replacement.
+# Behavioral negative tests also run after the final app security patch in V13.
+required_reset=['OPTYKER_ISOLATED_PASSWORD_RECOVERY_V1','SALVA NUOVA PASSWORD',"request('user','GET',null,access)","request('user','PUT',{password},access)",'updated.id!==verifiedUser.id',"history.replaceState(null,'',location.pathname)","request('logout?scope=global'",'Link non valido o scaduto']
+if re.search(r'(?:localStorage|sessionStorage)\s*\.', reset):
+    raise SystemExit('Il recupero password non deve usare una sessione di un altro account')
 required_app13=['<h1>Orari</h1>','data-nav="hours"','data-nav="timer"','push_subscribe','timer_create','APP 13.4','sw.js?v=20260903-rxrules2',"const OPTYKER_BUILD='20260903-rxrules2'",'profile_photo_save','chooseChatProfilePhoto','attachment_data','chatImageModal']
 required_booking=['I tuoi appuntamenti','Sposta','Aggiungi un altro','optyker_appointment_tokens_v2','Scegli lo studio disponibile','Inserisci l’orario','studio_id:S.candidate.studio_id||null']
 missing=[x for x in required_main if x not in main]+[x for x in required_booking if x not in booking]+[x for x in required_reset if x not in reset]+[x for x in required_app13 if x not in app13]
