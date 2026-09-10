@@ -1,0 +1,258 @@
+/* OPTYKER VISION · 20260910. Screen-only, reference-matched desktop layout.
+   Auth, clinical form geometry, payment-column layout and print rules stay application-owned. */
+@media screen {
+  html[data-optyker-layout="vision"] {--vision-ink:#102756;--vision-blue:#137ffc;--vision-teal:#00ab9e;--vision-muted:#6a83a9;--vision-line:#e2edf9;--vision-shadow:0 5px 20px #214b7b0b,0 1px 3px #305c8504;--vision-sidebar:216px}
+  html[data-optyker-layout="vision"] body {background:#edf4fc!important;color:var(--vision-ink)}
+  html[data-optyker-layout="vision"] #mainApp {max-width:none!important;padding:0!important;margin:0!important;grid-template-columns:var(--vision-sidebar) minmax(0,1fr)!important;gap:0!important;min-height:100dvh!important;align-items:start!important;background:radial-gradient(ellipse at 82% 0%,#e6f3ff 0,transparent 60%),#f0f6fd!important}
+  html[data-optyker-layout="vision"] #mainApp>.topbar {grid-column:2!important;grid-row:1!important;margin:0!important;padding:24px 25px 20px!important;min-height:96px!important;box-sizing:border-box!important;background:transparent!important;border:0!important;box-shadow:none!important;gap:20px!important;flex-wrap:nowrap!important;position:relative!important;z-index:50}
+  html[data-optyker-layout="vision"] #mainApp .topbarLeft {min-width:210px!important;flex:0 0 auto!important}
+  html[data-optyker-layout="vision"] #mainApp .topbarLeft>img {display:none!important}
+  html[data-optyker-layout="vision"] #mainApp .topbar h1 {font-size:25px!important;line-height:1.25!important;letter-spacing:-.8px!important;font-weight:650!important;color:#102756!important;white-space:nowrap}
+  html[data-optyker-layout="vision"] #mainApp .topbar .sub {display:block!important;max-width:none!important;margin-top:6px!important;font-size:11px!important;font-weight:400!important;letter-spacing:0!important;color:#7390b4!important;text-transform:capitalize}
+  html[data-optyker-layout="vision"] #mainApp .topbarRight {flex:1 1 auto!important;gap:10px!important;flex-wrap:nowrap!important;min-width:0!important}
+  html[data-optyker-layout="vision"] #mainApp .optykerGlobalSearchWrap {min-width:160px!important;max-width:560px!important;flex:1 1 auto!important;margin-left:auto!important}
+  html[data-optyker-layout="vision"] #mainApp #optykerGlobalSearchInput {height:46px!important;background:#ffffffcf!important;border:1px solid #d8e7fa!important;border-radius:12px!important;box-shadow:0 4px 16px #385d8706!important;font-size:12px!important;color:#213d64!important}
+  html[data-optyker-layout="vision"] #mainApp #optykerGlobalSearchInput::placeholder {color:#7796c3!important}
+  html[data-optyker-layout="vision"] #mainApp .optykerGlobalSearchIcon {color:#4274bb!important;font-size:20px!important}
+  html[data-optyker-layout="vision"] #mainApp #optykerGlobalSearchResults {top:52px!important;border:1px solid #d8e7fa!important;border-radius:14px!important;background:#fff!important;box-shadow:0 18px 50px #11386925!important;max-height:65vh!important}
+  html[data-optyker-layout="vision"] #mainApp #optykerTopProfileBtn {width:42px!important;height:42px!important;min-width:42px!important;border-radius:50%!important;order:10!important;border:1px solid #d5e4f4!important;background:#e9f3ff!important;color:#245582!important;font-size:14px!important;box-shadow:0 3px 10px #1f4f7909!important;overflow:hidden}
+  html[data-optyker-layout="vision"] #mainApp #optykerTopProfileBtn img {width:100%;height:100%;object-fit:cover}
+  html[data-optyker-layout="vision"] #mainApp #optykerTopDashboardBtn {height:42px!important;border:1px solid #d9e7f8!important;border-radius:11px!important;background:#fff!important;color:#48688f!important;font-weight:550!important;font-size:11px!important;padding:0 13px!important}
+  html[data-optyker-layout="vision"] #mainApp #optykerTopNewClientBtn,html[data-optyker-layout="vision"] #mainApp #optykerCashBtn {min-height:42px!important;border-radius:11px!important;background:linear-gradient(105deg,#0b70eb,#389ff9)!important;border:0!important;color:white!important;gap:6px!important;padding:0 14px!important;box-shadow:0 4px 12px #2582e51c!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav {grid-column:1!important;grid-row:1 / span 50!important;position:sticky!important;top:0!important;height:100dvh!important;max-height:100dvh!important;min-height:0!important;box-sizing:border-box!important;margin:0!important;padding:24px 15px 20px!important;gap:5px!important;align-self:start!important;border:0!important;border-radius:0!important;background:radial-gradient(ellipse at 105% 35%,#103963 0,transparent 65%),linear-gradient(155deg,#061d38,#08264c 58%,#04182e)!important;box-shadow:5px 0 25px #143a600d!important;scrollbar-color:#2b5077 transparent!important;z-index:60}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav::before {display:none!important;content:none!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav::after {content:"La tecnologia\A al servizio\A della tua visione."!important;white-space:pre-line!important;padding:24px 12px 5px!important;margin:40px 0 0!important;margin-top:auto!important;border:0!important;line-height:1.85!important;letter-spacing:.02em!important;color:#8ca7c8!important;font-size:12px!important;order:1000!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav .moduleBtn {min-height:43px!important;padding:11px 12px!important;font-size:12px!important;font-weight:450!important;color:#b4cae5!important;border-radius:9px!important;letter-spacing:.015em!important;background:transparent!important;border:1px solid transparent!important;box-shadow:none!important;line-height:1.4!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav .moduleBtn:hover {background:#1b45714d!important;border-color:#396b982e!important;color:#f2f8ff!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav .moduleBtn.active {background:linear-gradient(105deg,#124a7a,#153656)!important;border-color:#2784b998!important;box-shadow:inset 2px 0 0 #34b7ef!important;color:white!important;font-weight:550!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav #navClients {font-size:12px!important;font-weight:450!important;color:#b4cae5!important;padding:11px 12px!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav #navClients.active {color:#fff!important;background:linear-gradient(105deg,#124a7a,#153656)!important;border-color:#2784b998!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav :is(.winNavIcon,.optykerNavIcon) {display:none!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav .visionBrand {order:-100!important;display:flex!important;align-items:center!important;gap:8px!important;padding:2px 4px 26px!important;flex-shrink:0!important;pointer-events:none}
+  .visionBrand .visionOriginalLogo {width:33px!important;height:33px!important;object-fit:contain!important}
+  .visionBrand>div>span {display:block;font-family:Georgia,"Times New Roman",serif;font-size:24px;letter-spacing:.13em;font-weight:400;color:#f3f8ff}
+  .visionBrand small {display:block;margin-top:9px;color:#7694b9;font-size:7px;font-weight:500;letter-spacing:.14em}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav #navDashboard {order:1!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav #navClients {order:2!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav #clientSidebarSubmenu {order:3!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav #navSheets {order:4!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav #sheetsSubmenu {order:5!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav #navOrders {order:6!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav #navLaboratory {order:7!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav #navWarehouseGroup {order:8!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav #navDocumentsGroup {order:9!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav #visionNavCash {order:10!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav #navAppointments {order:20!important;margin-top:12px!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav #navChat {order:21!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav #navSettings {order:22!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav :is(.optykerNavGroup,.optykerBillingSubnav) {background:transparent!important}
+  html[data-optyker-layout="vision"] #mainApp #dashboardPanel {grid-column:2!important;min-width:0!important;padding:0 25px 20px!important;box-sizing:border-box!important;margin:0!important;background:transparent!important;border:0!important}
+  html[data-optyker-layout="vision"] #mainApp>.panel {grid-column:2!important;min-width:0!important;margin:0 25px 22px!important;width:auto!important;box-sizing:border-box!important}
+  html[data-optyker-layout="vision"] #mainApp>.footer {grid-column:2!important;margin:0 25px!important;font-size:9px!important;color:#7b94b0!important}
+  html[data-optyker-layout="vision"] #mainApp .visionReplaced {display:none!important}
+  #optykerVisionDashboard {font-size:12px;line-height:1.5;color:var(--vision-ink);min-width:0}
+  #optykerVisionDashboard *,#optykerVisionDashboard *::before,#optykerVisionDashboard *::after {box-sizing:border-box}
+  #optykerVisionDashboard button {font:inherit;cursor:pointer;margin:0;text-transform:none;letter-spacing:0}
+  #optykerVisionDashboard svg {width:24px;height:24px;flex-shrink:0;vertical-align:middle}
+  #optykerVisionDashboard button:focus-visible {outline:3px solid #1a81ea!important;outline-offset:3px!important}
+  .visionKpis {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px;margin:0 0 16px}
+  #optykerVisionDashboard .visionKpi {display:flex;align-items:flex-start;position:relative;min-width:0;min-height:135px;padding:21px 18px 18px;gap:13px;border:1px solid #ffffffd9;border-radius:15px;background:linear-gradient(140deg,#fff,#f8fbff);box-shadow:var(--vision-shadow);text-align:left;color:var(--vision-ink);transition:box-shadow .15s,border-color .15s}
+  #optykerVisionDashboard .visionKpi:hover {border-color:#bedbfa;box-shadow:0 8px 24px #28518b14}
+  .visionKpiIcon {display:grid;place-items:center;width:48px;height:48px;flex:0 0 48px;border-radius:50%;background:linear-gradient(150deg,#e2f2ff,#edf6ff);color:#2794ff}
+  .visionKpi:nth-child(3) .visionKpiIcon {background:#e0f9f5;color:#0bbab1}
+  .visionKpiBody {display:block;min-width:0}
+  .visionKpiLabel {display:block;font-size:11px;font-weight:550;line-height:1.3;min-height:16px;color:#1c3860}
+  .visionKpiBody strong {display:block;margin-top:6px;font-size:31px;line-height:1.2;font-weight:600;letter-spacing:-1px;color:#102958;font-variant-numeric:tabular-nums}
+  .visionKpiHint {display:block;margin-top:11px;font-size:9px;font-weight:450;color:#6588af}
+  .visionKpiArrow {position:absolute;bottom:15px;right:14px;color:#83b7e2}
+  .visionKpiArrow svg {width:16px!important;height:16px!important}
+  .visionActions {display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:17px}
+  #optykerVisionDashboard .visionAction {display:flex;align-items:center;gap:10px;min-width:0;min-height:80px;padding:14px 12px;border:1px solid #fff;border-radius:13px;background:linear-gradient(135deg,#fff,#f7fbff);box-shadow:var(--vision-shadow);color:#173664;text-align:left;transition:box-shadow .15s,border-color .15s}
+  #optykerVisionDashboard .visionAction:hover {border-color:#bfdcfa;box-shadow:0 7px 18px #13448018}
+  .visionActionIcon {flex:0 0 38px;display:grid;place-items:center;width:38px;height:38px;border-radius:11px;color:#1589ff;background:#e9f3ff}
+  .visionAction strong {display:block;font-size:12px;font-weight:600;line-height:1.25;white-space:nowrap}
+  .visionAction small {display:block;font-size:9px;color:#7990b1;line-height:1.45;margin-top:6px}
+  #optykerVisionDashboard .visionTeal {background:linear-gradient(110deg,#079a92,#18bcb0);border-color:#38c6bd;color:white;box-shadow:0 7px 17px #11988920}
+  #optykerVisionDashboard .visionBlue {background:linear-gradient(110deg,#0d72e8,#35a0f5);border-color:#3797f5;color:white;box-shadow:0 7px 17px #247ad31d}
+  #optykerVisionDashboard :is(.visionBlue,.visionTeal) .visionActionIcon {background:#ffffff16;color:#fff}
+  #optykerVisionDashboard :is(.visionBlue,.visionTeal) small {color:#e6faff}
+  .visionWorkspace {display:grid;grid-template-columns:minmax(0,1fr) 245px;grid-template-rows:minmax(350px,auto) 143px;gap:16px;align-items:stretch}
+  .visionOperations {display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:13px;min-width:0}
+  #optykerVisionDashboard .visionPanel {min-width:0;position:relative;border:1px solid #fff!important;border-radius:15px!important;background:linear-gradient(145deg,#fff,#f8fbff)!important;box-shadow:var(--vision-shadow)!important;padding:19px 15px!important;margin:0!important}
+  .visionPanelHead {display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 16px}
+  .visionPanelHead h2 {display:flex;align-items:center;gap:8px;margin:0;font-size:12px;line-height:1.3;font-weight:600;color:#16315d}
+  .visionPanelHead h2 svg {width:20px!important;height:20px!important;color:#1889ff}
+  #optykerVisionDashboard .visionLink {border:0;background:none;color:#147de9;font-size:9px;padding:4px 0;white-space:nowrap;font-weight:500;box-shadow:none;border-radius:4px}
+  #optykerVisionDashboard .visionLink:hover {text-decoration:underline}
+  #optykerVisionDashboard .visionExisting {width:auto!important;max-width:none!important;display:flex!important;flex-direction:column!important}
+  #optykerVisionDashboard .visionExisting .dashboardCardTitle {display:flex;align-items:center;gap:7px;font-size:12px!important;font-weight:600!important;line-height:1.3!important;letter-spacing:-.15px!important;color:#14325e!important;padding-right:35px!important;min-height:26px}
+  #optykerVisionDashboard .visionExisting .dashboardCardTitle svg {width:20px;height:20px;color:#1688ff}
+  #optykerVisionDashboard .visionExisting .dashboardCardText {font-size:9px!important;line-height:1.6!important;color:#8098b6!important;margin:7px 0 5px!important;min-height:14px}
+  #optykerVisionDashboard .visionExisting :is(.dashboardTodayCount,.dashboardShopifyCount) {display:none!important}
+  #optykerVisionDashboard .visionExisting :is(.dashboardTodayHead,.dashboardShopifyHead) {margin-bottom:12px!important;padding:0!important}
+  #optykerVisionDashboard .visionExisting .visionPanelOpen {position:absolute!important;right:14px!important;top:20px!important;min-height:22px!important;width:auto!important;padding:3px 0!important;margin:0!important;border:0!important;border-radius:4px!important;background:none!important;box-shadow:none!important;color:#1680ec!important;font-weight:500!important;font-size:9px!important}
+  #optykerVisionDashboard .visionExisting :is(.dashboardTodayAppointments,.dashboardShopifyOrders) {display:block!important;min-height:0!important;max-height:380px!important;overflow-y:auto!important;scrollbar-width:thin;scrollbar-color:#d0e3f7 transparent;padding:0!important;flex:1}
+  #optykerVisionDashboard .visionExisting :is(.dashboardTodayEmpty,.dashboardShopifyEmpty),.visionEmpty {min-height:190px!important;padding:24px 12px!important;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;font-size:11px!important;line-height:1.8!important;color:#7893b2!important;background:transparent!important;border:0!important;border-radius:10px!important}
+  #optykerVisionDashboard .dashboardTodayItem {position:relative!important;display:grid!important;grid-template-columns:36px 28px minmax(0,1fr)!important;column-gap:6px!important;row-gap:5px!important;align-items:center!important;min-height:62px!important;width:100%!important;padding:10px 0 10px 8px!important;border:0!important;border-bottom:1px solid #edf3fa!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;text-align:left!important}
+  #optykerVisionDashboard .dashboardTodayItem::before {content:"";position:absolute;left:0;top:21px;width:4px;height:4px;background:#1989ff;border-radius:50%}
+  #optykerVisionDashboard .dashboardTodayItem:nth-child(3n)::before {background:#0bb7a4}
+  #optykerVisionDashboard .dashboardTodayTime {font-size:10px!important;font-weight:600!important;color:#1b3b67!important}
+  .visionAvatar {width:28px;height:28px;display:grid;place-items:center;background:linear-gradient(120deg,#deedfc,#dbe4f4);border:1px solid #fff;border-radius:50%;font-size:9px;color:#5582b0;font-weight:600}
+  #optykerVisionDashboard .dashboardTodayInfo {min-width:0!important}
+  #optykerVisionDashboard .dashboardTodayName {font-size:10px!important;font-weight:600!important;line-height:1.5!important;color:#153460!important;white-space:normal!important}
+  #optykerVisionDashboard .dashboardTodayMeta {font-size:9px!important;line-height:1.55!important;color:#7893b6!important;white-space:normal!important}
+  #optykerVisionDashboard .dashboardTodayStatus {grid-column:3!important;justify-self:start!important;font-size:8px!important;font-weight:450!important;line-height:1.4!important;border:0!important;background:#e2f8f2!important;color:#078c7e!important;padding:3px 6px!important;border-radius:6px!important}
+  #optykerVisionDashboard .dashboardTodayItem.cancelled .dashboardTodayStatus {background:#fce9eb!important;color:#aa4754!important}
+  #optykerVisionDashboard .dashboardShopifyItem {display:flex!important;gap:8px!important;min-height:72px!important;width:100%!important;padding:12px 0!important;border:0!important;border-bottom:1px solid #edf3fa!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;text-align:left!important}
+  #optykerVisionDashboard .dashboardShopifyName {font-size:10px!important;font-weight:600!important;white-space:normal!important;line-height:1.5!important;color:#183b69!important}
+  #optykerVisionDashboard :is(.dashboardShopifyMeta,.dashboardShopifyDate) {font-size:9px!important;line-height:1.6!important;color:#7290b4!important}
+  #optykerVisionDashboard .dashboardShopifyAmount {font-size:10px!important;font-weight:600!important;white-space:nowrap!important;color:#247dab!important}
+  #optykerVisionDashboard .dashboardShopifyStatus {font-size:7px!important;letter-spacing:.03em!important;border-radius:6px!important;background:#e5f8f5!important;color:#1b9586!important;padding:4px 6px!important;font-weight:500!important}
+  .visionLab {display:flex;flex-direction:column}
+  .visionLabList {flex:1;min-width:0;max-height:380px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#d0e3f7 transparent}
+  #optykerVisionDashboard .visionLabRow {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 9px;align-items:start;width:100%;padding:12px 0;background:none;border:0;border-bottom:1px solid #edf3fa;border-radius:0;text-align:left;color:#183763}
+  .visionLabRef {font-size:9px;font-weight:600;grid-column:1}
+  .visionLabInfo {grid-column:1;grid-row:2;min-width:0}
+  .visionLabInfo strong {display:block;font-size:10px;font-weight:600;line-height:1.5}
+  .visionLabInfo small {display:block;font-size:9px;color:#7893b7;line-height:1.6;margin-top:3px;overflow-wrap:anywhere}
+  .visionStatus {grid-column:2;grid-row:1 / span 2;align-self:center;max-width:86px;border-radius:6px;background:#e5f1ff;color:#1677df;font-size:8px;line-height:1.5;text-align:center;padding:4px 6px}
+  .visionAmber {background:#fff0dd;color:#b97424}
+  .visionGreen {background:#e1f7f2;color:#0b8c80}
+  .visionPanelFoot {display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:9px;color:#8199b7;padding-top:12px;border-top:1px solid #edf3fa;margin-top:12px}
+  #optykerVisionDashboard :is(.visionLabRow,.dashboardTodayItem,.dashboardShopifyItem):hover {background:#edf6ff!important}
+  .visionClient {grid-column:2;grid-row:1 / span 2}
+  .visionClient .visionPanelHead {margin-bottom:19px}
+  .visionClientPortrait,.visionClientPlaceholder {width:110px;height:115px;display:grid;place-items:center;border-radius:19px;background:linear-gradient(145deg,#cfdeef,#e6f1fe 50%,#bed0e7);font-size:36px;letter-spacing:-1px;font-weight:450;color:#4775a1;margin-bottom:18px;overflow:hidden;border:1px solid #d7e5f6}
+  .visionClientPortrait img {width:100%;height:100%;object-fit:cover}
+  .visionClientPlaceholder svg {width:42px!important;height:42px!important;color:#71a1ca}
+  .visionClientName {display:flex;align-items:center;flex-wrap:wrap;gap:9px}
+  .visionClient h3 {font-size:17px;font-weight:600;letter-spacing:-.45px;margin:0;line-height:1.4;color:#163764}
+  .visionTag {background:#dff7f1;color:#118b7e;border-radius:7px;padding:4px 7px;font-size:8px;white-space:nowrap}
+  .visionClientSince {font-size:10px;color:#7394b8;margin:4px 0 20px}
+  .visionContact {display:flex;gap:9px;align-items:flex-start;margin-bottom:11px;font-size:10px;color:#5176a0;line-height:1.45;min-width:0}
+  .visionContact svg {width:14px!important;height:14px!important;color:#6995c3}
+  .visionContact span {min-width:0;overflow-wrap:anywhere}
+  .visionClientNote {border:1px solid #e8f0fa;background:#eef5fe;border-radius:12px;padding:13px;margin:19px 0 16px}
+  .visionClientNote strong {display:flex;align-items:center;gap:7px;font-size:10px;font-weight:550;color:#466892}
+  .visionClientNote strong svg {width:17px!important;height:17px!important;color:#1989ff}
+  .visionClientNote>span {display:block;color:#7893b5;font-size:10px;line-height:1.7;margin-top:7px}
+  #optykerVisionDashboard .visionClientOpen {display:flex;justify-content:center;align-items:center;gap:12px;width:100%;min-height:45px;padding:12px 10px;background:linear-gradient(120deg,#0c2b51,#061c38);border:1px solid #183c65;border-radius:11px;box-shadow:0 4px 10px #07294b0d;color:#fff;font-size:10px;font-weight:450}
+  #optykerVisionDashboard .visionClientOpen svg {width:16px;height:16px}
+  #optykerVisionDashboard .visionClientOpen:hover {background:#133f6c}
+  .visionClientDescription {font-size:11px;color:#7795b3;line-height:1.8;margin:12px 0 25px}
+  .visionBanner {grid-column:1;grid-row:2;isolation:isolate;position:relative;overflow:hidden;display:flex;justify-content:space-between;align-items:center;border-radius:14px;padding:23px 30px;color:#f8fcff;border:1px solid #fff;background:linear-gradient(110deg,#163c68,#315d85);box-shadow:var(--vision-shadow)}
+  .visionBanner::before {content:"";position:absolute;inset:0 10% 0 26%;z-index:-1;background:url('/optyker-vision-eye.webp') center 52%/cover no-repeat;mask-image:linear-gradient(90deg,transparent,#000 24%,#000 70%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 24%,#000 70%,transparent);opacity:.85}
+  .visionBanner h2 {font-size:26px;font-weight:350;letter-spacing:.025em;line-height:1.2;margin:0 0 8px;color:#f3f9ff;text-shadow:0 1px 9px #102c4c33}
+  .visionBanner p {font-size:10px;font-weight:400;letter-spacing:.05em;color:#b9d8f4;margin:0}
+  .visionBanner>span {font-size:9px;line-height:2;letter-spacing:.2em;color:#c1d6ed;font-weight:400}
+  .visionBannerRule {display:block;width:29px;height:1px;margin-top:14px;background:#b7d5f1}
+  .visionMore {margin:20px 0 0;border-top:1px solid #dbe8f6;padding-top:14px}
+  .visionMore>summary {color:#44678e;font-size:11px;cursor:pointer;padding:8px 0;font-weight:550}
+  .visionMore>summary>span {margin-left:10px;color:#8a9fb9;font-size:10px;font-weight:400}
+  .visionMore[open]>summary {margin-bottom:12px}
+  html[data-optyker-layout="vision"] #mainApp .visionMore .dashboardMainRow {grid-template-columns:1fr!important}
+  html[data-optyker-layout="vision"] #mainApp .visionMore .dashboardSection {margin-top:14px!important}
+  .visionMenuToggle {display:none}
+}
+@media screen and (min-width:1500px) {
+  html[data-optyker-layout="vision"] {--vision-sidebar:235px}
+  .visionWorkspace {grid-template-columns:minmax(0,1fr) 260px;grid-template-rows:minmax(380px,auto) 148px}
+  #optykerVisionDashboard .visionKpi {min-height:143px;padding:23px 22px}
+  #optykerVisionDashboard .visionAction {min-height:82px;padding:16px}
+  .visionAction strong {font-size:13px}
+  .visionBrand>div>span {font-size:27px}
+  #optykerVisionDashboard .visionPanel {padding:21px 17px!important}
+}
+@media screen and (max-width:1250px) {
+  html[data-optyker-layout="vision"] {--vision-sidebar:190px}
+  html[data-optyker-layout="vision"] #mainApp>.topbar {padding:22px 18px 18px!important;gap:14px!important;flex-wrap:wrap!important}
+  html[data-optyker-layout="vision"] #mainApp .topbar h1 {font-size:22px!important}
+  html[data-optyker-layout="vision"] #mainApp #dashboardPanel {padding:0 18px 18px!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav {padding:24px 10px 18px!important}
+  .visionBrand .visionOriginalLogo {width:28px!important}
+  .visionBrand>div>span {font-size:22px}
+  .visionKpis {gap:11px}
+  #optykerVisionDashboard .visionKpi {padding:18px 13px;gap:9px}
+  .visionKpiIcon {width:36px;height:36px;flex-basis:36px}
+  .visionKpiBody strong {font-size:29px}
+  .visionKpiLabel {font-size:10px}
+  .visionKpiHint {font-size:8px}
+  .visionActions {grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  #optykerVisionDashboard .visionAction {min-height:66px;padding:12px 15px}
+  .visionWorkspace {grid-template-columns:minmax(0,1fr) 220px}
+  .visionOperations {grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  #optykerVisionDashboard .dashboardShopifyCard {grid-column:1 / -1!important}
+  #optykerVisionDashboard .dashboardShopifyOrders {display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:16px}
+  .visionMore>summary>span {display:none}
+}
+@media screen and (max-width:980px) {
+  .visionWorkspace {grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto}
+  .visionClient {grid-column:1;grid-row:3}
+  .visionBanner {grid-column:1;grid-row:2;min-height:130px}
+  #visionClientBody {display:grid;grid-template-columns:110px minmax(0,1fr);column-gap:20px}
+  #visionClientBody .visionClientPortrait {grid-column:1;grid-row:1 / span 5}
+  #visionClientBody .visionClientNote,#visionClientBody .visionClientOpen {grid-column:1 / -1}
+  #visionClientBody .visionClientDescription {grid-column:2}
+  .visionKpis {grid-template-columns:repeat(2,minmax(0,1fr))}
+  #optykerVisionDashboard .visionKpi {min-height:116px}
+}
+@media screen and (max-width:760px) {
+  html[data-optyker-layout="vision"] #mainApp {padding:0!important}
+  html[data-optyker-layout="vision"] #mainApp>.topbar {padding:15px 14px 17px!important;margin:0!important;gap:11px!important;flex-wrap:wrap!important;z-index:50}
+  html[data-optyker-layout="vision"] #mainApp .topbarLeft {flex:1 1 auto!important;min-width:0!important}
+  html[data-optyker-layout="vision"] #mainApp .topbar h1 {font-size:22px!important}
+  html[data-optyker-layout="vision"] #mainApp .topbar .sub {font-size:9px!important}
+  html[data-optyker-layout="vision"] #mainApp .topbarRight {width:100%!important;flex:1 1 100%!important;gap:7px!important}
+  html[data-optyker-layout="vision"] #mainApp .optykerGlobalSearchWrap {min-width:0!important;flex:1 1 140px!important}
+  html[data-optyker-layout="vision"] #mainApp #optykerGlobalSearchInput {font-size:11px!important}
+  html[data-optyker-layout="vision"] #mainApp #optykerTopDashboardBtn {display:none!important}
+  html[data-optyker-layout="vision"] #mainApp #optykerTopProfileBtn {width:35px!important;height:35px!important;min-width:35px!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav {display:none!important;position:relative!important;grid-row:auto!important;top:auto!important;height:auto!important;max-height:70vh!important;overflow:auto!important;border-radius:14px!important;margin:0 12px 14px!important;padding:16px!important;flex-direction:column!important;flex-wrap:nowrap!important;gap:5px!important}
+  html[data-optyker-layout="vision"].visionMenuOpen #mainApp #moduleNav {display:flex!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav>* {flex:0 0 auto!important;width:100%!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav::after {display:none!important}
+  html[data-optyker-layout="vision"] #mainApp #moduleNav .visionBrand {padding-bottom:14px!important}
+  html[data-optyker-layout="vision"] #mainApp #dashboardPanel {padding:0 13px 18px!important}
+  html[data-optyker-layout="vision"] #mainApp>.panel {margin:0 12px 18px!important}
+  .visionMenuToggle {display:grid;place-items:center;width:37px;height:37px;border:1px solid #d4e4f7;border-radius:10px;background:#fff;color:#254c78;font-size:19px;cursor:pointer}
+  .visionKpis {gap:9px;margin-bottom:12px}
+  #optykerVisionDashboard .visionKpi {min-height:118px;padding:16px 12px;gap:9px}
+  .visionKpiLabel {font-size:10px;min-height:22px}
+  .visionKpiBody strong {font-size:28px}
+  .visionKpiHint {font-size:8px;margin-top:6px}
+  .visionKpiIcon {width:32px;height:32px;flex-basis:32px}
+  .visionKpiIcon svg {width:20px!important;height:20px!important}
+  .visionKpiArrow {display:none}
+  .visionActions {grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  #optykerVisionDashboard .visionAction {padding:12px;gap:10px;min-height:70px}
+  .visionAction strong {font-size:12px}
+  .visionOperations {grid-template-columns:1fr}
+  #optykerVisionDashboard .dashboardShopifyCard {grid-column:1!important}
+  #optykerVisionDashboard .dashboardShopifyOrders {display:block!important}
+  #optykerVisionDashboard .visionExisting .dashboardCardTitle,.visionPanelHead h2 {font-size:13px!important}
+  #optykerVisionDashboard .dashboardTodayItem {grid-template-columns:40px 30px minmax(0,1fr) auto!important}
+  #optykerVisionDashboard .dashboardTodayStatus {grid-column:4!important;grid-row:1!important}
+  #optykerVisionDashboard .dashboardTodayName {font-size:11px!important}
+  .visionLabInfo strong {font-size:11px}
+  .visionBanner {padding:20px;min-height:134px}
+  .visionBanner h2 {font-size:24px}
+  .visionBanner>span {font-size:8px;letter-spacing:.12em}
+}
+@media screen and (prefers-reduced-motion:reduce) {
+  #optykerVisionDashboard *,#optykerVisionDashboard *::before,#optykerVisionDashboard *::after {transition:none!important;animation:none!important;scroll-behavior:auto!important}
+}
+
+@media screen {
+  html[data-optyker-layout="vision"] #mainApp #optykerTopNewClientBtn {align-items:center!important;justify-content:center!important;line-height:1!important;font-size:11px!important;font-weight:550!important}
+  html[data-optyker-layout="vision"][data-vision-dashboard="true"] #mainApp #optykerTopDashboardBtn {display:none!important}
+  .visionBusinessBadge {order:8;display:flex;align-items:center;gap:9px;padding:10px 12px;background:#ffffffb3;border:1px solid #fff;border-radius:12px;flex:0 0 auto}
+  .visionBusinessBadge>svg {width:20px;height:20px;color:#1b85f4}
+  .visionBusinessBadge strong {display:block;font-size:10px;font-weight:600;color:#254574}
+  .visionBusinessBadge small {display:block;font-size:8px;color:#829dbf;margin-top:4px}
+}
+@media screen and (max-width:1250px){.visionBusinessBadge{display:none}}
+/* Existing navigation scripts set display:flex!important inline. Collapse by visibility
+   and height on small screens without fighting their module/auth display decisions. */
+@media screen and (max-width:760px) {
+  html[data-optyker-layout="vision"]:not(.visionMenuOpen) #mainApp #moduleNav {visibility:hidden!important;pointer-events:none!important;height:0!important;max-height:0!important;padding:0!important;margin:0!important;overflow:hidden!important}
+}

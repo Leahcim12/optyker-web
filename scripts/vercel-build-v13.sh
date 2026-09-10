@@ -35,3 +35,13 @@ echo "Optyker production build V13 OK"
 python scripts/apply_aurora_design.py
 grep -q 'id="optykerAuroraCss"' _site/index.html
 test -s _site/optyker-aurora.css
+
+# Reference-matched dashboard: preserve original application scripts and read live data.
+node --check optyker-vision.js
+python scripts/apply_vision_design.py
+grep -q 'id="optykerVisionCss"' _site/index.html
+grep -q 'id="optykerVisionJs"' _site/index.html
+test -s _site/optyker-vision-eye.webp
+cmp _site/index.html _site/gestionale-v2/index.html
+cmp _site/index.html _site/gestionale-v3/index.html
+echo "Optyker Vision production build OK"
