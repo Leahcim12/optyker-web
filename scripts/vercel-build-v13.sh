@@ -87,6 +87,17 @@ test -s _site/services-version.json
 verify_desktop_aliases
 echo "Optyker Services production build OK"
 
+# Cart-first POS, register icon and the separately authenticated privacy workflow.
+node --check optyker-privacy.js
+python scripts/apply_cart_privacy.py
+node --check _site/cash-register.js
+node --check _site/optyker-vision.js
+grep -q 'id="optykerPrivacyJs"' _site/index.html
+grep -q 'function openProductPicker' _site/cash-register.js
+test -s _site/cart-privacy-version.json
+verify_desktop_aliases
+echo "Optyker Cart Privacy build OK"
+
 # GitHub Pages has a repository subpath; Vercel uses the domain root.
 python scripts/patch_public_asset_paths.py
 verify_desktop_aliases

@@ -1,0 +1,60 @@
+name: Verifica Cassa e Privacy pubblicate
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ['Pubblica Optyker']
+    types: [completed]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verifica versione e file sui domini pubblici senza dati cliente
+        env:
+          EXPECTED_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          python3 - <<'PY'
+          import hashlib,json,os,time,urllib.request
+          from pathlib import Path
+          from concurrent.futures import ThreadPoolExecutor
+          def get(url):
+              req=urllib.request.Request(url,headers={'Cache-Control':'no-cache','User-Agent':'Optyker-Cart-Privacy-Verification/1.0'})
+              with urllib.request.urlopen(req,timeout=20) as r:
+                  return r.read(4000000)
+          def check(base):
+              err=''
+              for attempt in range(12):
+                  try:
+                      m=json.loads(get(base+'cart-privacy-version.json'))
+                      assert m['commit']==os.environ['EXPECTED_COMMIT'],'Deployment not yet current'
+                      assert m['version']=='20260910-cart-privacy1','Incorrect version'
+                      checked={}
+                      for name,expected in m['assets'].items():
+                          raw=get(base+name+'?v='+m['version'])
+                          assert hashlib.sha256(raw).hexdigest()==expected,'Hash mismatch: '+name
+                          checked[name]={'bytes':len(raw),'sha256':expected}
+                      for alias in ('','gestionale-v2/','gestionale-v3/'):
+                          html=get(base+alias).decode('utf-8')
+                          assert 'data-optyker-cart="focused"' in html
+                          assert 'id="optykerPrivacyJs"' in html
+                          assert '>Informativa</button>' in html
+                      return {'base':base,'ok':True,'commit':m['commit'],'version':m['version'],'assets':checked}
+                  except Exception as e:
+                      err=str(e)
+                      if attempt<11: time.sleep(5)
+              return {'base':base,'ok':False,'error':err}
+          with ThreadPoolExecutor(max_workers=2) as pool:
+              result=list(pool.map(check,['https://www.optyker.it/','https://leahcim12.github.io/optyker-web/']))
+          report=json.dumps(result,indent=2)
+          print(report)
+          Path('cart-privacy-live.json').write_text(report)
+          if not all(x['ok'] for x in result):raise SystemExit('Public release verification failed')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cart-privacy-live
+          path: cart-privacy-live.json
+          retention-days: 7

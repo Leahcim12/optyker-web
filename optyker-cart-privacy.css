@@ -1,0 +1,110 @@
+/* Optyker cart-first POS + client privacy / 20260910-cart-privacy1. Screen only. */
+@media screen {
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashMain {display:block!important;flex:1 1 auto!important;height:auto!important;min-height:0!important;overflow:hidden!important;padding:18px!important;background:#eef4fc!important}
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashCart {position:relative!important;inset:auto!important;display:grid!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;min-height:0!important;grid-template-columns:minmax(0,1fr) 360px!important;grid-template-rows:auto minmax(0,1fr) auto!important;grid-template-areas:"head pay" "items pay" "add footer"!important;overflow:hidden!important;border:1px solid #d3e2f3!important;border-radius:19px!important;box-shadow:0 8px 28px #13365d0a!important}
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashCartHead {grid-area:head!important;padding:22px 25px!important;border-bottom:1px solid #dce7f4!important}
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashClientBox {max-width:none!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:7px 15px!important;margin-top:17px!important}
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashClientBox>label {grid-column:1!important;grid-row:1!important}
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashClientBox>label.optykerCashClientSelectLabel {grid-column:2!important;display:block!important}
+ html[data-optyker-cart] #optykerCashOverlay #optykerCashClientSearch {grid-column:1!important;grid-row:2!important}
+ html[data-optyker-cart] #optykerCashOverlay #optykerCashClient {grid-column:2!important;grid-row:2!important}
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashCartItems {grid-area:items!important;height:auto!important;min-height:0!important;max-height:none!important;padding:22px 25px!important;overflow:auto!important}
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashCartItem {padding:18px!important;gap:18px!important}
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashCartItemTitle {font-size:16px!important;line-height:1.5!important}
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashCartItemMeta {font-size:12px!important}
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashCartItemPrice {font-size:23px!important;font-variant-numeric:tabular-nums}
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashCartEmpty {min-height:190px!important;display:grid!important;place-content:center!important;font-size:15px!important;line-height:1.8!important}
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashCheckout {grid-area:pay!important;overflow:auto!important;max-height:none!important;height:auto!important;min-height:0!important;padding:22px!important;border-left:1px solid #d6e5f4!important}
+ html[data-optyker-cart] #optykerCashOverlay .optykerServicesCashFooter {grid-area:footer!important;border-left:1px solid #d6e5f4!important;padding:15px!important}
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashAddRow {grid-area:add;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:8px;padding:20px 25px;background:#fff;border-top:1px solid #dce7f4}
+ html[data-optyker-cart] #optykerCashFindProducts {display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:53px;border-radius:12px;border:1px solid #2183e9;background:linear-gradient(110deg,#0a72de,#2a97f5);color:#fff;font-family:inherit;font-weight:600;font-size:15px;line-height:1.4;box-shadow:0 5px 16px #137dec22}
+ html[data-optyker-cart] #optykerCashFindProducts span {font-size:26px}
+ html[data-optyker-cart] .optykerCashAddRow small {font-size:11px;color:#627d9a}
+ html[data-optyker-cart] .optykerCashFocusedHint {flex:1;color:#c4ddf5;font-size:13px;letter-spacing:.015em}
+ html[data-optyker-cart] #optykerCashProductPicker {width:min(1120px,94vw);max-width:94vw;height:min(780px,90dvh);max-height:90dvh;padding:0;border:1px solid #cde1f6;border-radius:22px;background:#f5f9ff;color:#17395f;box-shadow:0 25px 100px #03183370;overflow:hidden}
+ html[data-optyker-cart] #optykerCashProductPicker:not([open]) {display:none!important}
+ html[data-optyker-cart] #optykerCashProductPicker::backdrop,.optykerPrivacyDialog::backdrop {background:#071e3b99;backdrop-filter:blur(5px)}
+ html[data-optyker-cart] .optykerCashPickerLayout {display:flex;flex-direction:column;height:100%;min-height:0}
+ html[data-optyker-cart] .optykerCashPickerHead {display:flex;align-items:center;justify-content:space-between;padding:22px 26px;background:linear-gradient(110deg,#0a2648,#184974);color:#fff;gap:20px}
+ html[data-optyker-cart] .optykerCashPickerHead h2 {font-size:24px;letter-spacing:-.5px;margin:0;color:inherit}
+ html[data-optyker-cart] .optykerCashPickerHead p {font-size:12px;margin:7px 0 0;color:#bed8f0}
+ html[data-optyker-cart] #optykerCashPickerClose {width:38px;height:38px;padding:0;border:1px solid #ffffff38;border-radius:10px;background:#ffffff12;color:#fff;font-size:26px}
+ html[data-optyker-cart] #optykerCashProductPicker .optykerCashSearchWrap {padding:18px 22px;flex:0 0 auto;max-width:none;min-width:0;width:auto}
+ html[data-optyker-cart] #optykerCashProductPicker #optykerCashSearch {width:100%;height:49px!important;color:#17395f!important;background:#fff!important;border:1px solid #bad3ef!important;border-radius:12px!important;padding:0 15px!important;font-size:15px!important}
+ html[data-optyker-cart] #optykerCashProductPicker .optykerCashCatalog {display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-width:0!important;min-height:0!important;height:auto!important;max-height:none!important;overflow:hidden!important}
+ html[data-optyker-cart] #optykerCashProductPicker .optykerCashProducts {display:grid!important;grid-template-columns:repeat(auto-fill,minmax(170px,1fr))!important;align-content:start!important;gap:14px!important;padding:16px 22px!important;flex:1;min-height:0!important;overflow:auto!important}
+ html[data-optyker-cart] .optykerCashPickerFoot {display:flex;align-items:center;justify-content:space-between;gap:16px;padding:17px 22px;border-top:1px solid #d5e5f5;background:#fff}
+ html[data-optyker-cart] #optykerCashPickerStatus {font-size:13px;color:#197064;line-height:1.5}
+ html[data-optyker-cart] #optykerCashPickerDone {padding:12px 22px;min-height:43px;background:#123960;color:#fff;border:0;border-radius:11px;font-weight:600;white-space:nowrap}
+ #optykerPrivacyBanner[hidden] {display:none!important}
+ #optykerPrivacyBanner {display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:16px 19px;margin:0 0 18px;background:#fff4e7;border:1px solid #edc889;border-radius:14px;color:#774c15}
+ #optykerPrivacyBanner[data-state="current"] {background:#edf8f4;border-color:#b9dfd1;color:#176554}
+ #optykerPrivacyBanner[data-state="error"],#optykerPrivacyBanner[data-state="loading"] {background:#edf3fb;border-color:#cbdcef;color:#3a5c7e}
+ #optykerPrivacyBanner strong {display:block;font-size:14px}
+ #optykerPrivacyBanner small {display:block;font-size:12px;line-height:1.6;margin-top:4px}
+ #optykerPrivacyBanner button {min-height:40px;padding:9px 15px;border:1px solid currentColor;border-radius:10px;background:#fff;color:inherit;font-family:inherit;font-weight:600;font-size:12px;line-height:1.4}
+ #optykerPrivacyChoice {border-color:#a4cdeb!important;background:linear-gradient(120deg,#edf6ff,#f4fbfa)!important}
+ .optykerPrivacyDialog {box-sizing:border-box;width:min(920px,96vw);max-width:96vw;max-height:94dvh;padding:0;border:1px solid #c8dcf1;border-radius:20px;background:#f6f9fe;color:#17385d;overflow:auto;box-shadow:0 25px 90px #071c3e55;font-family:"Segoe UI",system-ui,sans-serif}
+ .optykerPrivacyDialog:not([open]) {display:none!important}
+ .optykerPrivacyDialog * {box-sizing:border-box}
+ .optykerPrivacyHead {position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:18px;background:linear-gradient(110deg,#102d50,#1b537c);color:#fff;padding:20px 25px}
+ .optykerPrivacyHead h2 {font-size:23px;letter-spacing:-.45px;margin:0;color:inherit}
+ .optykerPrivacyHead p {margin:6px 0 0;color:#c2dbf2;font-size:12px}
+ .optykerPrivacyHead button {width:38px;height:38px;border:1px solid #ffffff30;border-radius:9px;background:#ffffff12;color:#fff;font-size:24px}
+ .optykerPrivacyBody {padding:24px;display:grid;gap:18px}
+ .optykerPrivacyBody h3 {margin:0 0 12px;font-size:17px;color:#234b70}
+ .optykerPrivacyBox {padding:19px;border:1px solid #d4e4f3;background:#fff;border-radius:13px;min-width:0}
+ .optykerPrivacyText {white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.8 "Segoe UI",system-ui,sans-serif;max-height:350px;overflow:auto;padding:17px;border:1px solid #d8e7f5;background:#f8fbff;border-radius:11px}
+ .optykerPrivacyFields {display:grid;grid-template-columns:1fr 1fr;gap:14px}
+ .optykerPrivacyFields label {display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:600;color:#4c6d8b}
+ .optykerPrivacyDialog :is(input:not([type=checkbox]):not([type=radio]),select,textarea) {font-family:inherit;font-weight:400;font-size:14px;line-height:1.5;padding:10px 12px;border:1px solid #bed4eb;border-radius:9px;background:#fff;color:#183858;width:100%;min-height:43px;min-width:0}
+ .optykerPrivacyDialog textarea {min-height:360px;resize:vertical;font-size:13px;line-height:1.7}
+ .optykerPrivacyCheck {display:flex;align-items:flex-start;gap:10px;margin:13px 0;font-size:13px;line-height:1.65;color:#3c5d7b}
+ .optykerPrivacyDialog input:is([type=checkbox],[type=radio]) {width:18px;height:18px;flex:0 0 18px;accent-color:#147be6;margin:3px 0 0}
+ .optykerPrivacyDialog fieldset {margin:15px 0;padding:14px 17px;border:1px solid #d6e4f2;border-radius:11px}
+ .optykerPrivacyDialog legend {font-size:13px;font-weight:600;padding:0 5px}
+ .optykerPrivacyChoiceRow {display:flex;gap:22px;flex-wrap:wrap}
+ .optykerPrivacyChoiceRow label {display:flex;align-items:center;gap:8px;font-size:13px;padding:6px 0}
+ .optykerPrivacyFoot {position:sticky;bottom:0;z-index:2;padding:17px 24px;background:#f6fafff5;border-top:1px solid #ccdef1;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+ .optykerPrivacyDialog button {cursor:pointer;font-family:inherit}
+ .optykerPrivacyAction {padding:11px 17px;min-height:43px;border:1px solid #a5c6e6;border-radius:10px;background:#fff;color:#215c91;font-size:13px;font-weight:600}
+ .optykerPrivacyAction.primary {background:#167de7!important;color:#fff!important;border-color:#167de7!important}
+ .optykerPrivacyAction:disabled {opacity:.5;cursor:not-allowed}
+ .optykerPrivacyNote {font-size:12px;line-height:1.7;color:#5e7791;margin:0}
+ .optykerPrivacyWarning {border:1px solid #eed09c;background:#fff7e9;border-radius:11px;padding:14px;color:#82571e;font-size:12px;line-height:1.7}
+ #optykerPrivacyFeedback {white-space:pre-wrap;font-size:13px;color:#9b3148;line-height:1.6;flex:1}
+ #optykerPrivacySign {display:block;width:100%;height:165px;border:1px dashed #94b9df;border-radius:10px;background:#fff;touch-action:none}
+ .optykerPrivacyHistoryItem {display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 0;border-bottom:1px solid #e1ebf6;flex-wrap:wrap}
+ .optykerPrivacyHistoryItem strong {font-size:13px}.optykerPrivacyHistoryItem small {display:block;font-size:11px;line-height:1.7;color:#65819a;margin-top:4px}
+ .optykerPrivacyDialog :is(button,input,select,textarea):focus-visible,#optykerCashProductPicker :focus-visible {outline:3px solid #278bf0!important;outline-offset:3px}
+}
+@media screen and (max-width:950px) {
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashCart {grid-template-columns:minmax(0,1fr) 320px!important}
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashClientBox {grid-template-columns:1fr!important}
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashClientBox>.optykerCashClientSelectLabel {grid-column:1!important;grid-row:3!important}
+ html[data-optyker-cart] #optykerCashOverlay #optykerCashClient {grid-column:1!important;grid-row:4!important}
+}
+@media screen and (max-width:700px) {
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashMain {overflow:auto!important;padding:10px!important}
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashCart {display:flex!important;flex-direction:column!important;overflow:visible!important;height:auto!important;min-height:100%!important}
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashCartHead {order:0;padding:18px!important}
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashCartItems {order:1;min-height:180px!important;max-height:47dvh!important;flex:0 0 auto!important;padding:14px!important}
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashAddRow {order:2;padding:15px}
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashCheckout {order:3;overflow:visible!important;padding:18px!important;border-left:0!important}
+ html[data-optyker-cart] #optykerCashOverlay .optykerServicesCashFooter {order:4;border-left:0!important}
+ html[data-optyker-cart] .optykerCashFocusedHint {display:none}
+ html[data-optyker-cart] #optykerCashProductPicker {height:94dvh;max-height:94dvh;width:97vw;max-width:97vw;border-radius:15px}
+ html[data-optyker-cart] #optykerCashProductPicker .optykerCashProducts {grid-template-columns:repeat(2,minmax(0,1fr))!important;padding:12px!important;gap:10px!important}
+ html[data-optyker-cart] .optykerCashPickerHead {padding:17px}.optykerCashPickerFoot {flex-wrap:wrap}
+ .optykerPrivacyBody {padding:16px;gap:14px}.optykerPrivacyBox {padding:15px}.optykerPrivacyFields {grid-template-columns:1fr}.optykerPrivacyFoot {padding:13px 16px}.optykerPrivacyHead {padding:17px}
+}
+@media screen and (prefers-reduced-motion:reduce) {
+ html[data-optyker-cart] :is(#optykerCashOverlay,.optykerPrivacyDialog) * {transition:none!important;animation:none!important}
+}
+
+@media screen and (max-width:700px) {
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashHeaderRight {display:flex!important;flex:1 1 100%!important;flex-wrap:wrap!important;min-width:0!important;width:100%!important;justify-content:flex-start!important;gap:8px!important}
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashHeaderRight button {flex:0 0 auto!important;width:auto!important;min-width:36px!important;max-width:100%!important;white-space:nowrap!important;padding:8px 11px!important}
+ html[data-optyker-cart] #optykerCashOverlay #optykerCashClose {margin-left:auto!important}
+ html[data-optyker-cart] #optykerCashOverlay .optykerCashClientBox>label.optykerCashClientSelectLabel {grid-column:1!important;grid-row:3!important;text-align:left!important}
+}
