@@ -1,0 +1,201 @@
+{
+  "version": "20260910-ts15-v1",
+  "brand": "TS",
+  "currency": "EUR",
+  "price_unit": "occhio",
+  "discount_percent": 15,
+  "products": [
+    {
+      "id": "ts_trimestrale_sferica",
+      "name": "Trimestrale sferica",
+      "price": 50,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_trimestrale_torica",
+      "name": "Trimestrale torica",
+      "price": 80,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_semestrale_sferica",
+      "name": "Semestrale sferica",
+      "price": 80,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_semestrale_torica",
+      "name": "Semestrale torica",
+      "price": 110,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_annuale_sferica",
+      "name": "Annuale sferica",
+      "price": 120,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_annuale_torica",
+      "name": "Annuale torica",
+      "price": 180,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_trimestrale_multifocale",
+      "name": "Trimestrale multifocale",
+      "price": 70,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_trimestrale_multifocale_torica",
+      "name": "Trimestrale multifocale torica",
+      "price": 100,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_semestrale_multifocale",
+      "name": "Semestrale multifocale",
+      "price": 100,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_semestrale_multifocale_torica",
+      "name": "Semestrale multifocale torica",
+      "price": 130,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_annuale_multifocale",
+      "name": "Annuale multifocale",
+      "price": 140,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_annuale_multifocale_torica",
+      "name": "Annuale multifocale torica",
+      "price": 250,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_trimestrale_spessorata",
+      "name": "Trimestrale spessorata",
+      "price": 100,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_semestrale_spessorata",
+      "name": "Semestrale spessorata",
+      "price": 130,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_annuale_spessorata",
+      "name": "Annuale spessorata",
+      "price": 200,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_trimestrale_multifocale_spessorata",
+      "name": "Trimestrale multifocale spessorata",
+      "price": 120,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_semestrale_multifocale_spessorata",
+      "name": "Semestrale multifocale spessorata",
+      "price": 150,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_annuale_multifocale_spessorata",
+      "name": "Annuale multifocale spessorata",
+      "price": 220,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_trimestrale_inversa",
+      "name": "Trimestrale inversa",
+      "price": 100,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_semestrale_inversa",
+      "name": "Semestrale inversa",
+      "price": 130,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_annuale_inversa",
+      "name": "Annuale inversa",
+      "price": 200,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_trimestrale_multifocale_inversa",
+      "name": "Trimestrale multifocale inversa",
+      "price": 120,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_semestrale_multifocale_inversa",
+      "name": "Semestrale multifocale inversa",
+      "price": 150,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_annuale_multifocale_inversa",
+      "name": "Annuale multifocale inversa",
+      "price": 220,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_trimestrale_myopic",
+      "name": "Trimestrale Myopic",
+      "price": 70,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_semestrale_myopic",
+      "name": "Semestrale Myopic",
+      "price": 100,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_annuale_myopic",
+      "name": "Annuale Myopic",
+      "price": 140,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_trimestrale_torica_myopic",
+      "name": "Trimestrale torica Myopic",
+      "price": 100,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_semestrale_torica_myopic",
+      "name": "Semestrale torica Myopic",
+      "price": 130,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_annuale_torica_myopic",
+      "name": "Annuale torica Myopic",
+      "price": 200,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_ibrida_sferica",
+      "name": "Ibrida sferica",
+      "price": 500,
+      "pack_lenses": 1
+    },
+    {
+      "id": "ts_ibrida_torica",
+      "name": "Ibrida torica",
+      "price": 600,
+      "pack_lenses": 1
+    }
+  ]
+}

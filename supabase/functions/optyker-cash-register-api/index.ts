@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { listHistory, receiptDetail, setHistoryVisibility } from './history.ts';
-import { esoformProduct, listEsoformProducts, cashDraftLine, pricingTotals, assertEsoformTotal, ESOFORM_VERSION } from './esoform.mjs';
+import { lensProduct, listLensProducts, isLensCatalogId, cashDraftLine, pricingTotals, assertLensTotal, discountBrands, LENS_CATALOG_VERSION } from './lens-pricing.mjs';
 
 const U=Deno.env.get("SUPABASE_URL")||"";
 const S=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
@@ -108,7 +108,7 @@ async function products(search:string,first:number){
       });
     }
   }
-  return [...listEsoformProducts(search), ...outRows];
+  return [...listLensProducts(search), ...outRows];
 }
 async function clients(search:string){
   let q=db.from("optyker_clients")
@@ -119,8 +119,8 @@ async function clients(search:string){
   const {data,error}=await q;if(error)throw error;return data||[];
 }
 async function lookupVariants(ids:string[]){
-  const uniq=[...new Set(ids.filter(x=>!x.startsWith("esoform:")).map(x=>gid("ProductVariant",x)).filter(Boolean))].slice(0,100);
-  const local=ids.map(esoformProduct).filter(Boolean);
+  const uniq=[...new Set(ids.filter(x=>!isLensCatalogId(x)).map(x=>gid("ProductVariant",x)).filter(Boolean))].slice(0,100);
+  const local=ids.map(lensProduct).filter(Boolean);
   if(!uniq.length)return local;
   const q=[
     "query CashVariants($ids:[ID!]!){",
@@ -236,7 +236,7 @@ async function createInvoiceDraft(sale:any,payment:any,client:any,operator:strin
   const issueDate=new Date().toISOString().slice(0,10);
   let header="Pagamento cassa Optyker · "+stageLabel(stage)+(sale.shopify_order_name?(" · "+sale.shopify_order_name):"");
   const discount=Number(sale?.data?.pricing?.discount_total||0);
-  if(discount>0)header+=" · Sconto Esoform 15% già applicato (sconto complessivo vendita: "+money(discount).toFixed(2)+" EUR)";
+  if(discount>0)header+=" · Sconto "+discountBrands(sale?.data?.lines||[])+" 15% già applicato (sconto complessivo vendita: "+money(discount).toFixed(2)+" EUR)";
   const payload={
     source:"optyker_pos",
     provider:"FOCUS FE · Bludata",
@@ -314,7 +314,7 @@ async function quoteLines(linesIn:any[]){
   const quantities=new Map<string,number>();
   for(const l of linesIn){
     const rawId=norm(l?.variant_id);
-    const id=rawId.startsWith("esoform:")?rawId:gid("ProductVariant",rawId);
+    const id=isLensCatalogId(rawId)?rawId:gid("ProductVariant",rawId);
     const qty=Number(l?.quantity);
     if(!id||!Number.isInteger(qty)||qty<1||qty>99||(quantities.get(id)||0)+qty>99)throw new Error("Articolo o quantità non valida");
     quantities.set(id,(quantities.get(id)||0)+qty);
@@ -331,7 +331,7 @@ async function quoteLines(linesIn:any[]){
     lines.push({...v,quantity:qty,total,discount_total:money((v.discount_amount||0)*qty)});
   }
 
-  return {lines,...pricingTotals(lines),catalog_version:ESOFORM_VERSION};
+  return {lines,...pricingTotals(lines),catalog_version:LENS_CATALOG_VERSION};
 }
 
 async function checkout(body:any,operator:string){
@@ -342,7 +342,7 @@ async function checkout(body:any,operator:string){
 
   const quoted=await quoteLines(linesIn);
   const lines=quoted.lines,subtotal=quoted.total;
-  if(p.expected_total!=null)assertEsoformTotal(lines,p.expected_total);
+  if(p.expected_total!=null)assertLensTotal(lines,p.expected_total);
 
   const clientId=norm(p.client_id);
   const client=clientId?await clientById(clientId):null;
@@ -428,7 +428,7 @@ async function checkout(body:any,operator:string){
     const draft=created?.draftOrderCreate?.draftOrder;
     if(!draft?.id)throw new Error("Ordine Shopify non creato");
     sale=await patchSale(sale.id,{shopify_draft_order_id:draft.id,status:"draft"});
-    assertEsoformTotal(lines,draft.totalPriceSet?.shopMoney?.amount,draft.totalPriceSet?.shopMoney?.currencyCode);
+    assertLensTotal(lines,draft.totalPriceSet?.shopMoney?.amount,draft.totalPriceSet?.shopMoney?.currencyCode);
 
     const completeQ=[
       "mutation CashDraftComplete($id:ID!,$paymentPending:Boolean!){",

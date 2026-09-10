@@ -104,6 +104,11 @@ node --check _site/cash-register.js
 node --test tests/esoform-pricing.test.mjs
 verify_desktop_aliases
 
+# Extend the same canonical discount rules to the new TS lenses.
+python scripts/apply_ts_catalog.py
+node --test tests/ts-pricing.test.mjs
+verify_desktop_aliases
+
 # GitHub Pages has a repository subpath; Vercel uses the domain root.
 python scripts/patch_public_asset_paths.py
 verify_desktop_aliases
