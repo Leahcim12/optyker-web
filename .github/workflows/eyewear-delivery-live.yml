@@ -2,7 +2,7 @@ name: Verifica consegna firmata pubblicata
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/eyewear-delivery-live.yml']
+    paths: ['.github/workflows/eyewear-delivery-live.yml', 'tests/delivery.test.mjs', 'eyewear-delivery.mjs', 'delivery-schema.mjs', 'supabase/functions/optyker-eyewear-delivery/**']
   workflow_dispatch:
 permissions:
   contents: read
