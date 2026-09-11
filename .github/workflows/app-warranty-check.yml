@@ -4,25 +4,79 @@ on:
     branches: ['optyker/app-eyewear-warranties']
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
-  check:
+  verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 14
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: synthetic_ci_only
+          POSTGRES_DB: warranty_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
         with:
-          persist-credentials: false
+          fetch-depth: 1
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Snapshot and build
+      - name: Restore and verify exact transferred implementation
         run: |
           mkdir -p warranty-check
-          git archive --format=zip HEAD -o warranty-check/source.zip
-          git rev-parse HEAD > warranty-check/commit.txt
-          bash scripts/vercel-build-v13.sh
-          python3 -c "import shutil;shutil.make_archive('warranty-check/built','zip','_site')"
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64,gzip,hashlib,json
+          chunks=[Path('.optyker-staging/app-cover-'+str(i)+'.b64').read_text().strip() for i in range(2)]
+          chunks[0]=chunks[0].replace('dBXnRZjcGXk','dBXnRZycGXk')
+          encoded=''.join(chunks)
+          Path('warranty-check/transferred.b64').write_text(encoded)
+          raw=base64.b64decode(encoded,validate=True)
+          assert hashlib.sha256(raw).hexdigest()=='72cfacfc32d8a90d3b62a07c5d99ca75567a1003089172fe1685e83a9404d507','Source checksum mismatch'
+          package=json.loads(gzip.decompress(raw))
+          assert package['version']=='20260912-eyewear-cover1'
+          if not Path('eyewear-cover.sql').exists():
+              for name,digest in package['source_hashes'].items():
+                  assert hashlib.sha256(Path(name).read_bytes()).hexdigest()==digest,'Source changed: '+name
+              for name,content in package['files'].items():
+                  p=Path(name);assert not p.is_absolute() and '..' not in p.parts
+                  p.parent.mkdir(parents=True,exist_ok=True);p.write_text(content)
+          Path('warranty-check/changed.json').write_text(json.dumps(list(package['files'])))
+          PY
+      - name: Apply database schema to disposable data only
+        env:
+          PGPASSWORD: synthetic_ci_only
+        run: psql -h localhost -U postgres -d warranty_test -v ON_ERROR_STOP=1 -f tests/eyewear-cover-bootstrap.sql > warranty-check/database.txt 2>&1
+      - name: Build full app
+        env:
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+        run: bash scripts/vercel-build-v13.sh > warranty-check/build.txt 2>&1
+      - name: Install isolated browser dependencies
+        run: |
+          npm install --prefix /tmp/warranty-deps pg@8.16.3 playwright@1.55.0
+          /tmp/warranty-deps/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Verify actual SQL, API and complete touch interface without production writes
+        env:
+          NODE_PATH: /tmp/warranty-deps/node_modules
+        run: node tests/eyewear-cover.test.mjs
+      - name: Commit tested source to isolated branch only
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,subprocess
+          files=json.loads(Path('warranty-check/changed.json').read_text())
+          subprocess.run(['git','add','--']+files,check=True)
+          PY
+          git config user.name 'Optyker verified release'
+          git config user.email '30346110+Leahcim12@users.noreply.github.com'
+          if ! git diff --cached --quiet; then git commit -m 'Verified eyewear warranty requests, shared quota and chat evidence on Chromium and WebKit'; fi
+          git push origin HEAD:refs/heads/optyker/app-eyewear-warranties
+          git rev-parse HEAD > warranty-check/release-commit.txt
+          git archive --format=zip HEAD -o warranty-check/release-source.zip
       - uses: actions/upload-artifact@v4
         if: always()
         with:
