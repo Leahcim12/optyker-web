@@ -1,0 +1,37 @@
+name: Verifica sorgenti modifiche 11 settembre
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/sept11-workspace-bundle.yml']
+permissions:
+  contents: read
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Archive exact source
+        run: |
+          mkdir -p /tmp/optyker-source
+          git archive --format=zip HEAD -o /tmp/optyker-source/source.zip
+          git rev-parse HEAD > /tmp/optyker-source/source-commit.txt
+      - name: Build existing UI without deploying
+        run: |
+          bash scripts/vercel-build-v13.sh
+          python3 - <<'PY'
+          import shutil
+          shutil.make_archive('/tmp/optyker-source/built', 'zip', '_site')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: optyker-sept11-workspace
+          path: /tmp/optyker-source/
+          retention-days: 1
