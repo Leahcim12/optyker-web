@@ -38,3 +38,7 @@ for name in ('operations-version.json','cart-privacy-version.json'):
 assert 'OPTYKER_SINGLE_ROOT_VIEW_V1' not in s
 assert 'optykerQuotePrint.decorate' in s
 print('September 11 workflow, print and navigation release installed')
+
+# Tested against the complete assembled app: legacy writers and theme precedence.
+import runpy
+runpy.run_path(str(ROOT/'scripts/apply_runtime_fix_20260911.py'))
