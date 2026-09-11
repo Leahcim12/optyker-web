@@ -1,0 +1,40 @@
+name: Verifica azioni schede cliente
+on:
+  push:
+    branches: ['optyker/client-sheet-actions']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Exact source and current assembled app
+        run: |
+          mkdir -p sheet-actions-check
+          git archive --format=zip HEAD -o sheet-actions-check/source.zip
+          git rev-parse HEAD > sheet-actions-check/source-commit.txt
+          bash scripts/vercel-build-v13.sh > sheet-actions-check/build.log 2>&1
+          python3 - <<'PY'
+          import shutil
+          shutil.make_archive('sheet-actions-check/built','zip','_site')
+          PY
+      - name: Browser regression with isolated business requests
+        if: hashFiles('tests/client-sheet-actions.test.cjs') != ''
+        run: |
+          npm install --prefix /tmp/browser playwright@1.55.0
+          /tmp/browser/node_modules/.bin/playwright install --with-deps chromium
+          NODE_PATH=/tmp/browser/node_modules node tests/client-sheet-actions.test.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: client-sheet-actions-check
+          path: sheet-actions-check/
+          retention-days: 3
