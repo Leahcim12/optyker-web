@@ -1,0 +1,31 @@
+name: Verifica garanzie Occhiali app
+on:
+  push:
+    branches: ['optyker/app-eyewear-warranties']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Snapshot and build
+        run: |
+          mkdir -p warranty-check
+          git archive --format=zip HEAD -o warranty-check/source.zip
+          git rev-parse HEAD > warranty-check/commit.txt
+          bash scripts/vercel-build-v13.sh
+          python3 -c "import shutil;shutil.make_archive('warranty-check/built','zip','_site')"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: app-warranty-check
+          path: warranty-check/
+          retention-days: 3
