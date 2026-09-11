@@ -1,0 +1,81 @@
+name: Verifica consegna firmata pubblicata
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/eyewear-delivery-live.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: synthetic_ci_only
+          POSTGRES_DB: delivery_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare disposable test database and browser
+        env:
+          PGPASSWORD: synthetic_ci_only
+        run: |
+          mkdir -p delivery-check
+          psql -h localhost -U postgres -d delivery_test -v ON_ERROR_STOP=1 -f tests/delivery-db-bootstrap.sql
+          npm install --prefix /tmp/delivery playwright@1.55.0 pdf-lib@1.17.1 pngjs@7.0.0 pg@8.16.3
+          /tmp/delivery/node_modules/.bin/playwright install --with-deps chromium
+      - name: Verify exact deployed assets and active server authentication
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from concurrent.futures import ThreadPoolExecutor
+          import urllib.request,urllib.error,json,hashlib,os,time
+          expected=os.environ['GITHUB_SHA']
+          def get(url):
+              with urllib.request.urlopen(urllib.request.Request(url,headers={'Cache-Control':'no-cache','User-Agent':'Optyker-signed-delivery-check/1'}),timeout=15) as r:return r.read(4000000)
+          def check(base):
+              for attempt in range(36):
+                  try:
+                      m=json.loads(get(base+'eyewear-delivery-version.json?check='+expected))
+                      assert m['commit']==expected and m['version']=='20260911-delivery1'
+                      for name,digest in m['assets'].items():assert hashlib.sha256(get(base+name)).hexdigest()==digest,'Asset mismatch '+name
+                      for alias in ('','gestionale-v2/','gestionale-v3/'):
+                          h=get(base+alias+'?check='+expected).decode('utf8')
+                          assert 'optykerEyewearDeliveryJs' in h and 'optykerEyewearDeliveryCss' in h
+                      return {'base':base,'ok':True,'commit':expected,'version':m['version']}
+                  except Exception as e:
+                      if attempt==35:return {'base':base,'ok':False,'error':str(e)}
+                      time.sleep(5)
+          with ThreadPoolExecutor(max_workers=3) as pool:sites=list(pool.map(check,['https://optyker.it/','https://www.optyker.it/','https://leahcim12.github.io/optyker-web/']))
+          url='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-eyewear-delivery'
+          request=urllib.request.Request(url,data=b'{"action":"get","payload":{}}',headers={'Content-Type':'application/json'},method='POST')
+          try:
+              with urllib.request.urlopen(request,timeout=30) as r:status=r.status;body=json.loads(r.read(3000))
+          except urllib.error.HTTPError as e:status=e.code;body=json.loads(e.read(3000))
+          result={'sites':sites,'edge_authentication':{'status':status,'ok':status==401 and body.get('ok') is False},'production_business_writes':0}
+          Path('delivery-check/deployment.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result,indent=2))
+          assert all(s['ok'] for s in sites) and result['edge_authentication']['ok']
+          PY
+      - name: Full live interface to real disposable SQL and PDF server logic
+        env:
+          NODE_PATH: /tmp/delivery/node_modules
+          OPTYKER_LIVE: '1'
+        run: |
+          set -o pipefail
+          node tests/delivery.test.mjs 2>&1 | tee delivery-check/tests.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: signed-delivery-live-verification
+          path: delivery-check/
+          retention-days: 7
