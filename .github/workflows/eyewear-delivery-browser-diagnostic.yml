@@ -1,0 +1,46 @@
+name: Diagnosi trasporto test consegna firmata
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/eyewear-delivery-browser-diagnostic.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    services:
+      postgres:
+        image: postgres:17
+        env: {POSTGRES_PASSWORD: synthetic_ci_only, POSTGRES_DB: delivery_test}
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Isolated database and browser
+        env: {PGPASSWORD: synthetic_ci_only}
+        run: |
+          mkdir -p delivery-check
+          psql -h localhost -U postgres -d delivery_test -v ON_ERROR_STOP=1 -f tests/delivery-db-bootstrap.sql
+          npm install --prefix /tmp/delivery playwright@1.55.0 pdf-lib@1.17.1 pngjs@7.0.0 pg@8.16.3
+          /tmp/delivery/node_modules/.bin/playwright install --with-deps chromium
+      - name: Trace only synthetic login responses and run all existing assertions
+        env: {NODE_PATH: /tmp/delivery/node_modules, OPTYKER_LIVE: '1'}
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('tests/delivery.test.mjs');s=p.read_text()
+          s=s.replace("const clients=[", "page.on('response',async r=>{if(r.url().includes('optyker-staff-auth')){try{console.log('AUTH_RESPONSE',r.request().method(),r.status(),(await r.text()).slice(0,350));}catch(e){console.log('AUTH_RESPONSE_ERROR',String(e));}}});\n const clients=[")
+          s=s.replace("if(q.method()==='OPTIONS')", "if(u.pathname.includes('optyker-staff-auth'))console.log('AUTH_REQUEST',q.method(),b.action||'no action');\n   if(q.method()==='OPTIONS')")
+          s=s.replace("return route.fulfill({status,headers:cors,contentType:'application/json',body:JSON.stringify(x)});", "if(u.pathname.includes('optyker-staff-auth'))console.log('AUTH_STUB',JSON.stringify(x));return route.fulfill({status,headers:cors,contentType:'application/json',body:JSON.stringify(x)});")
+          s=s.replace("const op=await page.locator('#optykerLoginOperator option')", "await page.waitForTimeout(1600);const op=await page.locator('#optykerLoginOperator option')")
+          p.write_text(s)
+          PY
+          set -o pipefail
+          node tests/delivery.test.mjs 2>&1 | tee delivery-check/diagnostic.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: delivery-browser-diagnostic, path: delivery-check/, retention-days: 3}
