@@ -1,6 +1,6 @@
 (function(){
 if(window.__optykerCashLoaded)return;window.__optykerCashLoaded=true;
-window.OPTYKER_CASH_BUILD='20260909-rch-status2';
+window.OPTYKER_CASH_BUILD='20260911-rch-profile1';
 var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-cash-register-api';
 var S={products:[],clients:[],cart:{},type:'',payment:'card',stage:'balance',clientId:'',invoice:false,tsRequested:false,tsCode:'AD',tsOpposition:false,busy:false,searchTimer:null,clientSearchTimer:null,rchOk:false,cashOpen:false};
 
@@ -32,8 +32,10 @@ function testRch(quiet){
     if(h.version!=='1.5-status-compatibility')throw new Error('Aggiorna il connettore RCH dalla finestra di configurazione.');
     return rchRequest('/status')
   }).then(function(x){
-    var extra=x.mode?(' · '+x.mode):'';rchStatusUi(true,'● RCH raggiungibile'+extra);
-    if(!quiet)toast('RCH risponde. Emissione fiscale da configurare.','ok');return x
+    var extra=x.mode?(' · '+x.mode):' · modalità non disponibile';
+    var reg=!!window.OPTYKER_RCH_PREFLIGHT&&window.OPTYKER_RCH_PREFLIGHT.registrationMode(x);
+    rchStatusUi(reg,'● RCH raggiungibile'+extra);
+    if(!quiet)toast(reg?'RCH risponde in REG. Emissione fiscale non ancora attiva.':'RCH risponde, ma non risulta in modalità REG.','');return x
   }).catch(function(e){
     rchStatusUi(false,'○ RCH da verificare');
     if(!quiet)toast('RCH da verificare: '+e.message,'error');
@@ -48,10 +50,16 @@ function downloadRchDiagnostics(){
     return rchRequest('/diagnostics')
   }).then(function(report){
     if(report.reportGenerated!==true||report.readOnly!==true)throw new Error('Rapporto diagnostico incompleto.');
+    if(window.OPTYKER_RCH_PREFLIGHT){
+      report.acquiredConfiguration=window.OPTYKER_RCH_PREFLIGHT.getProfile();
+      report.configurationNote='Profilo ricavato dai documenti forniti, non letto dal registratore durante questa diagnosi.';
+      var probes=report.probes||[],last=probes.length?probes[probes.length-1].result:null;
+      report.registrationModeVerified=window.OPTYKER_RCH_PREFLIGHT.registrationMode(last);
+    }
     var url=URL.createObjectURL(new Blob([JSON.stringify(report,null,2)],{type:'application/json'}));
     var a=document.createElement('a');a.href=url;a.download='Diagnostica-RCH-Optyker.json';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},1000);
-    r.textContent='Diagnosi scaricata. '+(report.statusAccepted?'Richiesta di stato accettata.':report.printerReached?'RCH raggiungibile, ma la richiesta di stato non è stata accettata.':'Nessuna risposta RCH valida: verificare il collegamento.')+' Allega il file nella chat per completare la configurazione.';
-    r.className='optykerCashRchResult'+(report.printerReady?' ok':' error')
+    r.textContent='Diagnosi scaricata. '+(report.statusAccepted?'Richiesta di stato accettata.':report.printerReached?'RCH raggiungibile, ma la richiesta di stato non è stata accettata.':'Nessuna risposta RCH valida: verificare il collegamento.')+(report.registrationModeVerified?' Modalità REG rilevata.':' Modalità REG non verificata.')+' Emissione fiscale non attiva. Allega il file nella chat per completare la configurazione.';
+    r.className='optykerCashRchResult'+(report.registrationModeVerified?' ok':' error')
   }).catch(function(e){r.textContent=e.message+' Se il browser blocca l’accesso locale, usa “Diagnostica Windows”.';r.className='optykerCashRchResult error'})
     .finally(function(){b.disabled=false})
 }
@@ -88,18 +96,35 @@ function openRch(){
   m.innerHTML='<div class="optykerCashModalCard optykerCashRchCard"><div class="optykerCashModalTitle">Registratore fiscale RCH</div>'+
     '<div class="optykerCashModalSub">Optyker usa un piccolo connettore locale per comunicare in sicurezza con RCH PRINT! RT su 192.168.1.10.</div>'+
     '<div class="optykerCashRchInfo"><div><span>Registratore</span><b>RCH PRINT! RT</b></div><div><span>IP</span><b>192.168.1.10</b></div><div><span>Web Service</span><b>/service.cgi</b></div><div><span>Bridge Optyker</span><b>127.0.0.1:8765</b></div></div>'+
-    '<div class="optykerCashRchHelp"><b>Attivazione fiscale da completare</b><br>Scontrini ordinari e parlanti: configurazione RCH da verificare.<br>Spese sanitarie: invio diretto al Sistema TS non attivo.<br>Corrispettivi AdE: esiti del registratore non ancora verificati.</div>'+
+    '<div class="optykerCashRchHelp"><b>Configurazione acquisita · 11/09/2026</b><div id="optykerCashRchProfile"></div></div>'+
+    '<div class="optykerCashRchHelp"><b>Attivazione fiscale da completare</b><br>Pagamenti recuperati dalla stampa RCH. Reparti recuperati da Blu Data, da verificare direttamente sul registratore.<br>Scontrini ordinari e parlanti: comandi di emissione e numero documento da collaudare.<br>Spese sanitarie: invio diretto al Sistema TS non attivo.<br>Corrispettivi AdE: esiti del registratore non ancora verificati.</div>'+
+    '<div class="optykerCashRchHelp"><button id="optykerCashRchPreflight" type="button">Controlla carrello · senza stampa</button><div id="optykerCashRchPreflightResult" role="status" aria-live="polite"></div></div>'+
     '<div id="optykerCashRchResult" class="optykerCashRchResult">Pronto per il test.</div>'+
     '<div class="optykerCashRchDownloads optykerCashRchDownloadsAuto"><a class="primary" href="/rch-connector/Installa-RCH-Optyker.bat?v=20260909-rch-status2" download>Installa / aggiorna connettore</a><a href="/rch-connector/Diagnostica-RCH-Optyker.bat?v=20260909-rch-status2" download>Diagnostica Windows</a><a href="/rch-connector/Disinstalla-RCH-Optyker.ps1" download>Rimuovi avvio automatico</a></div>'+
     '<div class="optykerCashRchHelp">Il <b>Test collegamento</b> controlla soltanto la comunicazione e non emette documenti fiscali. <b>Apri cassetto</b> è la prova hardware più semplice: apre solo il cassetto contanti senza stampare uno scontrino.</div>'+
     '<div class="optykerCashRchActions optykerCashRchActions4"><button id="optykerCashRchTest" type="button">Test collegamento</button><button id="optykerCashRchDiagnostics" type="button">Scarica diagnosi</button><button id="optykerCashRchDrawerTest" type="button">Apri cassetto</button><button class="optykerCashModalClose" type="button">Chiudi</button></div></div>';
   m.classList.add('open');
+  var preflight=window.OPTYKER_RCH_PREFLIGHT,profileBox=E('optykerCashRchProfile');
+  if(preflight){
+    var profile=preflight.getProfile();
+    profileBox.innerHTML='<table><caption>Codici pagamento del registratore</caption><thead><tr><th scope="col">Codice</th><th scope="col">Pagamento</th></tr></thead><tbody>'+profile.payments.filter(function(p){return p.code===1||p.code===2||p.code===3||p.code===4||p.code===6||p.code===7}).map(function(p){return '<tr><td>'+esc(String(p.code).padStart(2,'0'))+'</td><td>'+esc(p.label)+'</td></tr>'}).join('')+'</tbody></table><p>Reparti da Blu Data: '+profile.departments.map(function(d){return esc(d.department+' → '+d.vatCode)}).join(' · ')+'</p><p>Porta TCP Blu Data: '+esc(profile.transport.legacyTcpPort)+'. Optyker mantiene il collegamento Web Service già verificato; la porta 23 non sostituisce /service.cgi.</p>';
+  }else profileBox.textContent='Modulo di verifica non caricato. Ricarica Optyker.';
+  E('optykerCashRchPreflight').disabled=!preflight;
+  E('optykerCashRchPreflight').onclick=function(){
+    // This check is local only: no customer details, network calls or fiscal commands.
+    var report=preflight.validate({paymentMethod:S.payment,stage:S.stage,invoice:!!S.invoice,tsRequested:!!S.tsRequested,talkingReceipt:!!S.tsRequested,
+      lines:cartRows().map(function(x){return {description:x.item.title,quantity:x.qty,unitPriceCents:preflight.toCents(x.item.price),vatCode:x.item.fiscal_vat_code||''}})});
+    var result=E('optykerCashRchPreflightResult');
+    result.innerHTML='<p><b>Controllo preliminare: nessun documento emesso.</b></p>'+(report.payment?'<p>Pagamento: '+esc(report.payment.label)+' · codice '+esc(String(report.payment.code).padStart(2,'0'))+'</p>':'')+
+      (report.issues.length?'<ul>'+report.issues.map(function(i){return '<li>'+esc((i.line!==undefined?'Riga '+(i.line+1)+': ':'')+i.message)+'</li>'}).join('')+'</ul>':'<p>Dati del carrello compatibili con il profilo acquisito.</p>')+
+      '<p>Emissione ancora bloccata:</p><ul>'+report.blockers.map(function(i){return '<li>'+esc(i.message)+'</li>'}).join('')+'</ul><p>La verifica non salva IVA o altre modifiche sui prodotti.</p>';
+  };
   m.querySelector('.optykerCashModalClose').onclick=function(){m.classList.remove('open')};
   m.onclick=function(ev){if(ev.target===m)m.classList.remove('open')};
   E('optykerCashRchDiagnostics').onclick=downloadRchDiagnostics;
   E('optykerCashRchTest').onclick=function(){
     var r=E('optykerCashRchResult');r.textContent='Collegamento in corso…';r.className='optykerCashRchResult';
-    testRch(true).then(function(x){r.textContent='RCH risponde · emissione fiscale ancora da configurare'+(x.mode?' · modalità '+x.mode:'');r.className='optykerCashRchResult ok'})
+    testRch(true).then(function(x){var reg=!!preflight&&preflight.registrationMode(x);r.textContent='RCH risponde'+(x.mode?' · modalità '+x.mode:' · modalità non disponibile')+(reg?'':' · prima dell’uso verificare il ritorno a REG')+'. Emissione fiscale non attiva.';r.className='optykerCashRchResult'+(reg?' ok':' error')})
       .catch(function(e){r.textContent='Non collegato · '+e.message;r.className='optykerCashRchResult error'})
   };
   E('optykerCashRchDrawerTest').onclick=function(){
@@ -525,4 +550,3 @@ function installCashObserver(){
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){tick();installCashObserver()});else{tick();installCashObserver()}
 setInterval(tick,250);
 })();
-
