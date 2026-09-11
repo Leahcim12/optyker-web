@@ -4,34 +4,84 @@ on:
     branches: ['optyker/client-sheet-actions']
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: disposable_ci_only
+          POSTGRES_DB: client_sheet_test
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
         with:
-          persist-credentials: false
+          fetch-depth: 1
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Exact source and current assembled app
+      - name: Verify transferred source before using it
         run: |
           mkdir -p sheet-actions-check
-          git archive --format=zip HEAD -o sheet-actions-check/source.zip
-          git rev-parse HEAD > sheet-actions-check/source-commit.txt
-          bash scripts/vercel-build-v13.sh > sheet-actions-check/build.log 2>&1
+          cp .optyker-staging/client-sheets-*.b64 sheet-actions-check/
           python3 - <<'PY'
-          import shutil
-          shutil.make_archive('sheet-actions-check/built','zip','_site')
+          from pathlib import Path
+          import base64,gzip,hashlib,json
+          s=''.join(Path('.optyker-staging/client-sheets-'+str(i)+'.b64').read_text().strip() for i in range(2))
+          for a,b in [('p292LDvPy8','p292LDvNy8'),('JLjeajSaWagg','JLjeajSaXWagg'),('kr816Y/l/','kr816Y/L/')]:s=s.replace(a,b)
+          raw=base64.b64decode(s,validate=True)
+          assert hashlib.sha256(raw).hexdigest()=='79754905906774feaaa7e6fde566329a72a09945289cadd76770e518524ad3c9','Transfer checksum mismatch'
+          p=json.loads(gzip.decompress(raw));assert p['version']=='20260911-client-sheets1'
+          if not Path('client-sheet-actions.js').exists():
+              for name,text in p['files'].items():
+                  assert not Path(name).is_absolute() and '..' not in Path(name).parts
+                  Path(name).parent.mkdir(exist_ok=True,parents=True);Path(name).write_text(text)
+          Path('sheet-actions-check/changed.json').write_text(json.dumps(list(p['files'])))
           PY
+      - name: Database tests on disposable database only
+        env:
+          PGHOST: localhost
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: disposable_ci_only
+          PGDATABASE: client_sheet_test
+        run: |
+          set -o pipefail
+          psql -f tests/client-sheet-actions-db.sql | tee sheet-actions-check/db-tests.log
+      - name: Build exact application
+        run: |
+          mkdir -p sheet-actions-check
+          bash scripts/vercel-build-v13.sh > sheet-actions-check/build.log 2>&1
       - name: Browser regression with isolated business requests
-        if: hashFiles('tests/client-sheet-actions.test.cjs') != ''
         run: |
           npm install --prefix /tmp/browser playwright@1.55.0
           /tmp/browser/node_modules/.bin/playwright install --with-deps chromium
           NODE_PATH=/tmp/browser/node_modules node tests/client-sheet-actions.test.cjs
+      - name: Commit source only after successful checks on this branch
+        run: |
+          python3 - <<'PY'
+          import json,subprocess
+          from pathlib import Path
+          subprocess.run(['git','add','--']+json.loads(Path('sheet-actions-check/changed.json').read_text()),check=True)
+          PY
+          git config user.name 'Optyker verified release'
+          git config user.email '30346110+Leahcim12@users.noreply.github.com'
+          if ! git diff --cached --quiet; then git commit -m 'Verified client buttons, safe sheet deletion and quote-to-order conversion'; fi
+          git push origin HEAD:refs/heads/optyker/client-sheet-actions
+          git rev-parse HEAD > sheet-actions-check/source-commit.txt
+      - name: Save exact source and app for review
+        if: always()
+        run: |
+          git archive --format=zip HEAD -o sheet-actions-check/source.zip
+          python3 - <<'PY'
+          import shutil
+          from pathlib import Path
+          if Path('_site').exists():shutil.make_archive('sheet-actions-check/built','zip','_site')
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
