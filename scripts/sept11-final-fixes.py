@@ -2,7 +2,7 @@ from pathlib import Path
 p=Path('tests/sept11-browser.test.cjs');s=p.read_text()
 s=s.replace(r'/<div class="head"><img src="\$\{logo\}"[^]*?<\/div><\/div>/',r'/<div class="head"><img src="[^]*?<\/div><\/div>/')
 s=s.replace("hm[0].replace('${logo}',svg)","hm[0].replace(/src=\"[^\"]*\"/, 'src=\"'+svg+'\"')")
-s=s.replace("if(d.querySelector('.head').outerHTML!==", "d.querySelector('.head').removeAttribute('data-ovc-print-header');if(d.querySelector('.head').outerHTML!==")
+if "d.querySelector('.head').removeAttribute('data-ovc-print-header');" not in s:s=s.replace("if(d.querySelector('.head').outerHTML!==", "d.querySelector('.head').removeAttribute('data-ovc-print-header');if(d.querySelector('.head').outerHTML!==")
 anchor=" // Real prescription header template from assembled source, same dimensions and clinic text."
 extra="""
  // Customer-context composer must never offer navigation to another customer's drafts.
@@ -16,6 +16,7 @@ p=Path('optyker-sept11.js');s=p.read_text().replace("OptykerInvoices.open({call:
 p=Path('billing-compose.js');s=p.read_text()
 s=s.replace('formState=null,current=null;','formState=null,current=null,clientContext=null;')
 s=s.replace("E('ficList').onclick=list;}","E('ficList').onclick=list;if(clientContext){E('ficNew').hidden=true;E('ficList').hidden=true;} }")
+s=s.replace("if(clientContext){E('ficNew').hidden=true;E('ficList').hidden=true;}","if(clientContext){E('ficNew').parentElement.style.setProperty('display','none','important');E('ficNew').hidden=true;E('ficList').hidden=true;}")
 s=s.replace('open:function(options){api=options.call;', 'open:function(options){clientContext=options.clientId||options.prefill?.client_id||null;api=options.call;')
 s=s.replace("Fattura collegata a un pagamento in cassa. Compila", "Fattura collegata a un pagamento già registrato in cassa: non incassare nuovamente. Compila")
 s=s.replace("'Il pagamento verrà registrato come da incassare. Per i documenti sanitari questa funzione non effettua l’invio al Sistema TS.'", "(b.pos_source_id?'Il pagamento è già registrato in Optyker. La registrazione del relativo incasso in Fatture in Cloud va verificata separatamente; non incassare nuovamente.':'Il pagamento verrà registrato come da incassare.')+' Per i documenti sanitari questa funzione non effettua l’invio al Sistema TS.'")
