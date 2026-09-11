@@ -8,7 +8,7 @@ permissions:
 jobs:
   diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 7
     steps:
       - uses: actions/checkout@v4
         with:
@@ -16,13 +16,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Build current source and apply the runtime fix locally only
+        run: |
+          bash scripts/vercel-build-v13.sh
+          python scripts/apply_runtime_fix_20260911.py
+          python scripts/finalize_sept11_manifest.py
       - name: Browser isolated from all customer APIs
         run: |
           npm install --prefix /tmp/browser playwright@1.55.0
           /tmp/browser/node_modules/.bin/playwright install --with-deps chromium
-      - name: Check real production initialization with synthetic data only
+      - name: Compare complete real page using patched static files and synthetic APIs
         env:
           NODE_PATH: /tmp/browser/node_modules
+          OPTYKER_PATCHED_TEST: '1'
         run: node tests/sept11-runtime-diagnosis.cjs
       - uses: actions/upload-artifact@v4
         if: always()
