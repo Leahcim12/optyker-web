@@ -154,3 +154,9 @@ node --check client-sheet-actions.js
 python scripts/apply_client_sheet_actions.py
 python scripts/patch_public_asset_paths.py
 verify_desktop_aliases
+
+# Signed delivery record, full reference fields and care instructions.
+node --check eyewear-delivery.mjs
+python scripts/apply_eyewear_delivery.py
+python scripts/patch_public_asset_paths.py
+verify_desktop_aliases

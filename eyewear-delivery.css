@@ -1,0 +1,25 @@
+#ovcDeliveryDialog{width:min(1120px,96vw);max-height:94vh;padding:0;border:1px solid #cbd5df;border-radius:15px;color:#172435;font:14px/1.5 'Segoe UI',Arial,sans-serif;box-shadow:0 20px 80px #0006;background:#fff}
+#ovcDeliveryDialog::backdrop{background:#11202bcc}
+#ovcDeliveryDialog header,#ovcDeliveryDialog footer{padding:14px 20px;background:#f3f6f9;display:flex;align-items:center;gap:12px;justify-content:space-between;position:sticky;z-index:2;top:0}
+#ovcDeliveryDialog footer{bottom:0;top:auto;display:block;font-size:13px;border-top:1px solid #dde4eb}
+#ovcDeliveryDialog h2{font-size:21px;margin:0}#ovcDeliveryDialog main{padding:16px 22px}
+#ovcDeliveryDialog fieldset{margin:18px 0;padding:14px;border:1px solid #d7e0e8;border-radius:9px}
+#ovcDeliveryDialog legend{font-weight:700;padding:0 7px}
+#ovcDeliveryDialog .dlGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#ovcDeliveryDialog label{display:block;font-weight:600;font-size:13px}
+#ovcDeliveryDialog input:not([type=checkbox]),#ovcDeliveryDialog select,#ovcDeliveryDialog textarea{display:block;width:100%;box-sizing:border-box;min-height:40px;border:1px solid #b7c5d3;border-radius:6px;background:white;color:#172435;padding:8px;font:14px 'Segoe UI',Arial,sans-serif}
+#ovcDeliveryDialog input:focus,#ovcDeliveryDialog select:focus,#ovcDeliveryDialog textarea:focus{outline:2px solid #426a89;outline-offset:1px}
+#ovcDeliveryDialog button{cursor:pointer;padding:10px 15px;border-radius:7px;border:1px solid #bbc9d6;background:#fff;color:#192e42;font:600 13px 'Segoe UI',Arial,sans-serif}
+#ovcDeliveryDialog button[data-dl-prepare],#ovcDeliveryDialog button[data-dl-sign]{background:#174b64;color:#fff;border-color:#174b64}
+#ovcDeliveryDialog button:disabled{opacity:.5;cursor:wait}
+#ovcDeliveryDialog .dlNotice{background:#f6f1e5;border-left:4px solid #a7842f;padding:10px 14px;font-size:13px}
+#ovcDeliveryDialog .dlActions{display:flex;gap:10px;flex-wrap:wrap;margin:15px 0}
+#ovcDeliveryDialog table{width:100%;border-collapse:collapse;font-size:12px}#ovcDeliveryDialog td,#ovcDeliveryDialog th{padding:4px;border:1px solid #d7e0e8}#ovcDeliveryDialog table input{min-width:42px!important;width:100%!important;padding:5px!important}
+#ovcDeliveryDialog .dlCheck{display:flex;align-items:flex-start;gap:9px;margin:12px 0;font-weight:400}
+#ovcDeliveryDialog .dlCheck input{flex:0 0 18px;width:18px;height:18px;margin-top:3px}
+#ovcDeliveryDialog canvas{background:white;border:2px dashed #8ca3b7;border-radius:8px;touch-action:none;width:100%;height:120px;display:block}
+#ovcDeliveryDialog .dlSigRow{display:grid;grid-template-columns:1fr 1fr;gap:15px}#ovcDeliveryDialog iframe{display:block;width:100%;height:65vh;border:1px solid #ddd}
+#ovcDeliveryDialog .dlArchive{display:flex;gap:10px;align-items:center;margin:8px 0;padding:10px;background:#edf5f4;flex-wrap:wrap}
+#ovcDeliveryDialog [hidden]{display:none!important}
+#ovcDeliveryDialog .dlBodyText{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px}
+@media(max-width:650px){#ovcDeliveryDialog .dlGrid,#ovcDeliveryDialog .dlSigRow{grid-template-columns:1fr}#ovcDeliveryDialog main{padding:12px}#ovcDeliveryDialog table{display:block;overflow-x:auto}#ovcDeliveryDialog h2{font-size:18px}}
