@@ -37,6 +37,13 @@ jobs:
           Path('sept11-check/changed.json').write_text(json.dumps(p['changed_files']))
           PY
           python scripts/prepare_sept11_release.py
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('tests/sept11-browser.test.cjs');s=p.read_text()
+          s=s.replace(r'/<div class="head"><img src="\$\{logo\}"[^]*?<\/div><\/div>/',r'/<div class="head"><img src="[^]*?<\/div><\/div>/')
+          s=s.replace("hm[0].replace('${logo}',svg)","hm[0].replace(/src=\"[^\"]*\"/, 'src=\"'+svg+'\"')")
+          p.write_text(s)
+          PY
       - name: Run service pricing and invoice tests with mocked providers
         run: |
           set -o pipefail
