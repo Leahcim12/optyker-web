@@ -1,5 +1,21 @@
 # Optyker: attivazione cassa RCH e Sistema TS
 
+## Manuale v14 acquisito e diagnostica di compatibilita
+
+Il negozio ha fornito `Manuale_Protocollo_PRINT!F_v.14.pdf`, 119 pagine, rel.2102. Nonostante il titolo PRINT! F, contiene esplicitamente i comandi in modalita RT, le revisioni fino alla 14 (11/2020) e il capitolo Corrispettivi XML v7. Il PDF originale resta privato e non viene pubblicato nel repository o nel sito.
+
+Riferimenti verificati nel manuale: vendite/pagamenti pp.20-22; codice fiscale p.23; resi/annulli pp.26-28; stato, firmware, matricola, contatore azzeramenti e stato RT pp.58-61; lettura programmazioni in PRG/SRV p.62; distinzione beni/servizi e mappatura aliquote pp.90-95. Il protocollo dei comandi e ora disponibile; la compatibilita con il firmware reale e le risposte HTTP/XML complete devono ancora essere verificate.
+
+`rch-connector/Diagnostica-Protocollo-RCH.bat` scarica in una cartella temporanea dedicata la diagnostica e i soli helper del connettore 1.5, ne verifica gli hash SHA-256 e avvia PowerShell senza installare o sostituire il servizio esistente. Non richiede privilegi amministrativi. Il file JSON viene salvato sul Desktop con un nome univoco `Diagnostica-Protocollo-RCH-*.json`.
+
+Eseguire sul PC della cassa, lasciando il registratore libero da vendite/operazioni durante la lettura. La sequenza usa solo `<</?s`, `<</?f`, `<</?m`, `<</?i/*3`, `<</?d`, `<</?7`, `<</?i/*5`. Ogni comando viene eseguito una sola volta; errori, timeout o stato occupato/ignoto interrompono la raccolta conservando il rapporto parziale. Non cambia modalita, non legge anagrafiche, non modifica programmazioni, non stampa e non invia a TS/AdE. Le letture di programmazione dei reparti non sono incluse, poiche richiedono PRG/SRV e vanno gestite separatamente.
+
+Il trasporto HTTP e l'involucro XML sono quelli gia accettati dal dispositivo del negozio. Il manuale fornito descrive anche il protocollo TCP legacy: non si presume che gli esempi di tracciati TCP coincidano con le risposte HTTP. Le risposte e le foglie XML vengono conservate senza inventare campi firmware o seriale. `allQueriesAccepted` descrive le sole conferme ai comandi: `compatibilityVerified`, `fiscalEmissionEnabled` ed `emittedFiscalDocument` restano false anche in caso di esito positivo. Il valore `expectedSerialFromUser` e un riferimento dichiarato dal negozio, non una lettura della matricola.
+
+I blocchi operativi restano: verifica firmware/risposte e configurazione reale, gestione persistente degli esiti incerti e duplicati, implementazione/test del ciclo fiscale completo e servizio TS separato. Nessuno scontrino reale e stato emesso durante lo sviluppo.
+
+Verifiche: `pwsh -NoProfile -File tests/rch-protocol.test.ps1` copre allowlist, import senza effetti, arresto senza ripetizioni per errori/timeout/stati ignoti o documento aperto, risposta generica non scambiata per firmware e salvataggio senza sovrascrivere rapporti. `PWSH=/path/to/pwsh node --test tests/rch-protocol-http.test.mjs` esegue sette richieste HTTP reali verso un server locale simulato e verifica XML, Content-Type, lunghezza e conservazione delle risposte. Eseguiti su PowerShell 7.4.13 Linux, con hash del runtime verificato sul rilascio Microsoft. Verificata anche la sintassi PowerShell del launcher; il doppio clic Windows e il dispositivo reale richiedono la prova sul PC del negozio.
+
 ## Stato della versione 20260911-rch-profile1
 
 La configurazione fornita dal negozio è ora nel modulo `rch-preflight.js` e nella finestra Cassa > RCH. Il connettore Windows resta **1.5-status-compatibility**: nessuna reinstallazione è richiesta per questo aggiornamento web. Nessun comando fiscale viene aggiunto.
@@ -38,7 +54,7 @@ Da Optyker > Cassa > RCH scaricare ed eseguire “Installa / aggiorna connettore
 
 ## Dati e verifiche ancora necessari
 
-- Manuale di protocollo RCH relativo a modello e firmware installati, configurazione reale dei reparti IVA/natura e dei pagamenti.
+- Verificare la compatibilita del manuale v14 acquisito con firmware e risposte del dispositivo, e la configurazione reale dei reparti IVA/natura e dei pagamenti.
 - Comandi e risposte verificati per codice fiscale, apertura/chiusura documento, riferimento fiscale, stato di una richiesta interrotta ed esiti di trasmissione AdE.
 - Accesso TS dell'esercente o delegato abilitato, specifiche correnti e ambiente di prova. Le credenziali andranno inserite mediante configurazione riservata, mai nella chat o nel codice frontend.
 - Classificazione sanitaria per singola riga, gestione opposizione e acconti/saldi secondo le specifiche applicabili, prima di abilitare invii.
