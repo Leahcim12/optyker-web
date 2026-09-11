@@ -1,0 +1,58 @@
+name: Diagnose actual Optyker entrypoints without business writes
+on:
+  push:
+    branches: ['optyker/diagnose-sept11-delivery']
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read public entrypoints and version markers
+        run: |
+          mkdir -p delivery-check
+          python3 - <<'PY'
+          import urllib.request,urllib.error,json,hashlib,re
+          from pathlib import Path
+          from concurrent.futures import ThreadPoolExecutor
+          urls=['https://o-ptyker-sviluppo.vercel.app/','https://optyker.it/','https://www.optyker.it/','https://leahcim12.github.io/optyker-web/']
+          def check(base):
+              result={'base':base};folder=Path('delivery-check')/base.split('/')[2];folder.mkdir(exist_ok=True)
+              for path in ['', 'sept11-version.json', 'optyker-sept11.js']:
+                  try:
+                      req=urllib.request.Request(base+path,headers={'Cache-Control':'no-cache','User-Agent':'Optyker-ReadOnly-Diagnostics'})
+                      with urllib.request.urlopen(req,timeout=15) as r:
+                          b=r.read(4000000); t=b.decode('utf8');out={'status':r.status,'final_url':r.url,'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest(),'headers':dict(r.headers)}
+                      if not path:
+                          out['sept11']='id="optykerSept11Js"' in t;out['title']=re.findall(r'<title>(.*?)</title>',t)[:1];out['scripts']=re.findall(r'<script[^>]*src=[\"\x27]([^\"\x27]+)',t)
+                      (folder/(path or 'index.html')).write_bytes(b);result[path or 'root']=out
+                  except Exception as e:result[path or 'root']={'error':str(e)}
+              return result
+          results=list(ThreadPoolExecutor(max_workers=4).map(check,urls))
+          Path('delivery-check/summary.json').write_text(json.dumps(results,indent=2));print(json.dumps(results,indent=2))
+          PY
+      - name: Capture actual script execution on public login pages
+        run: |
+          npm install --prefix /tmp/browser playwright@1.55.0
+          /tmp/browser/node_modules/.bin/playwright install --with-deps chromium
+          NODE_PATH=/tmp/browser/node_modules node - <<'JS'
+          const {chromium}=require('playwright'),fs=require('fs');
+          (async()=>{const browser=await chromium.launch({headless:true});const all=[];
+          for(const url of ['https://o-ptyker-sviluppo.vercel.app/','https://www.optyker.it/']){
+            const page=await browser.newPage();const errors=[],failed=[];page.on('pageerror',e=>errors.push(e.message));page.on('requestfailed',r=>failed.push({url:r.url(),error:r.failure()?.errorText}));
+            try{await page.goto(url,{waitUntil:'domcontentloaded',timeout:25000});await page.waitForTimeout(3500);all.push({url,final:page.url(),errors,failed,live:await page.evaluate(()=>({title:document.title,sept11:!!window.OPTYKER_SEPT11,version:window.OPTYKER_SEPT11?.version,operations:!!window.__optykerOperationsV2,ready:document.readyState,login:!!document.querySelector('#optykerLoginScreen'),visibleText:document.body.innerText.slice(0,1500),scriptIds:[...document.scripts].map(x=>x.id).filter(Boolean)}))});await page.screenshot({path:'delivery-check/'+new URL(url).hostname+'.png'});}catch(e){all.push({url,error:e.message,errors,failed});}await page.close();
+          }await browser.close();fs.writeFileSync('delivery-check/browser.json',JSON.stringify(all,null,2));console.log(JSON.stringify(all,null,2));})().catch(e=>{console.error(e);process.exitCode=1;});
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: optyker-delivery-diagnostic
+          path: delivery-check/
+          retention-days: 2
