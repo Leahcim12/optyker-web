@@ -5,7 +5,7 @@ const require=createRequire(import.meta.url),{Client}=require('pg'),lib=require(
 const OUT='delivery-check';fs.mkdirSync(OUT,{recursive:true});const pg=new Client({host:'localhost',user:'postgres',password:'synthetic_ci_only',database:'delivery_test'});await pg.connect();
 const db={rpc:async(name,p)=>{try{const r=await pg.query('select public.'+name+'($1,$2,$3,$4) as x',[p.p_username,p.p_password,p.p_action,p.p_payload]);return {data:r.rows[0].x};}catch(e){return {error:{message:e.message}};}}};
 const run=service(db,lib,PNG),base={username:'Michael Mologni',password:'SYNTHETIC_PASSWORD_NOT_REAL'},cid='11111111-1111-4111-8111-111111111111',sid='33333333-3333-4333-8333-333333333333';
-const call=(action,p={})=>run({...base,action,payload:{client_id:cid,sheet_id:sid,...p}});const report={ok:false,checks:[],live:process.env.OPTYKER_LIVE==='1',production_writes:0};let browser,page;
+const call=(action,p={})=>run({...base,action,payload:{client_id:cid,sheet_id:sid,...p}});const report={ok:false,checks:[],live:process.env.OPTYKER_LIVE==='1',production_writes:0,browser_errors:[]};let browser,page;
 try{
  await assert.rejects(()=>run({...base,password:'badpass123',action:'get',payload:{client_id:cid,sheet_id:sid}}),/autorizzato/);await assert.rejects(()=>call('get',{client_id:'22222222-2222-4222-8222-222222222222'}),/Busta/);await assert.rejects(()=>call('get',{sheet_id:'44444444-4444-4444-8444-444444444444'}),/Busta/);
  assert.equal((await pg.query("select has_function_privilege('anon','optyker_delivery_internal(text,text,text,jsonb)','execute') as v")).rows[0].v,false);
@@ -27,21 +27,24 @@ try{
  const source2=await call('get'),stale=await call('prepare',{values:vals,source_hash:source2.source_hash,previous_archive_id:source2.previous_archive_id});await pg.query('update optyker_sheets set updated_at=now() where id=$1',[sid]);await assert.rejects(()=>call('sign',{...req,document_id:stale.id,preview_sha256:stale.pdf_sha256}),/cambiati/);report.checks.push('Stale source and conflicting revisions rejected before signing');
  // Complete published interface with business calls routed to disposable real SQL + real server handler.
  browser=await chromium.launch();const ctx=await browser.newContext({viewport:{width:1440,height:1050},serviceWorkers:'block'});page=await ctx.newPage();page.setDefaultTimeout(12000);page.on('dialog',d=>d.accept());
+ page.on('pageerror',e=>report.browser_errors.push(e.message));page.on('console',m=>{if(m.type()==='error')report.browser_errors.push(m.text());});
  const clients=[{id:cid,name:'Cliente',surname:'Dimostrativo'}];
+ const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET,POST,OPTIONS','Access-Control-Allow-Headers':'content-type,authorization,apikey,x-client-info','Cache-Control':'no-store'};
  await ctx.route('**/*',async route=>{const q=route.request(),u=new URL(q.url());let b={};try{b=q.postDataJSON()||{};}catch{}
   if(u.pathname.includes('/rest/v1/')||u.pathname.includes('/functions/v1/')||q.method()!=='GET'){
+   if(q.method()==='OPTIONS')return route.fulfill({status:204,headers:cors,body:''});
    let x={ok:true,data:[],rows:[],clients:[],sheets:[],orders:[],messages:[]},status=200;
    if(u.pathname.endsWith('/optyker-eyewear-delivery')){try{x=await run(b);}catch(e){x={ok:false,error:e.message};status=400;}}
    else if(u.pathname.includes('optyker-staff-auth'))x={ok:true,username:b.username,needs_password:false,has_email:true};
    else if(u.pathname.endsWith('/optyker_client_sheet_actions'))x={ok:true,data:[(await call('get')).sheet]};
    else if(u.pathname.endsWith('/optyker_api')){if(b.p_action==='list_clients')x={ok:true,data:clients};if(b.p_action==='list_sheets')x={ok:true,data:[(await call('get')).sheet]};}
    else if(u.pathname.endsWith('/optyker_ovc_api'))x={ok:true,data:{client_id:cid,active:true,card_number:1,revision:1}};
-   return route.fulfill({status,contentType:'application/json',body:JSON.stringify(x)});
+   return route.fulfill({status,headers:cors,contentType:'application/json',body:JSON.stringify(x)});
   }
   if(!report.live&&['www.optyker.it','optyker.it'].includes(u.hostname)){let rel=u.pathname.replace(/^\//,'');if(!rel||rel.endsWith('/'))rel+='index.html';const p=path.resolve('_site',rel);if(p.startsWith(path.resolve('_site')+path.sep)&&fs.existsSync(p)&&fs.statSync(p).isFile())return route.fulfill({contentType:({'.html':'text/html','.mjs':'text/javascript','.js':'text/javascript','.css':'text/css','.webp':'image/webp','.png':'image/png','.svg':'image/svg+xml','.json':'application/json'}[path.extname(p)]||'application/octet-stream'),body:fs.readFileSync(p)});}
   return route.continue();
  });
- await page.goto('https://www.optyker.it/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.OPTYKER_EYEWEAR_DELIVERY?.version==='20260911-delivery1');const op=await page.locator('#optykerLoginOperator option').evaluateAll(xs=>xs.find(x=>/michael/i.test(x.value))?.value);await page.selectOption('#optykerLoginOperator',op);await page.waitForTimeout(300);await page.fill('#optykerAuthPassword',base.password);await page.click('.optykerLoginButton');await page.waitForFunction(()=>window.optykerAuthenticated);
+ await page.goto('https://www.optyker.it/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.OPTYKER_EYEWEAR_DELIVERY?.version==='20260911-delivery1');const op=await page.locator('#optykerLoginOperator option').evaluateAll(xs=>xs.find(x=>/michael/i.test(x.value))?.value);await page.selectOption('#optykerLoginOperator',op);await page.waitForSelector('#optykerAuthPassword',{state:'visible'});await page.fill('#optykerAuthPassword',base.password);await page.click('.optykerLoginButton');await page.waitForFunction(()=>window.optykerAuthenticated);
  await page.click('#navClients');await page.evaluate(({cid,clients})=>{OPTYKER_CLOUD.clients=clients;clientSelect(cid);},{cid,clients});await page.click('#clientSheetActionsDock [data-cs-launch=eyewear]');await page.click('[data-cs-id="'+sid+'"] [data-cs-open]');await page.click('[data-dl-open]');await page.waitForSelector('[data-dl-field=issuer_name]');
  for(const [k] of ALL_FIELDS){const e=page.locator('[data-dl-field="'+k+'"]');if(await e.evaluate(x=>x.tagName==='SELECT'))await e.selectOption(vals[k]||'');else await e.fill(vals[k]||'');}
  await page.check('[data-dl-check=technical_verified]');await page.check('[data-dl-check=conformity_confirmed]');await page.click('[data-dl-prepare]');await page.waitForSelector('[data-dl-pad=operator]');await page.click('[data-dl-sign]');assert((await page.locator('#ovcDeliveryDialog footer').textContent()).includes('entrambe'));
