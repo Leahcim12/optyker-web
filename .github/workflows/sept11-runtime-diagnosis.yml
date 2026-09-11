@@ -1,0 +1,32 @@
+name: Diagnosi pagina reale Optyker
+on:
+  push:
+    branches: ['optyker/sept11-runtime-fix']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Browser isolated from all customer APIs
+        run: |
+          npm install --prefix /tmp/browser playwright@1.55.0
+          /tmp/browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Check real production initialization with synthetic data only
+        env:
+          NODE_PATH: /tmp/browser/node_modules
+        run: node tests/sept11-runtime-diagnosis.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: optyker-runtime-diagnosis
+          path: runtime-diagnosis/
+          retention-days: 3
