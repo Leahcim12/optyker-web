@@ -9,6 +9,14 @@ jobs:
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: synthetic_ci_only
+          POSTGRES_DB: materials_test
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -16,21 +24,28 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Build exact application
+      - name: Test certificate authorization and persistence on disposable PostgreSQL
+        env:
+          PGPASSWORD: synthetic_ci_only
         run: |
           mkdir -p materials-check
+          set -o pipefail
+          psql -h localhost -U postgres -d materials_test -v ON_ERROR_STOP=1 -f tests/materials-certificate-db.sql 2>&1 | tee materials-check/database-tests.txt
+      - name: Build exact application
+        run: |
           git archive --format=zip HEAD -o materials-check/source.zip
           git rev-parse HEAD > materials-check/source-commit.txt
+          node --check materials-certificate.js
           bash scripts/vercel-build-v13.sh
           python3 -c "import shutil;shutil.make_archive('materials-check/built','zip','_site')"
       - name: Browser and certificate tests with synthetic business data only
-        if: ${{ hashFiles('tests/materials-certificate.test.cjs') != '' }}
         env:
           NODE_PATH: /tmp/browser/node_modules
         run: |
           npm install --prefix /tmp/browser playwright@1.55.0
           /tmp/browser/node_modules/.bin/playwright install --with-deps chromium
           node tests/materials-certificate.test.cjs
+          node tests/client-sheet-actions.test.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -12,3 +12,6 @@ for name in ('index.html','gestionale-v2/index.html','gestionale-v3/index.html')
 manifest={'version':'20260911-client-sheets1','commit':os.environ.get('VERCEL_GIT_COMMIT_SHA') or os.environ.get('GITHUB_SHA',''),'assets':assets}
 (site/'client-sheets-version.json').write_text(json.dumps(manifest,indent=2)+'\n')
 print('Client sheet actions linked to the actual app build')
+
+import runpy
+runpy.run_path(str(root/'scripts/apply_materials_certificate.py'))
