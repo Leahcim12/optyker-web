@@ -11,7 +11,7 @@ export function validateSignature(s,PNG){
 }
 export function service(db,lib,PNG){return async body=>{
  const {username,password,action}=body||{},p=body?.payload||{};
- if(typeof username!=='string'||!username.trim()||typeof password!=='string'||password.length<8)throw Error('AUTH_REQUIRED');
+ if(typeof username!=='string'||!username.trim()||typeof password!=='string'||!password||password.length>1024)throw Error('AUTH_REQUIRED');
  if(!['get','prepare','sign','archive'].includes(action))throw Error('Azione non riconosciuta');
  const base={client_id:p.client_id,sheet_id:p.sheet_id};
  async function rpc(a,payload){const {data,error}=await db.rpc('optyker_delivery_internal',{p_username:username,p_password:password,p_action:a,p_payload:{...base,...payload}});if(error)throw Error('Archivio non disponibile: '+error.message);if(!data?.ok)throw Error(data?.error||'Operazione non riuscita');return data;}
