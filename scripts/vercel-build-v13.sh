@@ -160,3 +160,10 @@ node --check eyewear-delivery.mjs
 python scripts/apply_eyewear_delivery.py
 python scripts/patch_public_asset_paths.py
 verify_desktop_aliases
+
+# Customer eyewear cover: actual interactive controls and server-enforced replacement caps.
+node --check iphone-app-v13/eyewear-cover.js
+node --check eyewear-cover-staff.js
+python scripts/apply_eyewear_cover.py
+python scripts/patch_public_asset_paths.py
+verify_desktop_aliases

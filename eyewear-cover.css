@@ -1,0 +1,17 @@
+/* Scoped to warranty controls only; preserve all existing app pages and forms. */
+#ovcAppCover,#ovcStaffCover{box-sizing:border-box;position:fixed;inset:0;width:min(620px,calc(100vw - 22px));max-height:calc(100dvh - 30px);margin:auto;padding:0;border:1px solid #dae2e8;border-radius:18px;background:#fff;color:#18374d;box-shadow:0 12px 60px #0004;font:15px/1.5 system-ui,-apple-system,sans-serif;overflow:auto;overscroll-behavior:contain}
+#ovcAppCover::backdrop,#ovcStaffCover::backdrop{background:#1027379e}
+:is(#ovcAppCover,#ovcStaffCover) *{box-sizing:border-box}
+:is(#ovcAppCover,#ovcStaffCover) header{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:12px;padding:16px 18px;background:white;border-bottom:1px solid #e0e7ed}
+:is(#ovcAppCover,#ovcStaffCover) h2{font-size:20px;margin:0;flex:1;line-height:1.25}
+:is(#ovcAppCover,#ovcStaffCover) h3{font-size:17px;margin:8px 0}
+:is(#ovcAppCover,#ovcStaffCover) main{padding:16px 18px}
+:is(#ovcAppCover,#ovcStaffCover) footer{padding:12px 18px;min-height:36px;position:sticky;bottom:0;z-index:2;background:#edf3f7;border-top:1px solid #d7e1e8;font-size:13px}
+:is(#ovcAppCover,#ovcStaffCover) button,.coverPdf{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;max-width:100%;padding:11px 16px;border:1px solid #baccd7;border-radius:11px;background:#07598f;color:#fff;font:600 14px/1.3 system-ui;cursor:pointer;text-align:center;text-decoration:none;margin:5px 5px 5px 0;white-space:normal;touch-action:manipulation}
+:is(#ovcAppCover,#ovcStaffCover) button:disabled{opacity:.45;cursor:default}
+:is(#ovcAppCover,#ovcStaffCover) header button{background:#eef3f7;color:#17344c;margin:0;min-width:44px;font-size:24px;padding:4px 10px}
+:is(#ovcAppCover,#ovcStaffCover) label{display:block;margin:12px 0;font-weight:600}
+:is(#ovcAppCover,#ovcStaffCover) :is(input,select){display:block;width:100%;min-height:46px;border:1px solid #b8cbd8;border-radius:9px;padding:9px;margin-top:6px;color:#18374d;background:#fff;font-size:16px}
+.coverBenefit{padding:14px;margin:12px 0;border:1px solid #dbe4eb;border-radius:13px;background:#f8fbfd}.coverBenefit p{margin:6px 0 12px}.coverNotice,.coverQuota{padding:12px;border-radius:10px;background:#f4f0e5}.coverBadge{font-weight:750;color:#76561b;background:#f5e9c6;border-radius:20px;display:inline-block;padding:6px 15px}.coverReference{font-size:12px;color:#577080}
+html body .refSpec.coverOpen{display:flex!important;width:100%!important;appearance:none;border:0;border-top:1px solid #e2e8ed!important;border-radius:0!important;margin:0!important;padding:15px 18px!important;background:#eff6fb!important;color:#133653!important;text-align:left!important;cursor:pointer!important;font:inherit;min-height:66px;touch-action:manipulation}
+html body .refSpec.coverOpen:focus-visible{outline:3px solid #0877ae;outline-offset:-3px}.refPreviousCard{flex-wrap:wrap}.coverHistoryButton{min-height:44px;border:1px solid #cad8e2;border-radius:8px;padding:8px 12px;background:#eff6fb;color:#133653;font-weight:650;cursor:pointer}
