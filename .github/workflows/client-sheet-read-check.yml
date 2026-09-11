@@ -1,0 +1,48 @@
+name: Verifica lettura schede Occhiali cliente
+on:
+  push:
+    branches: [main, 'optyker/client-sheet-read-fix']
+    paths:
+      - 'client-sheet-actions.sql'
+      - 'tests/client-sheet-actions-db.sql'
+      - 'tests/client-sheet-list-db.sql'
+      - '.github/workflows/client-sheet-read-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: disposable_ci_only
+          POSTGRES_DB: client_sheet_test
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Exercise authenticated RPC on disposable data, not mocked read responses
+        env:
+          PGHOST: localhost
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: disposable_ci_only
+          PGDATABASE: client_sheet_test
+        run: |
+          mkdir -p sheet-read-check
+          set -o pipefail
+          psql -v ON_ERROR_STOP=1 -f tests/client-sheet-actions-db.sql -f tests/client-sheet-list-db.sql 2>&1 | tee sheet-read-check/database-tests.log
+          git diff HEAD^ HEAD -- client-sheet-actions.sql > sheet-read-check/source-fix.diff
+          git rev-parse HEAD > sheet-read-check/commit.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: client-sheet-read-database-verification
+          path: sheet-read-check/
+          retention-days: 7

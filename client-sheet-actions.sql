@@ -56,15 +56,15 @@ begin
  if cid is null or not exists(select 1 from public.optyker_clients where id=cid) then raise exception 'Seleziona un cliente valido'; end if;
  if p_action='list' then
   select coalesce(jsonb_agg(x order by x.created_at desc,x.id),'[]'::jsonb) into rows from (
-   select s.*,public.optyker_sheet_is_quote(s) as is_quote,
+   select sheet_row.*,public.optyker_sheet_is_quote(sheet_row) as is_quote,
     case when l.quote_id is not null then jsonb_build_object('order_sheet_id',l.order_sheet_id,'work_order_id',l.work_order_id,'reference',ow.reference_code,'status',ow.status) else null end as converted_order,
     case when sw.id is not null then jsonb_build_object('id',sw.id,'reference',sw.reference_code,'status',sw.status) else null end as laboratory_order,
-    (sw.id is not null or l.quote_id is not null or exists(select 1 from public.optyker_eyewear_warranty_instances wi where wi.source_sheet_id=s.id)) as delete_blocked
-   from public.optyker_sheets s
-   left join public.optyker_quote_order_links l on l.quote_id=s.id
+    (sw.id is not null or l.quote_id is not null or exists(select 1 from public.optyker_eyewear_warranty_instances wi where wi.source_sheet_id=sheet_row.id)) as delete_blocked
+   from public.optyker_sheets sheet_row
+   left join public.optyker_quote_order_links l on l.quote_id=sheet_row.id
    left join public.optyker_work_orders ow on ow.id=l.work_order_id
-   left join public.optyker_work_orders sw on sw.source_sheet_id=s.id
-   where s.client_id=cid order by s.created_at desc,s.id
+   left join public.optyker_work_orders sw on sw.source_sheet_id=sheet_row.id
+   where sheet_row.client_id=cid order by sheet_row.created_at desc,sheet_row.id
   )x;
   return jsonb_build_object('ok',true,'client_id',cid,'data',rows);
  end if;
