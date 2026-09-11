@@ -148,3 +148,9 @@ node --test tests/sept11-pricing.test.mjs
 python scripts/patch_public_asset_paths.py
 python scripts/finalize_sept11_manifest.py
 verify_desktop_aliases
+
+# Customer-scoped opening, safe sheet deletion and quote-to-laboratory orders.
+node --check client-sheet-actions.js
+python scripts/apply_client_sheet_actions.py
+python scripts/patch_public_asset_paths.py
+verify_desktop_aliases
