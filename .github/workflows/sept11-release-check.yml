@@ -1,0 +1,88 @@
+name: Verifica rilascio clienti 11 settembre
+on:
+  push:
+    branches: ['optyker/sept11-workflow1']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Restore checksum-verified source package
+        shell: bash
+        run: |
+          mkdir -p sept11-check
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64,gzip,hashlib,json
+          chunks=[Path('.optyker-staging/sept11-'+str(i)+'.b64').read_text().strip() for i in range(3)]
+          chunks[1]=chunks[1].replace('feH7y8cZn','feH7y8Zn')
+          raw=base64.b64decode(''.join(chunks),validate=True)
+          assert hashlib.sha256(raw).hexdigest()=='67bf22487afd8410694f9d969c9ac2622b497893312ee406335c2750f16301fd', 'Source transfer checksum mismatch'
+          p=json.loads(gzip.decompress(raw));assert p['version']=='20260911-workflow1'
+          if not Path('scripts/prepare_sept11_release.py').exists():
+              for f,h in p['source_hashes'].items():
+                  assert hashlib.sha256(Path(f).read_bytes()).hexdigest()==h, 'Concurrent source modification: '+f
+              for f,text in p['files'].items():
+                  assert '..' not in Path(f).parts and not Path(f).is_absolute()
+                  Path(f).parent.mkdir(parents=True,exist_ok=True);Path(f).write_text(text)
+          Path('sept11-check/changed.json').write_text(json.dumps(p['changed_files']))
+          PY
+          python scripts/prepare_sept11_release.py
+      - name: Run service pricing and invoice tests with mocked providers
+        run: |
+          set -o pipefail
+          node --experimental-strip-types --test tests/fic-issuance.test.mjs tests/fic.test.mjs tests/ovc-pricing.test.mjs tests/sept11-pricing.test.mjs | tee sept11-check/unit-tests.txt
+      - name: Build actual application without publishing
+        env:
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -o pipefail
+          bash scripts/vercel-build-v13.sh 2>&1 | tee sept11-check/build.txt
+      - name: Install isolated browser
+        run: |
+          npm install --prefix /tmp/optyker-browser playwright@1.55.0
+          /tmp/optyker-browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Verify UI, cross-client isolation, printing and FIC entry points
+        env:
+          NODE_PATH: /tmp/optyker-browser/node_modules
+        run: node tests/sept11-browser.test.cjs
+      - name: Commit verified release on this branch only
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json,subprocess
+          from pathlib import Path
+          files=json.loads(Path('sept11-check/changed.json').read_text())
+          subprocess.run(['git','add','--']+files,check=True)
+          PY
+          git config user.name 'Optyker release verification'
+          git config user.email '30346110+Leahcim12@users.noreply.github.com'
+          if ! git diff --cached --quiet; then git commit -m 'Implement seven customer workflow changes with verified prices, warranties, quotes and FIC links'; fi
+          git push origin HEAD:refs/heads/optyker/sept11-workflow1
+          git rev-parse HEAD > sept11-check/release-commit.txt
+          export VERCEL_GIT_COMMIT_SHA="$(git rev-parse HEAD)"
+          python scripts/finalize_sept11_manifest.py
+          git archive --format=zip HEAD -o sept11-check/release-source.zip
+      - name: Save checks and assembled app
+        if: always()
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import shutil
+          if Path('_site').exists():shutil.make_archive('sept11-check/built','zip','_site')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: optyker-sept11-release-check
+          path: sept11-check/
+          retention-days: 3
