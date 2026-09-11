@@ -1,3 +1,4 @@
+/* OPTYKER_SEPT11_PREPARED */
 (function(){
 if(window.__optykerCashLoaded)return;window.__optykerCashLoaded=true;
 window.OPTYKER_CASH_BUILD='20260911-rch-profile1';
@@ -188,7 +189,7 @@ function ensureUI(){
       '</div>'+
       '<label id="optykerCashTsBox" class="optykerCashTsBox"><input id="optykerCashTs" type="checkbox"><span class="optykerCashTsCheck">✓</span><span><b>Prepara dati spesa · Sistema TS</b><small id="optykerCashTsHint">Seleziona un cliente con Codice Fiscale.</small></span></label>'+
       '<div id="optykerCashTsOptions" class="optykerCashTsOptions" style="display:none"><div><label for="optykerCashTsCode">Codice spesa</label><select id="optykerCashTsCode"><option value="AD">AD · Dispositivo medico</option><option value="AA">AA · Prestazione sanitaria</option></select></div><label class="optykerCashTsOpposition"><input id="optykerCashTsOpposition" type="checkbox"> Opposizione del cliente all\'uso dei dati nella precompilata</label></div>'+
-      '<label id="optykerCashInvoiceBox" class="optykerCashInvoiceBox"><input id="optykerCashInvoice" type="checkbox"><span class="optykerCashInvoiceCheck">✓</span><span><b>Crea fattura per questo pagamento</b><small id="optykerCashInvoiceHint">La fattura verrà preparata con i dati del cliente.</small></span></label>'+
+      '<label id="optykerCashInvoiceBox" class="optykerCashInvoiceBox"><input id="optykerCashInvoice" type="checkbox"><span class="optykerCashInvoiceCheck">✓</span><span><b>Prepara fattura Fatture in Cloud</b><small id="optykerCashInvoiceHint">La fattura verrà preparata con i dati del cliente.</small></span></label>'+
       '<textarea id="optykerCashNote" placeholder="Nota vendita (facoltativa)"></textarea>'+
       '<div class="optykerCashRchHelp">L’emissione automatica degli scontrini è da configurare. Il documento fiscale va ancora emesso sul registratore.</div>'+
       '<button id="optykerCashCheckoutBtn" type="button" disabled>Conferma vendita</button>'+
@@ -361,7 +362,7 @@ function updateInvoiceAvailability(){
   var box=E('optykerCashInvoiceBox'),inv=E('optykerCashInvoice'),hint=E('optykerCashInvoiceHint');if(!box||!inv)return;
   var ok=!!S.clientId;inv.disabled=!ok;box.classList.toggle('disabled',!ok);
   if(!ok){inv.checked=false;S.invoice=false;if(hint)hint.textContent='Per la fattura seleziona prima un cliente.'}
-  else if(hint)hint.textContent='Verrà creata la fattura del solo importo pagato.';
+  else if(hint)hint.textContent='Richiesta Fatture in Cloud del solo importo pagato; revisione e conferma in Fatturazione cliente.';
 }
 function checkout(){
   var rows=cartRows();if(!rows.length||S.busy)return;var total=cartTotal(),dep=depositAmount();
@@ -399,7 +400,7 @@ function checkout(){
     renderCart();updateTsAvailability();
     var text='Vendita registrata'+(sale.shopify_order_name?' · '+sale.shopify_order_name:'');
     if(Number(sale.due_amount||0)>0)text+=' · da saldare '+euro(sale.due_amount);
-    if(sale.billing_invoice&&sale.billing_invoice.id)text+=' · fattura preparata';
+    if(sale.billing_invoice&&sale.billing_invoice.id)text+=' · richiesta Fatture in Cloud preparata';
     if(sale.ts_document&&sale.ts_document.id)text+=sale.ts_document.opposition?' · opposizione TS registrata':' · dati TS salvati, invio non attivo';
     toast(text,'ok')
   }).catch(function(e){toast('Vendita non completata: '+e.message,'error')}).finally(function(){S.busy=false;renderCart()})
@@ -431,7 +432,7 @@ function settleExisting(saleId,stage,modal){
   if(!inv)extra+='\nLo scontrino fiscale va ancora emesso sul registratore.';
   if(!window.confirm('Registrare il '+label+'?'+extra))return;
   api('settle',{sale_id:saleId,payment_stage:stage,payment_method:S.payment,invoice_requested:inv,ts_requested:ts,ts_expense_code:tsCode,ts_opposition:tsOpp,note:String(E('optykerCashNote').value||'')})
-    .then(function(x){var sale=x.data||{};var t='Saldo registrato'+(sale.billing_invoice?' · fattura preparata':'');if(sale.ts_document)t+=sale.ts_document.opposition?' · opposizione TS registrata':' · dati TS salvati, invio non attivo';toast(t,'ok');if(modal)modal.classList.remove('open');openDeposits()})
+    .then(function(x){var sale=x.data||{};var t='Saldo registrato'+(sale.billing_invoice?' · richiesta Fatture in Cloud preparata':'');if(sale.ts_document)t+=sale.ts_document.opposition?' · opposizione TS registrata':' · dati TS salvati, invio non attivo';toast(t,'ok');if(modal)modal.classList.remove('open');openDeposits()})
     .catch(function(e){toast('Saldo non completato: '+e.message,'error')})
 }
 function openTsDocuments(){

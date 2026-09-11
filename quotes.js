@@ -1,7 +1,8 @@
+/* OPTYKER_SEPT11_PREPARED */
 (function(){
   if(window.__optykerQuotesPatch)return;window.__optykerQuotesPatch=true;
   var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-quotes-api';
-  var state={clientId:'',rows:[],loading:false,lastLoad:0,lacSavedKey:''};
+  var state={clientId:'',rows:[],loading:false,loadSeq:0,error:'',lastLoad:0,lacSavedKey:''};
   function E(id){return document.getElementById(id)}
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]})}
   function op(){return String(window.OPTYKER_ACTIVE_USER||(window.OPTYKER_CLOUD&&OPTYKER_CLOUD.username)||'').trim()}
@@ -44,20 +45,25 @@
   }
   function render(){
     var p=ensureSection();if(!p)return;
-    var rows=state.rows||[];
+    var rows=state.clientId===String(window.clientCurrentId||'')?(state.rows||[]):[];
     var cards=rows.map(function(q){
       var a=euro(amount(q));
       return '<div class="optykerQuoteCard"><div class="optykerQuoteCardMain"><span class="optykerQuoteBadge">PREVENTIVO '+esc(kind(q).toUpperCase())+'</span><div class="optykerQuoteTitle">'+esc(ref(q)||q.title||'Preventivo')+'</div><div class="optykerQuoteMeta">'+esc(date(q.created_at))+(q.operator?' · '+esc(q.operator):'')+'</div>'+(a?'<div class="optykerQuoteAmount">'+esc(a)+'</div>':'')+'</div><button class="optykerQuoteOpen" type="button" data-quote-open="'+esc(q.id)+'">Visualizza</button></div>';
     }).join('');
-    p.innerHTML='<div class="optykerQuotesHead"><h3>Preventivi</h3><span class="optykerQuotesCount">'+rows.length+'</span></div>'+(state.loading&&!rows.length?'<div class="optykerQuotesEmpty">Caricamento preventivi…</div>':(cards?'<div class="optykerQuoteList">'+cards+'</div>':'<div class="optykerQuotesEmpty">Nessun preventivo aperto per questo cliente.</div>'));
+    p.innerHTML='<div class="optykerQuotesHead"><h3>Preventivi</h3><span class="optykerQuotesCount">'+rows.length+'</span></div>'+(state.loading&&!rows.length?'<div class="optykerQuotesEmpty">Caricamento preventivi…</div>':(cards?'<div class="optykerQuoteList">'+cards+'</div>':'<div class="optykerQuotesEmpty">'+esc(state.error||'Nessun preventivo aperto per questo cliente.')+'</div>'));
     Array.prototype.forEach.call(p.querySelectorAll('[data-quote-open]'),function(b){b.onclick=function(){window.openOptykerQuote(this.getAttribute('data-quote-open'))}});
   }
   function load(force){
-    var cid=String(window.clientCurrentId||'');if(!cid){ensureSection();return Promise.resolve([])}
-    if(state.loading)return Promise.resolve(state.rows);
-    if(!force&&cid===state.clientId&&Date.now()-state.lastLoad<15000){render();return Promise.resolve(state.rows)}
-    state.clientId=cid;state.loading=true;render();
-    return call('list',{client_id:cid}).then(function(x){if(cid===String(window.clientCurrentId||''))state.rows=Array.isArray(x.data)?x.data:[];return state.rows}).catch(function(){return state.rows}).finally(function(){state.loading=false;state.lastLoad=Date.now();render()});
+    var cid=String(window.clientCurrentId||'');
+    if(!cid){state.loadSeq++;state.clientId='';state.rows=[];state.loading=false;ensureSection();return Promise.resolve([])}
+    if(cid!==state.clientId){state.clientId=cid;state.rows=[];state.loading=false;state.lastLoad=0;state.error='';state.loadSeq++;if(E('optykerQuoteModal'))E('optykerQuoteModal').remove()}
+    if(state.loading)return state.promise||Promise.resolve([]);
+    if(!force&&Date.now()-state.lastLoad<15000){render();return Promise.resolve(state.rows)}
+    var seq=++state.loadSeq;state.loading=true;state.error='';render();
+    state.promise=call('list',{client_id:cid}).then(function(x){if(seq===state.loadSeq&&cid===String(window.clientCurrentId||''))state.rows=Array.isArray(x.data)?x.data:[];return state.rows})
+      .catch(function(e){if(seq===state.loadSeq){state.rows=[];state.error=e.message||'Caricamento non riuscito'}return []})
+      .finally(function(){if(seq===state.loadSeq){state.loading=false;state.lastLoad=Date.now();render()}});
+    return state.promise;
   }
   window.refreshClientQuotes=function(){return load(true)};
   function cloudReplace(row,remove){
@@ -88,6 +94,15 @@
     m.onclick=function(ev){if(ev.target===m)m.remove()};
     m.innerHTML='<div class="optykerQuoteModalCard"><div class="optykerQuoteModalTop"><div><div class="optykerQuoteRef">PREVENTIVO '+esc(kind(q).toUpperCase())+' · '+esc(ref(q)||'—')+'</div><h2>Preventivo cliente</h2></div><button class="optykerQuoteClose" type="button" data-q-close>×</button></div><div class="optykerQuoteDetails">'+detail('Data',date(q.created_at))+detail('Riepilogo',description(q))+(a?detail('Totale',a):'')+extra+'</div><div class="optykerQuoteActions"><button class="optykerQuoteConvert" type="button" data-q-convert="'+esc(q.id)+'">Trasforma in vendita</button><button class="optykerQuoteDelete" type="button" data-q-delete="'+esc(q.id)+'">Elimina preventivo</button><button class="optykerQuoteCancel" type="button" data-q-close>Chiudi</button></div></div>';
     document.body.appendChild(m);
+    var print=document.createElement('button');print.type='button';print.textContent='Stampa preventivo';print.className='optykerQuoteOpen';
+    m.querySelector('.optykerQuoteActions').prepend(print);
+    print.onclick=function(){
+      var w=window.open('','_blank');if(!w){alert('Consenti i popup per stampare il preventivo.');return}
+      var extra=d.frame&&String(d.frame.type).toLowerCase()==='del cliente'?'<p>'+esc(window.OPTYKER_SEPT11.ownText)+'</p>':'';
+      var html='<html><head><style>body{font-family:Segoe UI,Arial,sans-serif}.optykerQuoteDetail{padding:9px 0;border-bottom:1px solid #ddd;display:flex;gap:16px}.optykerQuoteDetail b{min-width:120px}.optykerQuoteDetail span{white-space:pre-wrap}</style></head><body><h1>Preventivo</h1>'+extra+m.querySelector('.optykerQuoteDetails').innerHTML+'</body></html>';
+      w.document.write(window.optykerQuotePrint.decorate(html,'Preventivo '+kind(q),ref(q)+' · '+(E('clientWorkspaceName')&&E('clientWorkspaceName').textContent||'')));w.document.close();window.optykerQuotePrint.finish(w);
+    };
+
     Array.prototype.forEach.call(m.querySelectorAll('[data-q-close]'),function(b){b.onclick=function(){m.remove()}});
     var cv=m.querySelector('[data-q-convert]');if(cv)cv.onclick=function(){window.convertOptykerQuote(this.getAttribute('data-q-convert'))};
     var dl=m.querySelector('[data-q-delete]');if(dl)dl.onclick=function(){window.deleteOptykerQuote(this.getAttribute('data-q-delete'))};

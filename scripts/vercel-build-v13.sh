@@ -140,3 +140,11 @@ node --check iphone-app-v13/login-reference-ui-v1.js
 python scripts/apply_iphone_login_reference.py
 python tests/test_iphone_login_reference.py
 node --test tests/secure-auth.test.cjs
+
+# Verified customer workflow changes, applied after existing versioned patches.
+node --check optyker-sept11.js
+python scripts/apply_sept11_release.py
+node --test tests/sept11-pricing.test.mjs
+python scripts/patch_public_asset_paths.py
+python scripts/finalize_sept11_manifest.py
+verify_desktop_aliases

@@ -1,3 +1,4 @@
+/* OPTYKER_SEPT11_PREPARED */
 // OVC Card: authoritative service prices. Browser prices and membership flags are ignored.
 export const OVC_VERSION='20260910-ovc2';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -19,7 +20,15 @@ export async function ovcContext(db,clientId=''){
   ]);
   if(items.error)throw items.error;if(prices.error)throw prices.error;
   const map=new Map((prices.data||[]).map(p=>[p.item_id,p]));
-  return {card,services:(items.data||[]).map(i=>({...i,ovc_price:map.get(i.id)||null}))};
+  let personal=new Map();
+  if(clientId){
+    const r=await db.from('optyker_ovc_client_service_prices').select('item_id,card_price,revision').eq('client_id',clientId).limit(2000);
+    if(r.error)throw r.error;personal=new Map((r.data||[]).map(p=>[p.item_id,p]));
+  }
+  return {card,services:(items.data||[]).map(i=>{
+    const inherited=map.get(i.id)||null,override=personal.get(i.id)||null;
+    return {...i,ovc_price:override?.card_price!=null?override:inherited,ovc_price_source:override?.card_price!=null?'client':'warehouse',ovc_default_revision:inherited?.revision||0,ovc_client_revision:override?.revision||0};
+  })};
 }
 export function serviceProduct(item,card,idOverride){
   if(!item||item.category!=='services'||item.active!==true)return null;
@@ -36,8 +45,8 @@ export function serviceProduct(item,card,idOverride){
     is_service:true,standard_price:normal,card_price:dedicated==null?null:Number(dedicated),
     list_price:Math.max(normal,price),price:cents(price)/100,discount_percent:0,discount_amount:discount,
     ovc_card_applied:applied,ovc_card_number:applied?card.card_number:null,
-    ovc_card_revision:card?.revision??null,ovc_price_revision:item.ovc_price?.revision||0,vat_code:item.vat_code||'',
-    pricing_label:applied?'Tariffa OVC CARD applicata':'Tariffa standard',catalog_version:OVC_VERSION
+    ovc_price_source:applied?(item.ovc_price_source||'warehouse'):'standard',ovc_client_revision:item.ovc_client_revision||0,ovc_default_revision:item.ovc_default_revision||0,ovc_card_revision:card?.revision??null,ovc_price_revision:item.ovc_price?.revision||0,vat_code:item.vat_code||'',
+    pricing_label:applied?(item.ovc_price_source==='client'?'Tariffa OVC CARD personalizzata':'Tariffa OVC CARD applicata'):'Tariffa standard',catalog_version:OVC_VERSION
   };
 }
 export function serviceForId(id,context){

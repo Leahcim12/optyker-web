@@ -1,0 +1,25 @@
+/* Root exclusions do not erase input values or let a late response reopen an old view. */
+[data-optyker-route-excluded]{display:none!important}
+#whCompaniesBtn{display:none!important}
+#whSettingsCompanies{display:none!important}
+#optykerSettingsPanel > #whSettingsCompanies{display:block!important}
+.optykerQuoteCard{border-color:#edbec4!important;background:#fff7f8!important}
+.optykerQuoteBadge,.optykerQuoteTitle,.optykerQuoteAmount,.optykerQuotesHead h3,.optykerQuotesCount{color:#b42332!important}
+.optykerQuoteBadge,.optykerQuotesCount{background:#fce9ec!important}
+.eyRecentRow[data-ovc-quote]{border-left:4px solid #b42332!important;background:#fff7f8!important}
+.eyRecentRow[data-ovc-quote] .eyRecentRef,[data-sheet-type="eyewear_quote"],[data-sheet-type="lac_quote"],#eyewearPanel[data-ovc-quote] #eyReference{color:#b42332!important}
+#eyModeQuote.active{background:#b42332!important;border-color:#b42332!important;color:#fff!important}
+.ovc11Dialog{font-family:inherit;color:#17334b;background:#fff;border:1px solid #dae2e8;border-radius:18px;padding:0;width:min(880px,94vw);max-height:90dvh;box-shadow:0 20px 70px #152a4a40}
+.ovc11Dialog::backdrop{background:#10223877}
+.ovc11Dialog header{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:20px 24px;border-bottom:1px solid #e1e8ee}
+.ovc11Dialog h2{font-size:21px;margin:0}.ovc11Dialog h3{font-size:15px;margin:4px 0 10px}.ovc11Dialog p{line-height:1.5;font-size:13px}
+.ovc11Dialog header button{border:0;background:none;font-size:26px;width:36px;cursor:pointer}
+.ovc11Body{padding:20px 24px;overflow:auto;max-height:65dvh}
+.ovc11Dialog footer{padding:14px 24px;font-size:12px;background:#f5f8fb;border-top:1px solid #e1e8ee;line-height:1.5}
+.ovc11Dialog input{box-sizing:border-box;width:100%;min-height:40px;margin-top:5px;border:1px solid #cbd8e3;border-radius:8px;padding:8px 10px;background:#fff;font-size:14px}
+.ovc11Dialog label{display:block;font-size:12px;color:#4c6274}.ovc11Dialog button:not(header button),.ovc11Actions button{cursor:pointer;border:1px solid #c8d5e1;border-radius:8px;background:#f4f8fb;color:#17334b;padding:10px 14px;font:600 12px inherit}
+.ovc11Dialog button:disabled{opacity:.5;cursor:default}.ovc11Dialog [role=status]{font-size:12px;line-height:1.5}
+.ovc11TariffRow{display:grid;grid-template-columns:minmax(170px,1fr) 180px auto;align-items:center;gap:14px;border-bottom:1px solid #e4eaf0;padding:15px 0}.ovc11TariffRow [role=status]{grid-column:1/-1}.ovc11TariffRow small{font-size:12px;color:#627889}
+.ovc11Actions{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 18px}.ovc11WarrantyRow{padding:16px;border:1px solid #dbe4eb;border-radius:12px;margin:12px 0}.ovc11WarrantyRow input{max-width:230px}.ovc11WarrantyRow button{margin:10px 0}.ovc11Muted{font-size:11px!important;color:#60768b}.ovc11InvoiceList article{display:grid;gap:7px;border-bottom:1px solid #e1e8ee;padding:14px 0}.ovc11InvoiceList small{color:#60768b}.ovc11Draft{display:block;margin:8px 0;width:100%;text-align:left}
+@media(max-width:620px){.ovc11TariffRow{grid-template-columns:1fr}.ovc11Body,.ovc11Dialog header,.ovc11Dialog footer{padding:15px}.ovc11Actions button{flex:1}}
+@media print{.ovc11Dialog,#optykerClientWorkflowActions{display:none!important}}

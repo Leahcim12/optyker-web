@@ -1,3 +1,4 @@
+/* OPTYKER_SEPT11_PREPARED */
 (function(){
 if(window.__optykerWarehouseLoaded)return;window.__optykerWarehouseLoaded=true;
 window.OPTYKER_WAREHOUSE_BUILD='20260903-lac-solutions1';
@@ -83,7 +84,7 @@ function installPanel(){
   if(E('warehousePanel'))return;
   var p=document.createElement('div');p.id='warehousePanel';p.className='panel';
   p.innerHTML='<div class="whHead"><div><div class="whEyebrow">Optyker · Magazzino</div><div id="whTitle" class="whTitle">Magazzino</div><div class="whSub">Prodotti, giacenze controllate da Optyker, barcode, lotti, scadenze e ditte.</div></div>'+
-    '<div class="whHeadActions"><button id="whCompaniesBtn" class="whBtn" type="button">Ditte / fornitori</button><button id="whNewBtn" class="whBtn" type="button">+ Inserisci prodotto</button><button id="whSyncBtn" class="whBtn primary" type="button">Sincronizza Shopify</button></div></div>'+
+    '<div class="whHeadActions"><button id="whNewBtn" class="whBtn" type="button">+ Inserisci prodotto</button><button id="whSyncBtn" class="whBtn primary" type="button">Sincronizza Shopify</button></div></div>'+
     '<div class="whStats"><div class="whStat"><b id="whCount">0</b><span>Prodotti / varianti</span></div><div class="whStat"><b id="whStockTotal">0</b><span>Giacenza nella pagina</span></div><div class="whStat"><b id="whExpirySoon">0</b><span>Scadenze entro 90 gg</span></div><div class="whStat"><b id="whNoImage">0</b><span>Senza immagine</span></div></div>'+
     '<div class="whToolbar"><input id="whSearch" type="search" placeholder="Cerca prodotto, diottria, Infinite Options, SKU, barcode o lotto…"><select id="whCategory"></select><select id="whRows"><option value="60">60 righe</option><option value="120" selected>120 righe</option><option value="250">250 righe</option></select><button id="whApply" class="whBtn" type="button">Applica</button></div>'+
     '<div id="whBulkBar" class="whBulkBar"><div><b id="whBulkCount">0 selezionati</b><span>Seleziona più prodotti per modificarli insieme.</span></div><div class="whBulkActions"><button id="whBulkClear" class="whBtn" type="button">Deseleziona</button><button id="whBulkCategory" class="whBtn primary" type="button" disabled>CAMBIA CATEGORIA</button></div></div>'+
@@ -96,7 +97,7 @@ function installPanel(){
   E('whApply').onclick=function(){W.search=E('whSearch').value||'';W.category=E('whCategory').value||W.category;W.limit=Number(E('whRows').value||120);W.page=1;setNavActive();loadItems()};
   E('whCategory').onchange=function(){W.category=this.value||'frames';W.page=1;setNavActive();loadItems()};
   E('whRows').onchange=function(){W.limit=Number(this.value||120);W.page=1;loadItems()};
-  E('whSyncBtn').onclick=function(){syncShopify(false,true)};E('whNewBtn').onclick=function(){openItemModal(null)};E('whCompaniesBtn').onclick=openCompanies;
+  E('whSyncBtn').onclick=function(){syncShopify(false,true)};E('whNewBtn').onclick=function(){openItemModal(null)};
   E('whBulkClear').onclick=function(){W.selected.clear();render();updateBulkBar()};
   E('whBulkCategory').onclick=openBulkCategoryModal;
 }
@@ -403,12 +404,12 @@ function printLabel(r){
 window.printWarehouseLabel=printLabel;
 
 function installSettingsCompanyCard(){
-  var panels=document.querySelectorAll('.panel');for(var i=0;i<panels.length;i++){
-    var p=panels[i],txt=String(p.textContent||'');if(!/impostazioni/i.test(txt)||p.querySelector('#whSettingsCompanies'))continue;
-    var d=document.createElement('div');d.id='whSettingsCompanies';d.className='whSettingsCompanyCard';
-    d.innerHTML='<h3>Ditte / fornitori</h3><p>Gestisci le ditte utilizzate nel magazzino, nei DDT, nei lotti e nei costi di acquisto.</p><button class="whBtn" type="button">Gestisci ditte</button>';
-    d.querySelector('button').onclick=openCompanies;p.appendChild(d)
-  }
+  var p=E('optykerSettingsPanel');if(!p)return;
+  document.querySelectorAll('#whSettingsCompanies').forEach(function(n){if(n.parentNode!==p)n.remove()});
+  if(p.querySelector('#whSettingsCompanies'))return;
+  var d=document.createElement('div');d.id='whSettingsCompanies';d.className='whSettingsCompanyCard';
+  d.innerHTML='<h3>Ditte e fornitori</h3><p>Gestisci le ditte utilizzate nel magazzino, nei DDT e nei lotti.</p><button class="whBtn" type="button">Gestisci ditte e fornitori</button>';
+  d.querySelector('button').onclick=openCompanies;p.appendChild(d);
 }
 function outsideClick(ev){
   var b=ev.target&&ev.target.closest?ev.target.closest('#moduleNav button'):null;if(!b)return;

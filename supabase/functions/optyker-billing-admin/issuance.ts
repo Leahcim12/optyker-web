@@ -1,3 +1,4 @@
+/* OPTYKER_SEPT11_PREPARED */
 import { withFic } from './fic.ts';
 import { validateImportedSource } from './foreign.ts';
 const BASE='https://api-v2.fattureincloud.it';
@@ -64,7 +65,7 @@ export function makeDocument(b:any,series:any,info:any){
 async function seriesRows(db:any){const r=await db.from(SERIES).select('*').order('code');if(r.error)throw r.error;return r.data}
 async function getDraft(db:any,id:string){if(!/^[0-9a-f-]{36}$/i.test(id))throw new Error('Documento non valido');const r=await db.from(DRAFTS).select('*').eq('id',id).single();if(r.error||!r.data)throw new Error('Documento non trovato');return r.data}
 async function updateDraft(db:any,id:string,data:any){const r=await db.from(DRAFTS).update({...data,updated_at:new Date().toISOString()}).eq('id',id);if(r.error)throw r.error}
-function summary(d:any){return {id:d.id,series:d.series,number:d.number,document:d.payload,totals:d.totals,state:d.state,provider_id:d.provider_id,last_error:d.last_error,source_id:d.source_id||null,source_context:d.source_context||null}}
+function summary(d:any){return {id:d.id,client_id:d.client_id||null,pos_source_id:d.pos_source_id||null,series:d.series,number:d.number,document:d.payload,totals:d.totals,state:d.state,provider_id:d.provider_id,last_error:d.last_error,source_id:d.source_id||null,source_context:d.source_context||null}}
 async function allDocuments(token:string,company:string,type:string){
  const docs:any[]=[];const started=Date.now();
  for(let page=1;page<=20;page++){
@@ -76,9 +77,9 @@ async function allDocuments(token:string,company:string,type:string){
  throw new Error('Troppi documenti: numerazione da verificare con l’assistenza');
 }
 export function remoteSequence(docs:any[],payload:any){const rows=docs.filter(d=>d.numeration===payload.numeration&&String(d.date).slice(0,4)===String(payload.year));return {number:Math.max(0,...rows.map(d=>Number(d.number)||0)),date:rows.map(d=>d.date).filter(Boolean).sort().at(-1)||null}}
-async function mirror(db:any,company:string,d:any){
- const row={provider_invoice_id:`fic:${company}:${d.id}`,direction:'outgoing',invoice_number:String(d.number)+String(d.numeration||''),issue_date:d.date,counterparty_name:d.entity?.name||'',counterparty_vat:d.entity?.vat_number||'',counterparty_fiscal_code:d.entity?.tax_code||'',header:d.visible_subject||d.subject||'',total:d.amount_gross??null,currency:'EUR',sdi_status:d.e_invoice?(d.ei_status||'not_sent'):'not_applicable',provider_status:d.ei_status||'',provider_payload:d,updated_at:new Date().toISOString()};
- const old=await db.from('optyker_billing_invoices').select('id').eq('direction','outgoing').eq('provider_invoice_id',row.provider_invoice_id).maybeSingle();if(old.error)throw old.error;
+async function mirror(db:any,company:string,d:any,clientId:string|null=null,posSourceId:string|null=null){
+ const row={...(clientId?{client_id:clientId}:{}),provider_invoice_id:`fic:${company}:${d.id}`,direction:'outgoing',invoice_number:String(d.number)+String(d.numeration||''),issue_date:d.date,counterparty_name:d.entity?.name||'',counterparty_vat:d.entity?.vat_number||'',counterparty_fiscal_code:d.entity?.tax_code||'',header:d.visible_subject||d.subject||'',total:d.amount_gross??null,currency:'EUR',sdi_status:d.e_invoice?(d.ei_status||'not_sent'):'not_applicable',provider_status:d.ei_status||'',provider_payload:d,updated_at:new Date().toISOString()};
+ const old=posSourceId?await db.from('optyker_billing_invoices').select('id,provider_invoice_id,client_id').eq('id',posSourceId).maybeSingle():await db.from('optyker_billing_invoices').select('id').eq('direction','outgoing').eq('provider_invoice_id',row.provider_invoice_id).maybeSingle();if(posSourceId&&(!old.data||old.data.client_id!==clientId||(old.data.provider_invoice_id&&old.data.provider_invoice_id!==row.provider_invoice_id)))throw new Error('Richiesta cassa non disponibile o già collegata a un’altra fattura');if(old.error)throw old.error;
  const r=old.data?await db.from('optyker_billing_invoices').update(row).eq('id',old.data.id):await db.from('optyker_billing_invoices').insert(row);if(r.error)throw r.error;
 }
 export function assertXml(xml:string,doc:any){
@@ -103,6 +104,18 @@ export async function issuance(db:any,action:string,b:any){
    return {series,info:info.data,can_write:canWrite};
   }
   if(action==='fic_preview'){
+   const clientId=b.client_id||null,posSourceId=b.pos_source_id||null;let posSource:any=null;
+   if(clientId){
+    if(typeof clientId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clientId)||b.series==='foreign')throw new Error('Collegamento cliente non valido per questa fattura');
+    const c=await db.from('optyker_clients').select('id').eq('id',clientId).maybeSingle();if(c.error||!c.data)throw new Error('Cliente non disponibile');
+   }
+   if(posSourceId){
+    if(!clientId||typeof posSourceId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(posSourceId))throw new Error('Richiesta cassa non valida');
+    const p=await db.from('optyker_billing_invoices').select('id,client_id,total,currency,direction,sdi_status,provider_invoice_id,provider_payload').eq('id',posSourceId).maybeSingle();
+    if(p.error||!p.data||p.data.client_id!==clientId||p.data.direction!=='outgoing'||p.data.currency!=='EUR'||p.data.sdi_status!=='draft'||p.data.provider_invoice_id||p.data.provider_payload?.source!=='optyker_pos')throw new Error('Pagamento già fatturato o non disponibile per questo cliente');posSource=p.data;
+    const prior=await db.from('optyker_fic_drafts').select('id').eq('pos_source_id',posSourceId).maybeSingle();if(prior.error)throw prior.error;if(prior.data&&prior.data.id!==b.draft_id)throw new Error('Esiste già una bozza per questo pagamento: riaprila dall’elenco');
+   }
+
    const sourceContext=await validateImportedSource(db,b);
    const series=(await seriesRows(db)).find((s:any)=>s.code===b.series&&s.year===Number(String(b.date).slice(0,4)));if(!series)throw new Error('Serie non configurata per questo anno');
    const info=await request(token,root+'/issued_documents/info?type='+(series.code==='foreign'?'self_supplier_invoice':'invoice'));
@@ -110,10 +123,10 @@ export async function issuance(db:any,action:string,b:any){
    if(!Number.isFinite(Number(totals.data?.amount_gross))||Number(totals.data.amount_gross)<=0)throw new Error('Totale del documento non valido');
    doc.payments_list[0].amount=Number(totals.data.amount_due??totals.data.amount_gross);
    let id=crypto.randomUUID(),reservedNumber=null;
-   if(b.draft_id){const old=await getDraft(db,b.draft_id);if(!['preview','create_rejected'].includes(old.state))throw new Error('Documento già creato o in elaborazione');if(old.series!==series.code||old.year!==series.year)throw new Error('La serie di un documento prenotato non può cambiare');if((old.source_id||null)!==(b.source_id||null))throw new Error('Il documento originale collegato non può cambiare');id=old.id;reservedNumber=old.number;if(old.number)doc.number=old.number;}
+   if(b.draft_id){const old=await getDraft(db,b.draft_id);if((old.client_id||null)!==clientId||(old.pos_source_id||null)!==posSourceId)throw new Error('Il cliente o pagamento collegato alla bozza non può cambiare');if(!['preview','create_rejected'].includes(old.state))throw new Error('Documento già creato o in elaborazione');if(old.series!==series.code||old.year!==series.year)throw new Error('La serie di un documento prenotato non può cambiare');if((old.source_id||null)!==(b.source_id||null))throw new Error('Il documento originale collegato non può cambiare');id=old.id;reservedNumber=old.number;if(old.number)doc.number=old.number;}
    if(!doc.number){const seq=remoteSequence(await allDocuments(token,company,doc.type),doc);doc.number=Math.max(seq.number,series.last_number)+1;}
    doc.extra_data.imported_by='optyker:'+id;
-   const row={id,number:reservedNumber,review_hash:null,reviewed_at:null,series:series.code,year:series.year,payload:doc,totals:totals.data,state:'preview',last_error:null,source_id:b.source_id||null,source_context:sourceContext?.context||null,updated_at:new Date().toISOString()};
+   if(posSource&&Math.round(Number(totals.data.amount_gross)*100)!==Math.round(Number(posSource.total)*100))throw new Error('Il totale della fattura deve coincidere con il pagamento in cassa: verifica importi e IVA');const row={id,client_id:clientId,pos_source_id:posSourceId,number:reservedNumber,review_hash:null,reviewed_at:null,series:series.code,year:series.year,payload:doc,totals:totals.data,state:'preview',last_error:null,source_id:b.source_id||null,source_context:sourceContext?.context||null,updated_at:new Date().toISOString()};
    const r=sourceContext?await db.rpc('optyker_fic_save_import_preview',{p_row:row,p_invoice_key:sourceContext.invoiceKey}):await db.from(DRAFTS).upsert(row).select('*').single();
    if(r.error){if(r.error.code==='23505'&&b.source_id)throw new Error('Fattura originale o integrazione già presente. Riapri il documento esistente dall’elenco Fatture estere.');throw r.error}
    return {...summary(Array.isArray(r.data)?r.data[0]:r.data),suggested_number:doc.number||series.last_number+1};
@@ -135,11 +148,11 @@ export async function issuance(db:any,action:string,b:any){
    if(!result.data?.id){await updateDraft(db,d.id,{state:'create_unknown',last_error:'Identificativo non restituito: verificare Fatture in Cloud'});throw new Error('Esito creazione da verificare in Fatture in Cloud')}
    await updateDraft(db,d.id,{provider_id:String(result.data.id),state:'created',last_error:null});
    const saved=await db.from(SERIES).update({last_date:d.payload.date}).eq('code',d.series).eq('year',d.year);if(saved.error)throw saved.error;
-   await mirror(db,company,result.data);return summary(await getDraft(db,d.id));
+   await mirror(db,company,result.data,d.client_id||null,d.pos_source_id||null);return summary(await getDraft(db,d.id));
   }
   if(!d.provider_id)throw new Error('Prima crea la fattura');
   const current=await request(token,root+'/issued_documents/'+encodeURIComponent(d.provider_id)+'?fieldset=detailed');
-  if(action==='fic_document'){const hash=await reviewHash(current.data);await updateDraft(db,d.id,{review_hash:hash,reviewed_at:new Date().toISOString()});await mirror(db,company,current.data);return {...summary(d),remote:current.data,review_hash:hash}}
+  if(action==='fic_document'){const hash=await reviewHash(current.data);await updateDraft(db,d.id,{review_hash:hash,reviewed_at:new Date().toISOString()});await mirror(db,company,current.data,d.client_id||null,d.pos_source_id||null);return {...summary(d),remote:current.data,review_hash:hash}}
   if(action==='fic_send'){
    if(!b.review_hash||b.review_hash!==d.review_hash||await reviewHash(current.data)!==d.review_hash||Date.now()-Date.parse(d.reviewed_at)>600000)throw new Error('Riapri l’anteprima prima di inviare: il documento potrebbe essere cambiato.');
    if(b.confirm_send!==true)throw new Error('Conferma esplicita di invio SDI richiesta');

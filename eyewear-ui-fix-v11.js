@@ -1,3 +1,4 @@
+/* OPTYKER_SEPT11_PREPARED */
 (function(){
 if(window.__optykerEyewearUiFixV11)return;
 window.__optykerEyewearUiFixV11=true;
@@ -12,20 +13,21 @@ function clientFrame(){return low(E('eyFrameType')&&E('eyFrameType').value)==='d
 function framePrice(){return clientFrame()?0:num(E('eyFramePrice')&&E('eyFramePrice').value)}
 
 function warrantyMarkup(){
+  if(clientFrame())return '<option value="Base">Base · inclusa</option>';
   return framePrice()>150
     ? '<option value="Base">Base · inclusa</option><option value="Gold">Gold · + € 100</option>'
     : '<option value="Base">Base · inclusa</option><option value="Silver">Silver · + € 20</option>'
 }
 function syncWarranty(){
   var sel=E('eyWarranty');if(!sel)return;
-  var current=txt(sel.value)||'Base',allowed=framePrice()>150?['Base','Gold']:['Base','Silver'];
+  var current=txt(sel.value)||'Base',allowed=clientFrame()?['Base']:(framePrice()>150?['Base','Gold']:['Base','Silver']);
   if(allowed.indexOf(current)<0)current='Base';
   var html=warrantyMarkup();
   if(sel.innerHTML!==html)sel.innerHTML=html;
   if(sel.value!==current)sel.value=current;
   var hint=E('eyWarrantyBox')&&E('eyWarrantyBox').querySelector('.eyWarrantyHint');
   if(hint){
-    var wanted=framePrice()>150?'Base inclusa. Gold disponibile per montature oltre € 150.':'Base inclusa. Silver disponibile per montature fino a € 150.';
+    var wanted=clientFrame()?'Montatura del cliente: garanzia Base, solo cambio lenti. Sconto 50% nel primo anno e 25% nel secondo, massimo due ricambi complessivi dalla consegna.':framePrice()>150?'Base inclusa. Gold disponibile per montature oltre € 150.':'Base inclusa. Silver disponibile per montature fino a € 150.';
     if(hint.textContent!==wanted)hint.textContent=wanted
   }
 }

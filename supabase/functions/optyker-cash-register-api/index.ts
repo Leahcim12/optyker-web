@@ -1,3 +1,4 @@
+/* OPTYKER_SEPT11_PREPARED */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { listHistory, receiptDetail, setHistoryVisibility } from './history.ts';
@@ -242,8 +243,8 @@ async function createInvoiceDraft(sale:any,payment:any,client:any,operator:strin
   if(discount>0 && discountBrands(sale?.data?.lines||[]))header+=" · Sconto "+discountBrands(sale?.data?.lines||[])+" 15% già applicato (sconto complessivo vendita: "+money(discount).toFixed(2)+" EUR)";
   const payload={
     source:"optyker_pos",
-    provider:"FOCUS FE · Bludata",
-    provider_connection:"not_configured",
+    provider:"Fatture in Cloud",
+    provider_connection:"pending_administrator_review",
     pos_sale_id:sale.id,
     lines:Array.isArray(sale?.data?.lines)?sale.data.lines:[],
     pricing:sale?.data?.pricing||null,
@@ -283,7 +284,7 @@ async function createInvoiceDraft(sale:any,payment:any,client:any,operator:strin
     total:money(amount),
     currency:"EUR",
     sdi_status:"draft",
-    provider_status:"pending_focus_fe",
+    provider_status:"pending_fic_review",
     provider_payload:payload
   }).select("*").single();
   if(error)throw error;
