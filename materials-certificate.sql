@@ -26,7 +26,7 @@ allowed constant text[]:=array['frame_brand','frame_model','frame_material','fra
 begin
  if public.optyker_staff_allowed(p_username,p_password) is not true then return jsonb_build_object('ok',false,'error','Operatore non autorizzato'); end if;
  cid:=nullif(p_payload->>'client_id','')::uuid;sid:=nullif(p_payload->>'sheet_id','')::uuid;
- if p_action not in ('get','save') then raise exception 'Azione non riconosciuta'; end if;
+ if p_action is null or p_action not in ('get','save') then raise exception 'Azione non riconosciuta'; end if;
  select * into sh from public.optyker_sheets where id=sid and client_id=cid for share;
  if not found then raise exception 'Busta non disponibile per il cliente selezionato'; end if;
  if sh.sheet_type<>'eyewear_job' or coalesce(sh.data->>'mode','')<>'job' or lower(coalesce(sh.document_type,''))='preventivo' then raise exception 'Il certificato dei materiali è disponibile soltanto nelle Buste Occhiali'; end if;
@@ -40,10 +40,10 @@ begin
   v:=p_payload->'values';
   if v is null or jsonb_typeof(v)<>'object' or octet_length(v::text)>20000 then raise exception 'Dati del certificato non validi'; end if;
   for k,item in select key,value from jsonb_each(v) loop
-   if not (k=any(allowed)) or jsonb_typeof(item)<>'string' or length(item#>>'{}')>case when k='public_notes' then 1500 else 300 end then raise exception 'Campo del certificato non valido: %',k; end if;
+   if not (k=any(allowed)) or jsonb_typeof(item)<>'string' or length(item#>>'{}')>(case when k='public_notes' then 1500 else 300 end) then raise exception 'Campo del certificato non valido: %',k; end if;
   end loop;
   if coalesce(v->>'delivery_date','')<>'' then
-   if (v->>'delivery_date') !~ '^\d{4}-\d{2}-\d{2}$' or to_char((v->>'delivery_date')::date,'YYYY-MM-DD')<>v->>'delivery_date' then raise exception 'Data di consegna non valida'; end if;
+   if (v->>'delivery_date') !~ '^\d{4}-\d{2}-\d{2}$' or to_char((v->>'delivery_date')::date,'YYYY-MM-DD')<>(v->>'delivery_date') then raise exception 'Data di consegna non valida'; end if;
   end if;
   insert into public.optyker_eyewear_material_certificates(sheet_id,client_id,data,source_updated_at,compiled_by) values(sid,cid,v,sh.updated_at,p_username)
   on conflict(sheet_id) do update set data=excluded.data,source_updated_at=excluded.source_updated_at,revision=optyker_eyewear_material_certificates.revision+1,compiled_by=excluded.compiled_by,updated_at=now()
