@@ -1,6 +1,24 @@
 # Optyker: attivazione cassa RCH e Sistema TS
 
-## Stato della versione 20260909-rch-status2
+## Stato della versione 20260911-rch-profile1
+
+La configurazione fornita dal negozio è ora nel modulo `rch-preflight.js` e nella finestra Cassa > RCH. Il connettore Windows resta **1.5-status-compatibility**: nessuna reinstallazione è richiesta per questo aggiornamento web. Nessun comando fiscale viene aggiunto.
+
+Evidenze acquisite:
+
+- Diagnostica reale del 09/09/2026: `<</?s` accettato con `errorCode=0`, `lastCmd=1`, `busy=0`, modalità **Z**. Questo conferma la comunicazione, non la modalità registrazione. Il frontend distingue REG da Z/PRG/X/modalità ignota.
+- Stampa di programmazione RCH del 11/09/2026 09:42 (foto IMG_3590–3594): 01 contanti, 02 non riscosso beni, 03 assegni, 04 carte elettroniche, 05 tickets, 06 non riscosso servizi, 07 non riscosso fatture, 08 non riscosso DCR SSN, 09 sconto a pagare, 10 buoni multiuso, 11 buoni celiachia. 12–30 sono etichette generiche e non sono assegnate automaticamente.
+- La stampa conferma IP 192.168.1.10, porta TCP 23 e matricola 72IV6003831. La porta 23 è del protocollo TCP legacy usato da Focus; il connettore Optyker mantiene il Web Service HTTP già verificato, senza cambiarne porta o trasporto.
+- Reparti dalla schermata Focus ECR del 09/09/2026: reparto 1 → codice IVA 04; reparto 2 → 22; reparto 3 → ART10/N4. Non sono ancora stati riletti direttamente dal registratore.
+- Gli indici della tabella aliquote stampata **non sono numeri reparto**: l'aliquota n. 3 vale 10%, ma ciò non cambia il reparto 3 ART10. IVA 10%, 5%, ART15 e NV non ricevono un reparto inventato.
+
+“Controlla carrello · senza stampa” esegue solo una validazione in memoria: richiede un codice IVA esplicito `fiscal_vat_code` per riga, importi in centesimi e quantità intere; non ricava l'IVA da titolo, categoria prodotto o percentuali Shopify. I prodotti senza codice fiscale esplicito sono segnalati, non modificati. Anche bonifico e non riscosso generico sono segnalati come non mappati. Acconti, fatture e saldi collegati a documenti precedenti richiedono un flusso dedicato.
+
+Il controllo non salva vendite, non invia il codice fiscale, non chiama il connettore e restituisce sempre `canEmit=false`, `canSubmitTs=false`, `emittedFiscalDocument=false`. Un controllo dati superato non abilita l'emissione. Le diagnosi scaricate dal browser includono il profilo acquisito, esplicitamente distinto dai valori letti in diretta.
+
+Verifiche di questa versione: `node --test tests/rch-preflight.test.mjs tests/rch-loader.test.mjs tests/rch-ui.test.mjs` (14 test). I test UI usano un DOM minimale simulato, non un browser visuale. La verifica visuale è stata tentata ma il browser ha bloccato il server locale (`ERR_BLOCKED_BY_CLIENT`). Il connettore e le sue protezioni non sono modificati.
+
+## Connettore Windows 1.5 (invariato)
 
 Non abilita emissione fiscale o trasmissione TS. Le vendite e i pagamenti restano registrazioni gestionali. I nuovi dati TS usano `provider=not_configured`; i record storici non vengono riscritti. Non esiste ancora un servizio di trasmissione TS in questa versione.
 
