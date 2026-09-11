@@ -1,0 +1,36 @@
+name: Read Shopify customer page integration
+on:
+  push:
+    branches: ['optyker/warranty-all-channels']
+    paths: ['.github/workflows/warranty-channel-capture.yml']
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Capture public page only, without any customer session
+        run: |
+          mkdir -p shopify-capture
+          python3 - <<'PY'
+          import urllib.request,re,json,hashlib
+          from pathlib import Path
+          u='https://otticavisualcare.it/pages/la-mia-scheda-optyker'
+          with urllib.request.urlopen(urllib.request.Request(u,headers={'User-Agent':'Optyker-integration-check/1.0'}),timeout=25) as r:s=r.read().decode('utf8')
+          style=re.search(r'<style\b[^>]*id="optyker-account-native-v8-style"[^>]*>(.*?)</style>',s,re.S)
+          script=re.search(r'<script\b[^>]*id="optyker-account-native-v8"[^>]*>(.*?)</script>',s,re.S)
+          assert style and script,'Existing native customer implementation not found'
+          assert "var token=''" in script[1] and 'legacy.getAttribute' in script[1]
+          files={'native-account-original.css':style[1],'native-account-original.js':script[1],'page-body-original.html':style[0]+script[0]}
+          meta={}
+          for name,v in files.items():
+              Path('shopify-capture',name).write_text(v);meta[name]={'bytes':len(v.encode()),'sha256':hashlib.sha256(v.encode()).hexdigest()}
+          Path('shopify-capture/manifest.json').write_text(json.dumps(meta,indent=2))
+          print(json.dumps(meta,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shopify-native-account-capture
+          path: shopify-capture/
+          retention-days: 3
