@@ -967,3 +967,9 @@
 
 .optykerCashRchActions4{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media(max-width:620px){.optykerCashRchActions4{grid-template-columns:1fr}}
+#optykerCashRchProfile table{width:100%;border-collapse:collapse;margin:10px 0;font-size:12px}
+#optykerCashRchProfile caption{text-align:left;font-weight:700;margin-bottom:5px}
+#optykerCashRchProfile th,#optykerCashRchProfile td{text-align:left;padding:6px 8px;border-bottom:1px solid #d8cda9}
+#optykerCashRchProfile p,#optykerCashRchPreflightResult{font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+#optykerCashRchPreflight{padding:10px 14px;border:1px solid #1769aa;border-radius:8px;background:#fff;color:#12548a;font-size:12px;line-height:1.4;font-weight:600;font-family:inherit;cursor:pointer}
+#optykerCashRchPreflight:disabled{opacity:.5;cursor:default}
