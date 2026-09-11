@@ -1,0 +1,87 @@
+name: Verifica consegna firmata Occhiali
+on:
+  push:
+    branches: ['optyker/signed-eyewear-delivery']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: synthetic_ci_only
+          POSTGRES_DB: delivery_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify and restore source package
+        run: |
+          mkdir -p delivery-check
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64,gzip,hashlib,json
+          b=base64.b64decode(''.join(Path('.optyker-staging/delivery-'+str(i)+'.b64').read_text().strip() for i in range(3)),validate=True)
+          assert hashlib.sha256(b).hexdigest()=='17adf77a38abcad402721d267ca36b83943fbec2d7706d396b425b1eee4b73e8'
+          p=json.loads(gzip.decompress(b));assert p['version']=='delivery1'
+          if not Path('eyewear-delivery.mjs').exists():
+              for f,h in p['source_hashes'].items():assert hashlib.sha256(Path(f).read_bytes()).hexdigest()==h, 'Concurrent modification: '+f
+              for f,s in p['files'].items():
+                  assert not Path(f).is_absolute() and '..' not in Path(f).parts
+                  Path(f).parent.mkdir(parents=True,exist_ok=True);Path(f).write_text(s)
+          Path('delivery-check/changed.json').write_text(json.dumps(list(p['files'])+['supabase/functions/optyker-eyewear-delivery/logo.mjs']))
+          PY
+      - name: Build exact app and original print logo
+        run: |
+          bash scripts/vercel-build-v13.sh
+          python -m pip install Pillow
+          python scripts/generate_delivery_logo.py
+      - name: Install test-only dependencies
+        run: |
+          npm install --prefix /tmp/delivery playwright@1.55.0 pdf-lib@1.17.1 pngjs@7.0.0 pg@8.16.3
+          /tmp/delivery/node_modules/.bin/playwright install --with-deps chromium
+      - name: Exercise actual SQL, server PDF and interface on disposable data
+        env:
+          PGPASSWORD: synthetic_ci_only
+          NODE_PATH: /tmp/delivery/node_modules
+        run: |
+          set -o pipefail
+          psql -h localhost -U postgres -d delivery_test -v ON_ERROR_STOP=1 -f tests/delivery-db-bootstrap.sql 2>&1 | tee delivery-check/database.txt
+          node tests/delivery.test.mjs 2>&1 | tee delivery-check/tests.txt
+      - name: Commit only verified implementation to isolated branch
+        run: |
+          python3 - <<'PY'
+          import json,subprocess
+          from pathlib import Path
+          subprocess.run(['git','add','--']+json.loads(Path('delivery-check/changed.json').read_text()),check=True)
+          PY
+          git config user.name 'Optyker verified release'
+          git config user.email '30346110+Leahcim12@users.noreply.github.com'
+          if ! git diff --cached --quiet; then git commit -m 'Verified signed eyewear delivery document, care instructions and immutable PDF archive'; fi
+          git push origin HEAD:refs/heads/optyker/signed-eyewear-delivery
+          git rev-parse HEAD > delivery-check/release-commit.txt
+      - name: Retain inspection artifacts
+        if: always()
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile,shutil
+          files=['eyewear-delivery.sql','delivery-schema.mjs','eyewear-delivery.mjs','supabase/functions/optyker-eyewear-delivery/service.mjs','supabase/functions/optyker-eyewear-delivery/pdf.mjs','supabase/functions/optyker-eyewear-delivery/logo.mjs']
+          with zipfile.ZipFile('delivery-check/review-source.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for f in files:
+                  if Path(f).exists():z.write(f,f)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: signed-eyewear-delivery-check
+          path: delivery-check/
+          retention-days: 3
