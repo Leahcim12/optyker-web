@@ -134,3 +134,9 @@ node --check iphone-app-v13/secure-sw-v1.js
 python scripts/apply_secure_auth.py
 node --test tests/secure-auth.test.cjs
 python scripts/check_live_auth_security.py
+
+# Authentication screens share the app design; preserve verified email recovery.
+node --check iphone-app-v13/login-reference-ui-v1.js
+python scripts/apply_iphone_login_reference.py
+python tests/test_iphone_login_reference.py
+node --test tests/secure-auth.test.cjs

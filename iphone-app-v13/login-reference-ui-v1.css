@@ -1,0 +1,62 @@
+/* OPTYKER_IPHONE_LOGIN_REFERENCE_V1 — same customer/staff design tokens.
+   Scoped to authentication screens: dashboard, shop and business forms unchanged. */
+.ovcAuthPage,.ovcAuthResetPage{--auth-navy:var(--ref-navy,#082f57);--auth-blue:var(--ref-blue,#005a92);--auth-ink:var(--ref-ink,#12385b);--auth-muted:#60778b;--auth-bg:var(--ref-bg,#f4f7fa);--auth-line:var(--ref-line,#dfe8ef);--auth-soft:var(--ref-soft,#eef5fa);color:var(--auth-ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color-scheme:light}
+.loginPage.ovcAuthPage{display:block;min-height:100%;min-height:100svh;width:100%;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);background:linear-gradient(180deg,#fff 0,var(--auth-bg) 38%,#f2f5f8 100%)!important}
+.ovcAuthPage .ovcAuthShell{width:100%;max-width:500px;margin:0 auto;padding:0;border:0!important;border-radius:0!important;background:transparent;box-shadow:none!important;text-align:left}
+.ovcAuthPage .ovcAuthHeader{margin:0 0 16px;border-radius:0 0 24px 24px;box-shadow:0 8px 28px rgba(14,43,68,.05);overflow:hidden;background:#fff}
+.ovcAuthPage .ovcAuthBrandBar{height:88px;padding:12px 22px 8px;gap:12px}
+.ovcAuthBrand{display:flex;align-items:center;gap:11px;min-width:0}
+.ovcAuthBrand img{display:block;width:56px;height:56px;flex:0 0 56px;object-fit:contain;border:0;border-radius:0;background:transparent;box-shadow:none}
+.ovcAuthBrand>div{min-width:0}
+.ovcAuthBrand b{display:block;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;font-size:16px;line-height:1.02;letter-spacing:.12em;color:var(--auth-navy);font-weight:700}
+.ovcAuthBrand small{display:block;margin-top:6px;font-size:7px;font-weight:700;letter-spacing:.18em;color:var(--auth-muted)}
+.ovcAuthMark{display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;border:1px solid var(--auth-line);border-radius:12px;color:var(--auth-blue);background:var(--auth-soft)}
+.ovcAuthPage svg{width:21px;height:21px;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.ovcAuthPage .ovcAuthHero{min-height:132px;grid-template-columns:minmax(0,1.22fr) minmax(0,.78fr)}
+.ovcAuthPage .ovcAuthHero .refHeroCopy{padding:27px 8px 22px 22px}
+.ovcAuthPage .ovcAuthHero h1{font-family:Georgia,"Times New Roman",serif;font-size:35px!important;line-height:1.04!important;font-weight:600!important;letter-spacing:-.035em!important;color:var(--auth-navy)!important}
+.ovcAuthPage .ovcAuthHero p{margin:10px 0 0;max-width:200px;font-size:12px;line-height:1.5;color:#355f82}
+.ovcAuthPage .ovcAuthHero .refHeroScene>b{right:12px;top:22px;font-size:9px}
+.ovcAuthPage .ovcAuthHero .refWall{top:12px;height:88px}
+.ovcAuthPage .ovcAuthHero .refPlant{left:12px;bottom:17px}
+.ovcAuthPage .ovcAuthCard{margin:0 15px;padding:23px 21px 18px;border:1px solid var(--auth-line);border-radius:20px;background:#fff;box-shadow:0 10px 30px rgba(15,48,77,.055);text-align:left}
+.ovcAuthPage .ovcAuthCard h2{margin:0 0 8px;text-align:left;font:600 26px/1.13 Georgia,"Times New Roman",serif;letter-spacing:-.025em;color:var(--auth-navy);overflow-wrap:anywhere}
+.ovcAuthPage .ovcAuthIntro{margin:0 0 19px;font-size:13px;line-height:1.55;color:var(--auth-muted)}
+.ovcAuthPage .label{margin:15px 0 8px;font-size:12px;line-height:1.35;font-weight:650;letter-spacing:0;color:var(--auth-ink)}
+.ovcAuthPage .ovcAuthField{position:relative;min-width:0}
+.ovcAuthPage .ovcAuthFieldIcon{position:absolute;left:14px;top:0;height:52px;display:grid;place-items:center;pointer-events:none;color:#527590}
+.ovcAuthPage .input{display:block;width:100%;min-width:0;height:52px;margin:0;padding:0 15px 0 44px;border:1px solid #d7e3ec;border-radius:12px;background:#f9fbfd;color:var(--auth-ink);font-size:16px;font-weight:400;line-height:normal;letter-spacing:normal;-webkit-appearance:none;appearance:none;box-shadow:0 2px 3px rgba(15,48,77,.015);transition:border-color .15s ease,box-shadow .15s ease}
+.ovcAuthPage .input::placeholder{color:#72869a;opacity:1;font-size:14px}
+.ovcAuthPage .input:focus{outline:2px solid var(--auth-blue);outline-offset:2px;border-color:var(--auth-blue);background:#fff;box-shadow:0 0 0 5px rgba(0,90,146,.06)}
+.ovcAuthPage .ovcAuthPassword .input{padding-right:52px}
+.ovcAuthPage .ovcAuthReveal{position:absolute;right:4px;top:4px;width:44px;height:44px;display:grid;place-items:center;margin:0;padding:0;border:0;border-radius:9px;background:transparent;color:#416a89;cursor:pointer}
+.ovcAuthPage button:focus-visible{outline:2px solid var(--auth-blue);outline-offset:3px}
+.ovcAuthPage .primary{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:auto;min-height:52px;margin:18px 0 0;padding:13px 16px;border:0;border-radius:12px!important;background:linear-gradient(135deg,#082f57,#07598f)!important;box-shadow:0 8px 20px rgba(7,55,91,.15);font-size:14px;line-height:1.4;font-weight:700;letter-spacing:.01em;color:#fff;white-space:normal;cursor:pointer;transition:filter .15s ease,transform .15s ease}
+.ovcAuthPage .primary:not(:disabled):active{transform:scale(.99)}
+.ovcAuthPage button:disabled{opacity:.6;cursor:wait}
+.ovcAuthPage .linkBtn{display:block;min-height:44px;width:100%;padding:11px 8px;border:0;border-radius:10px;background:transparent;color:var(--auth-blue);font-size:13px;font-weight:600;line-height:1.5;cursor:pointer;white-space:normal}
+.ovcAuthPage #forgot{width:auto;max-width:100%;margin:2px 0 0 auto;padding:9px 0;text-align:right;font-size:12px}
+.ovcAuthPage #enter{margin-top:2px}
+.ovcAuthPage #register{min-height:48px;border:1px solid #d7e5ef;border-radius:12px;background:#f6fafd;font-weight:650}
+.ovcAuthPage .ovcAuthDivider{display:flex;align-items:center;gap:12px;margin:19px 0 11px;color:var(--auth-muted);font-size:11px;text-align:center}
+.ovcAuthPage .ovcAuthDivider:before,.ovcAuthPage .ovcAuthDivider:after{content:"";height:1px;flex:1;background:#e5ecf1}
+.ovcAuthPage .authNotice{margin:14px 0 19px;padding:13px 14px;background:var(--auth-soft);border:1px solid #dce8f0;border-radius:12px;color:#365c7a;font-size:13px;line-height:1.6;text-align:left;overflow-wrap:anywhere}
+.ovcAuthPage .authBack{margin-top:10px}
+.ovcAuthPage .error{margin:13px 0 0;padding:11px 12px;min-height:0;border:1px solid #efdedc;border-radius:10px;background:#fff8f7;color:#a32721;font-size:12px;line-height:1.55;text-align:left;overflow-wrap:anywhere}
+.ovcAuthPage .error:empty{display:none}
+.ovcAuthPage .ovcAuthCard:has(#enter:disabled) #err{color:var(--auth-muted);border-color:var(--auth-line);background:var(--auth-soft)}
+.ovcAuthPage .loginFoot{margin:13px 0 0;color:var(--auth-muted);font-size:11px;line-height:1.6;text-align:center;overflow-wrap:anywhere}
+.ovcAuthSignature{margin:19px 20px 24px;text-align:center;font-size:8px;letter-spacing:.17em;font-weight:600;line-height:1.5;color:#617d93}
+.ovcAuthPage[data-auth-view="message"] .ovcAuthCard h2{font-size:28px}
+/* The isolated email-link page reuses these visual tokens without extra scripts. */
+body.ovcAuthResetPage{min-height:100svh;display:flex;align-items:center;justify-content:center;padding:24px 18px;background:linear-gradient(180deg,#fff,var(--auth-bg));color:var(--auth-ink)}
+.ovcAuthResetPage .ovcAuthResetShell{width:100%;max-width:460px;padding:25px 24px;border:1px solid var(--auth-line);border-radius:24px;background:#fff;box-shadow:0 10px 30px rgba(15,48,77,.065)}
+.ovcAuthResetPage .ovcAuthBrand{margin-bottom:22px;padding-bottom:22px;border-bottom:1px solid var(--auth-line)}
+.ovcAuthResetPage h1{font:600 29px/1.12 Georgia,"Times New Roman",serif;letter-spacing:-.025em;color:var(--auth-navy)}
+.ovcAuthResetPage p{color:var(--auth-muted)}
+.ovcAuthResetPage input{height:52px;border-radius:12px;background:#f9fbfd;border:1px solid #d7e3ec;font-size:16px}
+.ovcAuthResetPage button,.ovcAuthResetPage .button{min-height:52px;border-radius:12px;background:linear-gradient(135deg,#082f57,#07598f);box-shadow:0 8px 20px rgba(7,55,91,.12);line-height:1.45}
+.ovcAuthResetPage .account{background:var(--auth-soft);border-color:var(--auth-line);color:var(--auth-ink)}
+@media(min-width:600px){.loginPage.ovcAuthPage{padding:36px 24px}.ovcAuthPage .ovcAuthShell{max-width:460px}.ovcAuthPage .ovcAuthHeader{border:1px solid var(--auth-line);border-radius:24px}.ovcAuthPage .ovcAuthCard{margin:0}}
+@media(max-width:360px){.ovcAuthPage .ovcAuthBrandBar{padding-left:18px;padding-right:18px}.ovcAuthBrand img{width:48px;height:48px;flex-basis:48px}.ovcAuthBrand b{font-size:14px}.ovcAuthBrand small{font-size:6px}.ovcAuthPage .ovcAuthHero .refHeroCopy{padding-left:18px}.ovcAuthPage .ovcAuthHero h1{font-size:30px!important}.ovcAuthPage .ovcAuthHero p{font-size:11px}.ovcAuthPage .ovcAuthCard{margin:0 12px;padding:20px 17px 17px}.ovcAuthPage .ovcAuthCard h2{font-size:24px}.ovcAuthPage .ovcAuthHero .refHeroScene>b{right:7px;font-size:8px}}
+@media(prefers-reduced-motion:reduce){.ovcAuthPage *{transition:none!important}.ovcAuthPage .primary:not(:disabled):active{transform:none}}
