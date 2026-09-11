@@ -1,0 +1,39 @@
+name: Verifica certificato materiali Occhiali
+on:
+  push:
+    branches: ['optyker/eyewear-materials-certificate']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build exact application
+        run: |
+          mkdir -p materials-check
+          git archive --format=zip HEAD -o materials-check/source.zip
+          git rev-parse HEAD > materials-check/source-commit.txt
+          bash scripts/vercel-build-v13.sh
+          python3 -c "import shutil;shutil.make_archive('materials-check/built','zip','_site')"
+      - name: Browser and certificate tests with synthetic business data only
+        if: ${{ hashFiles('tests/materials-certificate.test.cjs') != '' }}
+        env:
+          NODE_PATH: /tmp/browser/node_modules
+        run: |
+          npm install --prefix /tmp/browser playwright@1.55.0
+          /tmp/browser/node_modules/.bin/playwright install --with-deps chromium
+          node tests/materials-certificate.test.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: materials-certificate-check
+          path: materials-check/
+          retention-days: 3
