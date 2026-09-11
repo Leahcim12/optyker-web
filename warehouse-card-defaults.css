@@ -1,0 +1,13 @@
+@media screen{
+html[data-ovc-ui] #warehousePanel .whServiceTable th:nth-child(4),html[data-ovc-ui] #warehousePanel .whServiceTable td:nth-child(4){min-width:190px;width:220px}
+html[data-ovc-ui] #warehousePanel .whServiceTable .whOvcDefaultCell{padding:12px!important}
+.whOvcDefaultValue{display:block;font-size:14px;font-weight:650;color:#a5263a;margin-bottom:7px}
+html[data-ovc-ui] #warehousePanel .whOvcDefaultButton{display:block;background:#fff1f3!important;color:#a5263a!important;border:1px solid #e8b7c0!important;border-radius:8px;padding:9px 12px;font-size:12px;cursor:pointer;white-space:normal}
+.whOvcDefaultEditor{border:1px solid #e8b7c0;border-radius:12px;background:#fff9fa;padding:18px;margin:16px 0;color:#283e52}
+.whOvcDefaultEditor h3{color:#a5263a;font-size:16px;margin:0 0 8px}.whOvcDefaultEditor p{font-size:12px;line-height:1.55;margin:8px 0}
+.whOvcDefaultEditor label{display:block;font-size:12px;font-weight:600}.whOvcDefaultEditor input{display:block;box-sizing:border-box;width:100%;max-width:300px;min-height:42px;padding:9px 12px;margin:8px 0;border:1px solid #d7b5bd;border-radius:8px;font-size:15px;background:#fff}
+.whOvcDefaultActions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.whOvcDefaultActions button{cursor:pointer;border:1px solid #d7b5bd;border-radius:8px;padding:10px 14px;background:#fff;font-size:12px}
+.whOvcDefaultActions button:first-child{background:#b42332!important;color:#fff!important;border-color:#b42332!important}.whOvcDefaultActions button:disabled{opacity:.55;cursor:default}.whOvcDefaultEditor [role=status]{font-size:12px;line-height:1.5}
+#whServiceModal .whModalCard{max-height:92dvh;overflow-y:auto}.whOvcDefaultDialog{max-width:650px}
+}
+@media print{.whOvcDefaultEditor,.whOvcDefaultDialog{display:none!important}}

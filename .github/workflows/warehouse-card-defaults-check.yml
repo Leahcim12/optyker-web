@@ -1,0 +1,69 @@
+name: Verifica prezzi OVC predefiniti nei Servizi
+on:
+  push:
+    branches: ['optyker/warehouse-card-defaults','main']
+    paths: ['warehouse-card-defaults.js','warehouse-card-defaults.css','scripts/apply_warehouse_card_defaults.py','scripts/apply_sept11_release.py','tests/warehouse-card-defaults.test.cjs','.github/workflows/warehouse-card-defaults-check.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build exact source and check price logic
+        env:
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          node --check warehouse-card-defaults.js
+          node --experimental-strip-types --test tests/ovc-pricing.test.mjs tests/sept11-pricing.test.mjs
+          bash scripts/vercel-build-v13.sh
+          node --check _site/warehouse.js
+      - name: Install isolated browser
+        run: |
+          npm install --prefix /tmp/browser playwright@1.55.0
+          /tmp/browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Test service fields and saves with mocked APIs
+        env:
+          NODE_PATH: /tmp/browser/node_modules
+        run: node tests/warehouse-card-defaults.test.cjs
+      - name: Wait for exact release on real site
+        if: github.ref == 'refs/heads/main'
+        run: |
+          python3 - <<'PY'
+          import urllib.request,json,os,time,hashlib
+          from pathlib import Path
+          for attempt in range(40):
+              try:
+                  base='https://www.optyker.it/'
+                  def get(p):
+                      with urllib.request.urlopen(base+p+'?check='+os.environ['GITHUB_SHA'],timeout=15) as r:return r.read()
+                  m=json.loads(get('sept11-version.json'))
+                  assert m['commit']==os.environ['GITHUB_SHA']
+                  assert m['service_card_prices_version']=='20260911-card-defaults1'
+                  for name,h in m['assets'].items():assert hashlib.sha256(get(name)).hexdigest()==h,name
+                  assert 'optykerWarehouseCardDefaultsJs' in get('').decode()
+                  Path('card-defaults-check/deployment.json').write_text(json.dumps(m,indent=2))
+                  break
+              except Exception:
+                  if attempt==39:raise
+                  time.sleep(5)
+          PY
+      - name: Verify published UI with mock data and no real writes
+        if: github.ref == 'refs/heads/main'
+        env:
+          NODE_PATH: /tmp/browser/node_modules
+          OPTYKER_LIVE: '1'
+        run: node tests/warehouse-card-defaults.test.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: optyker-service-card-defaults-check
+          path: card-defaults-check/
+          retention-days: 7

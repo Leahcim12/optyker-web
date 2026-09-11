@@ -41,4 +41,5 @@ print('September 11 workflow, print and navigation release installed')
 
 # Tested against the complete assembled app: legacy writers and theme precedence.
 import runpy
+runpy.run_path(str(ROOT/'scripts/apply_warehouse_card_defaults.py'))
 runpy.run_path(str(ROOT/'scripts/apply_runtime_fix_20260911.py'))
