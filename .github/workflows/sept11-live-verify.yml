@@ -1,0 +1,97 @@
+name: Verifica pubblicazione modifiche clienti 11 settembre
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/sept11-live-verify.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify unit tests and build the exact release
+        env:
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          mkdir -p sept11-check
+          set -o pipefail
+          node --experimental-strip-types --test tests/fic-issuance.test.mjs tests/fic.test.mjs tests/ovc-pricing.test.mjs tests/sept11-pricing.test.mjs | tee sept11-check/unit-tests.txt
+          bash scripts/vercel-build-v13.sh 2>&1 | tee sept11-check/build.txt
+      - name: Check the real embedded prescription logo and customer workflows
+        env:
+          NODE_PATH: /tmp/optyker-browser/node_modules
+        run: |
+          npm install --prefix /tmp/optyker-browser playwright@1.55.0
+          /tmp/optyker-browser/node_modules/.bin/playwright install --with-deps chromium
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('tests/sept11-browser.test.cjs');s=p.read_text()
+          old="const svg='data:image/svg+xml;base64,'+Buffer.from(source('visualcare-logo.svg')).toString('base64');"
+          new="const svg=assembled.match(/var OPTYKER_PRINT_LOGO_DATA='([^']+)'/)[1];assert(svg.startsWith('data:image/webp;base64,'));"
+          assert s.count(old)==1;s=s.replace(old,new)
+          s=s.replace("const image=await print.locator('.head img').boundingBox();", "assert(await print.locator('.head img').evaluate(i=>i.complete&&i.naturalWidth>0),'Prescription logo must decode');const image=await print.locator('.head img').boundingBox();")
+          p.write_text(s)
+          PY
+          node tests/sept11-browser.test.cjs
+      - name: Verify the published release and authentication gates without business writes
+        run: |
+          python3 - <<'PY'
+          from concurrent.futures import ThreadPoolExecutor
+          from pathlib import Path
+          import urllib.request,urllib.error,json,hashlib,time,os
+          headers={'Cache-Control':'no-cache','User-Agent':'Optyker-September11-Release-Check/1.0'}
+          expected=os.environ['GITHUB_SHA']
+          def get(url):
+              with urllib.request.urlopen(urllib.request.Request(url,headers=headers),timeout=15) as r:return r.read(4000000)
+          def check(base):
+              result={'base':base,'ok':False}
+              for i in range(26):
+                  try:
+                      m=json.loads(get(base+'sept11-version.json?check='+expected))
+                      assert m['version']=='20260911-workflow1','Release not yet served'
+                      assert m['commit']==expected,'Earlier commit is still served'
+                      assets={}
+                      for name,digest in m['assets'].items():
+                          raw=get(base+name+'?v='+m['version'])
+                          assert hashlib.sha256(raw).hexdigest()==digest,'Asset mismatch: '+name
+                          assets[name]={'bytes':len(raw),'sha256':digest}
+                      for alias in ('','gestionale-v2/','gestionale-v3/'):
+                          body=get(base+alias+'?check='+expected).decode('utf8')
+                          assert 'id="optykerSept11Js"' in body and 'id="optykerSept11Css"' in body
+                          assert 'id="optykerSingleRootViewJs"' not in body
+                      return {'base':base,'ok':True,'commit':m['commit'],'assets':assets}
+                  except Exception as e:
+                      result['error']=str(e)
+                      if i<25:time.sleep(6)
+              return result
+          with ThreadPoolExecutor(max_workers=3) as pool:
+              results=list(pool.map(check,['https://optyker.it/','https://www.optyker.it/','https://leahcim12.github.io/optyker-web/']))
+          probes=[]
+          for name in ['optyker-cash-register-api','optyker-billing-admin']:
+              url='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/'+name
+              req=urllib.request.Request(url,data=b'{"action":"list"}',headers={**headers,'Content-Type':'application/json'},method='POST')
+              try:
+                  with urllib.request.urlopen(req,timeout=20) as r:status=r.status;body=r.read(2000)
+              except urllib.error.HTTPError as e:status=e.code;body=e.read(2000)
+              data=json.loads(body)
+              probes.append({'function':name,'status':status,'authentication_required':status==401 and data.get('ok') is False})
+          report={'commit':expected,'sites':results,'backend':probes,'fiscal_documents_created':0,'fiscal_documents_sent':0,'checked_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
+          Path('sept11-check/live-verification.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report,indent=2))
+          assert all(r['ok'] for r in results),'Some published hosts are not verified'
+          assert all(r['authentication_required'] for r in probes),'Backend authentication probe failed'
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: optyker-sept11-live-verification
+          path: sept11-check/
+          retention-days: 7
