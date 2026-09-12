@@ -168,3 +168,9 @@ python scripts/apply_eyewear_cover.py
 python scripts/patch_public_asset_paths.py
 verify_desktop_aliases
 python3 scripts/apply_cover_channels.py
+
+# Administrator-only TS credentials and private technical documentation.
+node --check ts-connection.js
+python scripts/apply_ts_connection.py
+python scripts/patch_public_asset_paths.py
+verify_desktop_aliases

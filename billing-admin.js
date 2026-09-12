@@ -124,6 +124,8 @@
       nav.appendChild(group);
       E('optykerBillingMainNav').onclick=function(){showSection(state.mode||'outgoing')};
       E('optykerBillingSettingsNav').onclick=showAdminSettings;
+      var tsButton=document.createElement('button');tsButton.id='optykerTsSettingsNav';tsButton.className='moduleBtn';tsButton.type='button';tsButton.textContent='Sistema TS';group.appendChild(tsButton);
+      tsButton.onclick=function(){if(window.OPTYKER_TS_CONNECTION)window.OPTYKER_TS_CONNECTION.open();else toast('Ricarica la pagina per aprire Sistema TS.','error')};
       E('optykerForeignNav').onclick=openForeignInvoices;
       var bs=group.querySelectorAll('[data-billing-mode]');
       for(var i=0;i<bs.length;i++)bs[i].onclick=function(){showSection(this.getAttribute('data-billing-mode'))}

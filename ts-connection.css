@@ -1,0 +1,18 @@
+#optykerTsConnection{position:fixed;inset:0;z-index:2147483590;background:rgba(20,35,45,.55);display:flex;align-items:center;justify-content:center;padding:20px;color:#173746;font:15px/1.5 system-ui,sans-serif}
+#optykerTsConnection *{box-sizing:border-box}
+#optykerTsConnection .otsCard{width:min(850px,100%);max-height:92dvh;overflow:auto;background:#fff;border-radius:20px;box-shadow:0 20px 70px #0004}
+#optykerTsConnection header{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 24px;border-bottom:1px solid #dce6eb;position:sticky;top:0;background:white;z-index:1}
+#optykerTsConnection h2{margin:0;font-size:24px}#optykerTsConnection h3{font-size:18px;margin:20px 0 12px}
+#optykerTsConnection .otsBody{padding:0 24px 24px}#optykerTsConnection .otsGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+#optykerTsConnection label{display:flex;flex-direction:column;gap:5px;font-size:14px;font-weight:600}
+#optykerTsConnection input{width:100%;padding:11px;border:1px solid #bacbd4;border-radius:9px;background:#fff;color:#173746;font:inherit}
+#optykerTsConnection button{padding:10px 16px;border:1px solid #bacbd4;border-radius:10px;background:#f4f8fa;color:#173746;cursor:pointer;font:600 14px system-ui}
+#optykerTsConnection .otsPrimary{background:#176876;color:#fff;border-color:#176876}
+#optykerTsConnection button:disabled,#optykerTsConnection input:disabled{opacity:.6;cursor:wait}
+#optykerTsConnection .otsStatus{background:#fff5df;border:1px solid #e6c991;padding:14px;border-radius:12px}
+#optykerTsConnection .otsHelp{color:#4e6672;font-size:13px}#optykerTsConnection section{margin-top:24px;border-top:1px solid #dce6eb}
+#optykerTsConnection a{color:#086578;text-decoration:underline}#optykerTsConnection #otsUpload{display:flex;align-items:end;gap:12px}
+#optykerTsConnection #otsUpload label{flex:1}#optykerTsConnection #otsMessage{font-weight:600;white-space:pre-wrap}
+#optykerTsConnection :focus-visible{outline:3px solid #418fab;outline-offset:2px}
+#optykerTsConnection .otsFiles{padding-left:20px;overflow-wrap:anywhere}
+@media(max-width:600px){#optykerTsConnection{padding:8px}#optykerTsConnection .otsGrid{grid-template-columns:1fr}#optykerTsConnection .otsBody{padding:0 16px 18px}#optykerTsConnection #otsUpload{align-items:stretch;flex-direction:column}}
