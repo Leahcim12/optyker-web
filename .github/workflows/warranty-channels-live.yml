@@ -1,0 +1,111 @@
+name: Verifica garanzie pubblicate su tutti i canali
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/warranty-channels-live.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: synthetic_ci_only
+          POSTGRES_DB: warranty_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare isolated SQL and browser tests
+        env:
+          PGPASSWORD: synthetic_ci_only
+        run: |
+          mkdir -p channels-check
+          psql -h localhost -U postgres -d warranty_test -v ON_ERROR_STOP=1 -f tests/cover-channels-bootstrap.sql > channels-check/database.txt 2>&1
+          npm install --prefix /tmp/warranty-deps pg@8.16.3 playwright@1.55.0
+          /tmp/warranty-deps/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Verify exact public assets, Shopify page and authorization gates
+        run: |
+          python3 - <<'PY'
+          import urllib.request,urllib.error,json,hashlib,time,os
+          from pathlib import Path
+          from concurrent.futures import ThreadPoolExecutor
+          expected=os.environ['GITHUB_SHA']
+          headers={'Cache-Control':'no-cache','User-Agent':'Optyker-shared-warranty-live-check/1.0'}
+          def get(url):
+              with urllib.request.urlopen(urllib.request.Request(url,headers=headers),timeout=20) as r:return r.read(4500000)
+          def check(base):
+              error=''
+              for attempt in range(35):
+                  try:
+                      manifests={}
+                      for name,version in [('warranty-channels-version.json','20260912-cover-channels1'),('eyewear-cover-version.json','20260912-eyewear-cover1')]:
+                          m=json.loads(get(base+name+'?check='+expected))
+                          assert m['version']==version and m['commit']==expected,'Earlier release'
+                          for asset,digest in m['assets'].items():assert hashlib.sha256(get(base+asset)).hexdigest()==digest,'Asset mismatch: '+asset
+                          manifests[name]=m
+                      for alias in ('','gestionale-v2/','gestionale-v3/'):
+                          html=get(base+alias+'?check='+expected).decode('utf8');assert 'id="optykerCoverStaffJs"' in html
+                      assert 'id="optykerAppCoverJs"' in get(base+'iphone-app-v13/?check='+expected).decode('utf8')
+                      return {'base':base,'ok':True,'commit':expected,'manifests':manifests}
+                  except Exception as e:
+                      error=str(e)
+                      if attempt<34:time.sleep(5)
+              return {'base':base,'ok':False,'error':error}
+          with ThreadPoolExecutor(max_workers=3) as pool:sites=list(pool.map(check,['https://www.optyker.it/','https://optyker.it/','https://leahcim12.github.io/optyker-web/']))
+          report={'sites':sites,'production_business_writes':0}
+          Path('channels-check/deployment.json').write_text(json.dumps(report,indent=2))
+          assert all(s['ok'] for s in sites),'Some Optyker hosts are not yet verified'
+          body=get('https://www.optyker.it/shopify-warranty-page-body.html').decode('utf8')
+          import re
+          names=re.findall(r'(?:href|src)="([^"]+)"',body)
+          shopify_ok=False;shopify_error=''
+          for attempt in range(85):
+              try:
+                  page=get('https://otticavisualcare.it/pages/la-mia-scheda-optyker?optyker_check='+expected).decode('utf8')
+                  assert all(name in page for name in names),'Shopify account page still serves previous assets'
+                  assert page.count('id="optyker-shop-warranty"')==1 and page.count('id="optyker-account-native-v8"')==1,'Duplicate account scripts'
+                  shopify_ok=True;break
+              except Exception as e:
+                  shopify_error=str(e)
+                  if attempt<84:time.sleep(5)
+          probes=[]
+          for name in ['optyker-eyewear-cover','optyker-eyewear-cover-site']:
+              req=urllib.request.Request('https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/'+name,data=b'{"action":"get","payload":{}}',headers={**headers,'Content-Type':'application/json'},method='POST')
+              try:
+                  with urllib.request.urlopen(req,timeout=20) as r:status=r.status
+              except urllib.error.HTTPError as e:status=e.code
+              probes.append({'function':name,'status':status,'authentication_required':status==401})
+          report.update({'shopify':{'ok':shopify_ok,'error':None if shopify_ok else shopify_error,'assets':names},'backend_authentication':probes})
+          Path('channels-check/deployment.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))
+          assert shopify_ok,'Shopify publication not yet verified'
+          assert all(x['authentication_required'] for x in probes),'Authentication gate check failed'
+          PY
+      - name: Verify live mobile interactions with actual disposable SQL and handler
+        env:
+          NODE_PATH: /tmp/warranty-deps/node_modules
+          OPTYKER_LIVE: '1'
+        run: node tests/eyewear-cover.test.mjs
+      - name: Verify live Shopify and Optyker UI with actual disposable SQL and handler
+        env:
+          NODE_PATH: /tmp/warranty-deps/node_modules
+          OPTYKER_LIVE: '1'
+        run: node tests/cover-channels.test.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: warranty-channels-live-verification
+          path: |
+            channels-check/
+            warranty-check/
+          retention-days: 7
