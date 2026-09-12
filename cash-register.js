@@ -1,7 +1,7 @@
 /* OPTYKER_SEPT11_PREPARED */
 (function(){
 if(window.__optykerCashLoaded)return;window.__optykerCashLoaded=true;
-window.OPTYKER_CASH_BUILD='20260911-rch-profile1';
+window.OPTYKER_CASH_BUILD='20260912-rch-confirmed2';
 var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-cash-register-api';
 var S={products:[],clients:[],cart:{},type:'',payment:'card',stage:'balance',clientId:'',invoice:false,tsRequested:false,tsCode:'AD',tsOpposition:false,busy:false,searchTimer:null,clientSearchTimer:null,rchOk:false,cashOpen:false};
 
@@ -53,7 +53,7 @@ function downloadRchDiagnostics(){
     if(report.reportGenerated!==true||report.readOnly!==true)throw new Error('Rapporto diagnostico incompleto.');
     if(window.OPTYKER_RCH_PREFLIGHT){
       report.acquiredConfiguration=window.OPTYKER_RCH_PREFLIGHT.getProfile();
-      report.configurationNote='Profilo ricavato dai documenti forniti, non letto dal registratore durante questa diagnosi.';
+      report.configurationNote='Configurazione letta dalla RCH il 12/09/2026 e confrontata con i dati del negozio. Non viene riletta durante questa diagnosi.';
       var probes=report.probes||[],last=probes.length?probes[probes.length-1].result:null;
       report.registrationModeVerified=window.OPTYKER_RCH_PREFLIGHT.registrationMode(last);
     }
@@ -97,8 +97,8 @@ function openRch(){
   m.innerHTML='<div class="optykerCashModalCard optykerCashRchCard"><div class="optykerCashModalTitle">Registratore fiscale RCH</div>'+
     '<div class="optykerCashModalSub">Optyker usa un piccolo connettore locale per comunicare in sicurezza con RCH PRINT! RT su 192.168.1.10.</div>'+
     '<div class="optykerCashRchInfo"><div><span>Registratore</span><b>RCH PRINT! RT</b></div><div><span>IP</span><b>192.168.1.10</b></div><div><span>Web Service</span><b>/service.cgi</b></div><div><span>Bridge Optyker</span><b>127.0.0.1:8765</b></div></div>'+
-    '<div class="optykerCashRchHelp"><b>Configurazione acquisita · 11/09/2026</b><div id="optykerCashRchProfile"></div></div>'+
-    '<div class="optykerCashRchHelp"><b>Attivazione fiscale da completare</b><br>Pagamenti recuperati dalla stampa RCH. Reparti recuperati da Blu Data, da verificare direttamente sul registratore.<br>Scontrini ordinari e parlanti: comandi di emissione e numero documento da collaudare.<br>Spese sanitarie: invio diretto al Sistema TS non attivo.<br>Corrispettivi AdE: esiti del registratore non ancora verificati.</div>'+
+    '<div class="optykerCashRchHelp"><b>Configurazione letta dalla cassa · 12/09/2026</b><div id="optykerCashRchProfile"></div></div>'+
+    '<div class="optykerCashRchHelp"><b>Attivazione fiscale da completare</b><br>Matricola, reparti, aliquote e pagamenti confermati dalla lettura RCH del 12/09/2026.<br>Scontrini ordinari e parlanti: emissione e recupero del numero documento da collaudare.<br>Spese sanitarie: invio diretto al Sistema TS non attivo.<br>Corrispettivi AdE: ricevute di accettazione dei documenti da verificare.</div>'+
     '<div class="optykerCashRchHelp"><button id="optykerCashRchPreflight" type="button">Controlla carrello · senza stampa</button><div id="optykerCashRchPreflightResult" role="status" aria-live="polite"></div></div>'+
     '<div id="optykerCashRchResult" class="optykerCashRchResult">Pronto per il test.</div>'+
     '<div class="optykerCashRchDownloads optykerCashRchDownloadsAuto"><a class="primary" href="/rch-connector/Installa-RCH-Optyker.bat?v=20260909-rch-status2" download>Installa / aggiorna connettore</a><a href="/rch-connector/Diagnostica-RCH-Optyker.bat?v=20260909-rch-status2" download>Diagnostica Windows</a><a href="/rch-connector/Disinstalla-RCH-Optyker.ps1" download>Rimuovi avvio automatico</a></div>'+
@@ -108,13 +108,15 @@ function openRch(){
   var preflight=window.OPTYKER_RCH_PREFLIGHT,profileBox=E('optykerCashRchProfile');
   if(preflight){
     var profile=preflight.getProfile();
-    profileBox.innerHTML='<table><caption>Codici pagamento del registratore</caption><thead><tr><th scope="col">Codice</th><th scope="col">Pagamento</th></tr></thead><tbody>'+profile.payments.filter(function(p){return p.code===1||p.code===2||p.code===3||p.code===4||p.code===6||p.code===7}).map(function(p){return '<tr><td>'+esc(String(p.code).padStart(2,'0'))+'</td><td>'+esc(p.label)+'</td></tr>'}).join('')+'</tbody></table><p>Reparti da Blu Data: '+profile.departments.map(function(d){return esc(d.department+' → '+d.vatCode)}).join(' · ')+'</p><p>Porta TCP Blu Data: '+esc(profile.transport.legacyTcpPort)+'. Optyker mantiene il collegamento Web Service già verificato; la porta 23 non sostituisce /service.cgi.</p>';
+    profileBox.innerHTML='<p>Matricola rilevata: <b>'+esc(profile.expectedSerial)+'</b>. La configurazione mostrata si riferisce alla lettura del 12/09/2026.</p>'+
+      '<table><caption>Reparti confermati per Optyker</caption><thead><tr><th scope="col">Reparto</th><th scope="col">Tipo</th><th scope="col">IVA</th></tr></thead><tbody>'+profile.departments.map(function(d){return '<tr><td>'+esc(d.department)+'</td><td>'+esc(d.saleType==='goods'?'Beni':'Servizi')+'</td><td>'+esc(d.nature?'Esente '+d.nature+' · '+d.vatCode:d.rate+'%')+'</td></tr>'}).join('')+'</tbody></table>'+
+      '<table><caption>Codici pagamento del registratore</caption><thead><tr><th scope="col">Codice</th><th scope="col">Pagamento</th></tr></thead><tbody>'+profile.payments.filter(function(p){return p.code===1||p.code===2||p.code===3||p.code===4||p.code===6||p.code===7}).map(function(p){return '<tr><td>'+esc(String(p.code).padStart(2,'0'))+'</td><td>'+esc(p.label)+'</td></tr>'}).join('')+'</tbody></table><p>IVA 10%, 5% e operazioni escluse: reparto ancora da assegnare in Optyker. La presenza dell’aliquota nella cassa non assegna un reparto.</p>';
   }else profileBox.textContent='Modulo di verifica non caricato. Ricarica Optyker.';
   E('optykerCashRchPreflight').disabled=!preflight;
   E('optykerCashRchPreflight').onclick=function(){
     // This check is local only: no customer details, network calls or fiscal commands.
     var report=preflight.validate({paymentMethod:S.payment,stage:S.stage,invoice:!!S.invoice,tsRequested:!!S.tsRequested,talkingReceipt:!!S.tsRequested,
-      lines:cartRows().map(function(x){return {description:x.item.title,quantity:x.qty,unitPriceCents:preflight.toCents(x.item.price),vatCode:x.item.fiscal_vat_code||''}})});
+      lines:cartRows().map(function(x){return {description:x.item.title,quantity:x.qty,unitPriceCents:preflight.toCents(x.item.price),vatCode:x.item.fiscal_vat_code||'',saleType:x.item.fiscal_item_type}})});
     var result=E('optykerCashRchPreflightResult');
     result.innerHTML='<p><b>Controllo preliminare: nessun documento emesso.</b></p>'+(report.payment?'<p>Pagamento: '+esc(report.payment.label)+' · codice '+esc(String(report.payment.code).padStart(2,'0'))+'</p>':'')+
       (report.issues.length?'<ul>'+report.issues.map(function(i){return '<li>'+esc((i.line!==undefined?'Riga '+(i.line+1)+': ':'')+i.message)+'</li>'}).join('')+'</ul>':'<p>Dati del carrello compatibili con il profilo acquisito.</p>')+
