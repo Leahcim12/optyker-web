@@ -1,6 +1,11 @@
 // Runs actual shared SQL and both request handlers, with synthetic data only.
+import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';
 import {createSiteHandler} from '../supabase/functions/optyker-eyewear-cover-site/handler.mjs';
+// Verification only: read published pages, intercept every business API, use localhost SQL.
+process.env.OPTYKER_LIVE='1';
+const EXPECTED_PRODUCTION='12ccd64456d09f9df0b2516f4ba47036b1be3093';
+const chatChecks=[];
 const require=createRequire(import.meta.url),{Pool}=require('pg'),{chromium,webkit}=require('playwright');
 const pg=new Pool({host:'localhost',user:'postgres',password:'synthetic_ci_only',database:'warranty_test'}),OUT='channels-check';fs.mkdirSync(OUT,{recursive:true});const checks=[];
 const UID='11111111-1111-4111-8111-111111111111',OTHER='22222222-2222-4222-8222-222222222222',TOKEN='a'.repeat(48);
@@ -13,6 +18,20 @@ const rep=Buffer.from('%PDF-1.4\nSynthetic police report used only for the test.
 const handler=createSiteHandler({url:'https://test.invalid',serviceKey:'TEST_ONLY_KEY',fetcher:async(u,o)=>{assert(u.endsWith('/rpc/optyker_eyewear_cover_site'));const p=JSON.parse(o.body);return new Response(JSON.stringify(await site(p.p_action,p.p_payload,p.p_token)));}});
 const endpoint=(a,p={},t=TOKEN)=>handler(new Request('https://test.invalid/cover',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t,action:a,payload:p})}));
 try{
+ // Read-only release check. No production tokens, login, customer data or writes.
+ const manifestResponse=await fetch('https://www.optyker.it/warranty-channels-version.json?chat_check='+Date.now());
+ assert.equal(manifestResponse.status,200);const manifest=await manifestResponse.json();assert.equal(manifest.commit,EXPECTED_PRODUCTION);
+ const pageResponse=await fetch('https://otticavisualcare.it/pages/la-mia-scheda-optyker?chat_check='+Date.now());
+ assert.equal(pageResponse.status,200);const publishedPage=await pageResponse.text();
+ for(const id of ['optyker-shop-warranty','optyker-account-native-v8'])assert.equal(publishedPage.split('id="'+id+'"').length-1,1,'Duplicate/missing '+id);
+ const verifiedAssets=[];
+ for(const [asset,digest] of Object.entries(manifest.assets)){
+  const r=await fetch('https://www.optyker.it/'+asset);assert.equal(r.status,200);
+  assert.equal(createHash('sha256').update(Buffer.from(await r.arrayBuffer())).digest('hex'),digest,'Published asset mismatch '+asset);
+  verifiedAssets.push(asset);
+ }
+ fs.writeFileSync(OUT+'/deployment-chat-check.json',JSON.stringify({checked_at:new Date().toISOString(),production_commit:manifest.commit,assets:verifiedAssets,shopify_page_status:200,production_business_writes:0},null,2));
+ checks.push('Published release and Shopify page verified read-only; current immutable assets match manifest');
  const list=await site('list');good(list);assert.equal(list.data.length,19);assert(!JSON.stringify(list).includes('PRIVATE NOTE'));assert(!JSON.stringify(list).includes('confidential_cost'));assert(!JSON.stringify(list).includes(TOKEN));assert.equal(list.data.find(x=>x.id===sid(10)).warranty_name,'Base solo lenti');
  bad(await site('get',{sheet_id:sid(6),client_id:OTHER}));bad(await site('list',{},'c'.repeat(48)));bad(await site('activate',{sheet_id:sid(5),confirm:true,starts_on:'2026-01-01'}));
  assert.equal((await endpoint('list',{},'bad')).status,401);assert.equal((await endpoint('resolve',{})).status,400);bad(await (await endpoint('get',{sheet_id:sid(6),client_id:OTHER,user_id:OTHER})).json());
@@ -30,24 +49,51 @@ try{
  good(await staff('resolve',{sheet_id:sid(13),request_id:loss.data.id,status:'fulfilled',confirm:true,report_verified:true}));assert.equal((await site('get',{sheet_id:sid(13)})).claims[0].status,'fulfilled');
  checks.push('Website report is stored in the same private chat; same-busta evidence and staff verification required to close loss replacement');
  for(const [engine,name] of [[chromium,'chromium'],[webkit,'webkit']]){
+  let chatReads=0,chatWrites=0,lastRequest=null;
   const browser=await engine.launch();const context=await browser.newContext({viewport:{width:420,height:900},isMobile:true,hasTouch:true,serviceWorkers:'block'});const page=await context.newPage();page.setDefaultTimeout(15000);page.on('dialog',d=>d.accept());
   const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'content-type,authorization,apikey','Access-Control-Allow-Methods':'POST,OPTIONS'};
   const fake='<div class="shopify-section--optyker-customer-account"><div><iframe src="https://otticavisualcare.it/pages/optyker-portal?t='+TOKEN+'"></iframe></div></div>';
   await context.route('**/*',async r=>{const u=new URL(r.request().url());let b={};try{b=r.request().postDataJSON()||{};}catch{}
-   if(u.pathname.endsWith('/optyker-eyewear-cover-site')){if(r.request().method()==='OPTIONS')return r.fulfill({status:204,headers:cors,body:''});const x=await endpoint(b.action,b.payload,b.token);return r.fulfill({status:x.status,headers:cors,contentType:'application/json',body:await x.text()});}
+   if(u.pathname.endsWith('/optyker-eyewear-cover-site')){if(r.request().method()==='OPTIONS')return r.fulfill({status:204,headers:cors,body:''});const x=await endpoint(b.action,b.payload,b.token),text=await x.text();if(b.action==='request'){const out=JSON.parse(text);if(out.ok)lastRequest=out.data;}return r.fulfill({status:x.status,headers:cors,contentType:'application/json',body:text});}
    if(u.hostname==='otticavisualcare.it'&&u.pathname==='/pages/la-mia-scheda-optyker'){
-    const html=process.env.OPTYKER_LIVE?await (await r.fetch()).text():'<!doctype html><html><head><meta name="viewport" content="width=device-width"></head><body>'+fs.readFileSync('_site/shopify-warranty-page-body.html','utf8')+'</body></html>';
-    return r.fulfill({status:200,contentType:'text/html',body:html.replace('</body>',fake+'</body>')});
+    const html=process.env.OPTYKER_LIVE?await (await r.fetch()).text():'<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head><body>'+fs.readFileSync('_site/shopify-warranty-page-body.html','utf8')+'</body></html>';
+    return r.fulfill({status:200,contentType:'text/html; charset=utf-8',body:html.replace('</body>',fake+'</body>')});
    }
    if(u.pathname==='/pages/optyker-portal')return r.fulfill({status:200,contentType:'text/html',body:'<!doctype html><p>Synthetic portal container</p>'});
-   if(u.pathname.includes('/functions/v1/')||u.pathname.includes('/rest/v1/')){const data=u.pathname.endsWith('/optyker-customer-chat')?{ok:true,data:(await sql('select * from optyker_chat_messages where client_id=$1',[UID])).rows}:{ok:true,customer_name:'Cliente Dimostrativo',has_prescription:false,lenses:[],orders:[]};return r.fulfill({status:200,headers:cors,contentType:'application/json',body:JSON.stringify(data)});}
+   if(u.pathname.includes('/functions/v1/')||u.pathname.includes('/rest/v1/')){
+    if(r.request().method()==='OPTIONS')return r.fulfill({status:204,headers:cors,body:''});
+    if(u.pathname.endsWith('/optyker-customer-chat')){
+     if(b.action!=='get'){chatWrites++;return r.fulfill({status:403,headers:cors,contentType:'application/json',body:JSON.stringify({ok:false,error:'Read-only chat verification'})});}
+     chatReads++;await new Promise(resolve=>setTimeout(resolve,650));
+    }
+    const data=u.pathname.endsWith('/optyker-customer-chat')?{ok:true,data:(await sql('select * from optyker_chat_messages where client_id=$1',[UID])).rows}:{ok:true,customer_name:'Cliente Dimostrativo',has_prescription:false,lenses:[],orders:[]};return r.fulfill({status:200,headers:cors,contentType:'application/json',body:JSON.stringify(data)});}
    if(!process.env.OPTYKER_LIVE&&u.hostname==='www.optyker.it'){const f=path.resolve('_site',u.pathname.replace(/^\//,''));if(f.startsWith(path.resolve('_site')+path.sep)&&fs.existsSync(f))return r.fulfill({status:200,contentType:path.extname(f)==='.css'?'text/css':'text/javascript',body:fs.readFileSync(f)});}
-   if(process.env.OPTYKER_LIVE)return r.continue();return r.fulfill({status:404,body:''});
+   if(process.env.OPTYKER_LIVE){if(!['GET','HEAD'].includes(r.request().method()))return r.abort();return r.continue();}return r.fulfill({status:404,body:''});
   });
   try{
    await page.goto('https://otticavisualcare.it/pages/la-mia-scheda-optyker',{waitUntil:'domcontentloaded'});await page.waitForSelector('#ovc-account-native [data-view=eyewear]');assert.equal(await page.locator('#ovc-account-native .ovcANav button').count(),8);
    await page.locator('[data-view=eyewear]').tap();await page.waitForSelector('[data-sw-open]');await page.locator('[data-sw-open="'+sid(name==='webkit'?15:14)+'"]').tap();await page.waitForSelector('[data-sw-reason]');assert.equal(await page.locator('[data-sw-reason]').count(),4);await page.screenshot({path:OUT+'/shopify-'+name+'.png'});
-   await page.locator('[data-sw-reason="0"]').tap();await page.selectOption('[data-sw-eye]','OD');await page.locator('[data-sw-send]').tap();await page.waitForFunction(()=>document.querySelector('[data-sw-note]')?.textContent.includes('Richiesta ricevuta'));await page.locator('[data-sw-chat]').tap();await page.waitForSelector('#ovcAMessages');assert((await page.locator('#ovcAMessages').innerText()).includes('Richiesta garanzia Base'));
+   await page.locator('[data-sw-reason="0"]').tap();await page.selectOption('[data-sw-eye]','OD');await page.locator('[data-sw-send]').tap();await page.waitForFunction(()=>document.querySelector('[data-sw-note]')?.textContent.includes('Richiesta ricevuta'));await page.locator('[data-sw-chat]').tap();await page.waitForSelector('#ovcAMessages');
+   assert(lastRequest?.message_id,'Synthetic warranty request did not produce a chat message');
+   const expectedMessage=(await sql('select message from optyker_chat_messages where id=$1',[lastRequest.message_id])).rows[0]?.message;
+   assert(expectedMessage?.includes('Richiesta garanzia Base'));
+   await page.waitForFunction(text=>Array.from(document.querySelectorAll('#ovcAMessages .ovcAText')).some(x=>x.textContent===text),expectedMessage);
+   await page.waitForFunction(()=>document.querySelector('#ovcAStatus')?.textContent.includes('Chat aggiornata automaticamente'));
+   assert.equal(await page.locator('#ovcAMessages').count(),1);
+   assert.equal(await page.locator('#ovcATextarea').count(),1);
+   await page.screenshot({path:OUT+'/chat-caricata-'+name+'.png'});
+   // Observe the real polling timer; do not send a chat message.
+   await page.waitForResponse(r=>new URL(r.url()).pathname.endsWith('/optyker-customer-chat')&&r.request().method()==='POST');
+   assert(chatReads>=2,'Automatic refresh did not run');
+   await page.waitForFunction(text=>Array.from(document.querySelectorAll('#ovcAMessages .ovcAText')).some(x=>x.textContent===text),expectedMessage);
+   await page.locator('[data-view=orders]').tap();
+   await page.waitForFunction(()=>document.querySelector('.ovcAPanel')?.textContent.includes('Nessun ordine'));
+   const readsOutsideChat=chatReads;await page.waitForTimeout(4500);assert.equal(chatReads,readsOutsideChat,'Chat polling continued outside chat');
+   await page.locator('[data-view=chat]').tap();
+   await page.waitForFunction(text=>Array.from(document.querySelectorAll('#ovcAMessages .ovcAText')).some(x=>x.textContent===text),expectedMessage);
+   assert.equal(await page.locator('#ovcAMessages').count(),1);assert.equal(chatWrites,0);
+   chatChecks.push({browser:name,loaded_after_warranty_request:true,exact_request_message_visible:true,simulated_response_delay_ms:650,automatic_refresh:true,polling_stops_when_leaving:true,reopen_after_orders:true,duplicate_chat_containers:0,chat_send_calls:chatWrites,chat_read_calls:chatReads});
+   fs.writeFileSync(OUT+'/chat-checks.json',JSON.stringify({ok:chatChecks.length===2,checked_at:new Date().toISOString(),production_commit:EXPECTED_PRODUCTION,checks:chatChecks,production_business_writes:0},null,2));
    // Existing nav still works and must not be overwritten by a pending warranty read.
    await page.locator('[data-view=orders]').tap();await page.waitForFunction(()=>document.querySelector('.ovcAPanel')?.textContent.includes('Nessun ordine'));await page.locator('[data-view=eyewear]').tap();await page.waitForSelector('[data-sw-open]');await page.locator('[data-sw-cert="'+sid(9)+'"]').tap();await page.waitForSelector('.swCover a[href^="blob:"]');
    if(name==='webkit'){await page.locator('[data-sw-list]').tap();await page.locator('[data-sw-open="'+sid(16)+'"]').tap();await page.locator('[data-sw-reason="3"]').tap();await page.locator('[data-sw-file]').setInputFiles({name:'denuncia-demo.pdf',mimeType:'application/pdf',buffer:rep});await page.locator('[data-sw-upload]').tap();await page.waitForFunction(()=>document.querySelector('[data-sw-report]')?.value);await page.locator('[data-sw-send]').tap();await page.waitForFunction(()=>document.querySelector('[data-sw-note]')?.textContent.includes('Richiesta ricevuta'));}
@@ -66,12 +112,12 @@ try{
    return r.fulfill({status:200,headers,contentType:'application/json',body:JSON.stringify(data)});
   }
   if(!process.env.OPTYKER_LIVE&&u.hostname==='www.optyker.it'){let rel=u.pathname.replace(/^\//,'');if(!rel||rel.endsWith('/'))rel+='index.html';const f=path.resolve('_site',rel);if(f.startsWith(path.resolve('_site')+path.sep)&&fs.existsSync(f))return r.fulfill({status:200,contentType:({'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json'})[path.extname(f)]||'application/octet-stream',body:fs.readFileSync(f)});}
-  if(process.env.OPTYKER_LIVE)return r.continue();return r.fulfill({status:404,body:''});
+  if(process.env.OPTYKER_LIVE){if(!['GET','HEAD'].includes(r.request().method()))return r.abort();return r.continue();}return r.fulfill({status:404,body:''});
  });
  try{
   await page.goto('https://www.optyker.it/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!!window.OPTYKER_COVER_STAFF);const op=await page.locator('#optykerLoginOperator option').evaluateAll(xs=>xs.find(x=>/Michael/i.test(x.value))?.value);await page.selectOption('#optykerLoginOperator',op);await page.waitForTimeout(400);await page.fill('#optykerAuthPassword','synthetic_password_only');await page.click('.optykerLoginButton');await page.waitForFunction(()=>!!window.optykerAuthenticated);
   await page.evaluate(({uid,sid})=>{OPTYKER_CLOUD.clients=[{id:uid,name:'Cliente',surname:'Dimostrativo'}];clientSelect(uid);window.OPTYKER_CLIENT_SHEETS.open('eyewear',sid);},{uid:UID,sid:sid(20)});await page.waitForSelector('[data-ws-open]');await page.click('[data-ws-open]');await page.waitForSelector('[data-ws-request]');await page.screenshot({path:OUT+'/optyker-garanzia.png'});await page.click('[data-ws-request="0"]');await page.selectOption('[data-ws-eye]','OD');await page.click('[data-ws-send]');await page.waitForSelector('[data-ws-complete]');await page.click('[data-ws-complete]');await page.waitForFunction(()=>document.querySelector('#ovcStaffCover main')?.textContent.includes('1 consegnati'));
   checks.push('Complete Optyker customer sheet has Garanzia occhiale button; in-store request and delivery update the same quota as Shopify/app');
  }catch(e){await page.screenshot({path:OUT+'/failure-optyker.png'});throw e;}finally{await browser.close();}
- fs.writeFileSync(OUT+'/checks.json',JSON.stringify({ok:true,checks,production_customer_writes:0},null,2));console.log(JSON.stringify(checks,null,2));
+ fs.writeFileSync(OUT+'/checks.json',JSON.stringify({ok:true,checked_at:new Date().toISOString(),production_commit:EXPECTED_PRODUCTION,checks,chat_checks:chatChecks,production_customer_writes:0},null,2));console.log(JSON.stringify(checks,null,2));
 }catch(e){fs.writeFileSync(OUT+'/failure.txt',String(e.stack));throw e;}finally{await pg.end();}
