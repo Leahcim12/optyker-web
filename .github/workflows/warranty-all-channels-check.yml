@@ -41,6 +41,8 @@ jobs:
               for name,content in package['files'].items():
                   p=Path(name);assert not p.is_absolute() and '..' not in p.parts
                   p.parent.mkdir(parents=True,exist_ok=True);p.write_text(content)
+          p=Path('eyewear-cover-channels.sql')
+          p.write_text(p.read_text().replace("sh.data#>>'{lens,lens_type_od}),", "sh.data#>>'{lens,lens_type_od}'),"))
           Path('channels-check/changed.json').write_text(json.dumps(list(package['files'])))
           PY
       - name: Database schema on disposable PostgreSQL only
