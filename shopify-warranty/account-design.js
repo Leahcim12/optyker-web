@@ -5,7 +5,7 @@
 const VERSION='20260912-account-design1';
 const PROFILE='https://shopify.com/91742896503/account/profile';
 const ORDERS='https://shopify.com/91742896503/account/orders';
-const LOGO='https://www.optyker.it/visualcare-logo.svg';
+const LOGO='https://www.optyker.it/ovc-card-logo.png';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const titles={dashboard:['Il tuo spazio OVC','La tua visione, sempre con te.'],orders:['I tuoi ordini','Il tuo storico, tra sito e app.'],rx:['Prescrizione','La scheda visiva condivisa dal tuo centro ottico.'],eyewear:['Occhiali e garanzie','Materiali, coperture e assistenza in un unico posto.'],lac:['LAC specialistiche','Le lenti associate alla tua anagrafica.'],appointment:['Appuntamenti','Scegli il servizio e la disponibilità del centro.'],hours:['Orari del centro','Gli orari aggiornati di Ottica Visual Care.'],recent:['Acquistati di recente','Ritrova i prodotti dei tuoi ultimi acquisti.'],chat:['Chat con il centro','Un filo diretto con Ottica Visual Care.']};
 const icons={orders:'<path d="M6 7h12l1 14H5L6 7Z"/><path d="M9 8V5a3 3 0 0 1 6 0v3"/>',eyewear:'<circle cx="6" cy="13" r="4"/><circle cx="18" cy="13" r="4"/><path d="M10 13h4M2 13V8M22 13V8"/>',lac:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',appointment:'<rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 2v6m8-6v6M4 11h16m-11 5h6"/>',rx:'<path d="M7 3h7l5 5v13H5V3h2Zm7 0v6h5M9 13h6m-6 4h6"/>',chat:'<path d="M21 11a9 9 0 0 1-9 9H4l-2 2 1-6a9 9 0 1 1 18-5Z"/><path d="M8 11h8m-8 4h5"/>',shield:'<path d="m12 2 8 4v6c0 5-8 10-8 10S4 17 4 12V6l8-4Z"/><path d="m8 12 3 3 5-6"/>'};
