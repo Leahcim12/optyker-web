@@ -4,9 +4,9 @@ import {createRequire} from 'node:module';
 import {readFileSync} from 'node:fs';
 const require=createRequire(import.meta.url);
 const {getProfile,validate,registrationMode,toCents}=require('../rch-preflight.js');
-const valid=()=>({paymentMethod:'card',stage:'balance',lines:[{description:'Prodotto',quantity:2,unitPriceCents:1234,vatCode:'04'}]});
+const valid=()=>({paymentMethod:'card',stage:'balance',lines:[{description:'Prodotto',quantity:2,unitPriceCents:1234,vatCode:'04',saleType:'goods'}]});
 
-test('configuration preserves printed payments and distinguishes VAT slots from departments',()=>{
+test('configuration records direct readback without upgrading historical evidence to live readiness',()=>{
   const p=getProfile();
   assert.deepEqual(p.payments.map(x=>x.code),[1,2,3,4,5,6,7,8,9,10,11]);
   assert.equal(p.payments.find(x=>x.key==='card').code,4);
@@ -14,6 +14,14 @@ test('configuration preserves printed payments and distinguishes VAT slots from 
   assert.equal(p.departments.find(x=>x.department===3).nature,'N4');
   assert.equal(p.vatSlots.find(x=>x.slot===3).rate,10);
   assert.equal(p.identityVerifiedLive,false);
+  assert.equal(p.readback.identityMatched,true);
+  assert.equal(p.readback.configurationMatched,true);
+  assert.equal(p.readback.departmentCount,99);
+  assert.equal(p.readback.vatSlotCount,40);
+  assert.equal(p.readback.paymentCount,30);
+  assert.equal(p.readiness.receipt,false);
+  assert.equal(p.readiness.talkingReceipt,false);
+  assert.equal(p.readiness.tsSubmission,false);
   assert.equal(p.transport.legacyTcpPort,23);
   p.departments[0].department=99;
   assert.equal(getProfile().departments[0].department,1);
@@ -30,8 +38,8 @@ test('successful preliminary checks never enable emission or TS',()=>{
   }
 });
 test('VAT codes map to documented departments, never product categories or slot indexes',()=>{
-  for(const [vat,dep] of [['04',1],['22',2],['ART10',3]]){
-    const input=valid();input.lines[0].vatCode=vat;
+  for(const [vat,dep,type] of [['04',1,'goods'],['22',2,'goods'],['ART10',3,'services']]){
+    const input=valid();input.lines[0].vatCode=vat;input.lines[0].saleType=type;
     assert.equal(validate(input).lines[0].department,dep);
   }
   for(const vat of ['',null,'10','05','ART15','NV','N4','4','__proto__',4]){
@@ -40,6 +48,34 @@ test('VAT codes map to documented departments, never product categories or slot 
     assert.equal(out.lines[0].department,null);
     assert.ok(out.issues.some(x=>x.code==='vat_unmapped'));
   }
+});
+test('goods and services cannot be swapped or inferred from an IVA code or description',()=>{
+  for(const [vat,type] of [['04','services'],['22','services'],['ART10','goods']]){
+    const input=valid();input.lines[0].vatCode=vat;input.lines[0].saleType=type;
+    const out=validate(input);
+    assert.equal(out.dataValid,false);assert.equal(out.lines[0].department,null);
+    assert.ok(out.issues.some(x=>x.code==='department_type_mismatch'));
+  }
+  for(const type of [undefined,null,'','Goods','beni','services ',0,1,{},true]){
+    const input=valid();input.lines[0].saleType=type;input.lines[0].description='Servizio esente';
+    const out=validate(input);
+    assert.equal(out.dataValid,false);assert.equal(out.lines[0].department,null);
+    assert.ok(out.issues.some(x=>x.code==='sale_type_missing'));
+  }
+});
+test('programmed department types and payment credit types match the captured RCH fields',()=>{
+  const p=getProfile();
+  // DepartmentType/value: 0=goods, 1=services (manual p.93).
+  // Data below transcribed from Service/Prg in the successful 12/09 readback.
+  assert.deepEqual(p.departments.map(d=>[d.department,d.vatSlot,d.saleType,d.autoClose]),[
+    [1,1,'goods',false],[2,2,'goods',false],[3,0,'services',false]
+  ]);
+  assert.deepEqual(p.payments.map(d=>[d.code,d.creditType,d.changeAllowed]),[
+    [1,0,true],[2,1,false],[3,0,false],[4,0,false],[5,0,false],[6,2,false],
+    [7,3,false],[8,4,false],[9,0,false],[10,0,false],[11,0,false]
+  ]);
+  // Generic exempt goods departments 4..99 are not substitutes for the services department.
+  assert.equal(p.departments.some(d=>d.department>=4),false);
 });
 test('unverified payments and ambiguous non-riscosso remain unassigned',()=>{
   for(const method of ['pending','bank','transfer','unpaid_goods',4,null,'']){
