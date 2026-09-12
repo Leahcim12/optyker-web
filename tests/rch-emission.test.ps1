@@ -1,6 +1,10 @@
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot '../rch-connector/rch-optyker-connector.ps1') -LibraryOnly
 function Assert($x,$m){if(-not $x){throw $m}}
+$installer=Get-Content -Raw (Join-Path $PSScriptRoot '../rch-connector/Installa-RCH-Optyker.ps1')
+$downloadVersion=[regex]::Match($installer,"-notmatch '([^']+)'").Groups[1].Value
+Assert ($downloadVersion -and $ConnectorVersion -match $downloadVersion) 'Installer download gate must accept the current connector'
+Assert ('1.6-fiscal-journal' -notmatch $downloadVersion) 'Installer must reject the connector without void support'
 function Assert-WindowsFiscalPlatform {}
 function Protect-JournalToken([string]$v){return 'test-protected-'+$v}
 function Unprotect-JournalToken([string]$v){return $v.Substring(15)}
@@ -60,3 +64,36 @@ try{
  Assert ($r.cloudSaved -and $commands.Count -eq $count) 'Status should sync cloud without printer IO'
 }finally{Remove-Item -Recurse -Force $JournalRoot}
 Write-Host 'Fiscal receipt journaling, duplicate prevention, lost ACK, serial mismatch and cloud recovery passed.'
+
+# Closed-document void: exact protocol command, same lock, no automatic retry.
+$script:doc=[pscustomobject]@{operation='void';serial='72IV6003831';totalCents=7000;original=[pscustomobject]@{jobId=[guid]::NewGuid().ToString();number='1161-0009';date='2026-09-12'};commands=@('=k/&120926/[1161/]9')}
+Scenario
+try{
+ $r=Emit-Receipt @{jobId=$jobId;token=('a'*64)} 'void'
+ Assert ($r.state -eq 'closing_acknowledged' -and $r.commandsAcknowledged -eq 1) 'Void should acknowledge exactly one command'
+ Assert (@($commands|Where-Object {$_.StartsWith('=')}).Count -eq 1 -and $commands.Contains('=k/&120926/[1161/]9')) 'Only the exact original document may be voided'
+ $count=$commands.Count;$null=Emit-Receipt @{jobId=$jobId;token=('a'*64)} 'void'
+ Assert ($commands.Count -eq $count -and $claims -eq 1) 'A second click cannot reissue a void'
+}finally{Remove-Item -Recurse -Force $JournalRoot}
+Scenario
+try{
+ $script:failAt='=k/&120926/[1161/]9';$r=Emit-Receipt @{jobId=$jobId;token=('a'*64)} 'void'
+ Assert ($r.state -eq 'uncertain') 'A lost void ACK must remain uncertain'
+ $count=$commands.Count;$null=Read-ReceiptStatus $jobId
+ Assert ($commands.Count -eq $count) 'Void status recovery must not send another command'
+ $blocked=$false;try{$null=Emit-Receipt @{jobId=[guid]::NewGuid().ToString();token=('a'*64)}}catch{$blocked=$true}
+ Assert $blocked 'Uncertain void must also block sales on the same register'
+}finally{Remove-Item -Recurse -Force $JournalRoot}
+foreach($wrongCommand in @('=k','=k/&120926/[1161/]10','=a')){
+ Scenario
+ try{
+  $script:doc.commands=@($wrongCommand);$r=Emit-Receipt @{jobId=$jobId;token=('a'*64)} 'void'
+  Assert ($r.state -eq 'not_started' -and $commands.Count -eq 0) 'Wrong or unbound void command must not reach the printer'
+ }finally{Remove-Item -Recurse -Force $JournalRoot}
+}
+Scenario
+try{
+ $script:doc.commands=@('=k/&120926/[1161/]9');$r=Emit-Receipt @{jobId=$jobId;token=('a'*64)} 'sale'
+ Assert ($r.state -eq 'not_started' -and $commands.Count -eq 0) 'Sale endpoint cannot execute a void capability'
+}finally{Remove-Item -Recurse -Force $JournalRoot}
+Write-Host 'Void exact-reference validation, duplicate prevention, lost ACK, printer lock and endpoint isolation passed.'

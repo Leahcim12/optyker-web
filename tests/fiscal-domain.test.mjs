@@ -1,8 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {makeDocument,cents,fiscalCode,resultState,reference} from '../supabase/functions/optyker-fiscal-api/domain.mjs';
+import {makeDocument,makeVoid,cents,fiscalCode,resultState,reference} from '../supabase/functions/optyker-fiscal-api/domain.mjs';
 const payment={amount:12.50,payment_method:'cash',invoice_requested:false};
 const input={not_already_issued:true,lines:[{description:'Occhiali',quantity:1,unit_price:'12.50',department:1,expense_code:'none'}]};
+test('void binds only to the confirmed original date, closure and number, without replaying sale or CF',()=>{
+ const original={id:'11111111-1111-4111-8111-111111111111',operation:'sale',state:'completed',serial:'72IV6003831',document_number:'1161-0009',document_date:'2026-09-12',document:{totalCents:7000,tsRequested:true,fiscalCode:'PRIVATE'}};
+ const input={expected_number:'1161-0009',expected_date:'2026-09-12',expected_total:70,reason:'Vendita non effettuata',confirmed:true};
+ const d=makeVoid(original,input);assert.deepEqual(d.commands,['=k/&120926/[1161/]9']);assert.equal(d.tsRequested,false);assert.ok(!JSON.stringify(d).includes('PRIVATE'));
+ for(const patch of [{confirmed:false},{expected_total:71},{expected_number:'1161-0010'},{expected_date:'2026-09-11'},{reason:''}])assert.throws(()=>makeVoid(original,{...input,...patch}));
+ for(const patch of [{operation:'void'},{state:'uncertain'},{state:'prepared'},{serial:'OTHER'},{document_number:'0000-0001'},{document_date:'2026-02-31'}])assert.throws(()=>makeVoid({...original,...patch},input));
+});
 test('canonical cents, departments and payment commands; no names used for VAT',()=>{
  const x=makeDocument(payment,input);assert.equal(x.totalCents,1250);assert.deepEqual(x.commands,['=R1/$1250/*1/(OCCHIALI)','=T1']);
  assert.throws(()=>makeDocument(payment,{...input,lines:[{...input.lines[0],department:''}]}),/Seleziona IVA/);

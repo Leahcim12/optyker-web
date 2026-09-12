@@ -1,5 +1,5 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.116.0';
-import {makeDocument,reference,resultState,SERIAL,RELEASE} from './domain.mjs';
+import {makeDocument,makeVoid,reference,resultState,SERIAL,RELEASE} from './domain.mjs';
 const db=createClient(Deno.env.get('SUPABASE_URL')||'',Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'',{auth:{persistSession:false,autoRefreshToken:false}});
 const origins=new Set(['https://www.optyker.it','https://optyker.it']);
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -13,20 +13,25 @@ async function readBody(req:Request){
  finally{reader.releaseLock();}
  try{return JSON.parse(text);}catch{throw new Error('Formato richiesta non valido');}
 }
-async function one(q:any){const {data,error}=await q;if(error)throw new Error(error.code==='23505'?'Operazione già registrata o registratore impegnato. Aggiorna lo stato prima di continuare.':'Impossibile aggiornare il registro fiscale');return data;}
-function publicJob(j:any){if(!j)return null;const {claim_hash,claim_expires_at,result_hash,document,...out}=j;return {...out,total:document.totalCents/100,talking_receipt:document.talkingReceipt,ts_requested:document.tsRequested};}
+async function one(q:any){const {data,error}=await q;if(error)throw new Error(error.code==='P0001'?error.message:error.code==='23505'?'Operazione già registrata o registratore impegnato. Aggiorna lo stato prima di continuare.':'Impossibile aggiornare il registro fiscale');return data;}
+function publicJob(j:any){if(!j)return null;const {claim_hash,claim_expires_at,result_hash,document,...out}=j;return {...out,operation:j.operation||'sale',original_document:document.original||null,void_reason:document.operation==='void'?document.reason:null,total:document.totalCents/100,talking_receipt:document.talkingReceipt,ts_requested:document.tsRequested};}
 async function login(b:any){
  if(!b.username||String(b.password||'').length<8)throw new Error('AUTH_REQUIRED');
  const {data,error}=await db.rpc('optyker_staff_login_internal',{p_username:String(b.username).trim(),p_password:String(b.password)});
  if(error||!data?.ok)throw new Error('AUTH_REQUIRED');return String(data.username);
 }
 async function getJob(jobId:any){const j=await one(db.from('optyker_fiscal_jobs').select('*').eq('id',id(jobId)).maybeSingle());if(!j)throw new Error('Emissione non trovata');return j;}
+async function jobView(jobId:any){
+ const job=await getJob(jobId),out=publicJob(job);
+ if(job.operation==='sale')out.void_job=publicJob(await one(db.from('optyker_fiscal_jobs').select('*').eq('original_job_id',job.id).eq('operation','void').maybeSingle()));
+ return out;
+}
 async function saleView(saleId:any){
  const sale=await one(db.from('optyker_pos_sales').select('id,status,total,data,invoice_requested').eq('id',id(saleId)).maybeSingle());
  if(!sale)throw new Error('Vendita non trovata');
  const payments=await one(db.from('optyker_pos_payments').select('id,payment_stage,payment_method,amount,invoice_requested,billing_invoice_id,created_at').eq('sale_id',sale.id).order('created_at'));
  const jobs=await one(db.from('optyker_fiscal_jobs').select('*').eq('sale_id',sale.id));
- return {sale_id:sale.id,status:sale.status,total:sale.total,lines:sale.data?.lines||[],has_fiscal_code:!!sale.data?.client_snapshot?.fiscal,payments,jobs:jobs.map(publicJob)};
+ return {sale_id:sale.id,status:sale.status,total:sale.total,lines:sale.data?.lines||[],has_fiscal_code:!!sale.data?.client_snapshot?.fiscal,payments,jobs:jobs.filter((j:any)=>j.operation==='sale').map((j:any)=>({...publicJob(j),void_job:publicJob(jobs.find((v:any)=>v.original_job_id===j.id&&v.operation==='void'))}))};
 }
 async function prepare(p:any,operator:string){
  const payment=await one(db.from('optyker_pos_payments').select('*').eq('id',id(p.payment_id)).maybeSingle());
@@ -35,7 +40,7 @@ async function prepare(p:any,operator:string){
  if(!['completed','open_balance'].includes(sale.status))throw new Error('Completa prima la registrazione della vendita');
  // Use the recorded client identity, never an arbitrary CF from a print request.
  const document=makeDocument(payment,p,sale.data?.client_snapshot?.fiscal||'');
- const existing=await one(db.from('optyker_fiscal_jobs').select('*').eq('payment_id',payment.id).maybeSingle());
+ const existing=await one(db.from('optyker_fiscal_jobs').select('*').eq('payment_id',payment.id).eq('operation','sale').maybeSingle());
  if(existing&&!['prepared','not_started'].includes(existing.state))return {job:publicJob(existing)};
  const cap=token();const patch={state:'prepared',document,claim_hash:await hash(cap),claim_expires_at:new Date(Date.now()+600000).toISOString(),updated_at:now()};
  let job;
@@ -44,12 +49,23 @@ async function prepare(p:any,operator:string){
  if(!job)throw new Error('Stato modificato: aggiorna prima di continuare');
  return {job:publicJob(job),claim_token:cap};
 }
+async function prepareVoid(p:any,operator:string){
+ const original=await getJob(p.original_job_id),document=makeVoid(original,p);
+ const existing=await one(db.from('optyker_fiscal_jobs').select('*').eq('original_job_id',original.id).eq('operation','void').maybeSingle());
+ if(existing&&!['prepared','not_started'].includes(existing.state))return {job:publicJob(existing)};
+ const queue=await one(db.from('optyker_ts_outbox').select('state,protocol').eq('job_id',original.id).maybeSingle());
+ if(queue&&(queue.state!=='awaiting_configuration'||queue.protocol))throw new Error('Spesa TS già elaborata o sospesa: verificarne la rettifica prima dell’annullo');
+ const cap=token(),patch={state:'prepared',document,claim_hash:await hash(cap),claim_expires_at:new Date(Date.now()+600000).toISOString(),operator_username:operator,updated_at:now()};
+ const job=existing?await one(db.from('optyker_fiscal_jobs').update(patch).eq('id',existing.id).in('state',['prepared','not_started']).select('*').maybeSingle()):
+  await one(db.from('optyker_fiscal_jobs').insert({...patch,operation:'void',original_job_id:original.id,payment_id:original.payment_id,sale_id:original.sale_id,serial:original.serial}).select('*').single());
+ if(!job)throw new Error('Stato modificato: aggiorna prima di continuare');
+ return {job:publicJob(job),claim_token:cap};
+}
 async function claim(p:any){
  if(!/^[a-f0-9]{64}$/.test(String(p.token||'')))throw new Error('AUTH_REQUIRED');
  const resultToken=token();
- const job=await one(db.from('optyker_fiscal_jobs').update({state:'sending',claim_hash:null,result_hash:await hash(resultToken),updated_at:now()})
-  .eq('id',id(p.job_id)).eq('state','prepared').eq('claim_hash',await hash(p.token)).gt('claim_expires_at',now()).select('*').maybeSingle());
- if(!job)throw new Error('Autorizzazione scaduta o già utilizzata. Non ripetere la stampa: aggiorna lo stato.');
+ const operation=p.operation||'sale';if(!['sale','void'].includes(operation))throw new Error('Operazione non valida');
+ const job=await one(db.rpc('optyker_claim_fiscal_job',{p_job_id:id(p.job_id),p_claim_hash:await hash(p.token),p_result_hash:await hash(resultToken),p_operation:operation}));
  return {job_id:job.id,document:job.document,result_token:resultToken};
 }
 async function outcome(p:any){
@@ -58,12 +74,13 @@ async function outcome(p:any){
  if(job.state!=='sending')return {job:publicJob(job)};
  const r=p.result||{},state=resultState(r,job.document.commands.length);
  const safe={state,commandsAcknowledged:Number.isInteger(r.commandsAcknowledged)?r.commandsAcknowledged:0,writeStarted:r.writeStarted===true,idleAfter:r.idleAfter===true,error:String(r.error||'').slice(0,250),connectorVersion:String(r.connectorVersion||'').slice(0,60)};
- const updated=await one(db.from('optyker_fiscal_jobs').update({state,result:safe,updated_at:now()}).eq('id',job.id).eq('state','sending').select('*').maybeSingle());
- return {job:publicJob(updated||await getJob(job.id))};
+ const updated=await one(db.rpc('optyker_record_fiscal_outcome',{p_job_id:job.id,p_result_hash:await hash(p.token),p_state:state,p_result:safe}));
+ return {job:publicJob(updated)};
 }
 async function saveReference(p:any,operator:string){
  let job=await getJob(p.job_id);
  if(!['awaiting_reference','completed'].includes(job.state))throw new Error('Serve prima una chiusura confermata dalla RCH. Gli esiti incerti richiedono una verifica tecnica.');
+ if(job.operation==='void'&&p.void_verified!==true)throw new Error('Conferma che la stampa è un annullo riferito allo scontrino originale');
  const ref=reference(p,job.document.totalCents);
  if(job.state==='completed'&&(job.document_number!==ref.number||job.document_date!==ref.date))throw new Error('Riferimento già registrato: non può essere sostituito');
  let doc=null;
@@ -93,7 +110,8 @@ Deno.serve(async req=>{
   const operator=await login(body);
   if(a==='sale')return out({ok:true,data:await saleView(p.sale_id)});
   if(a==='prepare')return out({ok:true,data:await prepare(p,operator)});
-  if(a==='job')return out({ok:true,data:{job:publicJob(await getJob(p.job_id))}});
+  if(a==='prepare_void')return out({ok:true,data:await prepareVoid(p,operator)});
+  if(a==='job')return out({ok:true,data:{job:await jobView(p.job_id)}});
   if(a==='reference')return out({ok:true,data:await saveReference(p,operator)});
   if(a==='ts_outbox'){
    const data=await one(db.from('optyker_ts_outbox').select('id,job_id,state,document,protocol,outcome,created_at').order('created_at',{ascending:false}).limit(100));

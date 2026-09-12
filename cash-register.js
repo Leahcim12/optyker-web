@@ -1,7 +1,7 @@
 /* OPTYKER_SEPT11_PREPARED */
 (function(){
 if(window.__optykerCashLoaded)return;window.__optykerCashLoaded=true;
-window.OPTYKER_CASH_BUILD='20260912-fiscal2';
+window.OPTYKER_CASH_BUILD='20260912-void1';
 var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-cash-register-api';
 var S={products:[],clients:[],cart:{},type:'',payment:'card',stage:'balance',clientId:'',invoice:false,tsRequested:false,tsCode:'AD',tsOpposition:false,busy:false,searchTimer:null,clientSearchTimer:null,rchOk:false,cashOpen:false};
 
@@ -30,7 +30,7 @@ function rchRequest(path,opts){
 }
 function testRch(quiet){
   return rchRequest('/health').then(function(h){
-    if(h.version!=='1.6-fiscal-journal')throw new Error('Aggiorna il connettore RCH dalla finestra di configurazione.');
+    if(h.version!=='1.7-fiscal-void')throw new Error('Aggiorna il connettore RCH dalla finestra di configurazione.');
     return rchRequest('/status')
   }).then(function(x){
     var extra=x.mode?(' · '+x.mode):' · modalità non disponibile';
@@ -47,7 +47,7 @@ function downloadRchDiagnostics(){
   var b=E('optykerCashRchDiagnostics'),r=E('optykerCashRchResult');
   b.disabled=true;r.textContent='Raccolta diagnosi dal PC della cassa…';r.className='optykerCashRchResult';
   return rchRequest('/health').then(function(h){
-    if(h.version!=='1.6-fiscal-journal')throw new Error('Installa / aggiorna il connettore, poi riprova.');
+    if(h.version!=='1.7-fiscal-void')throw new Error('Installa / aggiorna il connettore, poi riprova.');
     return rchRequest('/diagnostics')
   }).then(function(report){
     if(report.reportGenerated!==true||report.readOnly!==true)throw new Error('Rapporto diagnostico incompleto.');
@@ -101,7 +101,7 @@ function openRch(){
     '<div class="optykerCashRchHelp"><b>Attivazione fiscale da completare</b><br>Matricola, reparti, aliquote e pagamenti confermati dalla lettura RCH del 12/09/2026.<br>Connettore 1.6: emissione dalla vendita, da collaudare sulla RCH. Il numero va confermato dalla stampa.<br>Spese sanitarie: invio diretto al Sistema TS non attivo.<br>Corrispettivi AdE: ricevute di accettazione dei documenti da verificare.</div>'+
     '<div class="optykerCashRchHelp"><button id="optykerCashRchPreflight" type="button">Controlla carrello · senza stampa</button><div id="optykerCashRchPreflightResult" role="status" aria-live="polite"></div></div>'+
     '<div id="optykerCashRchResult" class="optykerCashRchResult">Pronto per il test.</div>'+
-    '<div class="optykerCashRchDownloads optykerCashRchDownloadsAuto"><a class="primary" href="/rch-connector/Installa-RCH-Optyker.bat?v=20260912-fiscal1" download>Installa / aggiorna connettore</a><a href="/rch-connector/Diagnostica-RCH-Optyker.bat?v=20260912-fiscal1" download>Diagnostica Windows</a><a href="/rch-connector/Disinstalla-RCH-Optyker.ps1" download>Rimuovi avvio automatico</a></div>'+
+    '<div class="optykerCashRchDownloads optykerCashRchDownloadsAuto"><a class="primary" href="/rch-connector/Installa-RCH-Optyker.bat?v=20260912-void1" download>Installa / aggiorna connettore</a><a href="/rch-connector/Diagnostica-RCH-Optyker.bat?v=20260912-void1" download>Diagnostica Windows</a><a href="/rch-connector/Disinstalla-RCH-Optyker.ps1" download>Rimuovi avvio automatico</a></div>'+
     '<div class="optykerCashRchHelp">Il <b>Test collegamento</b> controlla soltanto la comunicazione e non emette documenti fiscali. <b>Apri cassetto</b> è la prova hardware più semplice: apre solo il cassetto contanti senza stampare uno scontrino.</div>'+
     '<div class="optykerCashRchActions optykerCashRchActions4"><button id="optykerCashRchTest" type="button">Test collegamento</button><button id="optykerCashRchDiagnostics" type="button">Scarica diagnosi</button><button id="optykerCashRchDrawerTest" type="button">Apri cassetto</button><button class="optykerCashModalClose" type="button">Chiudi</button></div></div>';
   m.classList.add('open');

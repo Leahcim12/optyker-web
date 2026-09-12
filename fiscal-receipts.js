@@ -1,25 +1,58 @@
 (function(){
 'use strict';
-var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-fiscal-api',VERSION='1.6-fiscal-journal';
+var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-fiscal-api',VERSION='1.7-fiscal-void';
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function euro(v){return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(v)}
 function api(action,payload){var c=window.OPTYKER_CLOUD||{};return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:action,payload:payload||{},username:c.username||window.OPTYKER_ACTIVE_USER,password:c.password})}).then(function(r){return r.json().then(function(x){if(!r.ok||x.ok!==true)throw new Error(x.error||'Registro fiscale non disponibile');return x})})}
 function bridge(path,payload){return fetch('http://127.0.0.1:8765'+path,{method:payload?'POST':'GET',headers:payload?{'Content-Type':'application/json'}:{},body:payload?JSON.stringify(payload):undefined,cache:'no-store',signal:AbortSignal.timeout(150000)}).then(function(r){return r.json().then(function(x){if(!r.ok||x.ok!==true)throw new Error(x.error||'Connettore non disponibile');return x})})}
 function modal(title){var old=document.getElementById('optykerFiscalModal');if(old)old.remove();var m=document.createElement('div');m.id='optykerFiscalModal';m.className='optykerCashModal open';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');m.setAttribute('aria-label',title);m.innerHTML='<div class="optykerCashModalCard" style="max-width:950px"><div class="optykerCashModalTitle">'+esc(title)+'</div><div class="ofBody">Caricamento…</div><p class="ofMessage" role="status" aria-live="polite"></p><button type="button" class="ofClose optykerCashModalClose">Chiudi</button></div>';document.body.appendChild(m);m.querySelector('.ofClose').onclick=function(){m.remove()};return m}
 function message(m,s){m.querySelector('.ofMessage').textContent=s}
-function stateLabel(s){return {prepared:'Pronto per l’invio alla RCH',sending:'Emissione in corso o esito da recuperare',not_started:'Nessun comando fiscale inviato',uncertain:'Esito da verificare sul registratore',awaiting_reference:'Chiusura confermata: registra il numero stampato',completed:'Documento registrato',awaiting_configuration:'Attende collegamento TS',accepted:'Accettato dal Sistema TS',rejected:'Scartato dal Sistema TS'}[s]||s}
+function stateLabel(s){return {prepared:'Pronto per l’invio alla RCH',sending:'Emissione in corso o esito da recuperare',not_started:'Nessun comando fiscale inviato',uncertain:'Esito da verificare sul registratore',awaiting_reference:'Chiusura confermata: registra il numero stampato',completed:'Documento registrato',awaiting_configuration:'Attende collegamento TS',accepted:'Accettato dal Sistema TS',rejected:'Scartato dal Sistema TS',held_for_void:'Sospesa: annullo RCH da verificare',voided:'Scontrino annullato: escluso dall’invio TS'}[s]||s}
 function drawJob(m,job,refresh){
- var box=m.querySelector('.ofBody');
- box.innerHTML='<p><b>'+esc(stateLabel(job.state))+'</b></p><p>Importo: '+esc(euro(job.total))+' · '+(job.talking_receipt?'Con codice fiscale':'Scontrino ordinario')+'</p>'+(job.document_number?'<p>Documento <b>'+esc(job.document_number)+'</b> del '+esc(job.document_date)+'</p>':'')+'<p>Riferimento operazione: '+esc(job.id)+'</p>';
+ if(job.operation!=='void'&&job.void_job){drawJob(m,job.void_job,refresh);return}
+ var isVoid=job.operation==='void',box=m.querySelector('.ofBody');
+ var label=isVoid?({prepared:'Annullo pronto per la conferma',sending:'Annullo in corso: recupera l’esito',not_started:'Annullo non avviato',uncertain:'Esito annullo da verificare sulla RCH',awaiting_reference:'Annullo confermato dalla RCH: registra la nuova stampa',completed:'Scontrino annullato'}[job.state]||stateLabel(job.state)):stateLabel(job.state);
+
+ box.innerHTML='<p><b>'+esc(label)+'</b></p><p>Importo: '+esc(euro(job.total))+' · '+(isVoid?'Documento di annullo':job.talking_receipt?'Con codice fiscale':'Scontrino ordinario')+'</p>'+(job.document_number?'<p>Documento <b>'+esc(job.document_number)+'</b> del '+esc(job.document_date)+'</p>':'')+'<p>Riferimento operazione: '+esc(job.id)+'</p>';
+ if(isVoid&&job.original_document)box.innerHTML+='<p>Scontrino originale: <b>'+esc(job.original_document.number)+'</b> del '+esc(job.original_document.date)+'. Motivo: '+esc(job.void_reason||'')+'</p>';
  if(['sending','uncertain'].includes(job.state))box.innerHTML+='<p>Controlla la carta e il display della RCH. Non registrare nuovamente questa vendita e non ripetere la stampa. Se il connettore è stato interrotto, l’esito deve essere verificato prima di altre emissioni.</p>';
  if(job.state==='awaiting_reference'){
   box.innerHTML+='<p>La risposta del registratore non contiene il numero documento. Copialo dal documento commerciale appena stampato.</p><form class="ofReference"><label>Numero documento <input name="number" placeholder="1160-0001" pattern="[0-9]{4}-[0-9]{4}" required></label><label>Data stampata <input name="date" type="date" required></label><label>Totale stampato <input name="amount" type="number" min="0.01" step="0.01" required></label><label><input name="verified" type="checkbox" required> Ho verificato numero, data, totale e codice fiscale sul documento.</label><button type="submit">Registra documento</button></form>';
-  var form=box.querySelector('form');form.elements.date.value=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Rome'}).format(new Date());
-  form.onsubmit=async function(e){e.preventDefault();var b=form.querySelector('button');b.disabled=true;try{var x=await api('reference',{job_id:job.id,document_number:form.elements.number.value,document_date:form.elements.date.value,amount:form.elements.amount.value,paper_verified:form.elements.verified.checked});drawJob(m,x.data.job,refresh);message(m,job.ts_requested?'Documento salvato. Spese TS preparate: trasmissione non ancora attiva.':'Documento salvato.')}catch(err){message(m,err.message);b.disabled=false}};
+  var form=box.querySelector('form');if(isVoid){form.insertAdjacentHTML('afterbegin','<p>Trascrivi il numero del <b>nuovo documento di annullo</b>, diverso da quello originale.</p>');form.querySelector('[name=verified]').parentNode.lastChild.textContent=' Ho verificato che la stampa è un documento di annullo riferito allo scontrino originale, con data e importo corretti.'}form.elements.date.value=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Rome'}).format(new Date());
+  form.onsubmit=async function(e){e.preventDefault();var b=form.querySelector('button');b.disabled=true;try{var x=await api('reference',{job_id:job.id,document_number:form.elements.number.value,document_date:form.elements.date.value,amount:form.elements.amount.value,paper_verified:form.elements.verified.checked,void_verified:isVoid&&form.elements.verified.checked});drawJob(m,x.data.job,refresh);message(m,isVoid?'Annullo registrato. Ordine e pagamento Shopify invariati.':job.ts_requested?'Documento salvato. Spese TS preparate: trasmissione non ancora attiva.':'Documento salvato.')}catch(err){message(m,err.message);b.disabled=false}};
  }
- if(job.state==='completed'&&job.ts_requested)box.innerHTML+='<p>Le righe sanitarie sono nella coda TS. L’invio richiede il collegamento TS ancora da completare.</p>';
+ if(isVoid&&['awaiting_reference','completed'].includes(job.state))box.insertAdjacentHTML('beforeend','<p>Le eventuali spese TS preparate per lo scontrino originale sono escluse dall’invio. L’ordine e il pagamento Shopify restano invariati.</p>');
+ if(!isVoid&&job.state==='completed'&&job.ts_requested)box.innerHTML+='<p>Le righe sanitarie sono nella coda TS. L’invio richiede il collegamento TS ancora da completare.</p>';
  var b=document.createElement('button');b.type='button';b.textContent='Aggiorna esito';box.appendChild(b);b.onclick=async function(){b.disabled=true;try{await bridge('/receipt/status',{jobId:job.id}).catch(function(){});var r=await api('job',{job_id:job.id});drawJob(m,r.data.job,refresh)}catch(e){message(m,e.message);b.disabled=false}};
- if(['prepared','not_started'].includes(job.state)){var back=document.createElement('button');back.type='button';back.textContent='Rivedi dati per emissione';box.appendChild(back);back.onclick=refresh}
+ if(['prepared','not_started'].includes(job.state)){var back=document.createElement('button');back.type='button';back.textContent=isVoid?'Rivedi annullo':'Rivedi dati per emissione';box.appendChild(back);back.onclick=isVoid?function(){openVoid(job.original_job_id)}:refresh}
+ if(!isVoid&&job.state==='completed'){var cancel=document.createElement('button');cancel.type='button';cancel.className='ofVoid';cancel.textContent='Annulla scontrino';box.appendChild(cancel);cancel.onclick=function(){return openVoid(job.id)}}
+}
+async function openVoid(originalId){
+ var m=modal('Annulla scontrino RCH');
+ try{
+  var r=await api('job',{job_id:originalId}),original=r.data.job;
+  if(original.operation==='void'||original.state!=='completed')throw new Error('Seleziona lo scontrino originale con riferimento confermato.');
+  if(original.void_job&&!['prepared','not_started'].includes(original.void_job.state)){drawJob(m,original.void_job,function(){openVoid(originalId)});return}
+  var body=m.querySelector('.ofBody');
+  body.innerHTML='<p>Annullo completo dello scontrino <b>'+esc(original.document_number)+'</b> del <b>'+esc(original.document_date)+'</b>, importo <b>'+esc(euro(original.total))+'</b>.</p><p>La RCH stamperà un documento di annullo. Questa operazione non annulla l’ordine Shopify e non rimborsa il pagamento. Le spese TS ancora da inviare verranno escluse dalla coda.</p><form class="ofVoidForm"><label>Motivo dell’annullo <input name="reason" minlength="3" maxlength="200" required placeholder="Es. vendita non effettuata"></label><label><input name="confirmed" type="checkbox" required> Ho verificato lo scontrino originale e confermo di annullarlo interamente. Non è già stato annullato sulla RCH o da altri programmi.</label><button class="ofVoidEmit" type="submit">Conferma annullo di '+esc(euro(original.total))+'</button></form>';
+  var form=body.querySelector('form');
+  form.onsubmit=async function(e){
+   e.preventDefault();if(!form.reportValidity())return;
+   var emit=form.querySelector('button'),jobId='';emit.disabled=true;m.querySelector('.ofClose').disabled=true;
+   try{
+    message(m,'Verifica connettore per annullo…');var health=await bridge('/health');
+    if(health.version!==VERSION||!health.capabilities||health.capabilities.voidReceipt!==true)throw new Error('Aggiorna il connettore sul PC: Cassa → RCH → Installa / aggiorna connettore. Poi riapri questo annullo.');
+    var prepared=await api('prepare_void',{original_job_id:originalId,expected_number:original.document_number,expected_date:original.document_date,expected_total:original.total,reason:form.elements.reason.value,confirmed:form.elements.confirmed.checked});
+    jobId=prepared.data.job.id;
+    if(prepared.data.claim_token){message(m,'Annullo in corso. Attendi il documento stampato dalla RCH.');await bridge('/receipt/void',{jobId:jobId,token:prepared.data.claim_token})}
+    var result=await api('job',{job_id:jobId});drawJob(m,result.data.job,function(){openVoid(originalId)});message(m,'');
+   }catch(err){
+    if(jobId){try{await bridge('/receipt/status',{jobId:jobId});var current=await api('job',{job_id:jobId});drawJob(m,current.data.job,function(){openVoid(originalId)})}catch(ignore){}message(m,'Risposta incompleta. Usa Aggiorna esito e verifica la stampa sulla RCH. Non ripetere l’annullo.');}
+    else message(m,err.message);
+    emit.disabled=false;
+   }finally{m.querySelector('.ofClose').disabled=false}
+  };
+ }catch(e){m.querySelector('.ofBody').textContent='';message(m,e.message)}
 }
 function departmentOptions(selected){return '<option value="">Seleziona IVA e tipo</option>'+[[1,'Bene · IVA 4%'],[2,'Bene · IVA 22%'],[3,'Servizio · esente Art.10']].map(function(x){return '<option value="'+x[0]+'"'+(Number(selected)===x[0]?' selected':'')+'>'+x[1]+'</option>'}).join('')}
 function addLine(tbody,line){var row=document.createElement('tr');row.innerHTML='<td><input data-field="description" aria-label="Descrizione" maxlength="100" value="'+esc(line.description||'')+'" required></td><td><input data-field="quantity" aria-label="Quantità" type="number" min="1" max="99" step="1" value="'+esc(line.quantity||1)+'" required style="width:55px"></td><td><input data-field="unit_price" aria-label="Prezzo unitario" type="number" min="0.01" step="0.01" value="'+esc(line.unit_price||'')+'" required style="width:85px"></td><td><select data-field="department" aria-label="IVA e tipo" required>'+departmentOptions(line.department)+'</select></td><td><select data-field="expense_code" aria-label="Tipo spesa sanitaria"><option value="none">Non sanitaria</option><option value="AD">AD · dispositivo medico CE</option><option value="AA">AA · altra spesa sanitaria</option></select></td><td><button type="button" aria-label="Rimuovi riga">×</button></td>';tbody.appendChild(row);row.querySelector('button').onclick=function(){row.remove()}}

@@ -5,7 +5,7 @@
 )
 
 $ErrorActionPreference = 'Stop'
-$ConnectorVersion = '1.6-fiscal-journal'
+$ConnectorVersion = '1.7-fiscal-void'
 $FiscalApi = 'https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-fiscal-api'
 $JournalRoot = if($env:LOCALAPPDATA){Join-Path $env:LOCALAPPDATA 'OptykerRCH/receipts'}else{Join-Path ([System.IO.Path]::GetTempPath()) 'OptykerRCH-readonly'}
 $printerAddress = $null
@@ -218,7 +218,20 @@ function Read-RchValue([string]$command,[string]$name) {
   if($values.Count -ne 1 -or $values[0].SelectSingleNode('name').InnerText -cne $name){throw 'Risposta identificativa RCH non valida.'}
   return $values[0].SelectSingleNode('value').InnerText.Trim()
 }
-function Assert-FiscalDocument($document) {
+function Assert-FiscalDocument($document,[string]$operation='sale') {
+  $kind=if($document.operation){[string]$document.operation}else{'sale'}
+  if($kind -cne $operation -or $operation -cnotin @('sale','void')){throw 'Tipo di operazione non autorizzato.'}
+  if($kind -ceq 'void'){
+    if($document.serial -cne '72IV6003831'){throw 'Matricola non autorizzata.'}
+    $original=$document.original;$date=[datetime]::MinValue
+    if([string]$original.jobId -notmatch '^[0-9a-fA-F-]{36}$' -or [string]$original.number -notmatch '^[0-9]{4}-[0-9]{4}$'){throw 'Riferimento annullo non valido.'}
+    if(-not [datetime]::TryParseExact([string]$original.date,'yyyy-MM-dd',[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::None,[ref]$date) -or $date.Year -lt 2015 -or $date.Year -gt 2099 -or $date.Date -gt [datetime]::Now.Date){throw 'Data originale non valida.'}
+    $parts=([string]$original.number).Split('-');$closure=[int]$parts[0];$number=[int]$parts[1]
+    if($closure -le 0 -or $number -le 0 -or [string]$document.totalCents -notmatch '^[1-9][0-9]{0,8}$' -or [long]$document.totalCents -gt 100000000){throw 'Numero o importo annullo non valido.'}
+    $expected='=k/&'+$date.ToString('ddMMyy',[Globalization.CultureInfo]::InvariantCulture)+'/['+$closure+'/]'+$number
+    if(@($document.commands).Count -ne 1 -or $document.commands[0] -cne $expected){throw 'Comando di annullo non autorizzato.'}
+    return
+  }
   if($document.serial -cne '72IV6003831'){throw 'Matricola non autorizzata.'}
   $commands=@($document.commands);$lines=@($document.lines)
   if($lines.Count -lt 1 -or $lines.Count -gt 100){throw 'Righe fiscali non valide.'}
@@ -241,7 +254,7 @@ function Assert-FiscalDocument($document) {
 function Assert-WindowsFiscalPlatform {
   if([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT){throw 'Emissione disponibile sul PC Windows della cassa.'}
 }
-function Emit-Receipt($request) {
+function Emit-Receipt($request,[string]$operation='sale') {
   $id=[string]$request.jobId;$null=Journal-Path $id
   if([string]$request.token -notmatch '^[a-f0-9]{64}$'){throw 'Autorizzazione emissione mancante.'}
   Assert-WindowsFiscalPlatform
@@ -255,13 +268,13 @@ function Emit-Receipt($request) {
       }else{return Read-ReceiptStatus $id}
     }
     Assert-NoUncertainReceipt
-    $entry=[pscustomobject]@{jobId=$id;state='claiming';writeStarted=$false;commandsAcknowledged=0;idleAfter=$false;cloudSaved=$false;protectedResultToken='';error='';createdAt=(Get-Date).ToString('o')}
+    $entry=[pscustomobject]@{jobId=$id;operation=$operation;state='claiming';writeStarted=$false;commandsAcknowledged=0;idleAfter=$false;cloudSaved=$false;protectedResultToken='';error='';createdAt=(Get-Date).ToString('o')}
     Save-Journal $entry
     try {
-      $claimed=Invoke-FiscalCloud 'bridge_claim' @{job_id=$id;token=[string]$request.token}
+      $claimed=Invoke-FiscalCloud 'bridge_claim' @{job_id=$id;token=[string]$request.token;operation=$operation}
       $entry.protectedResultToken=Protect-JournalToken $claimed.result_token
       $entry.state='sending';Save-Journal $entry
-      Assert-FiscalDocument $claimed.document
+      Assert-FiscalDocument $claimed.document $operation
       Assert-IdleRegister
       if((Read-RchValue '<</?m' 'm') -cne $claimed.document.serial){throw 'La matricola collegata non corrisponde al negozio.'}
       if((Read-RchValue '<</?i/*3' 'i/*3') -cne '111000'){throw 'Registratore telematico non operativo.'}
@@ -377,15 +390,15 @@ try {
       $ResponseOrigin=[string]$request.headers['origin']
       if($request.method -eq 'OPTIONS'){Json-Response $stream 200 @{ok=$true};continue}
       if($request.method -eq 'GET' -and $request.path -eq '/health'){
-        Json-Response $stream 200 @{ok=$true;connector='Optyker RCH';version=$ConnectorVersion;printer=$PrinterIp;port=$Port;capabilities=@{diagnostics=$true;receipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);talkingReceipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);adeOutcome=$false;manualReference=$true}}
+        Json-Response $stream 200 @{ok=$true;connector='Optyker RCH';version=$ConnectorVersion;printer=$PrinterIp;port=$Port;capabilities=@{diagnostics=$true;receipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);talkingReceipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);voidReceipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);adeOutcome=$false;manualReference=$true}}
       } elseif($request.method -eq 'GET' -and $request.path -eq '/status'){
         Json-Response $stream 200 (Status-Rch)
       } elseif($request.method -eq 'GET' -and $request.path -eq '/diagnostics'){
         Json-Response $stream 200 (Diagnostics-Rch)
-      } elseif($request.method -eq 'POST' -and $request.path -eq '/receipt'){
+      } elseif($request.method -eq 'POST' -and $request.path -in @('/receipt','/receipt/void')){
         $body=$request.body | ConvertFrom-Json
         if(-not $body.jobId -or -not $body.token){Json-Response $stream 409 @{ok=$false;error='Autorizzazione emissione mancante.';emittedFiscalDocument=$false}}
-        else {Json-Response $stream 200 (Emit-Receipt $body)}
+        else {$operation=if($request.path -eq '/receipt/void'){'void'}else{'sale'};Json-Response $stream 200 (Emit-Receipt $body $operation)}
       } elseif($request.method -eq 'POST' -and $request.path -eq '/receipt/status'){
         $body=$request.body | ConvertFrom-Json
         Json-Response $stream 200 (Read-ReceiptStatus ([string]$body.jobId))

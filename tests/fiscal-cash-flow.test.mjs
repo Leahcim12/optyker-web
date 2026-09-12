@@ -18,7 +18,7 @@ const sale={id:sid,status:'completed',total:70,due_amount:0,shopify_order_name:'
 let state='';const job=()=>({id:jid,payment_id:pid,state,total:70,talking_receipt:false,ts_requested:false});
 window.fetch=async (url,opts={})=>{
  const b=opts.body?JSON.parse(opts.body):{},a=b.action;__calls.push({url,action:a,payload:b.payload});let data;
- if(url.endsWith('/health'))return Response.json({ok:true,version:'1.6-fiscal-journal',capabilities:{receipt:true}});
+ if(url.endsWith('/health'))return Response.json({ok:true,version:'1.7-fiscal-void',capabilities:{receipt:true}});
  if(url.endsWith('/status'))return Response.json({ok:true,requestAccepted:true,ackComplete:true,mode:'REG',idleState:0});
  if(url.endsWith('/receipt')){state='awaiting_reference';return Response.json({ok:true,state:'closing_acknowledged'})}
  if(url.endsWith('/receipt/status'))return Response.json({ok:true,state});

@@ -1,8 +1,8 @@
-# Emissione RCH — release 20260912-fiscal1
+# Emissione RCH — release 20260912-void1
 
 ## Stato effettivo
 
-Implementati: emissione HTTP RCH delle righe, pagamento, codice fiscale opzionale, autorizzazione per singolo pagamento, diario locale persistente, blocco dei duplicati e degli esiti incerti, registrazione del numero stampato e coda delle righe sanitarie. Il connettore Windows è `1.6-fiscal-journal`.
+Implementati: emissione HTTP RCH delle righe, pagamento, codice fiscale opzionale, autorizzazione per singolo pagamento, diario locale persistente, blocco dei duplicati e degli esiti incerti, registrazione del numero stampato e coda delle righe sanitarie. Il connettore Windows è `1.7-fiscal-void`.
 
 Il collaudo sul registratore fisico non è stato eseguito da questa sessione. I test usano risposte simulate, oltre alle letture originali acquisite in negozio per identità/configurazione. Il numero fiscale viene trascritto dalla stampa: le risposte HTTP reali disponibili contengono `ECRStatus/mode` e `idleState`, senza il numero documento. Non si ricava un numero dalla sola lettura del contatore azzeramenti.
 
@@ -28,7 +28,7 @@ I soli reparti assegnati sono 1 (beni 4%), 2 (beni 22%), 3 (servizi esenti Art.1
 - `awaiting_reference`: tutti i comandi confermati, ritorno a REG inattivo; va registrato il riferimento stampato.
 - `completed`: riferimento verificato dall'operatore e salvato. Se richiesto, coda TS inserita nella stessa transazione.
 
-Un'interruzione dopo un comando non causa retry. Una risposta persa del cloud viene sincronizzata da **Aggiorna esito**, senza nuovi comandi alla stampante. La perdita della risposta alla prima acquisizione dell'autorizzazione può richiedere una verifica tecnica: viene privilegiata la prevenzione di una seconda emissione. Annulli fiscali/resi e riconciliazione automatica degli esiti incerti non sono implementati da questa release. L'eliminazione dalla cronologia non annulla un documento fiscale.
+Un'interruzione dopo un comando non causa retry. Una risposta persa del cloud viene sincronizzata da **Aggiorna esito**, senza nuovi comandi alla stampante. La perdita della risposta alla prima acquisizione dell'autorizzazione può richiedere una verifica tecnica: viene privilegiata la prevenzione di una seconda emissione. Resi parziali e riconciliazione automatica degli esiti incerti non sono implementati da questa release. L'eliminazione dalla cronologia non annulla un documento fiscale.
 
 ## Sicurezza e architettura
 
@@ -46,9 +46,21 @@ Riferimenti: [strumenti per lo sviluppo TS](https://sistemats1.sanita.finanze.it
 
 ## Verifica riproducibile
 
-- `node --test tests/fiscal-domain.test.mjs tests/rch-preflight.test.mjs tests/rch-ui.test.mjs tests/rch-loader.test.mjs` — 23 test.
-- `npm install --prefix /tmp/optyker-fiscal-test jsdom@26`; `OPTYKER_TEST_PACKAGE=/tmp/optyker-fiscal-test/package.json node --test tests/fiscal-ui.test.mjs` — 3 test DOM, non un collaudo visivo sul browser.
+- `node --test tests/fiscal-domain.test.mjs tests/rch-preflight.test.mjs tests/rch-ui.test.mjs tests/rch-loader.test.mjs` — dominio fiscale, preflight e caricamento.
+- `npm install --prefix /tmp/optyker-fiscal-test jsdom@26`; `OPTYKER_TEST_PACKAGE=/tmp/optyker-fiscal-test/package.json node --test tests/fiscal-ui.test.mjs tests/fiscal-void-ui.test.mjs` — test DOM, non un collaudo visivo sul browser.
 - PowerShell 7.4.13: `tests/rch-emission.test.ps1` e `tests/rch-connector.test.ps1`; più 4 test HTTP con `PWSH` impostato e i file `rch-http`, `rch-protocol-http`, `rch-configuration-http`.
 - `tests/fiscal-db.test.sql` — vincoli, lock, privilegi, transazione riferimento/coda e idempotenza; dati sintetici annullati con ROLLBACK, nessun cliente o comando hardware.
 - Deno typecheck del nuovo backend e build completa `scripts/vercel-build-v13.sh`.
 - Probe pubblico: GET rifiutato, azioni senza autenticazione/capacità rifiutate, origine estranea rifiutata. Nessun tentativo con password di utenti reali.
+
+## Annullo completo del documento RCH
+
+Dalla vendita → Emissione / esito RCH → **Annulla scontrino**. Si mostrano numero, data e totale originali già confermati; l’operatore indica il motivo e conferma l’annullo. Il connettore 1.7 esegue solo `=k/&ddmmyy/[chiusura/]progressivo` (protocollo v14 p.24), dopo i controlli di matricola, stato RT e REG inattivo. Non si usano `=a` o `=k` senza riferimento, che riguardano altre operazioni. Il comando emette realmente il documento di annullo sul PC del negozio; nessun annullo reale viene eseguito dai test.
+
+Annullo e vendita condividono il blocco del registratore e il diario persistente. Il database consente una sola operazione di annullo per originale e ne consente il nuovo tentativo solo se è certo che nessun comando fiscale sia stato inviato. La capability è legata anche al tipo sale/void. Le risposte perse restano da verificare, senza reinvio automatico.
+
+Le righe TS non trasmesse vengono sospese nella stessa transazione del claim. Un esito certo senza invio le libera; un esito incerto le mantiene sospese; la chiusura dell’annullo confermata dalla RCH le esclude dall’invio prima ancora della trascrizione della nuova stampa. Spese TS già elaborate o con protocollo richiedono una rettifica TS dedicata, non implementata da questa release, e bloccano l’annullo. Il trasporto TS rimane inattivo.
+
+Dopo la stampa inserire il numero del **nuovo documento di annullo**, data e importo e verificarne il riferimento all’originale. Il documento originale resta conservato. L’annullo fiscale non chiama Shopify, non cancella vendite o pagamenti, non rimborsa somme e non modifica giacenze.
+
+Test aggiunti: `tests/fiscal-void-ui.test.mjs`, `tests/fiscal-void-db.test.sql`; estesi i test di dominio e del connettore. `tests/fiscal-cash-flow.test.mjs` verifica il checkout assemblato e il recupero dalla cronologia. Le prove UI sono DOM simulate; il browser locale non è disponibile in questa sessione.

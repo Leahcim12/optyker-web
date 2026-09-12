@@ -14,7 +14,7 @@ async function setup({timeout=false,initialState=null}={}){
  w.OPTYKER_CLOUD={username:'TEST OPERATOR',password:'TEST PASSWORD'};w.AbortSignal=AbortSignal;
  w.fetch=async function(url,opts={}){
   const body=opts.body?JSON.parse(opts.body):null;calls.push({url,body});let x;
-  if(url.endsWith('/health'))x={ok:true,version:'1.6-fiscal-journal',capabilities:{receipt:true}};
+  if(url.endsWith('/health'))x={ok:true,version:'1.7-fiscal-void',capabilities:{receipt:true}};
   else if(url.endsWith('/receipt')){state=timeout?'uncertain':'awaiting_reference';if(timeout)throw new Error('timeout');x={ok:true,state:'closing_acknowledged'}}
   else if(url.endsWith('/receipt/status'))x={ok:true,state};
   else if(body.action==='sale')x={ok:true,data:{total:12.5,status:'completed',has_fiscal_code:true,lines:[{title:'Occhiale',price:12.5,quantity:1}],payments:[{id:pid,amount:12.5,payment_stage:'balance',payment_method:'cash',created_at:'2026-09-12'}],jobs:initialState?[job()]:[]}};

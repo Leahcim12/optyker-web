@@ -1,6 +1,6 @@
 // RCH protocol v14 pp.18-23. Shop mapping: readback 2026-09-12.
 export const SERIAL = '72IV6003831';
-export const RELEASE = '20260912-fiscal1';
+export const RELEASE = '20260912-void1';
 export const DEPARTMENTS = Object.freeze({1:{vat:'04',type:'goods'},2:{vat:'22',type:'goods'},3:{vat:'ART10',type:'services'}});
 export function cents(value) {
   const s=String(value);
@@ -48,7 +48,23 @@ export function makeDocument(payment,input,clientFiscal='') {
   const commands=lines.map(l=>'=R'+l.department+'/$'+l.unitPriceCents+'/*'+l.quantity+'/('+l.description+')');
   if(cf)commands.push('="/?C/('+cf+')');
   commands.push('=T'+paymentCode);
-  return {version:RELEASE,serial:SERIAL,paymentCode,paymentMethod:payment.payment_method,totalCents:total,lines,talkingReceipt:talking,fiscalCode:cf,tsRequested,opposition,commands};
+  return {version:RELEASE,operation:'sale',serial:SERIAL,paymentCode,paymentMethod:payment.payment_method,totalCents:total,lines,talkingReceipt:talking,fiscalCode:cf,tsRequested,opposition,commands};
+}
+// RCH protocol v14 p.24: complete void of a CLOSED commercial document.
+// =a / bare =k are not substitutes for this date + closure + document command.
+export function makeVoid(original,input) {
+  if((original.operation||'sale')!=='sale'||original.state!=='completed'||original.serial!==SERIAL)throw new Error('Seleziona uno scontrino RCH con riferimento confermato');
+  if(input.confirmed!==true)throw new Error('Conferma l’annullo completo dello scontrino');
+  const amount=original.document?.totalCents;
+  if(!Number.isSafeInteger(amount)||amount<=0||amount>100000000)throw new Error('Importo originale non valido');
+  const ref=reference({document_number:original.document_number,document_date:original.document_date,amount:amount/100,paper_verified:true},amount);
+  if(input.expected_number!==ref.number||input.expected_date!==ref.date||cents(input.expected_total)!==amount)throw new Error('Il riferimento è cambiato: riapri il documento');
+  const reason=String(input.reason||'').trim();if(reason.length<3||reason.length>200)throw new Error('Indica il motivo dell’annullo (3–200 caratteri)');
+  const [closure,number]=ref.number.split('-').map(Number),[year,month,day]=ref.date.split('-');
+  if(closure<=0||Number(year)<2015||Number(year)>2099)throw new Error('Riferimento originale fuori limite');
+  return {version:RELEASE,operation:'void',serial:SERIAL,totalCents:amount,talkingReceipt:false,tsRequested:false,
+    reason,original:{jobId:original.id,number:ref.number,date:ref.date},
+    commands:['=k/&'+day+month+year.slice(-2)+'/['+closure+'/]'+number]};
 }
 export function resultState(result,commandCount) {
   if(result?.state==='not_started'&&result.commandsAcknowledged===0&&result.writeStarted===false)return 'not_started';
