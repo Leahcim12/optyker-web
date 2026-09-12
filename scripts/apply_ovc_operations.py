@@ -6,6 +6,10 @@ import hashlib,json,os,re,shutil,sys
 ROOT=Path(__file__).resolve().parent.parent
 SITE=Path(sys.argv[1]) if len(sys.argv)>1 else Path('_site')
 VERSION='20260910-ovc2'
+# Preserve the current cashier release after earlier catalog/theme patches.
+cash_version_match=re.search(r"window\.OPTYKER_CASH_BUILD='([A-Za-z0-9_.-]+)'",(ROOT/'cash-register.js').read_text())
+if not cash_version_match:raise SystemExit('Cash source release version missing')
+CASH_VERSION=cash_version_match[1]
 def one(s,old,new):
  if s.count(old)!=1:raise SystemExit('OVC contract missing/ambiguous: '+old[:110])
  return s.replace(old,new,1)
@@ -49,11 +53,13 @@ if 'data-ovc-ui=' not in h:
   s=one(s,anchor,code+anchor)
   return s
  h=in_script(h,'optykerLaboratoryScript',lab)
- h=re.sub(r'(cash-register\.js|optyker-vision\.js)\?[^\"\'< >\s]+',lambda m:m[1]+'?v='+VERSION,h)
- page.write_text(h)
- for alias in ('gestionale-v2','gestionale-v3'):
-  t=SITE/alias/'index.html'
-  if t.is_file():t.write_text(h)
+ h=re.sub(r'(optyker-vision\.js)\?[^\"\'< >\s]+',lambda m:m[1]+'?v='+VERSION,h)
+# Also refresh already assembled pages, without replacing their business scripts.
+h=re.sub(r'(cash-register\.js)\?[^\"\'< >\s]+',lambda m:m[1]+'?v='+CASH_VERSION,h)
+page.write_text(h)
+for alias in ('gestionale-v2','gestionale-v3'):
+ t=SITE/alias/'index.html'
+ if t.is_file():t.write_text(h)
 # Remove the sidebar entry, retaining both existing cash entry points.
 p=SITE/'optyker-vision.js';s=p.read_text()
 nav="    const cashNav=document.createElement('button');cashNav.type='button';cashNav.className='moduleBtn';cashNav.id='visionNavCash';cashNav.textContent='Cassa';cashNav.onclick=()=>action('cash');nav.append(cashNav);"
@@ -68,8 +74,8 @@ if 'function ovcCartKey' not in s:
  s=one(s,'function removeLine(id){delete S.cart[id];','function removeLine(id){if(S.busy)return;delete S.cart[id];')
  pos=s.rfind('})();')
  s=s[:pos]+(ROOT/'cash-ovc-pricing.js').read_text()+'\n'+s[pos:]
- s=re.sub(r"window.OPTYKER_CASH_BUILD='[^']+'","window.OPTYKER_CASH_BUILD='"+VERSION+"'",s)
- p.write_text(s)
+s=re.sub(r"window.OPTYKER_CASH_BUILD='[^']+'","window.OPTYKER_CASH_BUILD='"+CASH_VERSION+"'",s)
+p.write_text(s)
 for name in ('optyker-operations.css','optyker-operations.js','ovc-card-logo.png'):
  shutil.copyfile(ROOT/name,SITE/name)
 # Earlier public verifiers still describe unchanged releases; refresh changed hashes.
