@@ -82,11 +82,11 @@
     if(input.stage!=='balance')issue('stage_unverified','Acconti e saldi collegati a documenti precedenti richiedono una gestione fiscale dedicata.');
     if(input.invoice===true)issue('invoice_flow','Le fatture seguono il flusso dedicato; non generare anche uno scontrino automaticamente.');
     var blockers=[
-      {code:'rch_protocol',message:'Emissione RCH, codice fiscale e numero documento: protocollo e collaudo da completare.'},
-      {code:'persistent_job',message:'Registro persistente dei tentativi e recupero degli esiti incerti da completare.'},
+      {code:'rch_protocol',message:'Apri Emissione / esito RCH dalla vendita: il controllo preliminare non autorizza una stampa.'},
+      {code:'persistent_job',message:'L’emissione richiede l’autorizzazione associata a un pagamento e il registro persistente del connettore 1.6.'},
       {code:'device_identity',message:'Configurazione letta il 12/09/2026; identità, stato e assetto della cassa vanno ricontrollati al momento dell’emissione.'}
     ];
-    if(input.talkingReceipt===true)blockers.push({code:'talking_receipt',message:'Scontrino parlante non attivo; il controllo non acquisisce né invia il codice fiscale.'});
+    if(input.talkingReceipt===true)blockers.push({code:'talking_receipt',message:'Il codice fiscale viene acquisito solo dalla schermata di emissione autorizzata.'});
     if(input.tsRequested===true)blockers.push({code:'ts_not_configured',message:'Accesso e trasmissione diretta Sistema TS non configurati.'});
     return {profileId:profile.id,checkedAt:new Date().toISOString(),readOnly:true,emittedFiscalDocument:false,tsSubmitted:false,
       dataValid:issues.length===0,canEmit:false,canSubmitTs:false,totalCents:total,payment:payment,lines:rows,issues:issues,blockers:blockers,

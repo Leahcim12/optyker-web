@@ -1,5 +1,7 @@
 # Optyker: attivazione cassa RCH e Sistema TS
 
+**Aggiornamento:** emissione con connettore 1.6 e registro persistente descritta in [FISCAL-EMISSION.md](FISCAL-EMISSION.md). Invio TS ancora bloccato dal kit tecnico/accesso. Le sezioni seguenti documentano le fasi precedenti.
+
 ## Configurazione confermata il 12/09/2026 alle 10:43
 
 Il rapporto `Configurazione-RCH-20260912-104354-c265fd6d.json` ha completato le quattro letture, con matricola `72IV6003831` corrispondente e stato PRG inattivo prima e dopo. SHA-256 del rapporto originale: `88c72b95c51638b5821fd02191643345e78fc6d1e0c7d55627cd5c0e1077216e`. Il file originale resta privato: nel codice vengono riportati solo i dati necessari al profilo del negozio.

@@ -5,7 +5,9 @@
 )
 
 $ErrorActionPreference = 'Stop'
-$ConnectorVersion = '1.5-status-compatibility'
+$ConnectorVersion = '1.6-fiscal-journal'
+$FiscalApi = 'https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-fiscal-api'
+$JournalRoot = if($env:LOCALAPPDATA){Join-Path $env:LOCALAPPDATA 'OptykerRCH/receipts'}else{Join-Path ([System.IO.Path]::GetTempPath()) 'OptykerRCH-readonly'}
 $printerAddress = $null
 if(-not [System.Net.IPAddress]::TryParse($PrinterIp, [ref]$printerAddress) -or $printerAddress.AddressFamily -ne [System.Net.Sockets.AddressFamily]::InterNetwork){throw 'Indirizzo IPv4 del registratore non valido.'}
 $PrinterUrl = "http://$PrinterIp/service.cgi"
@@ -56,7 +58,7 @@ function Flatten-RchXml([string]$xmlText) {
   try {
     $doc = Read-SafeXml $xmlText
     function Walk-Node($node,[string]$path) {
-      $p = if($path){$path+'/'+$node.Name}else{$node.Name}
+      $p = if($path){$path+'/'+$node.get_Name()}else{$node.get_Name()}
       $children = @($node.ChildNodes | Where-Object {$_.NodeType -eq [System.Xml.XmlNodeType]::Element})
       if($children.Count -eq 0){$rows.Add([pscustomobject]@{path=$p;value=[string]$node.InnerText})}
       else {foreach($child in $children){Walk-Node $child $p}}
@@ -147,6 +149,142 @@ function Status-Rch {
 function Drawer-Rch { return Parse-Rch (Send-RchCommand '=C86') }
 function GiftReceipt-Rch { return Parse-Rch (Send-RchCommand '=C453/$2') }
 
+function Invoke-FiscalCloud([string]$action,$payload) {
+  $bytes=[System.Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -Depth 20 -Compress @{action=$action;payload=$payload}))
+  $r=Invoke-RestMethod -Uri $FiscalApi -Method Post -ContentType 'application/json' -Body $bytes -TimeoutSec 20 -MaximumRedirection 0
+  if($r.ok -ne $true){throw 'Il registro cloud non ha confermato l operazione.'}
+  return $r.data
+}
+function Protect-JournalToken([string]$value) {
+  # Windows DPAPI: tied to the cashier's Windows account, never stored in plain text.
+  Add-Type -AssemblyName System.Security
+  $b=[System.Text.Encoding]::UTF8.GetBytes($value)
+  return [Convert]::ToBase64String([System.Security.Cryptography.ProtectedData]::Protect($b,$null,[System.Security.Cryptography.DataProtectionScope]::CurrentUser))
+}
+function Unprotect-JournalToken([string]$value) {
+  Add-Type -AssemblyName System.Security
+  return [System.Text.Encoding]::UTF8.GetString([System.Security.Cryptography.ProtectedData]::Unprotect([Convert]::FromBase64String($value),$null,[System.Security.Cryptography.DataProtectionScope]::CurrentUser))
+}
+function Journal-Path([string]$id) {
+  if($id -notmatch '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'){throw 'Identificativo emissione non valido.'}
+  return Join-Path $JournalRoot ($id+'.json')
+}
+function Save-Journal($entry) {
+  $path=Journal-Path $entry.jobId
+  $tmp=$path+'.tmp';$bytes=[System.Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -Depth 20 -Compress $entry))
+  $file=[System.IO.File]::Open($tmp,[System.IO.FileMode]::Create,[System.IO.FileAccess]::Write,[System.IO.FileShare]::None)
+  try{$file.Write($bytes,0,$bytes.Length);$file.Flush($true)}finally{$file.Dispose()}
+  if([System.IO.File]::Exists($path)){[System.IO.File]::Replace($tmp,$path,($path+'.previous'))}else{[System.IO.File]::Move($tmp,$path)}
+}
+function Read-Journal([string]$id) {
+  $path=Journal-Path $id
+  if(Test-Path -LiteralPath $path){return Get-Content -LiteralPath $path -Raw | ConvertFrom-Json}
+  return $null
+}
+function Assert-NoUncertainReceipt {
+  if(Test-Path -LiteralPath $JournalRoot){
+    foreach($f in Get-ChildItem -LiteralPath $JournalRoot -Filter '*.json'){
+      $entry=Get-Content -LiteralPath $f.FullName -Raw | ConvertFrom-Json
+      if($entry.state -in @('claiming','sending','uncertain')){throw 'Una emissione ha un esito da verificare. Controllare il documento sulla cassa prima di procedere.'}
+    }
+  }
+}
+function Public-Receipt($entry) {
+  return @{ok=$true;jobId=$entry.jobId;state=$entry.state;writeStarted=$entry.writeStarted;commandsAcknowledged=$entry.commandsAcknowledged;idleAfter=$entry.idleAfter;cloudSaved=$entry.cloudSaved;error=$entry.error;connectorVersion=$ConnectorVersion}
+}
+function Sync-ReceiptOutcome($entry) {
+  if($entry.cloudSaved -eq $true -or -not $entry.protectedResultToken){return}
+  $result=Public-Receipt $entry
+  try {
+    $null=Invoke-FiscalCloud 'bridge_outcome' @{job_id=$entry.jobId;token=(Unprotect-JournalToken $entry.protectedResultToken);result=$result}
+    $entry.cloudSaved=$true;Save-Journal $entry
+  } catch { $entry.cloudSaved=$false }
+}
+function Read-ReceiptStatus([string]$id) {
+  $entry=Read-Journal $id;if(-not $entry){return @{ok=$true;state='not_found'}}
+  # A process died with an outstanding claim/write. Never continue the sequence.
+  if($entry.state -in @('claiming','sending')){$entry.state='uncertain';$entry.error='Operazione interrotta: verificare il documento sul registratore.';Save-Journal $entry}
+  Sync-ReceiptOutcome $entry
+  return Public-Receipt $entry
+}
+function Assert-IdleRegister {
+  $status=Parse-Rch (Send-RchCommand '<</?s')
+  if(-not $status.ok -or $status.lastCmd -ne 1 -or $status.mode -notmatch '^REG(?:\s*\(OP\s*\d+\))?$' -or $status.idleState -cne '0'){throw 'Registratore non pronto in REG con documento chiuso.'}
+}
+function Read-RchValue([string]$command,[string]$name) {
+  $raw=Send-RchCommand $command;$status=Parse-Rch $raw
+  if(-not $status.ok -or $status.lastCmd -ne 1){throw 'Lettura identita o stato fiscale non confermata.'}
+  $doc=Read-SafeXml $raw;$values=$doc.SelectNodes('/Service/Enq')
+  if($values.Count -ne 1 -or $values[0].SelectSingleNode('name').InnerText -cne $name){throw 'Risposta identificativa RCH non valida.'}
+  return $values[0].SelectSingleNode('value').InnerText.Trim()
+}
+function Assert-FiscalDocument($document) {
+  if($document.serial -cne '72IV6003831'){throw 'Matricola non autorizzata.'}
+  $commands=@($document.commands);$lines=@($document.lines)
+  if($lines.Count -lt 1 -or $lines.Count -gt 100){throw 'Righe fiscali non valide.'}
+  $expected=New-Object 'System.Collections.Generic.List[string]';$total=0L
+  foreach($line in $lines){
+    if([string]$line.department -notmatch '^[123]$' -or [string]$line.quantity -notmatch '^[1-9][0-9]?$' -or [string]$line.unitPriceCents -notmatch '^[1-9][0-9]{0,8}$' -or [string]$line.description -notmatch "^[A-Z0-9 .,'+\-]{1,20}$"){throw 'Riga fiscale non valida.'}
+    $total+=([long]$line.quantity*[long]$line.unitPriceCents)
+    $expected.Add(('=R'+$line.department+'/$'+$line.unitPriceCents+'/*'+$line.quantity+'/('+$line.description+')'))
+  }
+  if($total -ne [long]$document.totalCents -or $total -le 0 -or $total -gt 100000000){throw 'Totale fiscale non valido.'}
+  if($document.talkingReceipt -eq $true){
+    if([string]$document.fiscalCode -notmatch '^[A-Z0-9]{16}$'){throw 'Codice fiscale non valido.'}
+    $expected.Add(('="/?C/('+$document.fiscalCode+')'))
+  }
+  if([string]$document.paymentCode -notmatch '^[134]$'){throw 'Pagamento non autorizzato.'}
+  $expected.Add(('=T'+$document.paymentCode))
+  if($commands.Count -ne $expected.Count){throw 'Sequenza fiscale non valida.'}
+  for($i=0;$i -lt $commands.Count;$i++){if($commands[$i] -cne $expected[$i]){throw 'Comando non autorizzato.'}}
+}
+function Assert-WindowsFiscalPlatform {
+  if([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT){throw 'Emissione disponibile sul PC Windows della cassa.'}
+}
+function Emit-Receipt($request) {
+  $id=[string]$request.jobId;$null=Journal-Path $id
+  if([string]$request.token -notmatch '^[a-f0-9]{64}$'){throw 'Autorizzazione emissione mancante.'}
+  Assert-WindowsFiscalPlatform
+  New-Item -ItemType Directory -Force -Path $JournalRoot | Out-Null
+  $lock=[System.IO.File]::Open((Join-Path $JournalRoot 'printer.lock'),[System.IO.FileMode]::OpenOrCreate,[System.IO.FileAccess]::ReadWrite,[System.IO.FileShare]::None)
+  try {
+    $existing=Read-Journal $id
+    if($existing){
+      if($existing.state -eq 'not_started' -and $existing.cloudSaved -eq $true){
+        Copy-Item -LiteralPath (Journal-Path $id) -Destination ((Journal-Path $id)+'.attempt.'+[DateTime]::UtcNow.Ticks) -ErrorAction Stop
+      }else{return Read-ReceiptStatus $id}
+    }
+    Assert-NoUncertainReceipt
+    $entry=[pscustomobject]@{jobId=$id;state='claiming';writeStarted=$false;commandsAcknowledged=0;idleAfter=$false;cloudSaved=$false;protectedResultToken='';error='';createdAt=(Get-Date).ToString('o')}
+    Save-Journal $entry
+    try {
+      $claimed=Invoke-FiscalCloud 'bridge_claim' @{job_id=$id;token=[string]$request.token}
+      $entry.protectedResultToken=Protect-JournalToken $claimed.result_token
+      $entry.state='sending';Save-Journal $entry
+      Assert-FiscalDocument $claimed.document
+      Assert-IdleRegister
+      if((Read-RchValue '<</?m' 'm') -cne $claimed.document.serial){throw 'La matricola collegata non corrisponde al negozio.'}
+      if((Read-RchValue '<</?i/*3' 'i/*3') -cne '111000'){throw 'Registratore telematico non operativo.'}
+      Assert-IdleRegister
+      foreach($command in $claimed.document.commands){
+        # Durably record possible execution BEFORE any fiscal bytes can leave the PC.
+        $entry.writeStarted=$true;Save-Journal $entry
+        $ack=Parse-Rch (Send-RchCommand $command)
+        if(-not $ack.ok -or $ack.lastCmd -ne 1){throw 'Comando fiscale non confermato. Verificare carta, stato e documento sul registratore.'}
+        $entry.commandsAcknowledged++;Save-Journal $entry
+      }
+      Assert-IdleRegister
+      $entry.idleAfter=$true;$entry.state='closing_acknowledged'
+    } catch {
+      $entry.state=if($entry.writeStarted -eq $false -and $entry.protectedResultToken){'not_started'}else{'uncertain'}
+      # Do not persist commands, patient CF or raw HTTP responses in the local journal.
+      $entry.error=if($entry.state -eq 'not_started'){'Verifica iniziale non superata. Nessun comando fiscale inviato.'}else{'Esito da verificare. Non ripetere la vendita: controllare il documento sul registratore.'}
+    }
+    Save-Journal $entry;Sync-ReceiptOutcome $entry
+    return Public-Receipt $entry
+  } finally {$lock.Dispose()}
+}
+
 function Diagnostics-Rch {
   $probes=Get-StatusProbes
   $reached=@($probes | Where-Object {$_.rchResponse -eq $true}).Count -gt 0
@@ -158,7 +296,7 @@ function Diagnostics-Rch {
     printerReached=$reached;statusAccepted=$accepted;printerReady=$accepted
     probes=$probes
     readiness=@{receipt=$false;talkingReceipt=$false;adeOutcome='unverified';tsSubmission=$false}
-    missing=@('Configurazione reparti IVA e pagamenti verificata sul registratore','Protocollo RCH per codice fiscale e riferimento documento','Accesso e integrazione diretta Sistema TS')
+    missing=@('Collaudo emissione sul registratore reale','Numero documento da confermare sulla stampa','Kit tecnico e accesso diretto Sistema TS')
     note='printerReached indica una risposta RCH; statusAccepted indica una richiesta di stato accettata. Nessuno dei due certifica emissione o invio fiscale.'
   }
 }
@@ -239,16 +377,23 @@ try {
       $ResponseOrigin=[string]$request.headers['origin']
       if($request.method -eq 'OPTIONS'){Json-Response $stream 200 @{ok=$true};continue}
       if($request.method -eq 'GET' -and $request.path -eq '/health'){
-        Json-Response $stream 200 @{ok=$true;connector='Optyker RCH';version=$ConnectorVersion;printer=$PrinterIp;port=$Port;capabilities=@{diagnostics=$true;receipt=$false;talkingReceipt=$false;adeOutcome=$false}}
+        Json-Response $stream 200 @{ok=$true;connector='Optyker RCH';version=$ConnectorVersion;printer=$PrinterIp;port=$Port;capabilities=@{diagnostics=$true;receipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);talkingReceipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);adeOutcome=$false;manualReference=$true}}
       } elseif($request.method -eq 'GET' -and $request.path -eq '/status'){
         Json-Response $stream 200 (Status-Rch)
       } elseif($request.method -eq 'GET' -and $request.path -eq '/diagnostics'){
         Json-Response $stream 200 (Diagnostics-Rch)
       } elseif($request.method -eq 'POST' -and $request.path -eq '/receipt'){
-        Json-Response $stream 409 @{ok=$false;error='Emissione fiscale non configurata: verificare reparti, pagamenti, codice fiscale e numero documento RCH.';emittedFiscalDocument=$false}
+        $body=$request.body | ConvertFrom-Json
+        if(-not $body.jobId -or -not $body.token){Json-Response $stream 409 @{ok=$false;error='Autorizzazione emissione mancante.';emittedFiscalDocument=$false}}
+        else {Json-Response $stream 200 (Emit-Receipt $body)}
+      } elseif($request.method -eq 'POST' -and $request.path -eq '/receipt/status'){
+        $body=$request.body | ConvertFrom-Json
+        Json-Response $stream 200 (Read-ReceiptStatus ([string]$body.jobId))
       } elseif($request.method -eq 'POST' -and $request.path -eq '/drawer'){
+        Assert-NoUncertainReceipt
         Json-Response $stream 200 (Drawer-Rch)
       } elseif($request.method -eq 'POST' -and $request.path -eq '/gift-receipt'){
+        Assert-NoUncertainReceipt
         Json-Response $stream 200 (GiftReceipt-Rch)
       } else {Json-Response $stream 404 @{ok=$false;error='Endpoint non valido'}}
     } catch {

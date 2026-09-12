@@ -19,7 +19,7 @@ function fixture(modulePresent=true){
   const document={getElementById:id=>ids.get(id),createElement:element,body:element(),readyState:'loading',addEventListener(){}};
   const window={OPTYKER_RCH_PREFLIGHT:modulePresent?preflight:undefined};
   const context=vm.createContext({window,document,AbortController,URL,Blob,setTimeout:()=>1,clearTimeout(){},setInterval(){},console,
-    fetch:async(url,opts)=>{requests.push({url,opts});return {ok:true,json:async()=>url.endsWith('/health')?{ok:true,version:'1.5-status-compatibility'}:{ok:true,mode:'Z'}}}});
+    fetch:async(url,opts)=>{requests.push({url,opts});return {ok:true,json:async()=>url.endsWith('/health')?{ok:true,version:'1.6-fiscal-journal'}:{ok:true,mode:'Z'}}}});
   let source=readFileSync(new URL('../cash-register.js',import.meta.url),'utf8');
   source=source.replace('window.openOptykerCash=function','window.testHooks={openRch:openRch,state:S,testRch:testRch};window.openOptykerCash=function');
   vm.runInContext(source,context);

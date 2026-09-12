@@ -1,7 +1,7 @@
 /* OPTYKER_SEPT11_PREPARED */
 (function(){
 if(window.__optykerCashLoaded)return;window.__optykerCashLoaded=true;
-window.OPTYKER_CASH_BUILD='20260912-rch-confirmed2';
+window.OPTYKER_CASH_BUILD='20260912-fiscal1';
 var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-cash-register-api';
 var S={products:[],clients:[],cart:{},type:'',payment:'card',stage:'balance',clientId:'',invoice:false,tsRequested:false,tsCode:'AD',tsOpposition:false,busy:false,searchTimer:null,clientSearchTimer:null,rchOk:false,cashOpen:false};
 
@@ -30,13 +30,13 @@ function rchRequest(path,opts){
 }
 function testRch(quiet){
   return rchRequest('/health').then(function(h){
-    if(h.version!=='1.5-status-compatibility')throw new Error('Aggiorna il connettore RCH dalla finestra di configurazione.');
+    if(h.version!=='1.6-fiscal-journal')throw new Error('Aggiorna il connettore RCH dalla finestra di configurazione.');
     return rchRequest('/status')
   }).then(function(x){
     var extra=x.mode?(' · '+x.mode):' · modalità non disponibile';
     var reg=!!window.OPTYKER_RCH_PREFLIGHT&&window.OPTYKER_RCH_PREFLIGHT.registrationMode(x);
     rchStatusUi(reg,'● RCH raggiungibile'+extra);
-    if(!quiet)toast(reg?'RCH risponde in REG. Emissione fiscale non ancora attiva.':'RCH risponde, ma non risulta in modalità REG.','');return x
+    if(!quiet)toast(reg?'RCH risponde in REG. Puoi aprire Emissione RCH da una vendita registrata.':'RCH risponde, ma non risulta in modalità REG.','');return x
   }).catch(function(e){
     rchStatusUi(false,'○ RCH da verificare');
     if(!quiet)toast('RCH da verificare: '+e.message,'error');
@@ -47,7 +47,7 @@ function downloadRchDiagnostics(){
   var b=E('optykerCashRchDiagnostics'),r=E('optykerCashRchResult');
   b.disabled=true;r.textContent='Raccolta diagnosi dal PC della cassa…';r.className='optykerCashRchResult';
   return rchRequest('/health').then(function(h){
-    if(h.version!=='1.5-status-compatibility')throw new Error('Installa / aggiorna il connettore, poi riprova.');
+    if(h.version!=='1.6-fiscal-journal')throw new Error('Installa / aggiorna il connettore, poi riprova.');
     return rchRequest('/diagnostics')
   }).then(function(report){
     if(report.reportGenerated!==true||report.readOnly!==true)throw new Error('Rapporto diagnostico incompleto.');
@@ -59,7 +59,7 @@ function downloadRchDiagnostics(){
     }
     var url=URL.createObjectURL(new Blob([JSON.stringify(report,null,2)],{type:'application/json'}));
     var a=document.createElement('a');a.href=url;a.download='Diagnostica-RCH-Optyker.json';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},1000);
-    r.textContent='Diagnosi scaricata. '+(report.statusAccepted?'Richiesta di stato accettata.':report.printerReached?'RCH raggiungibile, ma la richiesta di stato non è stata accettata.':'Nessuna risposta RCH valida: verificare il collegamento.')+(report.registrationModeVerified?' Modalità REG rilevata.':' Modalità REG non verificata.')+' Emissione fiscale non attiva. Allega il file nella chat per completare la configurazione.';
+    r.textContent='Diagnosi scaricata. '+(report.statusAccepted?'Richiesta di stato accettata.':report.printerReached?'RCH raggiungibile, ma la richiesta di stato non è stata accettata.':'Nessuna risposta RCH valida: verificare il collegamento.')+(report.registrationModeVerified?' Modalità REG rilevata.':' Modalità REG non verificata.')+' Diagnosi di sola lettura: per emettere apri Emissione / esito RCH dalla vendita.';
     r.className='optykerCashRchResult'+(report.registrationModeVerified?' ok':' error')
   }).catch(function(e){r.textContent=e.message+' Se il browser blocca l’accesso locale, usa “Diagnostica Windows”.';r.className='optykerCashRchResult error'})
     .finally(function(){b.disabled=false})
@@ -98,10 +98,10 @@ function openRch(){
     '<div class="optykerCashModalSub">Optyker usa un piccolo connettore locale per comunicare in sicurezza con RCH PRINT! RT su 192.168.1.10.</div>'+
     '<div class="optykerCashRchInfo"><div><span>Registratore</span><b>RCH PRINT! RT</b></div><div><span>IP</span><b>192.168.1.10</b></div><div><span>Web Service</span><b>/service.cgi</b></div><div><span>Bridge Optyker</span><b>127.0.0.1:8765</b></div></div>'+
     '<div class="optykerCashRchHelp"><b>Configurazione letta dalla cassa · 12/09/2026</b><div id="optykerCashRchProfile"></div></div>'+
-    '<div class="optykerCashRchHelp"><b>Attivazione fiscale da completare</b><br>Matricola, reparti, aliquote e pagamenti confermati dalla lettura RCH del 12/09/2026.<br>Scontrini ordinari e parlanti: emissione e recupero del numero documento da collaudare.<br>Spese sanitarie: invio diretto al Sistema TS non attivo.<br>Corrispettivi AdE: ricevute di accettazione dei documenti da verificare.</div>'+
+    '<div class="optykerCashRchHelp"><b>Attivazione fiscale da completare</b><br>Matricola, reparti, aliquote e pagamenti confermati dalla lettura RCH del 12/09/2026.<br>Connettore 1.6: emissione dalla vendita, da collaudare sulla RCH. Il numero va confermato dalla stampa.<br>Spese sanitarie: invio diretto al Sistema TS non attivo.<br>Corrispettivi AdE: ricevute di accettazione dei documenti da verificare.</div>'+
     '<div class="optykerCashRchHelp"><button id="optykerCashRchPreflight" type="button">Controlla carrello · senza stampa</button><div id="optykerCashRchPreflightResult" role="status" aria-live="polite"></div></div>'+
     '<div id="optykerCashRchResult" class="optykerCashRchResult">Pronto per il test.</div>'+
-    '<div class="optykerCashRchDownloads optykerCashRchDownloadsAuto"><a class="primary" href="/rch-connector/Installa-RCH-Optyker.bat?v=20260909-rch-status2" download>Installa / aggiorna connettore</a><a href="/rch-connector/Diagnostica-RCH-Optyker.bat?v=20260909-rch-status2" download>Diagnostica Windows</a><a href="/rch-connector/Disinstalla-RCH-Optyker.ps1" download>Rimuovi avvio automatico</a></div>'+
+    '<div class="optykerCashRchDownloads optykerCashRchDownloadsAuto"><a class="primary" href="/rch-connector/Installa-RCH-Optyker.bat?v=20260912-fiscal1" download>Installa / aggiorna connettore</a><a href="/rch-connector/Diagnostica-RCH-Optyker.bat?v=20260912-fiscal1" download>Diagnostica Windows</a><a href="/rch-connector/Disinstalla-RCH-Optyker.ps1" download>Rimuovi avvio automatico</a></div>'+
     '<div class="optykerCashRchHelp">Il <b>Test collegamento</b> controlla soltanto la comunicazione e non emette documenti fiscali. <b>Apri cassetto</b> è la prova hardware più semplice: apre solo il cassetto contanti senza stampare uno scontrino.</div>'+
     '<div class="optykerCashRchActions optykerCashRchActions4"><button id="optykerCashRchTest" type="button">Test collegamento</button><button id="optykerCashRchDiagnostics" type="button">Scarica diagnosi</button><button id="optykerCashRchDrawerTest" type="button">Apri cassetto</button><button class="optykerCashModalClose" type="button">Chiudi</button></div></div>';
   m.classList.add('open');
@@ -127,7 +127,7 @@ function openRch(){
   E('optykerCashRchDiagnostics').onclick=downloadRchDiagnostics;
   E('optykerCashRchTest').onclick=function(){
     var r=E('optykerCashRchResult');r.textContent='Collegamento in corso…';r.className='optykerCashRchResult';
-    testRch(true).then(function(x){var reg=!!preflight&&preflight.registrationMode(x);r.textContent='RCH risponde'+(x.mode?' · modalità '+x.mode:' · modalità non disponibile')+(reg?'':' · prima dell’uso verificare il ritorno a REG')+'. Emissione fiscale non attiva.';r.className='optykerCashRchResult'+(reg?' ok':' error')})
+    testRch(true).then(function(x){var reg=!!preflight&&preflight.registrationMode(x);r.textContent='RCH risponde'+(x.mode?' · modalità '+x.mode:' · modalità non disponibile')+(reg?'':' · prima dell’uso verificare il ritorno a REG')+'. Per emettere apri Emissione / esito RCH dalla vendita.';r.className='optykerCashRchResult'+(reg?' ok':' error')})
       .catch(function(e){r.textContent='Non collegato · '+e.message;r.className='optykerCashRchResult error'})
   };
   E('optykerCashRchDrawerTest').onclick=function(){
@@ -384,7 +384,7 @@ function checkout(){
   if(S.stage==='deposit')msg+=' Resteranno '+euro(total-dep)+' da saldare.';
   if(inv)msg+=' Verrà preparata anche la fattura del pagamento.';
   if(ts)msg+=tsOpp?' Verrà registrata l\'opposizione al Sistema TS.':' Verrà preparata la spesa '+tsCode+' per il Sistema TS.';
-  if(!inv)msg+=' Lo scontrino fiscale va ancora emesso sul registratore.';
+  if(!inv)msg+=' Dopo la registrazione potrai emettere lo scontrino dalla schermata RCH.';
   if(!window.confirm(msg+'\n\nConfermare?'))return;
   S.busy=true;renderCart();
   api('checkout',{
@@ -404,8 +404,9 @@ function checkout(){
     if(Number(sale.due_amount||0)>0)text+=' · da saldare '+euro(sale.due_amount);
     if(sale.billing_invoice&&sale.billing_invoice.id)text+=' · richiesta Fatture in Cloud preparata';
     if(sale.ts_document&&sale.ts_document.id)text+=sale.ts_document.opposition?' · opposizione TS registrata':' · dati TS salvati, invio non attivo';
-    toast(text,'ok')
-  }).catch(function(e){toast('Vendita non completata: '+e.message,'error')}).finally(function(){S.busy=false;renderCart()})
+    toast(text,'ok');
+    if(!inv&&window.OPTYKER_FISCAL&&sale.id)window.OPTYKER_FISCAL.openSale(sale.id)
+  }).catch(function(e){toast('Esito vendita da verificare nella cronologia prima di riprovare: '+e.message,'error')}).finally(function(){S.busy=false;renderCart()})
 }
 function openDeposits(){
   var m=E('optykerCashDepositsModal');if(!m){m=document.createElement('div');m.id='optykerCashDepositsModal';m.className='optykerCashModal';document.body.appendChild(m)}
@@ -431,19 +432,20 @@ function settleExisting(saleId,stage,modal){
   var label=stage==='delivery_balance'?'saldo alla consegna':'saldo';
   var extra=inv?'\nVerrà preparata anche la fattura del pagamento.':'';
   if(ts)extra+=tsOpp?'\nVerrà registrata l\'opposizione al Sistema TS.':'\nVerrà preparata la spesa '+tsCode+' per il Sistema TS.';
-  if(!inv)extra+='\nLo scontrino fiscale va ancora emesso sul registratore.';
+  if(!inv)extra+='\nDopo la registrazione potrai emettere il documento dalla schermata RCH.';
   if(!window.confirm('Registrare il '+label+'?'+extra))return;
   api('settle',{sale_id:saleId,payment_stage:stage,payment_method:S.payment,invoice_requested:inv,ts_requested:ts,ts_expense_code:tsCode,ts_opposition:tsOpp,note:String(E('optykerCashNote').value||'')})
-    .then(function(x){var sale=x.data||{};var t='Saldo registrato'+(sale.billing_invoice?' · richiesta Fatture in Cloud preparata':'');if(sale.ts_document)t+=sale.ts_document.opposition?' · opposizione TS registrata':' · dati TS salvati, invio non attivo';toast(t,'ok');if(modal)modal.classList.remove('open');openDeposits()})
+    .then(function(x){var sale=x.data||{};var t='Saldo registrato'+(sale.billing_invoice?' · richiesta Fatture in Cloud preparata':'');if(sale.ts_document)t+=sale.ts_document.opposition?' · opposizione TS registrata':' · dati TS salvati, invio non attivo';toast(t,'ok');if(modal)modal.classList.remove('open');if(!inv&&window.OPTYKER_FISCAL)window.OPTYKER_FISCAL.openSale(sale.id);else openDeposits()})
     .catch(function(e){toast('Saldo non completato: '+e.message,'error')})
 }
 function openTsDocuments(){
   var m=E('optykerCashTsModal');if(!m){m=document.createElement('div');m.id='optykerCashTsModal';m.className='optykerCashModal';document.body.appendChild(m)}
-  m.innerHTML='<div class="optykerCashModalCard optykerCashTsModalCard"><div class="optykerCashModalTitle">Sistema Tessera Sanitaria</div><div class="optykerCashModalSub">Invio diretto al Sistema TS non attivo. Queste registrazioni conservano i dati delle spese; servono un documento fiscale valido e il collegamento TS configurato prima della trasmissione.</div><div id="optykerCashTsList"><div class="optykerCashLoading">Caricamento…</div></div><button class="optykerCashModalClose" type="button">Chiudi</button></div>';
+  m.innerHTML='<div class="optykerCashModalCard optykerCashTsModalCard"><div class="optykerCashModalTitle">Sistema Tessera Sanitaria</div><div class="optykerCashModalSub">Invio diretto al Sistema TS non attivo. Queste registrazioni conservano i dati delle spese; servono un documento fiscale valido e il collegamento TS configurato prima della trasmissione.</div><button id="optykerCashTsRchQueue" type="button">Spese collegate ai documenti RCH</button><div id="optykerCashTsList"><div class="optykerCashLoading">Caricamento…</div></div><button class="optykerCashModalClose" type="button">Chiudi</button></div>';
   m.classList.add('open');m.querySelector('.optykerCashModalClose').onclick=function(){m.classList.remove('open')};m.onclick=function(ev){if(ev.target===m)m.classList.remove('open')};
+  E('optykerCashTsRchQueue').onclick=function(){if(window.OPTYKER_FISCAL)window.OPTYKER_FISCAL.openTs()};
   api('ts_documents',{client_id:S.clientId}).then(function(x){
     var box=E('optykerCashTsList'),a=Array.isArray(x.data)?x.data:[];if(!a.length){box.innerHTML='<div class="optykerCashEmpty">Nessuna spesa TS preparata.</div>';return}
-    function sl(v){if(v==='opposition_recorded')return 'Opposizione';if(v==='ready_focus_ts')return 'Preparato, non trasmesso';if(v==='sent')return 'Inviato';if(v==='accepted')return 'Accettato';if(v==='rejected')return 'Scartato';if(v==='error')return 'Errore';return 'Attende documento fiscale'}
+    function sl(v){if(v==='linked_fiscal_review')return 'Collegato alla revisione RCH';if(v==='opposition_recorded')return 'Opposizione';if(v==='ready_focus_ts')return 'Preparato, non trasmesso';if(v==='sent')return 'Inviato';if(v==='accepted')return 'Accettato';if(v==='rejected')return 'Scartato';if(v==='error')return 'Errore';return 'Attende documento fiscale'}
     box.innerHTML=a.map(function(r){var dt='';try{dt=new Date(r.payment_date||r.created_at).toLocaleDateString('it-IT')}catch(e){}var doc=r.document_number?(' · Doc. '+r.document_number):'';var proto=r.ts_protocol?(' · Protocollo '+r.ts_protocol):'';return '<div class="optykerCashTsRow"><div><b>'+esc(r.expense_code)+' · '+esc(euro(r.amount))+'</b><span>'+esc(dt+doc+' · '+(r.payment_method||''))+'</span></div><div class="optykerCashTsStatus '+esc(r.status||'')+'">'+esc(sl(r.status))+esc(proto)+'</div></div>'}).join('')
   }).catch(function(e){E('optykerCashTsList').innerHTML='<div class="optykerCashEmpty">Errore: '+esc(e.message)+'</div>'})
 }
@@ -478,8 +480,9 @@ function loadHistory(){
       if(r.status==='error')extra=' · Registrazione con errore';
       if(r.invoice_requested)extra+=' · Fattura richiesta';
       if(r.hidden_at)extra+=' · Eliminato dalla cronologia';
-      return '<div class="optykerCashSaleRow'+(r.hidden_at?' deleted':'')+'"><div class="optykerCashSaleTop"><div class="optykerCashSaleName">'+esc(r.shopify_order_name||'Vendita')+'</div><div class="optykerCashSaleAmount">'+esc(euro(r.total))+'</div></div><div class="optykerCashSaleMeta">'+esc(receiptDate(r.created_at)+' · '+stageLabel(r.payment_stage||'balance')+' · '+paymentLabel(r.payment_method)+extra)+'</div><div class="optykerCashHistoryActions"><button type="button" data-receipt="'+esc(r.id)+'">Ristampa copia</button><button type="button" data-visibility="'+esc(r.id)+'" data-hidden="'+(r.hidden_at?'false':'true')+'">'+(r.hidden_at?'Ripristina':'Elimina dalla scheda')+'</button></div></div>'
+      return '<div class="optykerCashSaleRow'+(r.hidden_at?' deleted':'')+'"><div class="optykerCashSaleTop"><div class="optykerCashSaleName">'+esc(r.shopify_order_name||'Vendita')+'</div><div class="optykerCashSaleAmount">'+esc(euro(r.total))+'</div></div><div class="optykerCashSaleMeta">'+esc(receiptDate(r.created_at)+' · '+stageLabel(r.payment_stage||'balance')+' · '+paymentLabel(r.payment_method)+extra)+'</div><div class="optykerCashHistoryActions"><button type="button" data-fiscal-sale="'+esc(r.id)+'">Emissione / esito RCH</button><button type="button" data-receipt="'+esc(r.id)+'">Ristampa copia</button><button type="button" data-visibility="'+esc(r.id)+'" data-hidden="'+(r.hidden_at?'false':'true')+'">'+(r.hidden_at?'Ripristina':'Elimina dalla scheda')+'</button></div></div>'
     }).join(''):'<div class="optykerCashEmpty">Nessuno scontrino registrato'+(clientId?' per questo cliente':'')+'.</div>';
+    box.querySelectorAll('[data-fiscal-sale]').forEach(function(b){b.onclick=function(){if(window.OPTYKER_FISCAL)window.OPTYKER_FISCAL.openSale(b.getAttribute('data-fiscal-sale'))}});
     box.querySelectorAll('[data-receipt]').forEach(function(b){b.onclick=function(){openReceiptCopy(b.getAttribute('data-receipt'),clientId,b)}});
     box.querySelectorAll('[data-visibility]').forEach(function(b){b.onclick=function(){
       var hidden=b.getAttribute('data-hidden')==='true';

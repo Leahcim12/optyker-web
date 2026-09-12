@@ -9,9 +9,17 @@ $connector = Join-Path $base "rch-optyker-connector.ps1"
 $launcher = Join-Path $base "Avvia-Optyker-RCH-Nascosto.vbs"
 $startup = [Environment]::GetFolderPath("Startup")
 $startupLink = Join-Path $startup "Optyker RCH.lnk"
-$source = "https://www.optyker.it/rch-connector/rch-optyker-connector.ps1?v=20260909-rch-status2"
+$source = "https://www.optyker.it/rch-connector/rch-optyker-connector.ps1?v=20260912-fiscal1"
 
 New-Item -ItemType Directory -Force -Path $base | Out-Null
+
+$journal = Join-Path $base "receipts"
+if(Test-Path -LiteralPath $journal){
+  foreach($f in Get-ChildItem -LiteralPath $journal -Filter '*.json'){
+    $j=Get-Content -LiteralPath $f.FullName -Raw | ConvertFrom-Json
+    if($j.state -in @('claiming','sending','uncertain')){throw "Emissione in corso o esito incerto: verificare la cassa prima di aggiornare il connettore."}
+  }
+}
 
 Write-Host "Installazione Optyker RCH..." -ForegroundColor Cyan
 $candidate = Join-Path $base "rch-optyker-connector.download.ps1"
@@ -19,11 +27,18 @@ Invoke-WebRequest -UseBasicParsing -Uri $source -OutFile $candidate
 $tokens = $null
 $parseErrors = $null
 [void][System.Management.Automation.Language.Parser]::ParseFile($candidate,[ref]$tokens,[ref]$parseErrors)
-if($parseErrors.Count -gt 0 -or (Get-Content -Raw -LiteralPath $candidate) -notmatch '1\.5-status-compatibility'){
+if($parseErrors.Count -gt 0 -or (Get-Content -Raw -LiteralPath $candidate) -notmatch '1\.6-fiscal-journal'){
   Remove-Item -LiteralPath $candidate -Force
   throw "Download del connettore non valido. La versione precedente e rimasta invariata."
 }
 if(Test-Path -LiteralPath $connector){Copy-Item -LiteralPath $connector -Destination ($connector+'.previous') -Force}
+# Re-check immediately before replacing the connector or stopping its process.
+if(Test-Path -LiteralPath $journal){
+  foreach($f in Get-ChildItem -LiteralPath $journal -Filter '*.json'){
+    $j=Get-Content -LiteralPath $f.FullName -Raw | ConvertFrom-Json
+    if($j.state -in @('claiming','sending','uncertain')){throw "Emissione in corso: aggiornamento sospeso."}
+  }
+}
 Move-Item -LiteralPath $candidate -Destination $connector -Force
 
 $vbs = @"
@@ -52,7 +67,7 @@ Start-Process -FilePath "wscript.exe" -ArgumentList ('"' + $launcher + '"') -Win
 Start-Sleep -Seconds 2
 try {
   $r = Invoke-RestMethod -UseBasicParsing -Uri "http://127.0.0.1:$Port/health" -TimeoutSec 4
-  if($r.ok -and $r.version -eq "1.5-status-compatibility"){
+  if($r.ok -and $r.version -eq "1.6-fiscal-journal"){
     Write-Host ""
     Write-Host "Installazione completata." -ForegroundColor Green
     Write-Host "Il connettore parte automaticamente con Windows e resta nascosto."

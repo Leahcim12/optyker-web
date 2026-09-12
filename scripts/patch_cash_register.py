@@ -4,8 +4,9 @@ from shutil import copyfile
 
 path=Path("_site/index.html")
 text=path.read_text(encoding="utf-8")
-version="20260912-rch-confirmed2"
+version="20260912-fiscal1"
 copyfile("rch-preflight.js", "_site/rch-preflight.js")
+copyfile("fiscal-receipts.js", "_site/fiscal-receipts.js")
 css=f'<link rel="stylesheet" href="/cash-register.css?v={version}" id="optykerCashCss">'
 js=f'<script src="/cash-register.js?v={version}" id="optykerCashJs"></script>'
 preflight=f'<script src="/rch-preflight.js?v={version}" id="optykerRchPreflightJs"></script>'
@@ -23,6 +24,7 @@ else:
     pos=text.rfind("</body>")
     text=(text[:pos]+js+"\n"+text[pos:]) if pos>=0 else text+"\n"+js
 
-text=text.replace(js, preflight+'\n'+js, 1)
+text=re.sub(r'<script[^>]*id="optykerFiscalReceiptsJs"[^>]*></script>\s*', '', text)
+text=text.replace(js, preflight+'\n'+f'<script src="/fiscal-receipts.js?v={version}" id="optykerFiscalReceiptsJs"></script>\n'+js, 1)
 path.write_text(text,encoding="utf-8")
 print("Optyker cash register loader OK", version)
