@@ -1,5 +1,27 @@
 # Optyker: attivazione cassa RCH e Sistema TS
 
+## Configurazione confermata il 12/09/2026 alle 10:43
+
+Il rapporto `Configurazione-RCH-20260912-104354-c265fd6d.json` ha completato le quattro letture, con matricola `72IV6003831` corrispondente e stato PRG inattivo prima e dopo. SHA-256 del rapporto originale: `88c72b95c51638b5821fd02191643345e78fc6d1e0c7d55627cd5c0e1077216e`. Il file originale resta privato: nel codice vengono riportati solo i dati necessari al profilo del negozio.
+
+La risposta XML reale contiene `Service/Prg`, con attributi `id` su 99 reparti, 40 aliquote e 30 pagamenti. I numeri degli elementi sono letti dagli attributi del documento originale; l'elenco delle sole foglie `values` non conserva tali identificativi. Per i tre reparti gia usati dal negozio la lettura conferma:
+
+| Reparto | DepartmentType/value | vatCode/value (indice aliquota) | IVA e tipo operazione |
+| --- | --- | --- | --- |
+| 1 | 0 | 1 | Beni, 4% (`VAT type="VAT"`, value 400) |
+| 2 | 0 | 2 | Beni, 22% (`VAT type="VAT"`, value 2200) |
+| 3 | 1 | 0 | Servizi esenti (`VAT type="ES"`); N4 e codice gestionale ART10 confermati dalle precedenti stampe/Focus |
+
+`DepartmentType` 0/1 corrisponde a beni/servizi (manuale p.93). `single/enabled=0` per tutti e tre. Gli altri 96 reparti hanno tipo beni e aliquota indice 0; le descrizioni generiche non autorizzano ad assegnarli automaticamente a prodotti esenti. Gli indici 3 e 4 delle aliquote contengono 10% e 5%, ma nessuno dei reparti letti punta a tali indici.
+
+Pagamenti confermati: 01 contanti, 03 assegni, 04 carte elettroniche; 02 non riscosso beni con `CreditType/value=1`, 06 non riscosso servizi con valore 2, 07 non riscosso fatture con valore 3, 08 DCR SSN con valore 4. Solo 01 permette resto fra i codici 01-11. Il tipo non riscosso resta distinto dall'ordinario pagamento con carta; la selezione generica RATE non viene assegnata automaticamente a un codice.
+
+Optyker `20260912-rch-confirmed2` mostra questi dati in Cassa > RCH. `rch-preflight.js` conserva l'identita verificata nel rapporto e la data della lettura, mentre `identityVerifiedLive=false` resta corretto: il profilo incorporato non verifica il dispositivo a ogni utilizzo. La compatibilita del carrello richiede ora sia `fiscal_vat_code` sia `fiscal_item_type` esplicito (`goods` o `services`): il catalogo deve fornire questi dati per ogni riga. Se mancano, o il tipo non corrisponde al reparto, il controllo segnala la riga e non assegna un reparto. Non deduce classificazioni dal titolo o dalla categoria commerciale, non modifica anagrafiche prodotti e non modifica la programmazione RCH.
+
+Il campo `programmingVerified=false` nel rapporto caricato era un esito conservativo della raccolta automatica e non e stato riscritto. Il confronto successivo conferma la mappatura descritta sopra; non abilita emissione fiscale, scontrino parlante o Sistema TS. Restano da realizzare il ciclo di emissione con registro persistente dei tentativi, recupero del riferimento del documento e degli esiti incerti, e il collegamento TS separato. `serverAdE` contiene l'indirizzo del servizio AdE e `serverSTS` e vuoto: un indirizzo configurato non e una ricevuta di accettazione e il campo TS vuoto non descrive eventuali invii eseguiti da Focus.
+
+Verifiche: 17 test Node riusciti (`rch-preflight`, `rch-ui`, `rch-loader`), inclusi distinzione beni/servizi, tipi assenti o incoerenti, conservazione dei blocchi fiscali e caricamento con nuova versione. I test dei gestori UI usano un DOM simulato. I dati del profilo sono stati confrontati anche direttamente con gli attributi e i valori del rapporto originale. Nessun comando e stato inviato al registratore durante questa modifica.
+
 ## Evidenza reale del 12/09/2026 e lettura configurazione
 
 Il rapporto del negozio `Diagnostica-Protocollo-RCH-20260912-102246-83f7fef2.json`, raccolto su Windows, contiene sette richieste accettate senza errori. Le risposte XML originali confermano:
@@ -17,9 +39,9 @@ Le risposte `Enq` sono lette con XPath sui dati originali. Nel vecchio elenco `v
 
 La nuova `rch-connector/Diagnostica-Configurazione-RCH.bat` scarica tre script con hash SHA-256 verificato in una cartella temporanea dedicata. Richiede che l'operatore selezioni **4 poi CHIAVE (PRG)** sulla tastiera del registratore, con nessuna vendita in corso. La sequenza consentita e `<</?s`, `<</?m`, `<</?C`, `<</?s`: stato PRG inattivo, matricola corrispondente, lettura completa della programmazione documentata a p.62, controllo dello stato finale. Non entra in modalita SERVICE, non cambia modalita e non modifica dati. Alla fine l'operatore torna a **1 poi CHIAVE (REG)**. Il file `Configurazione-RCH-*.json` viene salvato sul Desktop anche in caso di raccolta incompleta.
 
-In REG, con cassa occupata, matricola inattesa, risposte malformate o errori/timeout, la raccolta si arresta senza riprovare. Un ACK senza payload non e considerato una raccolta completa. Anche con un payload, `programmingVerified=false` e `fiscalEmissionEnabled=false`: i dati devono ancora essere interpretati e confrontati con aliquote, reparti, tipo beni/servizi e pagamenti. Il comando `<</?C` non e stato ancora eseguito sul registratore del negozio da questa diagnostica.
+In REG, con cassa occupata, matricola inattesa, risposte malformate o errori/timeout, la raccolta si arresta senza riprovare. Un ACK senza payload non e considerato una raccolta completa. Anche con un payload, `programmingVerified=false` e `fiscalEmissionEnabled=false`: i dati devono essere interpretati e confrontati con aliquote, reparti, tipo beni/servizi e pagamenti. Il comando `<</?C` e stato poi eseguito con successo nel rapporto delle 10:43 descritto sopra.
 
-Verifiche eseguite su PowerShell 7.4.13 Linux: `tests/rch-configuration.test.ps1` controlla il formato Enq osservato, le ambiguita XML, i blocchi per modalita/matricola/errori, l'assenza di ripetizioni e i rapporti incompleti; `PWSH=/path/to/pwsh node --test tests/rch-configuration-http.test.mjs` verifica le quattro richieste HTTP reali contro un server locale simulato, con payload di programmazione dichiaratamente sintetico. Verificati sintassi del launcher e hash delle tre dipendenze. Il doppio clic su Windows e la risposta `<</?C` del dispositivo reale restano da provare in negozio. Riferimento per i tasti PRG/REG: https://help.readypro.it/it/4224/rch-print-rt-modalita-rt-comandi-da-tastiera.
+Verifiche eseguite su PowerShell 7.4.13 Linux: `tests/rch-configuration.test.ps1` controlla il formato Enq osservato, le ambiguita XML, i blocchi per modalita/matricola/errori, l'assenza di ripetizioni e i rapporti incompleti; `PWSH=/path/to/pwsh node --test tests/rch-configuration-http.test.mjs` verifica le quattro richieste HTTP reali contro un server locale simulato, con payload di programmazione dichiaratamente sintetico. Verificati sintassi del launcher e hash delle tre dipendenze. La successiva prova Windows in negozio e confermata dal rapporto delle 10:43. Riferimento per i tasti PRG/REG: https://help.readypro.it/it/4224/rch-print-rt-modalita-rt-comandi-da-tastiera.
 
 ## Manuale v14 acquisito e diagnostica di compatibilita
 
