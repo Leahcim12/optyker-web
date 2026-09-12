@@ -974,5 +974,6 @@
 #optykerCashRchPreflight{padding:10px 14px;border:1px solid #1769aa;border-radius:8px;background:#fff;color:#12548a;font-size:12px;line-height:1.4;font-weight:600;font-family:inherit;cursor:pointer}
 #optykerCashRchPreflight:disabled{opacity:.5;cursor:default}
 
-/* Fiscal receipt review: scoped to the emission dialog. */
+/* Fiscal review must cover the cash overlay, history and RCH settings. */
+#optykerFiscalModal{z-index:2147483570!important}
 #optykerFiscalModal label{display:block;margin:12px 0;line-height:1.5}#optykerFiscalModal input:not([type=checkbox]),#optykerFiscalModal select{padding:8px;border:1px solid #cbd5e1;border-radius:6px;max-width:100%;background:#fff;color:#172b40}#optykerFiscalModal button{padding:9px 13px;margin:6px 6px 6px 0;border:1px solid #bed0df;border-radius:8px;background:#f5f9fc;color:#173450;cursor:pointer}#optykerFiscalModal .ofEmit{background:#245acb;color:#fff;border:0;font-weight:700}#optykerFiscalModal button:disabled{opacity:.55;cursor:wait}#optykerFiscalModal th,#optykerFiscalModal td{text-align:left;padding:6px;border-bottom:1px solid #e1e7ef;font-size:13px}#optykerFiscalModal .ofMessage:not(:empty){padding:12px;background:#fff4cf;border-radius:8px}#optykerFiscalModal .ofReference input:not([type=checkbox]){display:block;margin-top:4px}

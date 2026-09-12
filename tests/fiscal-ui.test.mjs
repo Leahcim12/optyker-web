@@ -5,6 +5,7 @@ import {createRequire} from 'node:module';
 const require=createRequire(process.env.OPTYKER_TEST_PACKAGE||import.meta.url);
 const {JSDOM}=require('jsdom');
 const source=readFileSync(new URL('../fiscal-receipts.js',import.meta.url),'utf8');
+const cashCss=readFileSync(new URL('../cash-register.css',import.meta.url),'utf8');
 const pid='11111111-1111-4111-8111-111111111111',jid='22222222-2222-4222-8222-222222222222';
 async function setup({timeout=false,initialState=null}={}){
  const dom=new JSDOM('<body></body>',{url:'https://www.optyker.it',runScripts:'outside-only'}),w=dom.window,calls=[];
@@ -35,6 +36,18 @@ test('review emits one capability-bound receipt then records the actual paper re
   const ref=w.document.querySelector('.ofReference');assert.ok(ref);ref.elements.number.value='1160-0001';ref.elements.date.value='2026-09-12';ref.elements.amount.value='12.50';ref.elements.verified.checked=true;
   await ref.onsubmit({preventDefault(){}});assert.match(w.document.body.textContent,/Documento registrato/);assert.match(w.document.body.textContent,/1160-0001/);
   assert.equal(calls.filter(x=>x.url.endsWith('/receipt')).length,1);
+ }finally{dom.window.close()}
+});
+test('receipt review stays above the open cash register, history and RCH settings',async()=>{
+ const {w,dom}=await setup();try{
+  const style=w.document.createElement('style');style.textContent=cashCss;w.document.head.appendChild(style);
+  const review=w.document.getElementById('optykerFiscalModal');
+  assert.equal(review.getAttribute('role'),'dialog');assert.equal(review.getAttribute('aria-modal'),'true');
+  assert.equal(w.getComputedStyle(review).display,'flex');
+  for(const [id,classes] of [['optykerCashOverlay','optykerCashOverlay open'],['optykerCashRecentModal','optykerCashModal open'],['optykerCashRchModal','optykerCashModal open']]){
+   const layer=w.document.createElement('div');layer.id=id;layer.className=classes;w.document.body.appendChild(layer);
+   assert.ok(Number(w.getComputedStyle(review).zIndex)>Number(w.getComputedStyle(layer).zIndex),'Receipt review must cover '+id);
+  }
  }finally{dom.window.close()}
 });
 test('lost receipt response exposes uncertain result and no retry button',async()=>{

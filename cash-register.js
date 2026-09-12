@@ -1,7 +1,7 @@
 /* OPTYKER_SEPT11_PREPARED */
 (function(){
 if(window.__optykerCashLoaded)return;window.__optykerCashLoaded=true;
-window.OPTYKER_CASH_BUILD='20260912-fiscal1';
+window.OPTYKER_CASH_BUILD='20260912-fiscal2';
 var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-cash-register-api';
 var S={products:[],clients:[],cart:{},type:'',payment:'card',stage:'balance',clientId:'',invoice:false,tsRequested:false,tsCode:'AD',tsOpposition:false,busy:false,searchTimer:null,clientSearchTimer:null,rchOk:false,cashOpen:false};
 
@@ -193,7 +193,7 @@ function ensureUI(){
       '<div id="optykerCashTsOptions" class="optykerCashTsOptions" style="display:none"><div><label for="optykerCashTsCode">Codice spesa</label><select id="optykerCashTsCode"><option value="AD">AD · Dispositivo medico</option><option value="AA">AA · Prestazione sanitaria</option></select></div><label class="optykerCashTsOpposition"><input id="optykerCashTsOpposition" type="checkbox"> Opposizione del cliente all\'uso dei dati nella precompilata</label></div>'+
       '<label id="optykerCashInvoiceBox" class="optykerCashInvoiceBox"><input id="optykerCashInvoice" type="checkbox"><span class="optykerCashInvoiceCheck">✓</span><span><b>Prepara fattura Fatture in Cloud</b><small id="optykerCashInvoiceHint">La fattura verrà preparata con i dati del cliente.</small></span></label>'+
       '<textarea id="optykerCashNote" placeholder="Nota vendita (facoltativa)"></textarea>'+
-      '<div class="optykerCashRchHelp">L’emissione automatica degli scontrini è da configurare. Il documento fiscale va ancora emesso sul registratore.</div>'+
+      '<div class="optykerCashRchHelp">Dopo Conferma vendita si apre la finestra RCH: verifica i dati e premi Emetti scontrino. Puoi riaprirla da Ultime vendite → Emissione / esito RCH.</div>'+
       '<button id="optykerCashCheckoutBtn" type="button" disabled>Conferma vendita</button>'+
       '<div class="optykerCashSecondaryActions"><button id="optykerCashDepositsBtn" type="button">Acconti aperti</button><button id="optykerCashRecentBtn" type="button">Ultime vendite</button><button id="optykerCashGiftBtn" class="optykerCashGiftBtn" type="button" title="Stampa l’ultimo scontrino fiscale senza prezzi">Scontrino cortesia</button><button id="optykerCashTsDocsBtn" type="button">Sistema TS</button></div>'+
     '</div></aside></div>';
