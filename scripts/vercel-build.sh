@@ -133,6 +133,8 @@ cp rch-connector/Disinstalla-RCH-Optyker.ps1 _site/rch-connector/Disinstalla-RCH
 cp rch-connector/Diagnostica-RCH-Optyker.bat _site/rch-connector/Diagnostica-RCH-Optyker.bat
 cp rch-connector/Diagnostica-Protocollo-RCH.bat _site/rch-connector/Diagnostica-Protocollo-RCH.bat
 cp rch-connector/Diagnostica-Protocollo-RCH.ps1 _site/rch-connector/Diagnostica-Protocollo-RCH.ps1
+cp rch-connector/Diagnostica-Configurazione-RCH.bat _site/rch-connector/Diagnostica-Configurazione-RCH.bat
+cp rch-connector/Diagnostica-Configurazione-RCH.ps1 _site/rch-connector/Diagnostica-Configurazione-RCH.ps1
 cp _site/index.html _site/gestionale-v2/index.html
 cp manifest.webmanifest _site/gestionale-v2/manifest.webmanifest
 cp visualcare-logo.svg _site/gestionale-v2/visualcare-logo.svg
@@ -209,6 +211,8 @@ test -s _site/rch-connector/Disinstalla-RCH-Optyker.ps1
 test -s _site/rch-connector/Diagnostica-RCH-Optyker.bat
 test -s _site/rch-connector/Diagnostica-Protocollo-RCH.bat
 test -s _site/rch-connector/Diagnostica-Protocollo-RCH.ps1
+test -s _site/rch-connector/Diagnostica-Configurazione-RCH.bat
+test -s _site/rch-connector/Diagnostica-Configurazione-RCH.ps1
 test -s _site/gestionale-v2/index.html
 test -s _site/gestionale-v2/manifest.webmanifest
 test -s _site/gestionale-v2/visualcare-logo.svg
