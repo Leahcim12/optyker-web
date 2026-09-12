@@ -17,8 +17,8 @@ test('production loader copies the module once, before the cash bundle and with 
     assert.equal((out.match(/id="optykerCashJs"/g)||[]).length,1);
     assert.ok(out.indexOf('id="optykerRchPreflightJs"')<out.indexOf('id="optykerCashJs"'));
     assert.match(out,/Existing page/);
-    assert.match(out,/rch-preflight.js\?v=20260911-rch-profile1/);
-    assert.match(out,/cash-register.js\?v=20260911-rch-profile1/);
+    assert.match(out,/rch-preflight.js\?v=20260912-rch-confirmed2/);
+    assert.match(out,/cash-register.js\?v=20260912-rch-confirmed2/);
     assert.equal(readFileSync(join(dir,'_site/rch-preflight.js'),'utf8'),readFileSync(new URL('../rch-preflight.js',import.meta.url),'utf8'));
   }finally{rmSync(dir,{recursive:true})}
 });
