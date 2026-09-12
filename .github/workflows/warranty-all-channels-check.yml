@@ -1,0 +1,98 @@
+name: Verifica garanzie condivise app sito e negozio
+on:
+  push:
+    branches: ['optyker/warranty-all-channels']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: synthetic_ci_only
+          POSTGRES_DB: warranty_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Restore checksum-verified implementation on isolated branch
+        run: |
+          mkdir -p channels-check
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64,gzip,json,hashlib
+          parts=[Path('.optyker-staging/all-cover-'+i+'.b64').read_text().strip() for i in ['0','1','2','3a','3b','3c','4']]
+          parts[1]=parts[1].replace('XLpXm','XLXm').replace('ZRiIub','ZRIub')
+          parts[2]=parts[2].replace('L+d6R8','L+d6dR8')
+          raw=base64.b64decode(''.join(parts),validate=True)
+          assert hashlib.sha256(raw).hexdigest()=='ae9d87a406057733c7156920752832cf23e89597dddc7e442a8efdeadabef82e','Source transfer checksum mismatch'
+          package=json.loads(gzip.decompress(raw));assert package['version']=='20260912-cover-channels1'
+          if not Path('scripts/apply_cover_channels.py').exists():
+              for name,digest in package['source_hashes'].items():
+                  assert hashlib.sha256(Path(name).read_bytes()).hexdigest()==digest,'Concurrent source change: '+name
+              for name,content in package['files'].items():
+                  p=Path(name);assert not p.is_absolute() and '..' not in p.parts
+                  p.parent.mkdir(parents=True,exist_ok=True);p.write_text(content)
+          Path('channels-check/changed.json').write_text(json.dumps(list(package['files'])))
+          PY
+      - name: Database schema on disposable PostgreSQL only
+        env:
+          PGPASSWORD: synthetic_ci_only
+        run: psql -h localhost -U postgres -d warranty_test -v ON_ERROR_STOP=1 -f tests/cover-channels-bootstrap.sql > channels-check/database.txt 2>&1
+      - name: Build complete application
+        env:
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+        run: bash scripts/vercel-build-v13.sh > channels-check/build.txt 2>&1
+      - name: Install isolated test dependencies
+        run: |
+          npm install --prefix /tmp/warranty-deps pg@8.16.3 playwright@1.55.0
+          /tmp/warranty-deps/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Verify mobile warranty regression
+        env:
+          NODE_PATH: /tmp/warranty-deps/node_modules
+        run: node tests/eyewear-cover.test.mjs
+      - name: Test same database from app Shopify and staff interface
+        env:
+          NODE_PATH: /tmp/warranty-deps/node_modules
+        run: node tests/cover-channels.test.mjs
+      - name: Commit verified source on isolated branch only
+        run: |
+          python3 - <<'PY'
+          import json,subprocess
+          from pathlib import Path
+          files=json.loads(Path('channels-check/changed.json').read_text())
+          subprocess.run(['git','add','--']+files,check=True)
+          PY
+          git config user.name 'Optyker verified release'
+          git config user.email '30346110+Leahcim12@users.noreply.github.com'
+          if ! git diff --cached --quiet; then git commit -m 'Verified shared eyewear warranty across Shopify, Optyker and mobile without production record changes'; fi
+          git push origin HEAD:refs/heads/optyker/warranty-all-channels
+          git rev-parse HEAD > channels-check/release-commit.txt
+          git archive --format=zip HEAD -o channels-check/release-source.zip
+      - name: Retain assembled assets and results
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import shutil
+          from pathlib import Path
+          for name in ['shopify-warranty-page-body.html','warranty-channels-version.json','eyewear-cover-version.json']:
+              p=Path('_site',name)
+              if p.exists():shutil.copyfile(p,Path('channels-check',name))
+          if Path('_site').exists():shutil.make_archive('channels-check/built','zip','_site')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: warranty-all-channels-verified
+          path: |
+            channels-check/
+            warranty-check/
+          retention-days: 3
