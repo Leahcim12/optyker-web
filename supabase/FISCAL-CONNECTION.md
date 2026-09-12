@@ -1,5 +1,26 @@
 # Optyker: attivazione cassa RCH e Sistema TS
 
+## Evidenza reale del 12/09/2026 e lettura configurazione
+
+Il rapporto del negozio `Diagnostica-Protocollo-RCH-20260912-102246-83f7fef2.json`, raccolto su Windows, contiene sette richieste accettate senza errori. Le risposte XML originali confermano:
+
+- `<</?s`: `ECRStatus/mode=REG`, `idleState=0`, nessun errore hardware o busy.
+- `<</?f`: `/Service/Enq/name=f`, `value=FW v.  3.1.0`.
+- `<</?m`: `/Service/Enq/name=m`, `value=72IV6003831`, corrispondente alla matricola del negozio.
+- `<</?i/*3`: `111000`, cioe censito, attivato, modalita RT, operativo, senza revoca o dismissione secondo p.60 del manuale.
+- `<</?7`: contatore azzeramenti `1160`.
+- `<</?i/*5`: `0  0/25`, cioe non inattivo e nessun file pendente al momento della lettura. Questo non sostituisce una ricevuta di accettazione AdE per uno specifico documento.
+
+Il campo versione va registrato come risposta del dispositivo, senza confrontarlo automaticamente con le soglie 8.x del manuale PRINT! F: il materiale distingue i modelli PRINT! F e PRINT! RT e non e stata accertata l'equivalenza tra le loro versioni. Il rapporto non prova l'emissione, il codice fiscale o il recupero del riferimento di un nuovo documento.
+
+Le risposte `Enq` sono lette con XPath sui dati originali. Nel vecchio elenco `values` di PowerShell, il figlio `<name>` mascherava la proprieta `.Name` del nodo XML e produceva percorsi come `Service/f/value`. La nuova funzione usa `get_Name()` e conserva il percorso corretto `Service/Enq/value`; non cambia i dati originali o il connettore installato.
+
+La nuova `rch-connector/Diagnostica-Configurazione-RCH.bat` scarica tre script con hash SHA-256 verificato in una cartella temporanea dedicata. Richiede che l'operatore selezioni **4 poi CHIAVE (PRG)** sulla tastiera del registratore, con nessuna vendita in corso. La sequenza consentita e `<</?s`, `<</?m`, `<</?C`, `<</?s`: stato PRG inattivo, matricola corrispondente, lettura completa della programmazione documentata a p.62, controllo dello stato finale. Non entra in modalita SERVICE, non cambia modalita e non modifica dati. Alla fine l'operatore torna a **1 poi CHIAVE (REG)**. Il file `Configurazione-RCH-*.json` viene salvato sul Desktop anche in caso di raccolta incompleta.
+
+In REG, con cassa occupata, matricola inattesa, risposte malformate o errori/timeout, la raccolta si arresta senza riprovare. Un ACK senza payload non e considerato una raccolta completa. Anche con un payload, `programmingVerified=false` e `fiscalEmissionEnabled=false`: i dati devono ancora essere interpretati e confrontati con aliquote, reparti, tipo beni/servizi e pagamenti. Il comando `<</?C` non e stato ancora eseguito sul registratore del negozio da questa diagnostica.
+
+Verifiche eseguite su PowerShell 7.4.13 Linux: `tests/rch-configuration.test.ps1` controlla il formato Enq osservato, le ambiguita XML, i blocchi per modalita/matricola/errori, l'assenza di ripetizioni e i rapporti incompleti; `PWSH=/path/to/pwsh node --test tests/rch-configuration-http.test.mjs` verifica le quattro richieste HTTP reali contro un server locale simulato, con payload di programmazione dichiaratamente sintetico. Verificati sintassi del launcher e hash delle tre dipendenze. Il doppio clic su Windows e la risposta `<</?C` del dispositivo reale restano da provare in negozio. Riferimento per i tasti PRG/REG: https://help.readypro.it/it/4224/rch-print-rt-modalita-rt-comandi-da-tastiera.
+
 ## Manuale v14 acquisito e diagnostica di compatibilita
 
 Il negozio ha fornito `Manuale_Protocollo_PRINT!F_v.14.pdf`, 119 pagine, rel.2102. Nonostante il titolo PRINT! F, contiene esplicitamente i comandi in modalita RT, le revisioni fino alla 14 (11/2020) e il capitolo Corrispettivi XML v7. Il PDF originale resta privato e non viene pubblicato nel repository o nel sito.
