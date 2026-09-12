@@ -21,5 +21,6 @@ needle="  try{\n   await page.goto('https://otticavisualcare.it/pages/la-mia-sch
 replacement="  const go=async v=>{const t=page.locator('.ovcDMenuToggle');if(await t.isVisible()&&!(await page.locator('.ovcANav').isVisible()))await t.tap();await page.locator('[data-view='+v+']').tap();};\n  try{\n   await page.goto('https://otticavisualcare.it/pages/la-mia-scheda-optyker'"
 assert needle in s;s=s.replace(needle,replacement)
 s=re.sub(r"await page\.locator\('\[data-view=(\w+)\]'\)\.tap\(\)",lambda m:"await go('"+m[1]+"')",s)
+s=s.replace("await page.waitForSelector('#ovc-account-native [data-view=eyewear]');","await page.waitForSelector('#ovc-account-native [data-view=eyewear]',{state:'attached'});")
 s=s.replace('eight navigation buttons','nine navigation buttons')
 Path('tests/customer-account-warranty-regression.mjs').write_text(s)
