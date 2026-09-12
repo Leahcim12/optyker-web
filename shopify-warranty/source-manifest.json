@@ -1,0 +1,21 @@
+{
+  "source": "Shopify page 704520520055, read-only public snapshot; no customer session",
+  "original_js_sha256": "b2a420b6ddd4bcbf0f9b3b6410fe6acb98e99dee44c0eec88dbc1ad18c4b5e66",
+  "original_css_sha256": "26ad78e67894240e0b49e7243c2c2fcbbbddd9f8e48f5cdae28d0729b0eb8672",
+  "original_body_sha256": "c41c3222d7ac5d285881909331d1e33f13fc3e66404a646cd1c40d272723311a",
+  "changes": [
+    "Add Occhiali e garanzie tab",
+    "Delegate this view to shared warranty module",
+    "Stop delayed responses after leaving the warranty view"
+  ],
+  "preserved": [
+    "Prescription",
+    "LAC",
+    "LAC warranties",
+    "Booking",
+    "Hours",
+    "Orders",
+    "Recent purchases",
+    "Chat"
+  ]
+}

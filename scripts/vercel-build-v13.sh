@@ -167,3 +167,4 @@ node --check eyewear-cover-staff.js
 python scripts/apply_eyewear_cover.py
 python scripts/patch_public_asset_paths.py
 verify_desktop_aliases
+python3 scripts/apply_cover_channels.py
