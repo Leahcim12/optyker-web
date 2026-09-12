@@ -4,7 +4,7 @@ from shutil import copyfile
 
 path=Path("_site/index.html")
 text=path.read_text(encoding="utf-8")
-version="20260911-rch-profile1"
+version="20260912-rch-confirmed2"
 copyfile("rch-preflight.js", "_site/rch-preflight.js")
 css=f'<link rel="stylesheet" href="/cash-register.css?v={version}" id="optykerCashCss">'
 js=f'<script src="/cash-register.js?v={version}" id="optykerCashJs"></script>'
