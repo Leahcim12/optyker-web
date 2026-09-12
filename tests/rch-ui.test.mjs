@@ -25,16 +25,30 @@ function fixture(modulePresent=true){
   vm.runInContext(source,context);
   return {ids,requests,hooks:window.testHooks};
 }
-test('RCH modal renders printed configuration and preflight never calls a service',()=>{
+test('RCH modal renders the confirmed configuration and preflight never calls a service',()=>{
   const f=fixture();
   f.hooks.state.stage='balance';
-  f.hooks.state.cart={one:{qty:2,item:{title:'Product',price:'12.34',fiscal_vat_code:'04'}}};
+  f.hooks.state.cart={one:{qty:2,item:{title:'Product',price:'12.34',fiscal_vat_code:'04',fiscal_item_type:'goods'}}};
   f.hooks.openRch();
   assert.match(f.ids.get('optykerCashRchProfile').innerHTML,/<td>04<\/td><td>Carte elettroniche/);
-  assert.match(f.ids.get('optykerCashRchProfile').innerHTML,/Porta TCP Blu Data: 23/);
+  assert.match(f.ids.get('optykerCashRchProfile').innerHTML,/<td>1<\/td><td>Beni<\/td><td>4%/);
+  assert.match(f.ids.get('optykerCashRchProfile').innerHTML,/<td>3<\/td><td>Servizi<\/td><td>Esente N4/);
+  assert.match(f.ids.get('optykerCashRchProfile').innerHTML,/lettura del 12\/09\/2026/);
+  assert.doesNotMatch(f.ids.get('optykerCashRchModal').innerHTML,/Reparti recuperati da Blu Data/);
   f.ids.get('optykerCashRchPreflight').onclick();
   assert.match(f.ids.get('optykerCashRchPreflightResult').innerHTML,/Dati del carrello compatibili/);
   assert.match(f.ids.get('optykerCashRchPreflightResult').innerHTML,/Emissione ancora bloccata/);
+  assert.equal(f.requests.length,0);
+});
+test('cash preflight passes only explicit fiscal type; a service cannot use a goods department',()=>{
+  const f=fixture();f.hooks.state.stage='balance';
+  f.hooks.state.cart={one:{qty:1,item:{title:'Servizio',price:'10.00',fiscal_vat_code:'04',fiscal_item_type:'services'}}};
+  f.hooks.openRch();f.ids.get('optykerCashRchPreflight').onclick();
+  assert.match(f.ids.get('optykerCashRchPreflightResult').innerHTML,/combinazione di IVA e bene\/servizio/);
+  delete f.hooks.state.cart.one.item.fiscal_item_type;
+  f.hooks.state.cart.one.item.product_type='Servizi';
+  f.ids.get('optykerCashRchPreflight').onclick();
+  assert.match(f.ids.get('optykerCashRchPreflightResult').innerHTML,/Tipologia fiscale bene\/servizio da assegnare/);
   assert.equal(f.requests.length,0);
 });
 test('missing VAT and bank transfer are flagged without inference or cart mutation',()=>{
