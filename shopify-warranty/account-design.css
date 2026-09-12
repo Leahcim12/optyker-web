@@ -1,0 +1,119 @@
+/* Optyker Vision customer area. Only the custom OVC section is targeted. */
+#ovc-account-native[data-ovc-design],#ovc-design-welcome{--ovc-ink:#102756;--ovc-muted:#6680a3;--ovc-blue:#137ffc;--ovc-bg:#f0f6fd;--ovc-line:#e0ebf7;--ovc-shadow:0 6px 22px #214b7b08;font:400 14px/1.55 "Segoe UI Variable","Segoe UI",system-ui,-apple-system,sans-serif;color:var(--ovc-ink);-webkit-font-smoothing:antialiased;box-sizing:border-box}
+#ovc-account-native[data-ovc-design] *,#ovc-design-welcome *{box-sizing:border-box}
+#ovc-account-native[data-ovc-design]{display:grid;grid-template-columns:224px minmax(0,1fr);gap:0;width:100%;margin:0 auto;background:radial-gradient(ellipse at 100% 0%,#e4f2ff 0,transparent 45%),var(--ovc-bg);border:1px solid var(--ovc-line);border-radius:24px;overflow:clip;min-height:800px}
+.ovcDHost{background:#f0f6fd!important;padding:22px 0!important}.ovcDHost .ovcDHostContainer{max-width:1600px!important;width:100%!important;padding-inline:22px!important}.ovcDHost .ovcDAncestor{max-width:none!important;min-width:0}.ovcDHost .container>div:first-child>div:nth-child(2)::after{content:none!important}
+#ovc-account-native[data-ovc-design] :is(button,input,select,textarea){font-family:inherit;font-size:14px;letter-spacing:normal}
+#ovc-account-native[data-ovc-design] button{cursor:pointer}
+#ovc-account-native[data-ovc-design] :is(button,a,input,select,textarea):focus-visible{outline:3px solid #087e83!important;outline-offset:3px!important}
+#ovc-account-native[data-ovc-design] :is(button,input,select,textarea):disabled{cursor:not-allowed}
+#ovc-account-native[data-ovc-design] :is(h1,h2,h3,p){color:inherit;letter-spacing:normal;font-family:inherit;text-transform:none}
+#ovc-account-native .ovcDSidebar{background:#fff;border-right:1px solid var(--ovc-line);padding:24px 16px;display:flex;flex-direction:column;min-width:0}
+#ovc-account-native .ovcDLogo{text-align:center;display:flex;align-items:center;flex-direction:column;color:var(--ovc-ink);text-decoration:none;padding:0 5px 24px;border-bottom:1px solid var(--ovc-line);margin-bottom:25px}
+#ovc-account-native .ovcDLogo img{width:108px;height:84px;object-fit:contain;margin-bottom:15px}
+#ovc-account-native .ovcDLogo b{font-size:11px;letter-spacing:.13em;font-weight:750}
+#ovc-account-native .ovcDLogo small{font-size:10px;color:var(--ovc-muted);margin-top:5px}
+#ovc-account-native .ovcDKicker,#ovc-design-welcome .ovcDKicker{display:block;font-size:10px;letter-spacing:.12em;line-height:1.6;font-weight:650;color:var(--ovc-muted)}
+#ovc-account-native .ovcDSidebar>.ovcDKicker{padding:0 12px;margin-bottom:10px}
+#ovc-account-native .ovcANav{display:flex;flex-direction:column;gap:5px;margin:0}
+#ovc-account-native .ovcANav button{appearance:none;display:block;min-height:45px;border:1px solid transparent;background:transparent;border-radius:11px;color:#527298;text-align:left;font-size:13px;font-weight:500;padding:11px 13px;white-space:normal;box-shadow:none;line-height:1.4;transition:background .15s}
+#ovc-account-native .ovcANav button:hover{background:#f2f7ff;color:#102756}
+#ovc-account-native .ovcANav button.active{background:#eaf3ff;border-color:#daeaff;color:#1064c6;font-weight:700;box-shadow:inset 3px 0 #137ffc}
+#ovc-account-native .ovcDSideBottom{margin-top:auto;padding:28px 10px 4px}
+#ovc-account-native .ovcDSideBottom a{display:flex;justify-content:space-between;padding:10px 0;font-size:12px;color:#56779a;text-decoration:none}
+#ovc-account-native .ovcDSideBottom small{display:block;font-size:9px;letter-spacing:.11em;color:#8a9fba;padding-top:28px}
+#ovc-account-native .ovcDMain{padding:26px;min-width:0;font-size:14px!important}
+#ovc-account-native .ovcDTopbar{display:flex;gap:20px;align-items:center;justify-content:space-between;padding:0 0 24px}
+#ovc-account-native .ovcDHeading h1{font-size:25px;line-height:1.25;font-weight:650;letter-spacing:-.6px;margin:5px 0}
+#ovc-account-native .ovcDHeading p{font-size:12px;margin:5px 0 0;color:var(--ovc-muted)}
+#ovc-account-native .ovcDProfile{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ovc-ink);font-size:12px;min-width:0}
+#ovc-account-native .ovcDProfileName{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#ovc-account-native .ovcDAvatar{background:#e0ecff;color:#1064c6;display:grid;place-items:center;width:42px;height:42px;border:3px solid #fff;border-radius:50%;font-size:12px;font-weight:700}
+#ovc-account-native .ovcDHero{display:flex;justify-content:space-between;align-items:center;padding:30px 32px;background:linear-gradient(115deg,#fff 36%,#e5f1ff);border:1px solid #e3edfa;border-radius:20px;box-shadow:var(--ovc-shadow);margin-bottom:20px;gap:24px}
+#ovc-account-native .ovcDHero h2{font-size:32px;font-weight:650;letter-spacing:-.9px;line-height:1.28;margin:11px 0}
+#ovc-account-native .ovcDHero h2 span{color:#3184de}
+#ovc-account-native .ovcDHero p{color:#627e9f;font-size:13px;line-height:1.65;margin:12px 0 20px}
+#ovc-account-native .ovcDHeroMark{flex:0 0 25%;max-width:225px;text-align:center;color:#8badcf}
+#ovc-account-native .ovcDHeroMark svg{width:100%;height:125px;stroke-width:.6;filter:drop-shadow(0 9px 1px #bad3f54d)}
+#ovc-account-native .ovcDHeroMark span{font-size:10px;font-weight:650;letter-spacing:.32em;display:block;margin-top:-18px}
+#ovc-account-native .ovcDBtn,#ovc-design-welcome .ovcDBtn{display:inline-flex;align-items:center;justify-content:center;gap:14px;border:1px solid #d6e4f6;background:#fff;border-radius:10px;padding:11px 16px;color:#165da9;font-size:12px;font-weight:650;text-decoration:none;min-height:42px;line-height:1.5}
+#ovc-account-native .ovcDBtnPrimary,#ovc-design-welcome .ovcDBtnPrimary{background:#137ffc;border-color:#137ffc;color:#fff;box-shadow:0 5px 14px #137ffc24}
+#ovc-account-native .ovcDBtnLink{border:none;background:transparent;padding:9px 0;box-shadow:none;color:#1064c6;text-align:left}
+#ovc-account-native .ovcDMetrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin:0 0 21px}
+#ovc-account-native .ovcDMetric{position:relative;display:flex;align-items:flex-start;text-align:left;gap:11px;padding:19px 15px;border:1px solid var(--ovc-line);background:#fff;border-radius:16px;box-shadow:var(--ovc-shadow);min-height:132px;color:var(--ovc-ink);min-width:0;transition:transform .15s}
+#ovc-account-native .ovcDMetric:hover{transform:translateY(-2px);border-color:#bfd8f7}
+#ovc-account-native .ovcDMetricBody{display:flex;flex-direction:column;min-width:0}
+#ovc-account-native .ovcDMetricBody>span{font-size:11px;font-weight:600}
+#ovc-account-native .ovcDMetric strong{font-size:25px;font-weight:650;line-height:1.4;margin:5px 0}
+#ovc-account-native .ovcDMetric small{font-size:10px;line-height:1.5;color:var(--ovc-muted);font-weight:400}
+#ovc-account-native .ovcDArrow{position:absolute;right:12px;top:10px;color:#7499c3;font-size:13px}
+#ovc-account-native .ovcDIcon{display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;background:#edf5ff;color:#3377bc;border-radius:12px}
+#ovc-account-native .ovcDIcon svg{width:23px;height:23px}
+#ovc-account-native .ovcDGreen{color:#178d81;background:#eaf8f5}
+#ovc-account-native .ovcDGrid{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);gap:19px}
+#ovc-account-native .ovcDCard{background:#fff;border:1px solid var(--ovc-line);border-radius:18px;box-shadow:var(--ovc-shadow);padding:23px;min-width:0}
+#ovc-account-native .ovcDCardHead{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:20px}
+#ovc-account-native .ovcDCard h2{font-size:18px;line-height:1.35;font-weight:650;margin:0}
+#ovc-account-native .ovcDCardHead .ovcDBtn{font-size:11px;flex:0 0 auto}
+#ovc-account-native .ovcDEmpty{display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;min-height:295px;padding:22px;border:1px dashed #dbe6f3;border-radius:12px}
+#ovc-account-native .ovcDEmpty>svg{height:44px;width:44px;color:#8cafd4;margin-bottom:18px}
+#ovc-account-native .ovcDEmpty h3{font-size:17px;margin:10px 0;font-weight:600}
+#ovc-account-native .ovcDEmpty p{font-size:12px;color:#6882a2;line-height:1.7;margin:0 0 20px}
+#ovc-account-native .ovcDOrderRow{display:grid;grid-template-columns:35px minmax(0,1fr) auto 8px;gap:12px;align-items:center;width:100%;padding:17px 0;background:#fff;border:0;border-bottom:1px solid #edf2f8;text-align:left;color:var(--ovc-ink)}
+#ovc-account-native .ovcDOrderRow>span:nth-child(2){overflow:hidden}
+#ovc-account-native .ovcDOrderRow b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;font-weight:650}
+#ovc-account-native .ovcDOrderRow small{display:block;font-size:10px;color:var(--ovc-muted);padding-top:4px}
+#ovc-account-native .ovcDOrderRow strong{font-size:12px;font-weight:650}
+#ovc-account-native .ovcDOrderIcon{background:#f1f6fd;color:#397bb4;padding:7px;border-radius:9px;height:35px}
+#ovc-account-native .ovcDOrderIcon svg{width:21px;height:21px}
+#ovc-account-native .ovcDQuickCards{display:grid;gap:16px}
+#ovc-account-native .ovcDQuick{display:flex;align-items:flex-start;gap:17px;padding:23px}
+#ovc-account-native .ovcDQuick .ovcDKicker{font-size:9px;margin-bottom:8px}
+#ovc-account-native .ovcDQuick h2{font-size:20px;letter-spacing:-.4px}
+#ovc-account-native .ovcDQuick p{color:var(--ovc-muted);font-size:12px;margin:9px 0 0}
+#ovc-account-native .ovcDSheetQuick{background:linear-gradient(120deg,#fff 30%,#f2f7ff)}
+#ovc-account-native .ovcDAppointment,#ovc-account-native .ovcDHelp{display:flex;align-items:center;gap:16px;padding:20px 23px;background:#e8f2ff;border:1px solid #dceafa;border-radius:16px;margin-top:20px}
+#ovc-account-native .ovcDAppointment h2{font-size:17px;line-height:1.4;font-weight:650;margin:0 0 4px}
+#ovc-account-native .ovcDAppointment p{font-size:12px;color:var(--ovc-muted);margin:0}
+#ovc-account-native .ovcDAppointment .ovcDBtn{margin-left:auto}
+#ovc-account-native .ovcDHelp{background:transparent;border:0;padding:20px 3px 0}
+#ovc-account-native .ovcDHelp b{font-size:12px;font-weight:650}
+#ovc-account-native .ovcDHelp div>span{display:block;font-size:11px;color:var(--ovc-muted)}
+#ovc-account-native .ovcDHelp button{margin-left:auto;padding:10px 20px;border:1px solid #c5d8f2;border-radius:30px;background:transparent;color:#2667b3;font-size:12px;font-weight:650;min-height:42px}
+#ovc-account-native .ovcAPanel{min-height:380px;min-width:0}
+#ovc-account-native .ovcAHead{background:transparent;border:0;padding:0 0 12px;margin:0;color:var(--ovc-ink)}
+#ovc-account-native .ovcAHead .ovcABrand{display:none}
+#ovc-account-native .ovcATitle{font-size:17px;font-weight:600}
+#ovc-account-native :is(.ovcACard,.ovcAChatBox,.ovcALens,.swCard){border-color:var(--ovc-line);border-radius:17px;box-shadow:var(--ovc-shadow)}
+#ovc-account-native :is(.ovcAEmpty,.ovcALoad){border-color:var(--ovc-line);padding:32px;color:var(--ovc-muted);font-size:14px}
+#ovc-account-native :is(.ovcABuy,.ovcASend,.swCover button){background:#137ffc;border-color:#137ffc;border-radius:11px;font-weight:600;min-height:44px}
+#ovc-account-native .swCover{padding:0;font-family:inherit;color:var(--ovc-ink)}
+#ovc-account-native .swCover h2{font-size:22px;font-weight:650}
+#ovc-account-native .swCover h3{font-size:17px}
+#ovc-account-native .swCover :is(p,label){font-size:13px;line-height:1.7}
+#ovc-account-native .swCover .swQuota{background:#eaf3ff;color:#235d9f;font-weight:600}
+#ovc-account-native .swCover .swNotice{background:#fff8eb;border-color:#bc8e3f;color:#725b2f}
+#ovc-account-native .swCover .swButtons button+button{background:#f3f7fd;color:#235d9f;border-color:#dae7f6}
+#ovc-account-native .ovcAMessages{background:linear-gradient(#f7faff,#f0f6fd);height:min(60vh,560px)}
+#ovc-account-native .ovcAMsg.customer .ovcABubble{background:#1478da;border-color:#1478da}
+#ovc-account-native .ovcAText{font-size:14px}
+#ovc-account-native .ovcAOrder summary{padding:17px;background:#f8fbff}
+#ovc-account-native .ovcAOrder :is(b,.ovcAOrderTitle){font-size:13px}
+#ovc-account-native .ovcAOrderItem :is(span,strong){font-size:12px}
+#ovc-account-native .ovcAOrderAttrs em{font-size:11px;line-height:1.6}
+#ovc-account-native .ovcARecent :is(b,strong){font-size:13px}
+#ovc-account-native .ovcARecent :is(span,small){font-size:11px}
+#ovc-account-native .ovcDLoading{font-size:14px;color:var(--ovc-muted);padding:25px 0}
+#ovc-account-native .ovcDSkeleton{height:132px;background:#fff;border:1px solid var(--ovc-line);border-radius:16px}
+#ovc-account-native .ovcDNotice{padding:12px 16px;background:#fff6e8;border-radius:10px;margin-bottom:20px;color:#745d35;font-size:12px}
+#ovc-account-native .ovcDNotice button{border:0;background:none;color:inherit;text-decoration:underline;font-size:12px}
+#ovc-account-native .ovcDMenuToggle{display:none}
+#ovc-design-welcome{max-width:1100px;margin:26px auto;padding:35px;background:#f0f6fd;border:1px solid #e0ebf7;border-radius:22px}
+#ovc-design-welcome h2{font-size:30px;line-height:1.25;color:#102756;margin:12px 0;font-weight:650}
+#ovc-design-welcome p{color:#6680a3;font-size:14px;line-height:1.65}
+#ovc-design-welcome .ovcDGuestLinks{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+@media(min-width:1100px) and (max-width:1350px){#ovc-account-native .ovcDMetric{flex-direction:column}#ovc-account-native .ovcDMetrics{gap:10px}}
+@media(max-width:1099px){#ovc-account-native[data-ovc-design]{grid-template-columns:195px minmax(0,1fr)}#ovc-account-native .ovcDMain{padding:21px}#ovc-account-native .ovcDMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}#ovc-account-native .ovcDGrid{grid-template-columns:1fr}#ovc-account-native .ovcDQuickCards{grid-template-columns:1fr 1fr}#ovc-account-native .ovcDQuick{flex-direction:column}#ovc-account-native .ovcDHeroMark{display:none}}
+@media(max-width:760px){.ovcDHost .ovcDHostContainer{padding-inline:8px!important}.ovcDHost{padding:10px 0!important}#ovc-account-native[data-ovc-design]{display:flex;flex-direction:column;border-radius:16px;min-height:0}#ovc-account-native .ovcDMain{padding:16px}#ovc-account-native .ovcDSidebar{padding:15px 18px;border-right:0;border-bottom:1px solid var(--ovc-line);display:block}#ovc-account-native .ovcDLogo{flex-direction:row;justify-content:flex-start;gap:12px;text-align:left;border:0;margin:0;padding:0}#ovc-account-native .ovcDLogo img{width:44px;height:36px;margin:0}#ovc-account-native .ovcDLogo small{display:none}#ovc-account-native .ovcDSidebar>.ovcDKicker,#ovc-account-native .ovcANav,#ovc-account-native .ovcDSideBottom{display:none}#ovc-account-native.ovcDMenuOpen .ovcANav{display:flex;margin-top:16px}#ovc-account-native.ovcDMenuOpen .ovcDSideBottom{display:block;padding-top:12px}#ovc-account-native .ovcDTopbar{flex-wrap:wrap;gap:13px;padding-bottom:18px}#ovc-account-native .ovcDMenuToggle{display:flex;align-items:center;gap:9px;padding:8px 11px;background:#fff;color:#1f5e9f;border:1px solid #dce8f7;border-radius:9px;min-height:42px;font-size:17px}#ovc-account-native .ovcDMenuToggle span{font-size:12px}#ovc-account-native .ovcDHeading{order:3;flex:0 0 100%}#ovc-account-native .ovcDHeading h1{font-size:23px}#ovc-account-native .ovcDHeading>.ovcDKicker{display:none}#ovc-account-native .ovcDProfile{margin-left:auto}#ovc-account-native .ovcDProfileName{max-width:150px}#ovc-account-native .ovcDHero{padding:23px;margin-bottom:15px;border-radius:17px}#ovc-account-native .ovcDHero h2{font-size:27px}#ovc-account-native .ovcDMetrics{gap:10px;margin-bottom:16px}#ovc-account-native .ovcDMetric{flex-direction:column;min-height:145px;padding:14px}#ovc-account-native .ovcDMetric .ovcDIcon{width:34px;height:34px;flex-basis:34px}#ovc-account-native .ovcDMetric strong{font-size:24px;margin:3px 0}#ovc-account-native .ovcDGrid,#ovc-account-native .ovcDQuickCards{display:grid;grid-template-columns:1fr;gap:14px}#ovc-account-native .ovcDQuick{flex-direction:row}#ovc-account-native .ovcDCard{padding:18px}#ovc-account-native .ovcDCardHead{gap:9px;margin-bottom:15px}#ovc-account-native .ovcDCardHead h2{font-size:16px}#ovc-account-native .ovcDEmpty{padding:22px 12px;min-height:260px}#ovc-account-native .ovcDOrderRow{gap:9px}#ovc-account-native .ovcDAppointment{flex-wrap:wrap;padding:18px}#ovc-account-native .ovcDAppointment>div{flex:1 1 190px}#ovc-account-native .ovcDAppointment .ovcDBtn{margin-left:0;width:100%}#ovc-account-native .ovcDHelp{flex-wrap:wrap;gap:10px}#ovc-account-native .ovcDHelp div{flex:1}#ovc-account-native .ovcDHelp button{width:100%;margin-top:4px}#ovc-account-native .swCover button{width:100%;margin:5px 0}#ovc-design-welcome{margin:15px 8px;padding:24px}#ovc-design-welcome h2{font-size:26px}}
+@media(prefers-reduced-motion:reduce){#ovc-account-native *{transition:none!important}}
+@media print{#ovc-account-native .ovcDSidebar,#ovc-account-native .ovcDHelp,#ovc-account-native .ovcDMenuToggle{display:none!important}#ovc-account-native[data-ovc-design]{display:block;border:none;background:white}}

@@ -1,0 +1,96 @@
+name: Verifica dashboard OVC pubblicata su Shopify
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/customer-account-design-live.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: synthetic_ci_only
+          POSTGRES_DB: warranty_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare isolated database and browsers
+        env:
+          PGPASSWORD: synthetic_ci_only
+        run: |
+          mkdir -p account-design-check
+          psql -h localhost -U postgres -d warranty_test -v ON_ERROR_STOP=1 -f tests/cover-channels-bootstrap.sql > account-design-check/database.txt 2>&1
+          npm install --prefix /tmp/account-deps pg@8.16.3 playwright@1.55.0
+          /tmp/account-deps/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Verify published files and actual Shopify page
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,json,os,re,time,urllib.request
+          names=['native-account.css','eyewear-cover.css','eyewear-cover.js','native-account.js','account-design.css','account-design.js']
+          expected={}
+          for name in names:
+              raw=Path('shopify-warranty',name).read_bytes();p=Path(name);h=hashlib.sha256(raw).hexdigest();expected['shopify-warranty/'+p.stem+'.'+h[:12]+p.suffix]=h
+          def get(url):
+              req=urllib.request.Request(url,headers={'Cache-Control':'no-cache','User-Agent':'Optyker-customer-design-verification/1.0'})
+              with urllib.request.urlopen(req,timeout=20) as r:return r.read(5000000)
+          report={'production_business_writes':0,'tested_commit':os.environ['GITHUB_SHA']}
+          for attempt in range(45):
+              try:
+                  base='https://www.optyker.it/';m=json.loads(get(base+'shopify-account-design-version.json?check='+os.environ['GITHUB_SHA']))
+                  assert m['version']=='20260912-account-design1' and m['assets']==expected,'Published assets differ from tested source'
+                  for name,digest in expected.items():assert hashlib.sha256(get(base+name)).hexdigest()==digest,name
+                  assert hashlib.sha256(get(base+'ovc-card-logo.png')).hexdigest()==hashlib.sha256(Path('ovc-card-logo.png').read_bytes()).hexdigest(),'Logo mismatch'
+                  report.update({'assets_verified':True,'deployed_commit':m['commit'],'assets':expected});break
+              except Exception as e:
+                  if attempt==44:raise
+                  time.sleep(4)
+          Path('account-design-check/deployment.json').write_text(json.dumps(report,indent=2))
+          for attempt in range(90):
+              try:
+                  html=get('https://otticavisualcare.it/pages/la-mia-scheda-optyker?design_check='+os.environ['GITHUB_SHA']).decode('utf8')
+                  assert all('https://www.optyker.it/'+name in html for name in expected),'Shopify page has not switched to the verified design'
+                  assert html.count('id="optyker-account-design"')==1 and html.count('id="optyker-account-native-v8"')==1,'Duplicated account scripts'
+                  assert 'id="ovc-design-welcome"' in html,'Missing logged-out landing'
+                  report['shopify_page_verified']=True;break
+              except Exception as e:
+                  if attempt==89:raise
+                  time.sleep(4)
+          Path('account-design-check/deployment.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))
+          PY
+      - name: Verify mobile app regression with disposable business records
+        env:
+          NODE_PATH: /tmp/account-deps/node_modules
+          OPTYKER_LIVE: '1'
+        run: node tests/eyewear-cover.test.mjs
+      - name: Verify live Shopify and Optyker warranty flows with disposable records
+        env:
+          NODE_PATH: /tmp/account-deps/node_modules
+          OPTYKER_LIVE: '1'
+        run: node tests/customer-account-warranty-regression.mjs
+      - name: Verify actual published dashboard on desktop and mobile
+        env:
+          NODE_PATH: /tmp/account-deps/node_modules
+          OPTYKER_ACCOUNT_LIVE: '1'
+        run: node tests/customer-account-design.test.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: customer-account-design-live-verification
+          path: |
+            account-design-check/
+            channels-check/
+            warranty-check/
+          retention-days: 7
