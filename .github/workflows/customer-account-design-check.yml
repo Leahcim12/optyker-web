@@ -1,0 +1,84 @@
+name: Verifica dashboard cliente OVC
+on:
+  push:
+    branches: ['optyker/customer-account-design']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: synthetic_ci_only
+          POSTGRES_DB: warranty_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare the authenticated renderer and regression checks
+        run: |
+          mkdir -p account-design-check
+          python3 scripts/prepare_customer_account_design.py
+          node --check shopify-warranty/native-account.js
+          node --check shopify-warranty/account-design.js
+      - name: Disposable database only
+        env:
+          PGPASSWORD: synthetic_ci_only
+        run: psql -h localhost -U postgres -d warranty_test -v ON_ERROR_STOP=1 -f tests/cover-channels-bootstrap.sql > account-design-check/database.txt 2>&1
+      - name: Build complete application, without deploying
+        env:
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+        run: bash scripts/vercel-build-v13.sh > account-design-check/build.txt 2>&1
+      - name: Isolated browser dependencies
+        run: |
+          npm install --prefix /tmp/account-deps pg@8.16.3 playwright@1.55.0
+          /tmp/account-deps/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Mobile warranty regression with real disposable SQL
+        env:
+          NODE_PATH: /tmp/account-deps/node_modules
+        run: node tests/eyewear-cover.test.mjs
+      - name: All existing customer warranty flows and staff UI
+        env:
+          NODE_PATH: /tmp/account-deps/node_modules
+        run: node tests/customer-account-warranty-regression.mjs
+      - name: Real theme, new dashboard, desktop and WebKit touch
+        env:
+          NODE_PATH: /tmp/account-deps/node_modules
+        run: node tests/customer-account-design.test.cjs
+      - name: Commit verified derived source to isolated branch only
+        run: |
+          git add shopify-warranty/native-account.js tests/customer-account-warranty-regression.mjs
+          git config user.name 'Optyker verified release'
+          git config user.email '30346110+Leahcim12@users.noreply.github.com'
+          if ! git diff --cached --quiet; then git commit -m 'Attach verified Optyker dashboard to existing authenticated customer modules'; fi
+          git push origin HEAD:refs/heads/optyker/customer-account-design
+          git rev-parse HEAD > account-design-check/release-commit.txt
+          git archive --format=zip HEAD -o account-design-check/release-source.zip
+      - name: Save assembled assets and reports
+        if: always()
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import shutil
+          for name in ['shopify-warranty-page-body.html','shopify-account-design-version.json']:
+              p=Path('_site',name)
+              if p.exists():shutil.copyfile(p,Path('account-design-check',name))
+          if Path('_site').exists():shutil.make_archive('account-design-check/built','zip','_site')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: customer-account-design-verification
+          path: |
+            account-design-check/
+            channels-check/
+            warranty-check/
+          retention-days: 3
