@@ -1,14 +1,14 @@
 ﻿param(
   [string]$PrinterIp = "192.168.1.10",
-  [int]$Port = 8765
+  [int]$Port = 8765,
+  [switch]$NoPause
 )
 
 $ErrorActionPreference = "Stop"
 $base = Join-Path $env:LOCALAPPDATA "OptykerRCH"
 $connector = Join-Path $base "rch-optyker-connector.ps1"
-$launcher = Join-Path $base "Avvia-Optyker-RCH-Nascosto.vbs"
 $startup = [Environment]::GetFolderPath("Startup")
-$startupLink = Join-Path $startup "Optyker RCH.lnk"
+$startupHelper = Join-Path $base 'Attiva-Avvio-Automatico-RCH.ps1'
 $source = "https://www.optyker.it/rch-connector/rch-optyker-connector.ps1?v=20260912-void1"
 
 New-Item -ItemType Directory -Force -Path $base | Out-Null
@@ -24,6 +24,11 @@ if(Test-Path -LiteralPath $journal){
 Write-Host "Installazione Optyker RCH..." -ForegroundColor Cyan
 $candidate = Join-Path $base "rch-optyker-connector.download.ps1"
 Invoke-WebRequest -UseBasicParsing -Uri $source -OutFile $candidate
+$startupCandidate = Join-Path $base 'Attiva-Avvio-Automatico-RCH.download.ps1'
+Invoke-WebRequest -UseBasicParsing -Uri 'https://www.optyker.it/rch-connector/Attiva-Avvio-Automatico-RCH.ps1?v=20260913-autostart1' -OutFile $startupCandidate -TimeoutSec 60
+$startupTokens=$null; $startupErrors=$null
+[void][System.Management.Automation.Language.Parser]::ParseFile($startupCandidate,[ref]$startupTokens,[ref]$startupErrors)
+if($startupErrors.Count -gt 0 -or (Get-Content -Raw -LiteralPath $startupCandidate) -notmatch 'Set-OptykerRchAutostart'){throw 'Download avvio automatico non valido. Installazione sospesa.'}
 $tokens = $null
 $parseErrors = $null
 [void][System.Management.Automation.Language.Parser]::ParseFile($candidate,[ref]$tokens,[ref]$parseErrors)
@@ -41,28 +46,17 @@ if(Test-Path -LiteralPath $journal){
 }
 Move-Item -LiteralPath $candidate -Destination $connector -Force
 
-$vbs = @"
-Set sh = CreateObject("WScript.Shell")
-cmd = "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""$connector"" -PrinterIp $PrinterIp -Port $Port"
-sh.Run cmd, 0, False
-"@
-Set-Content -Path $launcher -Value $vbs -Encoding ASCII
-
-$ws = New-Object -ComObject WScript.Shell
-$sc = $ws.CreateShortcut($startupLink)
-$sc.TargetPath = "wscript.exe"
-$sc.Arguments = '"' + $launcher + '"'
-$sc.WorkingDirectory = $base
-$sc.WindowStyle = 7
-$sc.Description = "Optyker RCH Connector"
-$sc.Save()
+Move-Item -LiteralPath $startupCandidate -Destination $startupHelper -Force
+. $startupHelper -LibraryOnly -PrinterIp $PrinterIp -Port $Port -NoPause:$NoPause
+$powerShell = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
+$startupPlan = Set-OptykerRchAutostart $base $startup $powerShell $PrinterIp $Port
 
 # Kill only a previous Optyker RCH connector instance and restart hidden.
 Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue |
   Where-Object { $_.CommandLine -like "*rch-optyker-connector.ps1*" } |
   ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 
-Start-Process -FilePath "wscript.exe" -ArgumentList ('"' + $launcher + '"') -WindowStyle Hidden
+Start-Process -FilePath $startupPlan.Target -ArgumentList $startupPlan.Arguments -WorkingDirectory $base -WindowStyle Hidden
 
 Start-Sleep -Seconds 2
 try {
@@ -70,7 +64,7 @@ try {
   if($r.ok -and $r.version -eq "1.7-fiscal-void"){
     Write-Host ""
     Write-Host "Installazione completata." -ForegroundColor Green
-    Write-Host "Il connettore parte automaticamente con Windows e resta nascosto."
+    Write-Host "Il connettore parte in background quando accedi al tuo utente Windows."
     Write-Host "Registratore: $PrinterIp"
     Write-Host "Bridge: 127.0.0.1:$Port"
     Write-Host "Versione connettore: $($r.version)"
@@ -85,4 +79,4 @@ try {
 
 Write-Host ""
 Write-Host "Puoi chiudere questa finestra."
-Read-Host "Premi INVIO per terminare"
+if(-not $NoPause){$null=Read-Host "Premi INVIO per terminare"}

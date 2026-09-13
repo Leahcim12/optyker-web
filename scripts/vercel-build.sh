@@ -129,6 +129,8 @@ cp rch-connector/rch-optyker-connector.ps1 _site/rch-connector/rch-optyker-conne
 cp rch-connector/Avvia-RCH-Optyker.bat _site/rch-connector/Avvia-RCH-Optyker.bat
 cp rch-connector/Installa-RCH-Optyker.ps1 _site/rch-connector/Installa-RCH-Optyker.ps1
 cp rch-connector/Installa-RCH-Optyker.bat _site/rch-connector/Installa-RCH-Optyker.bat
+cp rch-connector/Attiva-Avvio-Automatico-RCH.ps1 _site/rch-connector/Attiva-Avvio-Automatico-RCH.ps1
+cp rch-connector/Attiva-Avvio-Automatico-RCH.bat _site/rch-connector/Attiva-Avvio-Automatico-RCH.bat
 cp rch-connector/Disinstalla-RCH-Optyker.ps1 _site/rch-connector/Disinstalla-RCH-Optyker.ps1
 cp rch-connector/Diagnostica-RCH-Optyker.bat _site/rch-connector/Diagnostica-RCH-Optyker.bat
 cp rch-connector/Diagnostica-Protocollo-RCH.bat _site/rch-connector/Diagnostica-Protocollo-RCH.bat
@@ -207,6 +209,8 @@ test -s _site/rch-connector/rch-optyker-connector.ps1
 test -s _site/rch-connector/Avvia-RCH-Optyker.bat
 test -s _site/rch-connector/Installa-RCH-Optyker.ps1
 test -s _site/rch-connector/Installa-RCH-Optyker.bat
+test -s _site/rch-connector/Attiva-Avvio-Automatico-RCH.ps1
+test -s _site/rch-connector/Attiva-Avvio-Automatico-RCH.bat
 test -s _site/rch-connector/Disinstalla-RCH-Optyker.ps1
 test -s _site/rch-connector/Diagnostica-RCH-Optyker.bat
 test -s _site/rch-connector/Diagnostica-Protocollo-RCH.bat
