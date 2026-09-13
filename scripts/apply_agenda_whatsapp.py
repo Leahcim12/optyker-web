@@ -27,10 +27,8 @@ if MARK not in text:
     script=script.replace("E('oaReload').onclick=function(){boot(true).then(load)}", "E('oaReload').onclick=function(){agendaRefresh(true)}",1)
     if 'return agendaRefresh(false)' not in script or "onclick=function(){agendaRefresh(true)}" not in script:raise SystemExit('Agenda open/retry anchor missing')
     text=text[:start]+script+text[end:]
-    # Document capture stopped the newer navigation handler. Use the wrapped route.
     once("if(typeof window.optykerAgendaDirectOpen==='function')window.optykerAgendaDirectOpen();\n      else if(typeof window.optykerOpenAppointments==='function')window.optykerOpenAppointments();", "if(typeof window.optykerOpenAppointments==='function')window.optykerOpenAppointments();\n      else if(typeof window.optykerAgendaDirectOpen==='function')window.optykerAgendaDirectOpen();")
     once("else if(id==='navClients'&&typeof window.showModule==='function')window.showModule('clients');", "else if(id==='navWhatsAppConnect'&&typeof window.optykerOpenWhatsAppSimple==='function')window.optykerOpenWhatsAppSimple();\n    else if(id==='navClients'&&typeof window.showModule==='function')window.showModule('clients');")
-    # Drop the three competing signup controllers; retain the existing protected fields.
     for ident in ('optykerWhatsappQrConnectJs','optykerWhatsappSimpleJs','optykerWhatsappMetaBlockHelpJs'):
         text,n=re.subn(r'<script[^>]*id="'+ident+r'"[^>]*>.*?</script>','',text,flags=re.S)
         if n!=1:raise SystemExit('Expected one WhatsApp controller: '+ident)
@@ -38,13 +36,18 @@ if MARK not in text:
     text=text.replace('id="oaStatus" class="oaStatus"','id="oaStatus" class="oaStatus" role="status" aria-live="polite"',1)
     closing=DocumentClosings(text).closings
     for tag in sorted(closing,key=closing.get,reverse=True):
-        asset=('<link rel="stylesheet" id="optykerWhatsAppConnectCss" href="/whatsapp-connect.css?v=20260913-1">\n' if tag=='head' else
-               '<script id="optykerWhatsAppConnectJs" src="/whatsapp-connect.js?v=20260913-1"></script>\n<!-- '+MARK+' -->\n')
+        asset=('<link rel="stylesheet" id="optykerWhatsAppConnectCss" href="/whatsapp-connect.css?v=20260913-internal-guided2">\n' if tag=='head' else
+               '<script id="optykerWhatsAppConnectJs" src="/whatsapp-connect.js?v=20260913-internal-guided2"></script>\n<!-- '+MARK+' -->\n')
         pos=closing[tag];text=text[:pos]+asset+text[pos:]
-# Navigation was already cached under the previous release's URL.
 text,n=re.subn(r'(<script[^>]*id="optykerSept11Js"[^>]*src="[^"?]+)\?[^"<>]*',r'\1?v=20260913-agenda1',text)
 if n!=1:raise SystemExit('Expected one versioned navigation loader')
+# Also invalidate cached assets when the earlier agenda patch was already applied.
+for ext in ('js','css'):
+    text=re.sub(r'(whatsapp-connect\.'+ext+r')(?:\?[^"<>]*)?',r'\1?v=20260913-internal-guided2',text)
 for filename in ('whatsapp-connect.js','whatsapp-connect.css'):copyfile(filename,root/filename)
+script=Path('whatsapp-connect.js').read_text()
+if 'OPTYKER_WHATSAPP_GUIDED_V2' not in script or 'web.whatsapp.com' in script or 'wa.me/' in script:
+    raise SystemExit('WhatsApp must keep the internal guided workflow')
 page.write_text(text)
 for alias in ('gestionale-v2','gestionale-v3'):(root/alias/'index.html').write_text(text)
-print('Agenda routing, recoverable loading and simple WhatsApp access installed')
+print('Agenda routing and internal guided WhatsApp connection installed')
