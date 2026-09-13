@@ -44,6 +44,14 @@ class TsLoaderTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Invalid final inline'):
             validate(broken)
 
+    def test_github_pages_base_matches_the_actual_deployment_path(self):
+        output = inject_assets(PAGE).replace('src="/ts-connection.js?', 'src="/optyker-web/ts-connection.js?')
+        self.assertEqual(validate(output, '/optyker-web/'), 1)
+        with self.assertRaisesRegex(ValueError, 'TS loader missing'):
+            validate(output)
+        with self.assertRaisesRegex(ValueError, 'TS loader missing'):
+            validate(output.replace('/optyker-web/ts-connection.js?', '//external.test/ts-connection.js?'), '/optyker-web/')
+
 
 if __name__ == '__main__':
     unittest.main()

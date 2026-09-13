@@ -37,7 +37,7 @@ class PageScripts(HTMLParser):
             self.outside.append(data)
 
 
-def validate(text):
+def validate(text, base_path='/'):
     parsed = PageScripts(text)
     if parsed.active is not None:
         raise ValueError('Unclosed script in desktop page')
@@ -45,7 +45,9 @@ def validate(text):
     if leaks:
         raise ValueError('JavaScript is being rendered as page text')
     loader = [s for s in parsed.scripts if s['attrs'].get('id') == 'optykerTsConnectionJs']
-    if len(loader) != 1 or not loader[0]['attrs'].get('src', '').startswith('/ts-connection.js?v='):
+    if not re.fullmatch(r'/(?:[A-Za-z0-9_.-]+/)?', base_path):
+        raise ValueError('Invalid public asset base path')
+    if len(loader) != 1 or not loader[0]['attrs'].get('src', '').startswith(base_path + 'ts-connection.js?v='):
         raise ValueError('TS loader missing or duplicated in parsed desktop page')
     inline = [s for s in parsed.scripts if 'src' not in s['attrs'] and
               s['attrs'].get('type', '').lower() in ('', 'text/javascript', 'application/javascript')]
@@ -70,7 +72,9 @@ for (const s of scripts) {
 if __name__ == '__main__':
     root = Path(sys.argv[1] if len(sys.argv) > 1 else '_site')
     page = (root / 'index.html').read_text()
-    count = validate(page)
+    manifest = root / 'design-version.json'
+    base_path = json.loads(manifest.read_text()).get('base_path', '/') if manifest.is_file() else '/'
+    count = validate(page, base_path)
     for alias in ('gestionale-v2', 'gestionale-v3'):
         if (root / alias / 'index.html').read_text() != page:
             raise SystemExit('Desktop alias differs: ' + alias)
