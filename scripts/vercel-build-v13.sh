@@ -191,3 +191,12 @@ python scripts/apply_agenda_whatsapp.py
 python scripts/patch_public_asset_paths.py
 verify_desktop_aliases
 python scripts/check_desktop_html.py
+
+# Staff-only anagrafica details and reviewed Focus file import.
+node --check focus-client-parser.js
+node --check client-details.js
+node --test tests/focus-client-parser.test.cjs
+python scripts/apply_client_details.py
+python scripts/patch_public_asset_paths.py
+verify_desktop_aliases
+python scripts/check_desktop_html.py
