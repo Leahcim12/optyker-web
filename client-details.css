@@ -1,0 +1,22 @@
+.optykerClientCoreExtra{border-left:3px solid #2771a5;padding-left:10px!important}
+.optykerClientExtras{margin:20px 0;padding:22px;border:1px solid #d9e3ed;border-radius:16px;background:#fff;color:#20374e;font:14px/1.55 "Segoe UI",Arial,sans-serif}
+.optykerClientExtras h3{margin:0 0 6px;font-size:20px;color:#173e69}.optykerExtraHint{color:#627487;font-size:13px;margin:8px 0 16px}
+.optykerClientExtras fieldset{margin:0;padding:0;border:0;min-width:0}.optykerClientExtras fieldset:disabled{opacity:.6}
+.optykerClientExtras details{border-top:1px solid #e4eaf0;margin-top:12px;padding:10px 0}.optykerClientExtras summary{cursor:pointer;font-weight:700;padding:6px 0;color:#274a6c}
+.optykerExtraGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 20px;margin-top:12px}.optykerExtraGrid label{display:flex!important;flex-direction:column;gap:5px;min-width:0;margin:0!important}.optykerExtraGrid .wide{grid-column:1/-1}.optykerExtraGrid span{font-weight:600;font-size:13px}
+#optykerExtraFields input,#optykerExtraFields textarea,#optykerExtraFields select{box-sizing:border-box;width:100%;min-height:40px;padding:9px 10px;border:1px solid #cbd9e5;border-radius:8px;background:#fafdff;color:#1a334a;font:inherit;max-width:none}
+#optykerExtraFields textarea{min-height:82px;resize:vertical}
+.optykerExtraActions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:18px 0 10px}
+.optykerExtraActions button,.optykerFocusImportOpen,#optykerFocusClose{border:1px solid #bacbdc;border-radius:9px;min-height:40px;padding:9px 14px;background:#fff;color:#244c72;font:600 13px/1.3 "Segoe UI",Arial,sans-serif;cursor:pointer}
+.optykerExtraActions button.primary{background:#1766a5;border-color:#1766a5;color:#fff}.optykerExtraActions button:disabled{opacity:.55;cursor:not-allowed}
+.optykerFocusImportOpen{margin:8px 0 8px auto!important;white-space:normal}
+#optykerExtraStatus,#optykerFocusStatus{min-height:22px;white-space:pre-wrap}#optykerExtraStatus.bad,#optykerFocusStatus.bad{color:#9b1c1c}.optykerExtraWarning{white-space:pre-line;color:#815619;font-size:13px}.optykerExtraWarning:empty{display:none}
+.optykerFocusOriginal dl{display:grid;grid-template-columns:minmax(150px,230px) minmax(0,1fr);gap:6px 16px;font-size:13px}.optykerFocusOriginal dt{color:#5c6e80}.optykerFocusOriginal dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+#optykerFocusImportDialog{box-sizing:border-box;width:min(850px,95vw);max-height:90vh;padding:25px;border:1px solid #c9d8e6;border-radius:18px;background:#fff;color:#20374e;font:14px/1.6 "Segoe UI",Arial,sans-serif;overflow:auto;box-shadow:0 20px 90px #16375238}
+#optykerFocusImportDialog::backdrop{background:#10263b88}.optykerFocusDialogHead{display:flex;align-items:center;justify-content:space-between;gap:18px}.optykerFocusDialogHead h2{font-size:23px;margin:0}
+#optykerFocusFile{box-sizing:border-box;display:block;margin:10px 0;width:100%;padding:15px;border:1px dashed #8facc5;border-radius:10px;background:#f6fafe;font:inherit}
+#optykerFocusImportDialog [hidden]{display:none!important}.optykerFocusNumbers{display:grid;grid-template-columns:1fr auto;gap:8px 25px;border:1px solid #e1e8ef;background:#f8fbfe;padding:16px;border-radius:12px}.optykerFocusNumbers dt{margin:0}.optykerFocusNumbers dd{font-weight:800;font-size:18px;margin:0}
+.optykerFocusReviews{max-height:320px;overflow:auto;padding-left:22px}.optykerFocusReviews li{padding:8px 0}.optykerFocusReviews p{font-size:12px;margin:4px 0;color:#617383;white-space:pre-line}
+.optykerClientExtras :focus-visible,#optykerFocusImportDialog :focus-visible,.optykerFocusImportOpen:focus-visible{outline:3px solid #71a5ce;outline-offset:3px}
+@media(max-width:650px){.optykerClientExtras{padding:16px}.optykerExtraGrid{grid-template-columns:1fr}.optykerFocusOriginal dl{grid-template-columns:1fr}.optykerFocusOriginal dd{margin-bottom:10px}#optykerFocusImportDialog{padding:18px}.optykerExtraActions button{width:100%}}
+@media print{.optykerClientExtras,.optykerFocusImportOpen,#optykerFocusImportDialog{display:none!important}}
