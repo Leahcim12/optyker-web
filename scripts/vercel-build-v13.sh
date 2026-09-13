@@ -183,3 +183,11 @@ python scripts/apply_client_profile_save.py
 python scripts/patch_public_asset_paths.py
 verify_desktop_aliases
 python scripts/check_desktop_html.py
+
+# Agenda loading and WhatsApp connection without repeated setup fields.
+node --check whatsapp-connect.js
+node --check scripts/agenda_loading_fragment.js
+python scripts/apply_agenda_whatsapp.py
+python scripts/patch_public_asset_paths.py
+verify_desktop_aliases
+python scripts/check_desktop_html.py

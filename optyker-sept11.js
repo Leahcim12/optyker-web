@@ -42,6 +42,10 @@ let current='',depth=0,routeSeq=0;const watchedRoots=new WeakSet();
 const modules={analysis:'analysisPanel',prescription:'prescriptionPanel',visualexam:'visualExamPanel',visualExam:'visualExamPanel',indications:'indicationsPanel',hearing:'hearingPanel',clients:'clientsPanel',lac:'lacPanel'};
 const routes={showDashboard:()=> 'dashboardPanel',showModule:which=>modules[which]||'',openLacDevice:()=> 'lacPanel',openEyewearSheet:()=> 'eyewearPanel',openWarehouse:()=> 'warehousePanel',openOnlineOrders:()=> 'onlineOrdersPanel',openLaboratory:()=> 'labOrdersPanel',optykerOpenSettings:()=> 'optykerSettingsPanel',optykerOpenAppointments:()=> 'optykerAppointmentsPanel',optykerOpenChat:()=> 'optykerChatPanel',openOptykerDdt:()=> 'optykerDdtPanel',openOptykerCustomerInvoices:()=> 'optykerCustomerInvoicesPanel'};
 const navs={navDashboard:'dashboardPanel',navClients:'clientsPanel',navAnalysis:'analysisPanel',navPrescription:'prescriptionPanel',navVisualExam:'visualExamPanel',navIndications:'indicationsPanel',navHearing:'hearingPanel',navWarehouse:'warehousePanel',navLaboratory:'labOrdersPanel',navOnlineOrders:'onlineOrdersPanel',navOrders:'onlineOrdersPanel',navSettings:'optykerSettingsPanel',navAppointments:'optykerAppointmentsPanel',navChat:'optykerChatPanel',navDdt:'optykerDdtPanel',navCustomerInvoices:'optykerCustomerInvoicesPanel'};
+// Legacy shortcuts use these public entry points too. Keep their target visible.
+routes.optykerAgendaDirectOpen=()=> 'optykerAppointmentsPanel';
+routes.optykerOpenWhatsAppSimple=()=> 'optykerSettingsPanel';
+navs.navWhatsAppConnect='optykerSettingsPanel';
 function keepExcluded(e){
  if(!window.OPTYKER_BILLING_ADMIN&&e.hasAttribute('data-optyker-route-excluded')&&(e.style.getPropertyValue('display')!=='none'||e.style.getPropertyPriority('display')!=='important'))e.style.setProperty('display','none','important');
 }
