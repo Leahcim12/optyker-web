@@ -1,14 +1,14 @@
 #waQuickConnect{max-width:850px;color:#19382b;font:15px/1.55 "Segoe UI",sans-serif}
-#waQuickConnect h2{font-size:23px;margin:0 0 16px}#waQuickConnect h3{font-size:19px;margin:0 0 8px}
-#waQuickConnect .waQuickCard{padding:20px;border:1px solid #cbded3;border-radius:14px;background:#f6fbf8;margin:12px 0}
-#waQuickConnect ol{padding-left:24px}#waQuickConnect li{margin:9px 0}
-#waQuickConnect button,#waQuickConnect .waQuickPrimary,.waClientWeb{display:inline-flex;align-items:center;justify-content:center;min-height:42px;border-radius:9px;padding:7px 15px;border:1px solid #bbd1c4;font:600 14px/1.3 "Segoe UI",sans-serif;cursor:pointer;text-decoration:none;margin:5px 6px 5px 0;background:#fff;color:#234c37}
-#waQuickConnect .waQuickPrimary{background:#157844;color:white;border-color:#157844}
-#waQuickConnect [hidden]{display:none!important}#waQuickConnect button:disabled{opacity:.55;cursor:wait}
+#waQuickConnect h2{font-size:25px;margin:0 0 12px}#waQuickConnect h3{font-size:19px;margin:0 0 8px}
+#waQuickConnect .waQuickCard{padding:22px;border:1px solid #cbded3;border-radius:16px;background:#f6fbf8;margin:16px 0}
+#waQuickConnect button,#waQuickConnect .waQuickPrimary{display:inline-flex;align-items:center;justify-content:center;min-height:44px;border-radius:10px;padding:9px 17px;border:1px solid #bbd1c4;font:600 14px/1.3 "Segoe UI",sans-serif;cursor:pointer;text-decoration:none;margin:5px 8px 5px 0;background:#fff;color:#234c37}
+#waQuickConnect .waQuickPrimary{background:#157844;color:#fff;border-color:#157844}
+#waQuickConnect [hidden]{display:none!important}#waQuickConnect button:disabled{opacity:.55;cursor:not-allowed}
 #waQuickConnect p{margin:10px 0}#waQuickConnect .waQuickNote{color:#52695c;font-size:13px}
 #waQuickConnect summary{cursor:pointer;padding:12px 0;font-weight:650}#waQuickConnect details{margin-top:16px}
-#waQuickConnect label{display:block;margin:10px 0}#waQuickConnect input{display:block;width:100%;max-width:400px;min-height:42px;margin-top:4px}
-#waConnectStatus.bad{color:#a32525}#waBusinessState.ok{color:#157844}
-#optykerSettingsWhatsAppPane:not(.waTechnical) .optykerSettingsCard>:not(#waQuickConnect){display:none!important}
-#waClientWebHint{font-size:12px;color:#52695c}
-@media(max-width:620px){#waQuickConnect .waQuickCard{padding:14px}#waQuickConnect .waQuickPrimary{display:flex;width:100%;box-sizing:border-box}}
+#waQuickConnect label{display:block;margin:14px 0 4px;font-weight:600}#waQuickConnect input{box-sizing:border-box;display:block;width:100%;max-width:440px;min-height:44px;padding:9px 12px;border:1px solid #bbd1c4;border-radius:9px;background:#fff;font:inherit}
+#waQuickConnect a{color:#17623d;text-decoration:underline}#waQuickConnect button:focus-visible,#waQuickConnect input:focus-visible,#waQuickConnect a:focus-visible{outline:3px solid #68ad88;outline-offset:3px}
+#waConnectStatus{min-height:24px;white-space:pre-wrap}#waConnectStatus.bad{color:#a32525}#waBusinessState.ok{color:#157844}
+#optykerSettingsWhatsAppPane.waGuided .optykerSettingsCard>:not(#waQuickConnect){display:none!important}
+@media(max-width:620px){#waQuickConnect .waQuickCard{padding:16px}#waQuickConnect button{display:flex;width:100%;box-sizing:border-box;margin:10px 0}}
+@media print{#waQuickConnect{display:none!important}}
