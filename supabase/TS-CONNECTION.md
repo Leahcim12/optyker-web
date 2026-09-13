@@ -1,6 +1,6 @@
 # Sistema TS — protected setup
 
-Release `20260913-ts1` adds **Amministrazione → Sistema TS** on the desktop site and its two management aliases.
+Release `20260913-ts2` provides **Amministrazione → Sistema TS** on the desktop site and its two management aliases. The loader locates real document closing tags with an HTML parser, preserving HTML print templates inside JavaScript. The final build validates all parsed inline scripts and rejects JavaScript rendered as page text.
 
 Implemented:
 

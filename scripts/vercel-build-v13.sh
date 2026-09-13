@@ -174,3 +174,5 @@ node --check ts-connection.js
 python scripts/apply_ts_connection.py
 python scripts/patch_public_asset_paths.py
 verify_desktop_aliases
+python tests/test_ts_loader.py
+python scripts/check_desktop_html.py
