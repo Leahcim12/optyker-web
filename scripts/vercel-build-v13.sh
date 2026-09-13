@@ -176,3 +176,10 @@ python scripts/patch_public_asset_paths.py
 verify_desktop_aliases
 python tests/test_ts_loader.py
 python scripts/check_desktop_html.py
+
+# Visible anagrafica save, confirmed cloud results and retained edits on errors.
+node --check client-profile-save.js
+python scripts/apply_client_profile_save.py
+python scripts/patch_public_asset_paths.py
+verify_desktop_aliases
+python scripts/check_desktop_html.py

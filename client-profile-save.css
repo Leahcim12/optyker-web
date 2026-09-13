@@ -1,0 +1,21 @@
+@media screen {
+  #mainApp #clientsPanel #optykerClientSaveBar {
+    display:flex!important; align-items:center; justify-content:space-between; gap:16px;
+    position:sticky; top:10px; z-index:15; padding:14px 18px!important; margin:0 0 18px!important;
+    border:1px solid #c9dded!important; border-radius:12px!important; background:#f5faff!important;
+    box-shadow:0 5px 18px #15375f14; color:#183e60;
+  }
+  #optykerClientSaveBar strong {display:block;font-size:13px;font-weight:650}
+  #optykerClientSaveStatus {display:block;margin-top:4px;font-size:12px;line-height:1.45;overflow-wrap:anywhere}
+  #mainApp #clientsPanel #optykerClientSaveButton {flex:none;min-height:44px!important;padding:11px 20px!important;border-radius:10px!important;border:1px solid #147cec!important;background:#197bef!important;color:#fff!important;font-size:13px!important;font-weight:650!important;cursor:pointer}
+  #mainApp #clientsPanel [data-client-profile-save]:disabled {opacity:.65;cursor:wait!important}
+  #mainApp #clientsPanel #optykerClientSaveBar[data-state="saved"] {border-color:#9bceb7!important;background:#effbf4!important;color:#196140}
+  #mainApp #clientsPanel #optykerClientSaveBar[data-state="dirty"] {border-color:#edc985!important;background:#fffbef!important;color:#79500b}
+  #mainApp #clientsPanel #optykerClientSaveBar[data-state="error"] {border-color:#e9a7a7!important;background:#fff3f3!important;color:#a32b2b}
+  #mainApp #clientsPanel #optykerClientSaveButton:focus-visible {outline:3px solid #80bcff;outline-offset:3px}
+  @media(max-width:600px) {
+    #mainApp #clientsPanel #optykerClientSaveBar {gap:10px;padding:12px!important;top:4px}
+    #mainApp #clientsPanel #optykerClientSaveButton {padding:10px 12px!important;max-width:48%;white-space:normal}
+  }
+}
+@media print {#optykerClientSaveBar {display:none!important}}
