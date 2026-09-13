@@ -13,7 +13,7 @@ async function setup({lost=false,old=false,done=false}={}){
  w.OPTYKER_CLOUD={username:'TEST',password:'TEST PASSWORD'};w.AbortSignal=AbortSignal;
  w.fetch=async(url,opts={})=>{
   const b=opts.body?JSON.parse(opts.body):{};calls.push({url,b});let data;
-  if(url.endsWith('/health'))return {ok:true,json:async()=>({ok:true,version:old?'1.6-fiscal-journal':'1.7-fiscal-void',capabilities:{voidReceipt:!old}})};
+  if(url.endsWith('/health'))return {ok:true,json:async()=>({ok:true,version:old?'1.6-fiscal-journal':'1.8-auto-receipt',capabilities:{voidReceipt:!old}})};
   if(url.endsWith('/receipt/void')){state=lost?'uncertain':'awaiting_reference';if(lost)throw Error('Lost response');data={};}
   else if(url.endsWith('/receipt/status'))data={};
   else if(b.action==='sale')data={payments:[{id:pid,amount:70}],jobs:[original()]};

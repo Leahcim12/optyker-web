@@ -22,7 +22,7 @@ test('requests conform to the official kit XSDs, including opposition and VAT',(
   const dir=mkdtempSync(join(tmpdir(),'optyker-ts-xsd-'));
   try{
     const schemaDir=new URL('../supabase/functions/optyker-ts-api/protocol/',import.meta.url).pathname;
-    const cases=[['insert',{document:doc},'DocumentoSpesa730pSchema.xsd'],['insert',{document:{...doc,opposition:true,fiscalCode:''}},'DocumentoSpesa730pSchema.xsd'],['query',{document:doc},'InterrogazionePuntuale730Service_schema.xsd'],['verify',{month:'202609'},'ReportMensile730Service_schema.xsd'],['outcome',{protocol},'EsitoInvioDatiSpesa730Service_schema.xsd'],['receipt',{protocol},'RicevutaPdf730Service_schema.xsd']];
+    const cases=[['insert',{document:doc},'DocumentoSpesa730pSchema.xsd'],['insert',{document:{...doc,referenceSource:'rch_ej'}},'DocumentoSpesa730pSchema.xsd'],['insert',{document:{...doc,opposition:true,fiscalCode:''}},'DocumentoSpesa730pSchema.xsd'],['query',{document:doc},'InterrogazionePuntuale730Service_schema.xsd'],['verify',{month:'202609'},'ReportMensile730Service_schema.xsd'],['outcome',{protocol},'EsitoInvioDatiSpesa730Service_schema.xsd'],['receipt',{protocol},'RicevutaPdf730Service_schema.xsd']];
     for(const [i,[kind,args,schema]] of cases.entries()){
       const body=buildRequest(kind,config,args,enc),file=join(dir,i+'.xml');writeFileSync(file,body);
       execFileSync('python3',['-c','from lxml import etree;import sys;r=etree.parse(sys.argv[1]);s=etree.XMLSchema(etree.parse(sys.argv[2]));s.assertValid(r.getroot().find("{http://schemas.xmlsoap.org/soap/envelope/}Body")[0])',file,join(schemaDir,schema)]);

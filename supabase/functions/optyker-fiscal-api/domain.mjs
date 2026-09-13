@@ -71,11 +71,24 @@ export function resultState(result,commandCount) {
   if(result?.state==='closing_acknowledged'&&result.writeStarted===true&&result.commandsAcknowledged===commandCount&&result.idleAfter===true)return 'awaiting_reference';
   return 'uncertain';
 }
+export function markAutomaticDocument(document,jobId) {
+  if(!/^[a-f0-9-]{36}$/i.test(jobId))throw new Error('Identificativo documento non valido');
+  const marker='OPTYKER '+jobId.replaceAll('-','').toUpperCase();
+  return {...document,receiptMarker:marker,automaticReference:true,
+    commands:[...document.commands.slice(0,-1),'="/?A/('+marker+')',document.commands.at(-1)]};
+}
+export function automaticReference(result,document) {
+  const r=result?.reference;
+  if(!document.automaticReference||document.operation!=='sale'||!r||r.source!=='rch_ej'||
+    r.serial!==document.serial||r.marker!==document.receiptMarker||r.fiscalCodeMatched!==true||
+    r.totalCents!==document.totalCents||resultState(result,document.commands.length)!=='awaiting_reference')return null;
+  return reference({document_number:r.number,document_date:r.date,amount:r.totalCents/100,paper_verified:true},document.totalCents);
+}
 export function reference(input,expectedCents) {
   const number=String(input.document_number||'').trim(),date=String(input.document_date||'');
   if(!/^\d{4}-\d{4}$/.test(number)||number.endsWith('-0000'))throw new Error('Riporta il numero stampato, nel formato 1160-0001');
   if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||Number.isNaN(Date.parse(date+'T12:00:00Z'))||new Date(date+'T12:00:00Z').toISOString().slice(0,10)!==date)throw new Error('Data documento non valida');
-  if(date>new Date().toISOString().slice(0,10))throw new Error('La data non può essere futura');
+  if(date>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Rome'}).format(new Date()))throw new Error('La data non può essere futura');
   if(input.paper_verified!==true||cents(input.amount)!==expectedCents)throw new Error('Verifica numero, data e totale sul documento stampato');
   return {number,date,amount:expectedCents/100};
 }

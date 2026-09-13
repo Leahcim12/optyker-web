@@ -2,7 +2,7 @@ $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot '../rch-connector/rch-optyker-connector.ps1') -LibraryOnly
 function Assert($x,$m){if(-not $x){throw $m}}
 $installer=Get-Content -Raw (Join-Path $PSScriptRoot '../rch-connector/Installa-RCH-Optyker.ps1')
-$downloadVersion=[regex]::Match($installer,"-notmatch '([^']+)'").Groups[1].Value
+$downloadVersion=[regex]::Match($installer,"-notmatch '(1[^']+)'").Groups[1].Value
 Assert ($downloadVersion -and $ConnectorVersion -match $downloadVersion) 'Installer download gate must accept the current connector'
 Assert ('1.6-fiscal-journal' -notmatch $downloadVersion) 'Installer must reject the connector without void support'
 function Assert-WindowsFiscalPlatform {}

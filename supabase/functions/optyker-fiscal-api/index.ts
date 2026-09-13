@@ -1,5 +1,5 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.116.0';
-import {makeDocument,makeVoid,reference,resultState,SERIAL,RELEASE} from './domain.mjs';
+import {makeDocument,makeVoid,reference,resultState,markAutomaticDocument,automaticReference,SERIAL,RELEASE} from './domain.mjs';
 declare const EdgeRuntime: {waitUntil(promise: Promise<unknown>): void};
 const db=createClient(Deno.env.get('SUPABASE_URL')||'',Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'',{auth:{persistSession:false,autoRefreshToken:false}});
 const origins=new Set(['https://www.optyker.it','https://optyker.it']);
@@ -30,23 +30,29 @@ async function jobView(jobId:any){
 async function saleView(saleId:any){
  const sale=await one(db.from('optyker_pos_sales').select('id,status,total,data,invoice_requested').eq('id',id(saleId)).maybeSingle());
  if(!sale)throw new Error('Vendita non trovata');
- const payments=await one(db.from('optyker_pos_payments').select('id,payment_stage,payment_method,amount,invoice_requested,billing_invoice_id,created_at').eq('sale_id',sale.id).order('created_at'));
+ const payments=await one(db.from('optyker_pos_payments').select('id,payment_stage,payment_method,amount,invoice_requested,billing_invoice_id,created_at,data').eq('sale_id',sale.id).order('created_at'));
  const jobs=await one(db.from('optyker_fiscal_jobs').select('*').eq('sale_id',sale.id));
- return {sale_id:sale.id,status:sale.status,total:sale.total,lines:sale.data?.lines||[],has_fiscal_code:!!sale.data?.client_snapshot?.fiscal,payments,jobs:jobs.filter((j:any)=>j.operation==='sale').map((j:any)=>({...publicJob(j),void_job:publicJob(jobs.find((v:any)=>v.original_job_id===j.id&&v.operation==='void'))}))};
+ return {sale_id:sale.id,status:sale.status,total:sale.total,lines:sale.data?.lines||[],has_fiscal_code:!!(sale.data?.fiscal_identity?.fiscal||sale.data?.client_snapshot?.fiscal),payments:payments.map(({data,...p}:any)=>({...p,automatic_receipt:!!data?.fiscal_snapshot})),jobs:jobs.filter((j:any)=>j.operation==='sale').map((j:any)=>({...publicJob(j),void_job:publicJob(jobs.find((v:any)=>v.original_job_id===j.id&&v.operation==='void'))}))};
 }
 async function prepare(p:any,operator:string){
  const payment=await one(db.from('optyker_pos_payments').select('*').eq('id',id(p.payment_id)).maybeSingle());
  if(!payment)throw new Error('Pagamento non trovato');
  const sale=await one(db.from('optyker_pos_sales').select('id,status,data').eq('id',payment.sale_id).single());
  if(!['completed','open_balance'].includes(sale.status))throw new Error('Completa prima la registrazione della vendita');
- // Use the recorded client identity, never an arbitrary CF from a print request.
- const document=makeDocument(payment,p,sale.data?.client_snapshot?.fiscal||'');
  const existing=await one(db.from('optyker_fiscal_jobs').select('*').eq('payment_id',payment.id).eq('operation','sale').maybeSingle());
  if(existing&&!['prepared','not_started'].includes(existing.state))return {job:publicJob(existing)};
+ const snapshot=payment.data?.fiscal_snapshot;
+ if(p.automatic===true&&!snapshot)throw new Error('Per questo pagamento precedente serve verificare le righe fiscali');
+ const jobId=existing?.id||crypto.randomUUID();
+ // Automatic issuance uses the immutable payment snapshot validated before checkout.
+ let document=makeDocument(payment,p.automatic===true?snapshot.input:p,
+   snapshot?.fiscal||sale.data?.fiscal_identity?.fiscal||sale.data?.client_snapshot?.fiscal||'');
+ if(p.automatic===true)document=markAutomaticDocument(document,jobId);
+
  const cap=token();const patch={state:'prepared',document,claim_hash:await hash(cap),claim_expires_at:new Date(Date.now()+600000).toISOString(),updated_at:now()};
  let job;
  if(existing){job=await one(db.from('optyker_fiscal_jobs').update(patch).eq('id',existing.id).in('state',['prepared','not_started']).select('*').maybeSingle());}
- else job=await one(db.from('optyker_fiscal_jobs').insert({...patch,payment_id:payment.id,sale_id:sale.id,operator_username:operator,serial:SERIAL}).select('*').single());
+ else job=await one(db.from('optyker_fiscal_jobs').insert({...patch,id:jobId,payment_id:payment.id,sale_id:sale.id,operator_username:operator,serial:SERIAL}).select('*').single());
  if(!job)throw new Error('Stato modificato: aggiorna prima di continuare');
  return {job:publicJob(job),claim_token:cap};
 }
@@ -72,13 +78,19 @@ async function claim(p:any){
 async function outcome(p:any){
  if(!/^[a-f0-9]{64}$/.test(String(p.token||'')))throw new Error('AUTH_REQUIRED');
  const job=await getJob(p.job_id);if(job.result_hash!==await hash(p.token))throw new Error('AUTH_REQUIRED');
- if(job.state!=='sending')return {job:publicJob(job)};
+ if(!['sending','awaiting_reference'].includes(job.state))return {job:publicJob(job)};
  const r=p.result||{},state=resultState(r,job.document.commands.length);
- const safe={state,commandsAcknowledged:Number.isInteger(r.commandsAcknowledged)?r.commandsAcknowledged:0,writeStarted:r.writeStarted===true,idleAfter:r.idleAfter===true,error:String(r.error||'').slice(0,250),connectorVersion:String(r.connectorVersion||'').slice(0,60)};
- const updated=await one(db.rpc('optyker_record_fiscal_outcome',{p_job_id:job.id,p_result_hash:await hash(p.token),p_state:state,p_result:safe}));
+ let ref=null;try{ref=automaticReference(r,job.document)}catch{/* Missing/malformed readback stays pending; never invent a reference. */}
+ const safe={state,commandsAcknowledged:Number.isInteger(r.commandsAcknowledged)?r.commandsAcknowledged:0,writeStarted:r.writeStarted===true,idleAfter:r.idleAfter===true,error:String(r.error||'').slice(0,250),connectorVersion:String(r.connectorVersion||'').slice(0,60),
+  ...(ref?{reference:{...ref,source:'rch_ej',serial:job.serial,marker:job.document.receiptMarker,time:/^\d{2}:\d{2}:\d{2}$/.test(r.reference.time||'')?r.reference.time:null}}:{})};
+ let updated=job;
+ if(job.state==='sending')updated=await one(db.rpc('optyker_record_fiscal_outcome',{p_job_id:job.id,p_result_hash:await hash(p.token),p_state:state,p_result:safe}));
+ // Retried outcome delivery may finish reference persistence but never print again.
+ if(ref&&updated.state==='awaiting_reference')return await saveReference({job_id:job.id,document_number:ref.number,document_date:ref.date,amount:ref.amount,paper_verified:true},'RCH connettore','rch_ej');
  return {job:publicJob(updated)};
 }
-async function saveReference(p:any,operator:string){
+
+async function saveReference(p:any,operator:string,source='paper_confirmed'){
  let job=await getJob(p.job_id);
  if(!['awaiting_reference','completed'].includes(job.state))throw new Error('Serve prima una chiusura confermata dalla RCH. Gli esiti incerti richiedono una verifica tecnica.');
  if(job.operation==='void'&&p.void_verified!==true)throw new Error('Conferma che la stampa è un annullo riferito allo scontrino originale');
@@ -90,7 +102,7 @@ async function saveReference(p:any,operator:string){
   const paymentDate=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Rome'}).format(new Date(payment.created_at));
   doc={serial:job.serial,number:ref.number,date:ref.date,paymentDate,paymentMethod:job.document.paymentMethod,
    opposition:job.document.opposition,fiscalCode:job.document.opposition?'':job.document.fiscalCode,
-   lines:job.document.lines.filter((l:any)=>l.expenseCode!=='none'),referenceSource:'paper_confirmed',referenceConfirmedBy:operator};
+   lines:job.document.lines.filter((l:any)=>l.expenseCode!=='none'),referenceSource:source,referenceConfirmedBy:operator};
  }
  job=await one(db.rpc('optyker_confirm_fiscal_reference',{p_job_id:job.id,p_number:ref.number,p_date:ref.date,p_operator:operator,p_ts_document:doc}));
  if(doc&&job.operation==='sale'){

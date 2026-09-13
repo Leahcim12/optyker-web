@@ -1,7 +1,7 @@
 /* OPTYKER_SEPT11_PREPARED */
 (function(){
 if(window.__optykerCashLoaded)return;window.__optykerCashLoaded=true;
-window.OPTYKER_CASH_BUILD='20260913-ts3';
+window.OPTYKER_CASH_BUILD='20260913-cash4';
 var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-cash-register-api';
 var S={products:[],clients:[],cart:{},type:'',payment:'card',stage:'balance',clientId:'',invoice:false,tsRequested:false,tsCode:'AD',tsOpposition:false,busy:false,searchTimer:null,clientSearchTimer:null,rchOk:false,cashOpen:false};
 
@@ -30,13 +30,13 @@ function rchRequest(path,opts){
 }
 function testRch(quiet){
   return rchRequest('/health').then(function(h){
-    if(h.version!=='1.7-fiscal-void')throw new Error('Aggiorna il connettore RCH dalla finestra di configurazione.');
+    if(h.version!=='1.8-auto-receipt')throw new Error('Aggiorna il connettore RCH dalla finestra di configurazione.');
     return rchRequest('/status')
   }).then(function(x){
     var extra=x.mode?(' · '+x.mode):' · modalità non disponibile';
     var reg=!!window.OPTYKER_RCH_PREFLIGHT&&window.OPTYKER_RCH_PREFLIGHT.registrationMode(x);
     rchStatusUi(reg,'● RCH raggiungibile'+extra);
-    if(!quiet)toast(reg?'RCH risponde in REG. Puoi aprire Emissione RCH da una vendita registrata.':'RCH risponde, ma non risulta in modalità REG.','');return x
+    if(!quiet)toast(reg?'RCH pronta: puoi usare Incassa e stampa.':'RCH risponde, ma non risulta in modalità REG.','');return x
   }).catch(function(e){
     rchStatusUi(false,'○ RCH da verificare');
     if(!quiet)toast('RCH da verificare: '+e.message,'error');
@@ -47,7 +47,7 @@ function downloadRchDiagnostics(){
   var b=E('optykerCashRchDiagnostics'),r=E('optykerCashRchResult');
   b.disabled=true;r.textContent='Raccolta diagnosi dal PC della cassa…';r.className='optykerCashRchResult';
   return rchRequest('/health').then(function(h){
-    if(h.version!=='1.7-fiscal-void')throw new Error('Installa / aggiorna il connettore, poi riprova.');
+    if(h.version!=='1.8-auto-receipt')throw new Error('Installa / aggiorna il connettore, poi riprova.');
     return rchRequest('/diagnostics')
   }).then(function(report){
     if(report.reportGenerated!==true||report.readOnly!==true)throw new Error('Rapporto diagnostico incompleto.');
@@ -98,10 +98,10 @@ function openRch(){
     '<div class="optykerCashModalSub">Optyker usa un piccolo connettore locale per comunicare in sicurezza con RCH PRINT! RT su 192.168.1.10.</div>'+
     '<div class="optykerCashRchInfo"><div><span>Registratore</span><b>RCH PRINT! RT</b></div><div><span>IP</span><b>192.168.1.10</b></div><div><span>Web Service</span><b>/service.cgi</b></div><div><span>Bridge Optyker</span><b>127.0.0.1:8765</b></div></div>'+
     '<div class="optykerCashRchHelp"><b>Configurazione letta dalla cassa · 12/09/2026</b><div id="optykerCashRchProfile"></div></div>'+
-    '<div class="optykerCashRchHelp"><b>Attivazione fiscale da completare</b><br>Matricola, reparti, aliquote e pagamenti confermati dalla lettura RCH del 12/09/2026.<br>Connettore 1.6: emissione dalla vendita, da collaudare sulla RCH. Il numero va confermato dalla stampa.<br>Spese sanitarie: invio diretto al Sistema TS non attivo.<br>Corrispettivi AdE: ricevute di accettazione dei documenti da verificare.</div>'+
+    '<div class="optykerCashRchHelp"><b>Stampa al pagamento e registrazione automatica</b><br>Aggiorna il connettore alla versione 1.8 per acquisire numero, data e totale direttamente dal giornale della RCH.<br>Invii e ricevute Sistema TS sono consultabili in Amministrazione → Sistema TS.</div>'+
     '<div class="optykerCashRchHelp"><button id="optykerCashRchPreflight" type="button">Controlla carrello · senza stampa</button><div id="optykerCashRchPreflightResult" role="status" aria-live="polite"></div></div>'+
     '<div id="optykerCashRchResult" class="optykerCashRchResult">Pronto per il test.</div>'+
-    '<div class="optykerCashRchDownloads optykerCashRchDownloadsAuto"><a class="primary" href="/rch-connector/Attiva-Avvio-Automatico-RCH.bat?v=20260913-autostart1" download>Attiva avvio automatico Windows</a><a href="/rch-connector/Installa-RCH-Optyker.bat?v=20260913-autostart1" download>Installa / aggiorna connettore</a><a href="/rch-connector/Diagnostica-RCH-Optyker.bat?v=20260912-void1" download>Diagnostica Windows</a><a href="/rch-connector/Disinstalla-RCH-Optyker.ps1?v=20260913-autostart1" download>Rimuovi avvio automatico</a></div>'+
+    '<div class="optykerCashRchDownloads optykerCashRchDownloadsAuto"><a class="primary" href="/rch-connector/Attiva-Avvio-Automatico-RCH.bat?v=20260913-autostart1" download>Attiva avvio automatico Windows</a><a href="/rch-connector/Installa-RCH-Optyker.bat?v=20260913-cash4" download>Installa / aggiorna connettore</a><a href="/rch-connector/Diagnostica-RCH-Optyker.bat?v=20260912-void1" download>Diagnostica Windows</a><a href="/rch-connector/Disinstalla-RCH-Optyker.ps1?v=20260913-autostart1" download>Rimuovi avvio automatico</a></div>'+
     '<div class="optykerCashRchHelp">Il <b>Test collegamento</b> controlla soltanto la comunicazione e non emette documenti fiscali. <b>Apri cassetto</b> è la prova hardware più semplice: apre solo il cassetto contanti senza stampare uno scontrino.</div>'+
     '<div class="optykerCashRchActions optykerCashRchActions4"><button id="optykerCashRchTest" type="button">Test collegamento</button><button id="optykerCashRchDiagnostics" type="button">Scarica diagnosi</button><button id="optykerCashRchDrawerTest" type="button">Apri cassetto</button><button class="optykerCashModalClose" type="button">Chiudi</button></div></div>';
   m.classList.add('open');
@@ -189,12 +189,13 @@ function ensureUI(){
       '<div class="optykerCashPayLabel optykerCashPayLabelSpaced">Metodo di pagamento</div><div class="optykerCashPayModes">'+
         '<button class="optykerCashPayMode" data-pay="cash" type="button">Contanti</button><button class="optykerCashPayMode active" data-pay="card" type="button">Carta</button><button class="optykerCashPayMode" data-pay="bank" type="button">Bonifico</button><button class="optykerCashPayMode" data-pay="pending" type="button" title="Pagamento dilazionato" aria-label="RATE - pagamento dilazionato">RATE</button>'+
       '</div>'+
-      '<label id="optykerCashTsBox" class="optykerCashTsBox"><input id="optykerCashTs" type="checkbox"><span class="optykerCashTsCheck">✓</span><span><b>Prepara dati spesa · Sistema TS</b><small id="optykerCashTsHint">Seleziona un cliente con Codice Fiscale.</small></span></label>'+
-      '<div id="optykerCashTsOptions" class="optykerCashTsOptions" style="display:none"><div><label for="optykerCashTsCode">Codice spesa</label><select id="optykerCashTsCode"><option value="AD">AD · Dispositivo medico</option><option value="AA">AA · Prestazione sanitaria</option></select></div><label class="optykerCashTsOpposition"><input id="optykerCashTsOpposition" type="checkbox"> Opposizione del cliente all\'uso dei dati nella precompilata</label></div>'+
+      '<label id="optykerCashTsBox" class="optykerCashTsBox"><input id="optykerCashTs" type="checkbox"><span class="optykerCashTsCheck">✓</span><span><b>Scontrino parlante · detrazione</b><small id="optykerCashTsHint">Inserisci il codice fiscale anche per un cliente occasionale.</small></span></label>'+
+      '<div id="optykerCashTsOptions" class="optykerCashTsOptions" style="display:none"><div><label for="optykerCashFiscalCode">Codice fiscale per questa vendita</label><input id="optykerCashFiscalCode" maxlength="16" autocomplete="off" spellcheck="false" autocapitalize="characters" placeholder="Codice fiscale del cliente"></div><div><label for="optykerCashTsCode">Codice spesa</label><select id="optykerCashTsCode"><option value="AD">AD · Dispositivo medico</option><option value="AA">AA · Prestazione sanitaria</option></select></div><label class="optykerCashTsOpposition"><input id="optykerCashTsOpposition" type="checkbox"> Opposizione del cliente all\'uso dei dati nella precompilata</label></div>'+
       '<label id="optykerCashInvoiceBox" class="optykerCashInvoiceBox"><input id="optykerCashInvoice" type="checkbox"><span class="optykerCashInvoiceCheck">✓</span><span><b>Prepara fattura Fatture in Cloud</b><small id="optykerCashInvoiceHint">La fattura verrà preparata con i dati del cliente.</small></span></label>'+
       '<textarea id="optykerCashNote" placeholder="Nota vendita (facoltativa)"></textarea>'+
-      '<div class="optykerCashRchHelp">Dopo Conferma vendita si apre la finestra RCH: verifica i dati e premi Emetti scontrino. Puoi riaprirla da Ultime vendite → Emissione / esito RCH.</div>'+
+      '<div class="optykerCashRchHelp">Controlla articoli, IVA e pagamento, poi premi Incassa e stampa. Lo scontrino e il suo riferimento vengono registrati nella vendita.</div>'+
       '<button id="optykerCashCheckoutBtn" type="button" disabled>Conferma vendita</button>'+
+      '<button id="optykerCashRecover" type="button" hidden>Recupera ultimo incasso / scontrino</button>'+
       '<div class="optykerCashSecondaryActions"><button id="optykerCashDepositsBtn" type="button">Acconti aperti</button><button id="optykerCashRecentBtn" type="button">Ultime vendite</button><button id="optykerCashGiftBtn" class="optykerCashGiftBtn" type="button" title="Stampa l’ultimo scontrino fiscale senza prezzi">Scontrino cortesia</button><button id="optykerCashTsDocsBtn" type="button">Sistema TS</button></div>'+
     '</div></aside></div>';
   document.body.appendChild(d);
@@ -208,7 +209,8 @@ function ensureUI(){
     S.tsRequested=!!this.checked;
     var o=E('optykerCashTsOptions');if(o)o.style.display=S.tsRequested?'grid':'none';
     if(S.tsRequested&&E('optykerCashInvoice')){E('optykerCashInvoice').checked=false;S.invoice=false}
-    updateTsAvailability()
+    if(S.tsRequested&&currentCashClient()&&!cashFiscalCode())E('optykerCashFiscalCode').value=cleanFiscal(currentCashClient().fiscal);
+    updateTsAvailability();renderCart()
   };
   E('optykerCashTsCode').onchange=function(){S.tsCode=this.value==='AA'?'AA':'AD';updateTsAvailability()};
   E('optykerCashTsOpposition').onchange=function(){S.tsOpposition=!!this.checked;updateTsAvailability()};
@@ -218,7 +220,9 @@ function ensureUI(){
       E('optykerCashTs').checked=false;S.tsRequested=false;
       var o=E('optykerCashTsOptions');if(o)o.style.display='none'
     }
+    renderCart();
   };
+  E('optykerCashRecover').onclick=recoverCashCheckout;
   E('optykerCashCheckoutBtn').onclick=checkout;E('optykerCashRecentBtn').onclick=recentSales;E('optykerCashDepositsBtn').onclick=openDeposits;E('optykerCashGiftBtn').onclick=printGiftReceipt;E('optykerCashTsDocsBtn').onclick=openTsDocuments;
 }
 function fillClients(id,rows){
@@ -246,12 +250,15 @@ function openCash(clientId){
   S.cashOpen=true;ensureUI();var overlay=E('optykerCashOverlay');if(overlay){overlay.style.removeProperty('display');overlay.removeAttribute('aria-hidden')};S.stage='balance';S.payment='card';S.invoice=false;S.tsRequested=false;S.tsCode='AD';S.tsOpposition=false;S.clients=clientsLocal();fillClients(clientId||'',S.clients);S.clientId=clientId||'';if(E('optykerCashClientSearch'))E('optykerCashClientSearch').value='';searchCashClients('',clientId||'');
   var o=E('optykerCashOperator'),c=creds();if(o)o.textContent=c.username?'Operatore · '+c.username:'Operatore';
   E('optykerCashOverlay').classList.add('open');document.body.style.overflow='hidden';testRch(true).catch(function(){});
+  var cf=E('optykerCashFiscalCode');if(cf){cf.value='';delete cf.dataset.client}
   var inv=E('optykerCashInvoice');if(inv)inv.checked=false;
   var ts=E('optykerCashTs');if(ts)ts.checked=false;var tso=E('optykerCashTsOptions');if(tso)tso.style.display='none';
   if(E('optykerCashTsCode'))E('optykerCashTsCode').value='AD';if(E('optykerCashTsOpposition'))E('optykerCashTsOpposition').checked=false;
   renderPay();renderStage();updateInvoiceAvailability();updateTsAvailability();renderCart();loadProducts(false);setTimeout(function(){try{E('optykerCashSearch').focus()}catch(e){}},60)
 }
 function closeCash(ev){
+  if(S.busy){toast('Attendi l’esito dell’incasso in corso.','');return false}
+  if(E('optykerCashFiscalCode'))E('optykerCashFiscalCode').value='';
   if(ev){try{ev.preventDefault()}catch(e){}try{ev.stopPropagation()}catch(e){}}
   S.cashOpen=false;
   var o=E('optykerCashOverlay');
@@ -315,13 +322,17 @@ function renderCart(){
   E('optykerCashCartCount').textContent=count+' articol'+(count===1?'o':'i');E('optykerCashTotal').textContent=euro(total);
   var dep=depositAmount(),validDep=S.stage!=='deposit'||(dep>0&&dep<total);
   var due=S.stage==='deposit'?Math.max(0,total-dep):0;if(E('optykerCashDue'))E('optykerCashDue').textContent=euro(due);
+  document.querySelectorAll('#optykerCashOverlay [data-pay],#optykerCashOverlay [data-stage],#optykerCashTs,#optykerCashTsCode,#optykerCashTsOpposition,#optykerCashFiscalCode,#optykerCashDeposit,#optykerCashNote').forEach(function(control){control.disabled=S.busy});
+  var invoice=E('optykerCashInvoice');if(invoice)invoice.disabled=S.busy||!S.clientId;
+  var recover=E('optykerCashRecover');if(recover){var pending=false;try{pending=!!sessionStorage.getItem('optykerCashPendingRequest')}catch(ignore){}recover.hidden=!pending;recover.disabled=S.busy}
   var cb=E('optykerCashCheckoutBtn');cb.disabled=!rows.length||S.busy||!validDep;
   var payNow=S.payment==='pending'?0:(S.stage==='deposit'?dep:total);
-  cb.textContent=rows.length?(stageLabel(S.stage)+' · '+euro(payNow)):'Conferma vendita';
+  cb.textContent=S.busy?'Operazione in corso…':rows.length?((S.invoice?'Prepara fattura':S.payment==='pending'?'Registra da pagare':'Incassa e stampa')+' · '+euro(payNow)):'Incassa e stampa';
   if(!rows.length){box.innerHTML='<div class="optykerCashCartEmpty">Il carrello è vuoto.<br>Seleziona un prodotto per iniziare.</div>';return}
   var h='';rows.forEach(function(x){var p=x.item,v=String(p.variant_title||'');if(v==='Default Title')v='';
-    h+='<div class="optykerCashCartItem"><div><div class="optykerCashCartItemTitle">'+esc(p.title)+'</div><div class="optykerCashCartItemMeta">'+esc([v,p.sku,discountLabel(p,x.qty)].filter(Boolean).join(' · '))+'</div><div class="optykerCashQty"><button type="button" data-minus="'+esc(p.variant_id)+'">−</button><span>'+x.qty+'</span><button type="button" data-plus="'+esc(p.variant_id)+'">+</button></div><button type="button" class="optykerCashRemove" data-remove="'+esc(p.variant_id)+'">Rimuovi</button></div><div class="optykerCashCartItemPrice">'+esc(euro(Number(p.price||0)*x.qty))+'</div></div>'
+    h+='<div class="optykerCashCartItem"><div><div class="optykerCashCartItemTitle">'+esc(p.title)+'</div><div class="optykerCashCartItemMeta">'+esc([v,p.sku,discountLabel(p,x.qty)].filter(Boolean).join(' · '))+'</div><label class="optykerCashVat">IVA <select aria-label="IVA articolo" data-vat="'+esc(p.variant_id)+'">'+cashVatOptions(x.department||({'04':1,'22':2,'ART10':3}[p.fiscal_vat_code||p.vat_code]))+'</select></label><div class="optykerCashQty"><button type="button" data-minus="'+esc(p.variant_id)+'">−</button><span>'+x.qty+'</span><button type="button" data-plus="'+esc(p.variant_id)+'">+</button></div><button type="button" class="optykerCashRemove" data-remove="'+esc(p.variant_id)+'">Rimuovi</button></div><div class="optykerCashCartItemPrice">'+esc(euro(Number(p.price||0)*x.qty))+'</div></div>'
   });box.innerHTML=h;
+  box.querySelectorAll('[data-vat]').forEach(function(v){v.disabled=S.busy;v.onchange=function(){if(S.busy)return;S.cart[this.dataset.vat].department=Number(this.value);renderCart()}});
   var ms=box.querySelectorAll('[data-minus]'),ps=box.querySelectorAll('[data-plus]'),rs=box.querySelectorAll('[data-remove]');
   for(var i=0;i<ms.length;i++)ms[i].onclick=function(){qty(this.getAttribute('data-minus'),-1)};
   for(i=0;i<ps.length;i++)ps[i].onclick=function(){qty(this.getAttribute('data-plus'),1)};
@@ -338,26 +349,24 @@ function currentCashClient(){
   for(var p=0;p<pools.length;p++){var a=Array.isArray(pools[p])?pools[p]:[];for(var i=0;i<a.length;i++)if(String(a[i]&&a[i].id||'')===id)return a[i]}
   return null
 }
+function cashVatOptions(selected){return '<option value="">Seleziona IVA</option>'+[[1,'4% · bene'],[2,'22% · bene'],[3,'Esente Art.10 · servizio']].map(function(x){return '<option value="'+x[0]+'"'+(Number(selected)===x[0]?' selected':'')+'>'+x[1]+'</option>'}).join('')}
+function cashFiscalCode(){return cleanFiscal(E('optykerCashFiscalCode')&&E('optykerCashFiscalCode').value)}
 function cleanFiscal(v){return String(v||'').toUpperCase().replace(/\s+/g,'')}
 function updateTsAvailability(){
   var box=E('optykerCashTsBox'),ck=E('optykerCashTs'),hint=E('optykerCashTsHint'),opts=E('optykerCashTsOptions');
   if(!box||!ck)return;
-  var cl=currentCashClient(),fiscal=cleanFiscal(cl&&cl.fiscal),ok=!!cl&&/^[A-Z0-9]{16}$/.test(fiscal);
-  ck.disabled=!ok;box.classList.toggle('disabled',!ok);
-  if(!ok){
-    ck.checked=false;S.tsRequested=false;S.tsOpposition=false;
-    if(opts)opts.style.display='none';
-    if(hint)hint.textContent=cl?'Completa il Codice Fiscale del cliente per la detrazione.':'Seleziona un cliente con Codice Fiscale.';
-    return
-  }
+  var field=E('optykerCashFiscalCode'),cl=currentCashClient(),key=S.clientId||'';
+  ck.disabled=false;box.classList.remove('disabled');
+  if(field&&field.dataset.client!==key){field.dataset.client=key;field.value=cleanFiscal(cl&&cl.fiscal)}
+  if(field){field.disabled=S.busy;field.required=!!ck.checked;field.oninput=function(){this.value=cleanFiscal(this.value)}}
   S.tsRequested=!!ck.checked;
   if(opts)opts.style.display=S.tsRequested?'grid':'none';
   var code=E('optykerCashTsCode');S.tsCode=code&&code.value==='AA'?'AA':'AD';
   var opp=E('optykerCashTsOpposition');S.tsOpposition=!!(opp&&opp.checked);
   if(hint){
-    if(S.tsOpposition)hint.textContent='Opposizione registrata. Spesa sospesa per la verifica della gestione TS.';
+    if(S.tsOpposition)hint.textContent='Opposizione registrata per questa spesa.';
     else if(S.tsCode==='AA'&&S.payment==='cash')hint.textContent='AA richiede un pagamento tracciabile per essere detraibile.';
-    else hint.textContent='Salva i dati della spesa. Invio diretto al Sistema TS non ancora attivo.'
+    else hint.textContent='Codice fiscale sullo scontrino; righe sanitarie nella coda Sistema TS.'
   }
 }
 function updateInvoiceAvailability(){
@@ -365,6 +374,20 @@ function updateInvoiceAvailability(){
   var ok=!!S.clientId;inv.disabled=!ok;box.classList.toggle('disabled',!ok);
   if(!ok){inv.checked=false;S.invoice=false;if(hint)hint.textContent='Per la fattura seleziona prima un cliente.'}
   else if(hint)hint.textContent='Richiesta Fatture in Cloud del solo importo pagato; revisione e conferma in Fatturazione cliente.';
+}
+async function recoverCashCheckout(){
+ if(S.busy)return;var pending;try{pending=JSON.parse(sessionStorage.getItem('optykerCashPendingRequest')||'null')}catch(ignore){}
+ if(!pending)return;S.busy=true;renderCart();
+ try{
+  var r=await api('checkout_status',{request_id:pending.id}),sale=r.data.sale,payment=r.data.payment;
+  if(sale&&!['completed','open_balance'].includes(sale.status))throw new Error('Incasso da riconciliare in Ultime vendite'+(sale.shopify_order_name?' · '+sale.shopify_order_name:'')+'. Non creare un nuovo ordine.');
+  if(sale&&Number(sale.paid_amount)>0&&!payment)throw new Error('Il pagamento della vendita deve essere riconciliato in Ultime vendite.');
+  S.checkoutRequestId='';sessionStorage.removeItem('optykerCashPendingRequest');
+  if(!sale){toast('Nessuna vendita registrata per quel tentativo: puoi riprovare.','');return}
+  S.cart={};if(E('optykerCashFiscalCode'))E('optykerCashFiscalCode').value='';
+  if(!sale.invoice_requested&&payment){if(payment.automatic_receipt){await window.OPTYKER_FISCAL.checkReady();await window.OPTYKER_FISCAL.issuePayment(sale.id,payment.id)}else await window.OPTYKER_FISCAL.openSale(sale.id)}
+  else toast('Vendita recuperata'+(sale.shopify_order_name?' · '+sale.shopify_order_name:''),'ok');
+ }catch(e){toast(e.message,'error')}finally{S.busy=false;renderCart()}
 }
 function checkout(){
   var rows=cartRows();if(!rows.length||S.busy)return;var total=cartTotal(),dep=depositAmount();
@@ -374,39 +397,43 @@ function checkout(){
   var tsCode=E('optykerCashTsCode')&&E('optykerCashTsCode').value==='AA'?'AA':'AD';
   var tsOpp=!!(E('optykerCashTsOpposition')&&E('optykerCashTsOpposition').checked);
   if(inv&&!S.clientId){toast('Per creare la fattura seleziona un cliente.','error');return}
-  if(ts&&!S.clientId){toast('Per il Sistema TS seleziona un cliente con Codice Fiscale.','error');return}
+  if(ts&&!/^[A-Z0-9]{16}$/.test(cashFiscalCode())){toast('Inserisci il codice fiscale di 16 caratteri per questa vendita.','error');E('optykerCashFiscalCode').focus();return}
   if(ts&&inv){toast('Per una spesa Sistema TS non usare la fattura elettronica.','error');return}
   if(ts&&S.payment==='pending'){toast('Per preparare il Sistema TS registra prima un pagamento.','error');return}
   if(ts&&tsCode==='AA'&&S.payment==='cash'){toast('Le spese AA richiedono un pagamento tracciabile.','error');return}
-  var sel=E('optykerCashClient'),client=sel&&sel.selectedOptions&&sel.selectedOptions[0]?sel.selectedOptions[0].textContent:'Cliente occasionale';
-  var payNow=S.payment==='pending'?0:(S.stage==='deposit'?dep:total);
-  var msg=stageLabel(S.stage)+' di '+euro(payNow)+' per '+client+'.';
-  if(S.stage==='deposit')msg+=' Resteranno '+euro(total-dep)+' da saldare.';
-  if(inv)msg+=' Verrà preparata anche la fattura del pagamento.';
-  if(ts)msg+=tsOpp?' Verrà registrata l\'opposizione al Sistema TS.':' Verrà preparata la spesa '+tsCode+' per il Sistema TS.';
-  if(!inv)msg+=' Dopo la registrazione potrai emettere lo scontrino dalla schermata RCH.';
-  if(!window.confirm(msg+'\n\nConfermare?'))return;
-  S.busy=true;renderCart();
-  api('checkout',{
-    client_id:S.clientId,payment_method:S.payment,payment_stage:S.stage,deposit_amount:dep,expected_total:total,
-    invoice_requested:inv,ts_requested:ts,ts_expense_code:tsCode,ts_opposition:tsOpp,
-    note:String(E('optykerCashNote').value||''),
-    lines:rows.map(function(x){return {variant_id:x.item.variant_id,quantity:x.qty}})
+  var autoReceipt=!inv&&S.payment!=='pending';
+  var lines=rows.map(function(x){return {variant_id:x.item.variant_id,quantity:x.qty,department:Number(x.department||({'04':1,'22':2,'ART10':3}[x.item.fiscal_vat_code||x.item.vat_code])||0)}});
+  if(autoReceipt&&lines.some(function(l){return !l.department})){toast('Seleziona l’IVA degli articoli nel carrello.','error');return}
+  if(autoReceipt&&!['cash','card'].includes(S.payment)){toast('Il pagamento selezionato non è configurato sulla RCH. Seleziona il metodo effettivamente usato oppure prepara la fattura.','error');return}
+  var payload={client_id:S.clientId,payment_method:S.payment,payment_stage:S.stage,deposit_amount:dep,expected_total:total,
+    invoice_requested:inv,ts_requested:ts,ts_expense_code:tsCode,ts_opposition:tsOpp,fiscal_code:ts?cashFiscalCode():'',auto_receipt:autoReceipt,
+    note:String(E('optykerCashNote').value||''),lines:lines};
+  S.busy=true;renderCart();var saleSent=false;
+  Promise.resolve().then(function(){
+    if(autoReceipt){if(!window.OPTYKER_FISCAL)throw new Error('Modulo stampa in caricamento: riprova tra pochi istanti.');return window.OPTYKER_FISCAL.checkReady()}
+  }).then(function(){
+    var stored;try{stored=JSON.parse(sessionStorage.getItem('optykerCashPendingRequest')||'null')}catch(ignore){}
+    // Only the request identifier is persisted. The fingerprint stays in memory (contains CF).
+    if(!S.checkoutRequestId)S.checkoutRequestId=stored&&stored.id||crypto.randomUUID();
+    payload.request_id=S.checkoutRequestId;saleSent=true;
+    try{sessionStorage.setItem('optykerCashPendingRequest',JSON.stringify({id:S.checkoutRequestId}))}catch(ignore){}
+    return api('checkout',payload);
   }).then(function(x){
-    var sale=x.data||{};S.cart={};E('optykerCashNote').value='';
+    var sale=x.data||{};S.checkoutRequestId='';try{sessionStorage.removeItem('optykerCashPendingRequest')}catch(ignore){};S.cart={};E('optykerCashNote').value='';
     if(E('optykerCashDeposit'))E('optykerCashDeposit').value='';
     if(E('optykerCashInvoice'))E('optykerCashInvoice').checked=false;S.invoice=false;
     if(E('optykerCashTs'))E('optykerCashTs').checked=false;S.tsRequested=false;
     if(E('optykerCashTsOptions'))E('optykerCashTsOptions').style.display='none';
+    if(E('optykerCashFiscalCode'))E('optykerCashFiscalCode').value='';
     if(E('optykerCashTsOpposition'))E('optykerCashTsOpposition').checked=false;S.tsOpposition=false;
     renderCart();updateTsAvailability();
     var text='Vendita registrata'+(sale.shopify_order_name?' · '+sale.shopify_order_name:'');
     if(Number(sale.due_amount||0)>0)text+=' · da saldare '+euro(sale.due_amount);
     if(sale.billing_invoice&&sale.billing_invoice.id)text+=' · richiesta Fatture in Cloud preparata';
-    if(sale.ts_document&&sale.ts_document.id)text+=sale.ts_document.opposition?' · opposizione TS registrata':' · dati TS salvati, invio non attivo';
+    if(sale.ts_document&&sale.ts_document.id)text+=sale.ts_document.opposition?' · opposizione TS registrata':' · spesa TS collegata al documento';
     toast(text,'ok');
-    if(!inv&&window.OPTYKER_FISCAL&&sale.id)window.OPTYKER_FISCAL.openSale(sale.id)
-  }).catch(function(e){toast('Esito vendita da verificare nella cronologia prima di riprovare: '+e.message,'error')}).finally(function(){S.busy=false;renderCart()})
+    if(autoReceipt&&sale.payment&&sale.payment.id)return window.OPTYKER_FISCAL.issuePayment(sale.id,sale.payment.id)
+  }).catch(function(e){toast((saleSent?'Esito vendita da verificare in Ultime vendite: ':'')+e.message,'error')}).finally(function(){S.busy=false;renderCart()})
 }
 function openDeposits(){
   var m=E('optykerCashDepositsModal');if(!m){m=document.createElement('div');m.id='optykerCashDepositsModal';m.className='optykerCashModal';document.body.appendChild(m)}
@@ -422,6 +449,7 @@ function openDeposits(){
   }).catch(function(e){E('optykerCashDepositsList').innerHTML='<div class="optykerCashEmpty">Errore: '+esc(e.message)+'</div>'})
 }
 function settleExisting(saleId,stage,modal){
+  if(S.busy)return;
   if(S.payment==='pending'){toast('Per saldare seleziona Contanti, Carta o Bonifico.','error');return}
   var inv=!!(E('optykerCashInvoice')&&E('optykerCashInvoice').checked);
   var ts=!!(E('optykerCashTs')&&E('optykerCashTs').checked);
@@ -432,11 +460,12 @@ function settleExisting(saleId,stage,modal){
   var label=stage==='delivery_balance'?'saldo alla consegna':'saldo';
   var extra=inv?'\nVerrà preparata anche la fattura del pagamento.':'';
   if(ts)extra+=tsOpp?'\nVerrà registrata l\'opposizione al Sistema TS.':'\nVerrà preparata la spesa '+tsCode+' per il Sistema TS.';
-  if(!inv)extra+='\nDopo la registrazione potrai emettere il documento dalla schermata RCH.';
+  if(!inv)extra+='\nLo scontrino verrà stampato con i dati fiscali salvati nella vendita.';
   if(!window.confirm('Registrare il '+label+'?'+extra))return;
-  api('settle',{sale_id:saleId,payment_stage:stage,payment_method:S.payment,invoice_requested:inv,ts_requested:ts,ts_expense_code:tsCode,ts_opposition:tsOpp,note:String(E('optykerCashNote').value||'')})
-    .then(function(x){var sale=x.data||{};var t='Saldo registrato'+(sale.billing_invoice?' · richiesta Fatture in Cloud preparata':'');if(sale.ts_document)t+=sale.ts_document.opposition?' · opposizione TS registrata':' · dati TS salvati, invio non attivo';toast(t,'ok');if(modal)modal.classList.remove('open');if(!inv&&window.OPTYKER_FISCAL)window.OPTYKER_FISCAL.openSale(sale.id);else openDeposits()})
-    .catch(function(e){toast('Saldo non completato: '+e.message,'error')})
+  S.busy=true;renderCart();
+  Promise.resolve().then(function(){if(!inv){if(!window.OPTYKER_FISCAL)throw new Error('Modulo RCH non disponibile');return window.OPTYKER_FISCAL.checkReady()}}).then(function(){return api('settle',{auto_receipt:!inv,sale_id:saleId,payment_stage:stage,payment_method:S.payment,invoice_requested:inv,ts_requested:ts,ts_expense_code:tsCode,ts_opposition:tsOpp,note:String(E('optykerCashNote').value||'')})})
+    .then(function(x){var sale=x.data||{};var t='Saldo registrato'+(sale.billing_invoice?' · richiesta Fatture in Cloud preparata':'');if(sale.ts_document)t+=sale.ts_document.opposition?' · opposizione TS registrata':' · spesa TS collegata al documento';toast(t,'ok');if(modal)modal.classList.remove('open');if(!inv&&window.OPTYKER_FISCAL){if(sale.payment&&sale.payment.data&&sale.payment.data.fiscal_snapshot)return window.OPTYKER_FISCAL.issuePayment(sale.id,sale.payment.id);return window.OPTYKER_FISCAL.openSale(sale.id)}else openDeposits()})
+    .catch(function(e){toast('Verifica esito saldo: '+e.message,'error')}).finally(function(){S.busy=false;renderCart()})
 }
 function openTsDocuments(){
   var m=E('optykerCashTsModal');if(!m){m=document.createElement('div');m.id='optykerCashTsModal';m.className='optykerCashModal';document.body.appendChild(m)}

@@ -1,6 +1,8 @@
 /* OPTYKER_SEPT11_PREPARED */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import {purchaseIdentity, fiscalLines, paymentDocument} from './fiscal.mjs';
+import {fiscalCode} from '../optyker-fiscal-api/domain.mjs';
 import { listHistory, receiptDetail, setHistoryVisibility } from './history.ts';
 import { lensProduct, listLensProducts, isLensCatalogId, cashDraftLine, pricingTotals, assertLensTotal, discountBrands, LENS_CATALOG_VERSION } from './lens-pricing.mjs';
 
@@ -73,6 +75,20 @@ async function gql(query:string,variables:any){
 function img(p:any){
   return String(p?.featuredMedia?.preview?.image?.url||p?.featuredImage?.url||"");
 }
+async function withFiscalCatalog(lines:any[]) {
+  const ids=[...new Set(lines.map(l=>String(l.shopify_variant_id||l.variant_id||'')).filter(id=>id.startsWith('gid://shopify/ProductVariant/')))];
+  const entries:any[]=[];
+  for(let i=0;i<ids.length;i+=100){
+    const {data,error}=await db.from('optyker_inventory_items').select('shopify_variant_id,vat_code,category').eq('active',true).in('shopify_variant_id',ids.slice(i,i+100));
+    if(error)throw error;entries.push(...(data||[]));
+  }
+  return lines.map(l=>{
+    const found=entries.filter(e=>e.shopify_variant_id===String(l.shopify_variant_id||l.variant_id));
+    const unique=[...new Set(found.map(e=>e.vat_code))];
+    const vat=l.vat_code||(unique.length===1?unique[0]:'');
+    return {...l,fiscal_vat_code:vat,fiscal_item_type:l.is_service||found.some(e=>e.category==='services')?'services':vat?'goods':''};
+  });
+}
 async function products(search:string,first:number,clientId:string){
   const context=await ovcContext(db,clientId);
   const q=[
@@ -112,7 +128,7 @@ async function products(search:string,first:number,clientId:string){
       });
     }
   }
-  return [...serviceSearch(context,search),...listLensProducts(search),...outRows.filter(x=>!serviceForId(x.variant_id,context))];
+  return await withFiscalCatalog([...serviceSearch(context,search),...listLensProducts(search),...outRows.filter(x=>!serviceForId(x.variant_id,context))]);
 }
 async function clients(search:string){
   let q=db.from("optyker_clients")
@@ -165,7 +181,7 @@ async function clientById(id:string){
   if(error)throw error;
   return data||null;
 }
-async function createPayment(sale:any,client:any,operator:string,stage:string,method:string,amount:number,invoiceRequested:boolean,note:string){
+async function createPayment(sale:any,client:any,operator:string,stage:string,method:string,amount:number,invoiceRequested:boolean,note:string,fiscalSnapshot:any=null){
   const {data,error}=await db.from("optyker_pos_payments").insert({
     sale_id:sale.id,
     client_id:client?.id||null,
@@ -176,16 +192,14 @@ async function createPayment(sale:any,client:any,operator:string,stage:string,me
     currency:"EUR",
     invoice_requested:!!invoiceRequested,
     note:note||"",
-    data:{source:"optyker_pos",shopify_order_id:sale.shopify_order_id||"",shopify_order_name:sale.shopify_order_name||""}
+    data:{source:"optyker_pos",shopify_order_id:sale.shopify_order_id||"",shopify_order_name:sale.shopify_order_name||"",fiscal_snapshot:fiscalSnapshot}
   }).select("*").single();
   if(error)throw error;
   return data;
 }
 
 async function createTsDocument(sale:any,payment:any,client:any,operator:string,stage:string,method:string,amount:number,expenseCode:string,opposition:boolean){
-  if(!client)throw new Error("Per la detrazione Sistema TS seleziona un cliente.");
-  const fiscal=norm(client.fiscal).toUpperCase().replace(/\s+/g,"");
-  if(!/^[A-Z0-9]{16}$/.test(fiscal))throw new Error("Per il Sistema TS serve un Codice Fiscale cliente valido di 16 caratteri.");
+  const fiscal=fiscalCode(norm(client?.fiscal).toUpperCase().replace(/\s+/g,""));
   const code=expenseCode==="AA"?"AA":"AD";
   const traceable=method!=="cash";
   if(code==="AA"&&!traceable)throw new Error("Le spese AA sono detraibili solo con pagamento tracciabile.");
@@ -212,7 +226,7 @@ async function createTsDocument(sale:any,payment:any,client:any,operator:string,
   const {data,error}=await db.from("optyker_ts_documents").insert({
     sale_id:sale.id,
     payment_id:payment?.id||null,
-    client_id:client.id,
+    client_id:client?.id||null,
     operator_username:operator,
     fiscal_code:fiscal,
     document_type:"commercial_document",
@@ -337,17 +351,40 @@ async function quoteLines(linesIn:any[],clientId:string){
     lines.push({...v,quantity:qty,total,discount_total:money((v.discount_amount||0)*qty)});
   }
 
-  return {lines,...pricingTotals(lines),catalog_version:LENS_CATALOG_VERSION,ovc_version:OVC_VERSION,card:context.card};
+  return {lines:await withFiscalCatalog(lines),...pricingTotals(lines),catalog_version:LENS_CATALOG_VERSION,ovc_version:OVC_VERSION,card:context.card};
 }
 
+async function checkoutStatus(requestId:string){
+  if(!/^[a-f0-9-]{36}$/i.test(requestId))throw new Error('Riferimento incasso non valido');
+  const {data:sale,error}=await db.from('optyker_pos_sales').select('id,status,total,paid_amount,shopify_order_name,invoice_requested').eq('data->>checkout_request_id',requestId).maybeSingle();
+  if(error)throw error;if(!sale)return {sale:null};
+  const {data:payments,error:pe}=await db.from('optyker_pos_payments').select('id,amount,data').eq('sale_id',sale.id).order('created_at');
+  if(pe)throw pe;
+  const payment=payments?.[0];return {sale,payment:payment?{id:payment.id,amount:payment.amount,automatic_receipt:!!payment.data?.fiscal_snapshot}:null};
+}
 async function checkout(body:any,operator:string){
   const p=body?.payload||{};
+  const requestId=norm(p.request_id);
+  if(requestId&&!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestId))throw new Error('Identificativo incasso non valido');
+  const requestHash=requestId?[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(p))))].map(v=>v.toString(16).padStart(2,'0')).join(''):'';
+  if(requestId){
+    const {data:previous,error}=await db.from('optyker_pos_sales').select('*').eq('data->>checkout_request_id',requestId).maybeSingle();
+    if(error)throw error;
+    if(previous){
+      if(previous.data?.checkout_request_hash!==requestHash)throw new Error('L’incasso precedente ha dati diversi: verifica Ultime vendite prima di continuare');
+      if(!['completed','open_balance'].includes(previous.status))throw new Error('Questo incasso è già stato avviato. Verifica l’esito in Ultime vendite: non sarà duplicato.');
+      const {data:payments,error:pe}=await db.from('optyker_pos_payments').select('*').eq('sale_id',previous.id).order('created_at');
+      if(pe)throw pe;
+      if(Number(previous.paid_amount)>0&&!payments?.length)throw new Error('Pagamento da riconciliare in Ultime vendite');
+      return {...previous,payment:payments?.[0]||null,recovered:true};
+    }
+  }
   const linesIn=Array.isArray(p.lines)?p.lines:[];
   if(!linesIn.length)throw new Error("Il carrello è vuoto");
   if(linesIn.length>100)throw new Error("Troppi articoli nel carrello");
 
   const quoted=await quoteLines(linesIn,norm(p.client_id));
-  const lines=quoted.lines,subtotal=quoted.total;
+  let lines=quoted.lines;const subtotal=quoted.total;
   if(p.expected_total!=null)assertLensTotal(lines,p.expected_total);
   assertOvcTotal(lines,p.expected_total);
 
@@ -379,9 +416,16 @@ async function checkout(body:any,operator:string){
   if(invoiceRequested&&paidNow<=0)throw new Error("Non è possibile fatturare un pagamento di 0,00 €.");
   if(invoiceRequested&&!client)throw new Error("Per creare la fattura seleziona un cliente.");
   if(tsRequested&&invoiceRequested)throw new Error("Per una spesa Sistema TS non usare la fattura elettronica: il documento TS va gestito come documento commerciale o fattura cartacea.");
-  if(tsRequested&&!client)throw new Error("Per la detrazione Sistema TS seleziona un cliente.");
+  const identity=purchaseIdentity(client,p.fiscal_code,tsRequested);
   if(tsRequested&&paidNow<=0)throw new Error("Per preparare il Sistema TS deve esserci un pagamento.");
 
+  const autoReceipt=p.auto_receipt===true&&!invoiceRequested&&paidNow>0;
+  if(autoReceipt&&!requestId)throw new Error('Riferimento univoco incasso richiesto');
+  let fiscalSnapshot:any=null;
+  if(autoReceipt){
+    lines=fiscalLines(lines,linesIn);
+    fiscalSnapshot=paymentDocument(lines,paymentMethod,paidNow,0,identity,{ts:tsRequested,code:tsExpenseCode,opposition:tsOpposition});
+  }
   let sale=await saveSale({
     client_id:client?.id||null,
     operator_username:operator,
@@ -392,7 +436,7 @@ async function checkout(body:any,operator:string){
     subtotal,total:subtotal,paid_amount:paidNow,due_amount:due,currency:"EUR",note,
     invoice_requested:invoiceRequested,
     delivered_at:paymentStage==="delivery_balance"&&due===0?new Date().toISOString():null,
-    data:{source:"optyker_pos",pricing:pricingTotals(lines),client_snapshot:client||null,lines,payment_stage:paymentStage,paid_now:paidNow,due_amount:due}
+    data:{source:"optyker_pos",checkout_request_id:requestId||null,checkout_request_hash:requestHash,pricing:pricingTotals(lines),client_snapshot:client||null,fiscal_identity:identity,lines,payment_stage:paymentStage,paid_now:paidNow,due_amount:due}
   });
 
   try{
@@ -461,7 +505,7 @@ async function checkout(body:any,operator:string){
       paid_amount:paidNow,
       due_amount:money(Math.max(0,finalTotal-paidNow)),
       completed_at:order?.id?new Date().toISOString():null,
-      data:{source:"optyker_pos",pricing:pricingTotals(lines),client_snapshot:client||null,lines,shopify:{draft,order},payment_stage:paymentStage,paid_now:paidNow,due_amount:money(Math.max(0,finalTotal-paidNow))}
+      data:{source:"optyker_pos",checkout_request_id:requestId||null,checkout_request_hash:requestHash,pricing:pricingTotals(lines),client_snapshot:client||null,fiscal_identity:identity,lines,shopify:{draft,order},payment_stage:paymentStage,paid_now:paidNow,due_amount:money(Math.max(0,finalTotal-paidNow))}
     });
 
     const {error:itemsErr}=await db.from("optyker_pos_sale_items").insert(lines.map(x=>({
@@ -472,9 +516,9 @@ async function checkout(body:any,operator:string){
 
     let payment:any=null,invoice:any=null,tsDocument:any=null;
     if(paidNow>0){
-      payment=await createPayment(sale,client,operator,paymentStage,paymentMethod,paidNow,invoiceRequested,note);
+      payment=await createPayment(sale,client,operator,paymentStage,paymentMethod,paidNow,invoiceRequested,note,fiscalSnapshot);
       if(invoiceRequested)invoice=await createInvoiceDraft(sale,payment,client,operator,paymentStage,paymentMethod,paidNow);
-      if(tsRequested)tsDocument=await createTsDocument(sale,payment,client,operator,paymentStage,paymentMethod,paidNow,tsExpenseCode,tsOpposition);
+      if(tsRequested)tsDocument=await createTsDocument(sale,payment,{...client,...identity},operator,paymentStage,paymentMethod,paidNow,tsExpenseCode,tsOpposition);
     }
 
     if(order?.id){
@@ -530,12 +574,17 @@ async function settleSale(body:any,operator:string){
   const tsOpposition=!!p.ts_opposition;
   if(invoiceRequested&&!client)throw new Error("Per creare la fattura seleziona una vendita associata a un cliente.");
   if(tsRequested&&invoiceRequested)throw new Error("Per una spesa Sistema TS non usare la fattura elettronica.");
-  if(tsRequested&&!client)throw new Error("Per la detrazione Sistema TS serve una vendita associata a un cliente.");
+  const identity=purchaseIdentity(client,p.fiscal_code||sale.data?.fiscal_identity?.fiscal,tsRequested);
+  const storedLines=sale.data?.lines||[];
+  const autoReceipt=p.auto_receipt===true&&!invoiceRequested;
+  // Old sales without an explicit fiscal allocation retain their review workflow.
+  const fiscalSnapshot=autoReceipt&&storedLines.length&&storedLines.every((l:any)=>l.fiscal_department)
+    ?paymentDocument(storedLines,method,due,sale.paid_amount||0,identity,{ts:tsRequested,code:tsExpenseCode,opposition:tsOpposition}):null;
 
-  const payment=await createPayment(sale,client,operator,stage,method,due,invoiceRequested,norm(p.note).slice(0,1000));
+  const payment=await createPayment(sale,client,operator,stage,method,due,invoiceRequested,norm(p.note).slice(0,1000),fiscalSnapshot);
   let invoice:any=null,tsDocument:any=null;
   if(invoiceRequested)invoice=await createInvoiceDraft(sale,payment,client,operator,stage,method,due);
-  if(tsRequested)tsDocument=await createTsDocument(sale,payment,client,operator,stage,method,due,tsExpenseCode,tsOpposition);
+  if(tsRequested)tsDocument=await createTsDocument(sale,payment,{...client,...identity},operator,stage,method,due,tsExpenseCode,tsOpposition);
 
   const paidTotal=money(Number(sale.paid_amount||0)+due);
   const patched=await patchSale(sale.id,{
@@ -587,6 +636,7 @@ Deno.serve(async(req:Request)=>{
     if(action==="products")return out({ok:true,data:await products(norm(p.search),Number(p.first||60),norm(p.client_id))});
     if(action==="quote_lines")return out({ok:true,data:await quoteLines(Array.isArray(p.lines)?p.lines:[],norm(p.client_id))});
     if(action==="clients")return out({ok:true,data:await clients(norm(p.search))});
+    if(action==="checkout_status")return out({ok:true,data:await checkoutStatus(norm(p.request_id))});
     if(action==="checkout")return out({ok:true,data:await checkout(body,operator)});
     if(action==="settle")return out({ok:true,data:await settleSale(body,operator)});
     if(action==="open_deposits")return out({ok:true,data:await openDeposits(norm(p.client_id))});

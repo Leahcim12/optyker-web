@@ -5,7 +5,7 @@
 )
 
 $ErrorActionPreference = 'Stop'
-$ConnectorVersion = '1.7-fiscal-void'
+$ConnectorVersion = '1.8-auto-receipt'
 $FiscalApi = 'https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-fiscal-api'
 $JournalRoot = if($env:LOCALAPPDATA){Join-Path $env:LOCALAPPDATA 'OptykerRCH/receipts'}else{Join-Path ([System.IO.Path]::GetTempPath()) 'OptykerRCH-readonly'}
 $printerAddress = $null
@@ -44,7 +44,9 @@ function Parse-Rch([string]$xmlText) {
     }
     $out.ok = ($out.errorCode -eq 0 -and $out.printerError -eq 0 -and $out.paperEnd -eq 0 -and $out.coverOpen -eq 0 -and $out.busy -eq 0)
     if(-not $out.ok){$out.error = "RCH: errore $($out.errorCode), stampante $($out.printerError), carta $($out.paperEnd), coperchio $($out.coverOpen), occupata $($out.busy)."}
-    $state = $doc.SelectSingleNode('/Service/ECRStatus')
+    $states = $doc.SelectNodes('/Service/ECRStatus | /Service/Request/ECRStatus')
+    if($states.Count -gt 1){throw 'Stato RCH ambiguo.'}
+    $state = if($states.Count -eq 1){$states[0]}else{$null}
     if($state){
       $out.mode = [string]$state.mode
       $out.idleState = [string]$state.idleState
@@ -190,7 +192,7 @@ function Assert-NoUncertainReceipt {
   }
 }
 function Public-Receipt($entry) {
-  return @{ok=$true;jobId=$entry.jobId;state=$entry.state;writeStarted=$entry.writeStarted;commandsAcknowledged=$entry.commandsAcknowledged;idleAfter=$entry.idleAfter;cloudSaved=$entry.cloudSaved;error=$entry.error;connectorVersion=$ConnectorVersion}
+  return @{ok=$true;jobId=$entry.jobId;state=$entry.state;writeStarted=$entry.writeStarted;commandsAcknowledged=$entry.commandsAcknowledged;idleAfter=$entry.idleAfter;cloudSaved=$entry.cloudSaved;error=$entry.error;connectorVersion=$ConnectorVersion;reference=$entry.reference}
 }
 function Sync-ReceiptOutcome($entry) {
   if($entry.cloudSaved -eq $true -or -not $entry.protectedResultToken){return}
@@ -246,10 +248,51 @@ function Assert-FiscalDocument($document,[string]$operation='sale') {
     if([string]$document.fiscalCode -notmatch '^[A-Z0-9]{16}$'){throw 'Codice fiscale non valido.'}
     $expected.Add(('="/?C/('+$document.fiscalCode+')'))
   }
+  if($document.automaticReference -eq $true){
+    if([string]$document.receiptMarker -cnotmatch '^OPTYKER [A-F0-9]{32}$'){throw 'Riferimento automatico non valido.'}
+    $expected.Add(('="/?A/('+$document.receiptMarker+')'))
+  }
   if([string]$document.paymentCode -notmatch '^[134]$'){throw 'Pagamento non autorizzato.'}
   $expected.Add(('=T'+$document.paymentCode))
   if($commands.Count -ne $expected.Count){throw 'Sequenza fiscale non valida.'}
   for($i=0;$i -lt $commands.Count;$i++){if($commands[$i] -cne $expected[$i]){throw 'Comando non autorizzato.'}}
+}
+# RCH Web Service V5 R03/2019 section 8.5: EJ is literal journal text.
+# Protocol v14 p24: =C3 selects Z; =C453/$0 reads without printing; =C1 restores REG.
+# Never use =C10 (daily closure), never derive the printed number from counters.
+function Parse-ReceiptJournal([string]$raw,$document) {
+  $status=Parse-Rch $raw
+  if(-not $status.ok){throw 'Lettura giornale RCH non confermata.'}
+  $xml=Read-SafeXml $raw;$nodes=$xml.SelectNodes('/Service/EJ')
+  if($nodes.Count -ne 1){throw 'Documento elettronico assente o ambiguo.'}
+  $text=$nodes[0].InnerText.Replace("`r",'')
+  $marker=[string]$document.receiptMarker
+  if($marker -cnotmatch '^OPTYKER [A-F0-9]{32}$' -or -not [regex]::IsMatch($text,'(?m)^\s*'+[regex]::Escape($marker)+'\s*$')){throw 'Il giornale non corrisponde alla vendita Optyker.'}
+  $serial=[string]$document.serial
+  if(-not [regex]::IsMatch($text,'(?<![A-Z0-9])'+[regex]::Escape($serial)+'(?![A-Z0-9])')){throw 'Matricola del documento non corrispondente.'}
+  $numbers=[regex]::Matches($text,'(?m)^\s*DOCUMENTO(?:\s+COMMERCIALE)?\s+N[.°]?\s*(\d{4}-\d{4})\s*$')
+  $totals=[regex]::Matches($text,'(?m)^\s*TOTALE COMPLESSIVO\s+(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})\s*(?:EUR|€)?\s*$')
+  $dates=[regex]::Matches($text,'(?m)^\s*(\d{2}[-/]\d{2}[-/]\d{4})\s+(\d{2}:\d{2}(?::\d{2})?)\s*$')
+  if($numbers.Count -ne 1 -or $totals.Count -ne 1 -or $dates.Count -ne 1){throw 'Numero, data o importo del documento non leggibile in modo univoco.'}
+  $amount=[decimal]::Parse($totals[0].Groups[1].Value.Replace('.','').Replace(',','.'),[Globalization.CultureInfo]::InvariantCulture)*100
+  if($amount -ne [long]$document.totalCents){throw 'Importo stampato non corrispondente al pagamento.'}
+  $date=[datetime]::MinValue
+  $dateString=$dates[0].Groups[1].Value.Replace('/','-')+' '+$dates[0].Groups[2].Value
+  if(-not [datetime]::TryParseExact($dateString,[string[]]@('dd-MM-yyyy HH:mm','dd-MM-yyyy HH:mm:ss'),[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::None,[ref]$date)){throw 'Data RCH non valida.'}
+  if($document.talkingReceipt -eq $true -and -not [regex]::IsMatch($text,'(?<![A-Z0-9])'+[regex]::Escape([string]$document.fiscalCode)+'(?![A-Z0-9])')){throw 'Codice fiscale non trovato nel documento emesso.'}
+  return @{source='rch_ej';serial=$serial;marker=$marker;number=$numbers[0].Groups[1].Value;date=$date.ToString('yyyy-MM-dd');time=$date.ToString('HH:mm:ss');totalCents=[long]$amount;fiscalCodeMatched=$true}
+}
+function Read-PrintedReceipt($document) {
+  Assert-IdleRegister
+  try {
+    $z=Parse-Rch (Send-RchCommand '=C3')
+    if(-not $z.ok -or $z.lastCmd -ne 1){throw 'Modalita lettura giornale non confermata.'}
+    return Parse-ReceiptJournal (Send-RchCommand '=C453/$0') $document
+  } finally {
+    $reg=Parse-Rch (Send-RchCommand '=C1')
+    if(-not $reg.ok -or $reg.lastCmd -ne 1){throw 'Verificare il ritorno della RCH in REG.'}
+    Assert-IdleRegister
+  }
 }
 function Assert-WindowsFiscalPlatform {
   if([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT){throw 'Emissione disponibile sul PC Windows della cassa.'}
@@ -268,7 +311,7 @@ function Emit-Receipt($request,[string]$operation='sale') {
       }else{return Read-ReceiptStatus $id}
     }
     Assert-NoUncertainReceipt
-    $entry=[pscustomobject]@{jobId=$id;operation=$operation;state='claiming';writeStarted=$false;commandsAcknowledged=0;idleAfter=$false;cloudSaved=$false;protectedResultToken='';error='';createdAt=(Get-Date).ToString('o')}
+    $entry=[pscustomobject]@{jobId=$id;operation=$operation;state='claiming';writeStarted=$false;commandsAcknowledged=0;idleAfter=$false;cloudSaved=$false;protectedResultToken='';error='';reference=$null;createdAt=(Get-Date).ToString('o')}
     Save-Journal $entry
     try {
       $claimed=Invoke-FiscalCloud 'bridge_claim' @{job_id=$id;token=[string]$request.token;operation=$operation}
@@ -287,7 +330,12 @@ function Emit-Receipt($request,[string]$operation='sale') {
         $entry.commandsAcknowledged++;Save-Journal $entry
       }
       Assert-IdleRegister
-      $entry.idleAfter=$true;$entry.state='closing_acknowledged'
+      $entry.idleAfter=$true;$entry.state='closing_acknowledged';Save-Journal $entry
+      if($claimed.document.automaticReference -eq $true -and $operation -eq 'sale'){
+        # A failed readback never turns a closed receipt into a repeatable operation.
+        try {$entry.reference=Read-PrintedReceipt $claimed.document}
+        catch {$entry.error='Scontrino emesso. Riferimento automatico non verificato; controllare documento e ritorno in REG.'}
+      }
     } catch {
       $entry.state=if($entry.writeStarted -eq $false -and $entry.protectedResultToken){'not_started'}else{'uncertain'}
       # Do not persist commands, patient CF or raw HTTP responses in the local journal.
@@ -390,7 +438,7 @@ try {
       $ResponseOrigin=[string]$request.headers['origin']
       if($request.method -eq 'OPTIONS'){Json-Response $stream 200 @{ok=$true};continue}
       if($request.method -eq 'GET' -and $request.path -eq '/health'){
-        Json-Response $stream 200 @{ok=$true;connector='Optyker RCH';version=$ConnectorVersion;printer=$PrinterIp;port=$Port;capabilities=@{diagnostics=$true;receipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);talkingReceipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);voidReceipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);adeOutcome=$false;manualReference=$true}}
+        Json-Response $stream 200 @{ok=$true;connector='Optyker RCH';version=$ConnectorVersion;printer=$PrinterIp;port=$Port;capabilities=@{diagnostics=$true;receipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);talkingReceipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);voidReceipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);adeOutcome=$false;automaticReference=$true;manualReference=$true}}
       } elseif($request.method -eq 'GET' -and $request.path -eq '/status'){
         Json-Response $stream 200 (Status-Rch)
       } elseif($request.method -eq 'GET' -and $request.path -eq '/diagnostics'){

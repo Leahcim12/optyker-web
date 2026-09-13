@@ -46,7 +46,7 @@ function owner(c,encrypt) {
   return '<t:Proprietario>'+tag('codiceRegione',region)+tag('codiceAsl',asl)+tag('codiceSSA',ssa)+tag('cfProprietario',encrypt(c.owner_fiscal_code))+'</t:Proprietario>';
 }
 export function validateDocument(d) {
-  if(!d||d.serial!=='72IV6003831'||d.referenceSource!=='paper_confirmed'||!/^\d{4}-\d{4}$/.test(d.number||'')||d.number.endsWith('-0000'))throw new Error('TS_INVALID_DOCUMENT');
+  if(!d||d.serial!=='72IV6003831'||!['paper_confirmed','rch_ej'].includes(d.referenceSource)||!/^\d{4}-\d{4}$/.test(d.number||'')||d.number.endsWith('-0000'))throw new Error('TS_INVALID_DOCUMENT');
   date(d.date);date(d.paymentDate);
   if(!['cash','card','cheque'].includes(d.paymentMethod)||typeof d.opposition!=='boolean')throw new Error('TS_INVALID_DOCUMENT');
   if(d.opposition ? !!d.fiscalCode : !validCF(d.fiscalCode))throw new Error('TS_INVALID_DOCUMENT');

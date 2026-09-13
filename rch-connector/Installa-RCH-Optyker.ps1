@@ -9,7 +9,7 @@ $base = Join-Path $env:LOCALAPPDATA "OptykerRCH"
 $connector = Join-Path $base "rch-optyker-connector.ps1"
 $startup = [Environment]::GetFolderPath("Startup")
 $startupHelper = Join-Path $base 'Attiva-Avvio-Automatico-RCH.ps1'
-$source = "https://www.optyker.it/rch-connector/rch-optyker-connector.ps1?v=20260912-void1"
+$source = "https://www.optyker.it/rch-connector/rch-optyker-connector.ps1?v=20260913-cash4"
 
 New-Item -ItemType Directory -Force -Path $base | Out-Null
 
@@ -32,7 +32,7 @@ if($startupErrors.Count -gt 0 -or (Get-Content -Raw -LiteralPath $startupCandida
 $tokens = $null
 $parseErrors = $null
 [void][System.Management.Automation.Language.Parser]::ParseFile($candidate,[ref]$tokens,[ref]$parseErrors)
-if($parseErrors.Count -gt 0 -or (Get-Content -Raw -LiteralPath $candidate) -notmatch '1\.7-fiscal-void'){
+if($parseErrors.Count -gt 0 -or (Get-Content -Raw -LiteralPath $candidate) -notmatch '1\.8-auto-receipt'){
   Remove-Item -LiteralPath $candidate -Force
   throw "Download del connettore non valido. La versione precedente e rimasta invariata."
 }
@@ -61,7 +61,7 @@ Start-Process -FilePath $startupPlan.Target -ArgumentList $startupPlan.Arguments
 Start-Sleep -Seconds 2
 try {
   $r = Invoke-RestMethod -UseBasicParsing -Uri "http://127.0.0.1:$Port/health" -TimeoutSec 4
-  if($r.ok -and $r.version -eq "1.7-fiscal-void"){
+  if($r.ok -and $r.version -eq "1.8-auto-receipt"){
     Write-Host ""
     Write-Host "Installazione completata." -ForegroundColor Green
     Write-Host "Il connettore parte in background quando accedi al tuo utente Windows."
