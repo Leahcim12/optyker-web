@@ -15,4 +15,9 @@
 #optykerTsConnection #otsUpload label{flex:1}#optykerTsConnection #otsMessage{font-weight:600;white-space:pre-wrap}
 #optykerTsConnection :focus-visible{outline:3px solid #418fab;outline-offset:2px}
 #optykerTsConnection .otsFiles{padding-left:20px;overflow-wrap:anywhere}
+#optykerTsConnection .otsReady{background:#e9f7ef;border-color:#74ad8e}
+#optykerTsConnection .otsActions{display:flex;gap:8px;flex-wrap:wrap}
+#optykerTsConnection .otsTable{overflow-x:auto}#optykerTsConnection table{width:100%;border-collapse:collapse;font-size:14px}
+#optykerTsConnection th,#optykerTsConnection td{text-align:left;padding:10px 8px;border-bottom:1px solid #dce6eb;vertical-align:top}
+#optykerTsConnection td button{margin:0 4px 6px 0}#optykerTsConnection td small{overflow-wrap:anywhere}
 @media(max-width:600px){#optykerTsConnection{padding:8px}#optykerTsConnection .otsGrid{grid-template-columns:1fr}#optykerTsConnection .otsBody{padding:0 16px 18px}#optykerTsConnection #otsUpload{align-items:stretch;flex-direction:column}}

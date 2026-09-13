@@ -3,6 +3,7 @@
   if (window.OPTYKER_TS_CONNECTION) return;
   var API = 'https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-ts-api';
   var current = null;
+  function checkLabel(code) { return {TS_VERIFIED:'Collegamento verificato',TS_AUTH_FAILED:'Credenziali non accettate dal Sistema TS',TS_CONNECTION_FAILED:'Sistema TS non raggiungibile',TS_CERTIFICATE_EXPIRED:'Certificato TS da aggiornare'}[code] || code; }
   function esc(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   async function request(body, file) {
     var token = sessionStorage.getItem('optyker_billing_admin_token');
@@ -17,7 +18,7 @@
       if (!response.ok || !data.ok) throw new Error(data.error || 'Operazione non completata. Chiudi e riapri Sistema TS per verificare lo stato.');
       return data;
     } catch (e) {
-      if (e.name === 'AbortError') throw new Error('Risposta non ricevuta. Chiudi e riapri Sistema TS per verificare se il salvataggio è riuscito.');
+      if (e.name === 'AbortError') throw new Error('Risposta non ricevuta. Aggiorna lo stato e verifica l’esito prima di ripetere un invio.');
       throw e;
     } finally { clearTimeout(timer); }
   }
@@ -31,10 +32,21 @@
   function field(id, label, value, attrs) {
     return '<label for="' + id + '">' + label + '<input id="' + id + '" name="' + id + '" value="' + esc(value) + '" ' + (attrs || '') + '></label>';
   }
+  function queueHtml(rows, ready) {
+    var labels={awaiting_configuration:'Da inviare',sending:'Invio in corso',submitted:'Protocollo ricevuto · verifica esito',uncertain:'Esito da verificare',accepted:'Accettato dal Sistema TS',rejected:'Scartato dal Sistema TS',held_for_void:'Sospeso per annullo RCH',voided:'Annullato · escluso dagli invii'};
+    return '<section><h3>Spese da scontrini RCH</h3><p>I nuovi scontrini con righe TS vengono trasmessi dopo la conferma di numero e data. I documenti già in coda si inviano singolarmente da qui.</p>' +
+      (!rows.length?'<p>Nessun documento in coda.</p>':'<div class="otsTable"><table><thead><tr><th>Documento</th><th>Importo TS</th><th>Esito</th><th>Azioni</th></tr></thead><tbody>'+rows.map(function(r){
+        var button=function(action,label){return '<button type="button" data-ts-action="'+action+'" data-ts-id="'+esc(r.id)+'" data-ts-number="'+esc(r.number)+'">'+label+'</button>';};
+        return '<tr><td>'+esc(r.number)+'<br><small>'+esc(r.date)+(r.opposition?' · opposizione':'')+'</small></td><td>'+esc((r.total_cents/100).toLocaleString('it-IT',{style:'currency',currency:'EUR'}))+'</td><td>'+esc(labels[r.state]||r.state)+(r.protocol?'<br><small>Protocollo '+esc(r.protocol)+'</small>':'')+(r.code?'<br><small>'+esc(r.code)+'</small>':'')+'</td><td>'+(ready&&r.state==='awaiting_configuration'&&!r.attempted?button('send','Invia al TS'):'')+(['sending','submitted','uncertain'].includes(r.state)?button('reconcile','Verifica esito'):'')+(r.protocol?button('receipt','Ricevuta'):'')+'</td></tr>';
+      }).join('')+'</tbody></table></div>')+'</section>';
+  }
   function render(item, result, notice) {
     if (current !== item) return;
     var config = result.config, files = result.files || [];
-    item.body.innerHTML = '<p class="otsStatus"><strong>Invio TS da attivare</strong><br>Il salvataggio delle credenziali non effettua un accesso al Sistema TS. Le spese in coda non vengono ancora trasmesse.</p>' +
+    var ready=result.transport_ready===true;
+    item.body.innerHTML = '<p class="otsStatus'+(ready?' otsReady':'')+'"><strong>'+(ready?'Invii TS attivi':'Invio TS da attivare')+'</strong><br>'+(ready?'Invio automatico dei nuovi documenti RCH confermati. Ogni spesa conserva protocollo ed esito.':'Le credenziali salvate devono superare la verifica del collegamento prima di trasmettere.')+'</p>'+
+      '<div class="otsActions"><button type="button" id="otsVerify" class="otsPrimary">Verifica collegamento e attiva invii</button>'+(ready?'<button type="button" id="otsPause">Sospendi invii automatici</button>':'')+'<button type="button" id="otsRefresh">Aggiorna stato</button></div>'+
+      (config.last_check_code?'<p class="otsHelp">Ultima verifica: '+esc(checkLabel(config.last_check_code))+'</p>':'')+
       '<form id="otsForm"><h3>Credenziali Sistema TS</h3><div class="otsGrid">' +
       field('otsUsername','Codice identificativo',config.username,'required maxlength="64" autocomplete="username"') +
       field('otsOwner','Codice proprietario / Ufficio TS',config.owner_code,'required pattern="[0-9]{3}-[0-9]{3}-[0-9]{6}" placeholder="000-000-000000"') +
@@ -47,11 +59,30 @@
       '<p><a href="https://sistemats1.sanita.finanze.it/portale/spese-sanitarie" target="_blank" rel="noopener noreferrer">Apri il portale ufficiale TS ↗</a> → Documenti e specifiche tecniche → Strumenti per lo sviluppo.</p>' +
       '<form id="otsUpload"><label for="otsFile">Documentazione tecnica (massimo 10 MB per file)<input id="otsFile" type="file" accept=".zip,.pdf,.wsdl,.xsd,.xml,.cer,.crt,.pem" required></label><button type="submit">Carica documento</button></form>' +
       '<p class="otsHelp">I documenti vengono conservati in un’area privata. Il caricamento richiede una verifica tecnica prima di attivare gli invii.</p>' +
-      (files.length ? '<ul class="otsFiles">' + files.map(function (file) { return '<li><strong>' + esc(file.filename) + '</strong> · ' + Math.ceil(file.size_bytes / 1024) + ' KB · Da verificare</li>'; }).join('') + '</ul>' : '<p>Nessun documento tecnico caricato.</p>') +
-      '</section><p id="otsMessage" role="status" aria-live="polite">' + esc(notice || '') + '</p>';
+      (files.length ? '<ul class="otsFiles">' + files.map(function (file) { return '<li><strong>' + esc(file.filename) + '</strong> · ' + Math.ceil(file.size_bytes / 1024) + ' KB · '+(file.review_state==='verified'?'Verificato':'Da verificare')+'</li>'; }).join('') + '</ul>' : '<p>Nessun documento tecnico caricato.</p>') +
+      '</section>'+queueHtml(result.queue||[],ready)+'<p id="otsMessage" role="status" aria-live="polite">' + esc(notice || '') + '</p>';
     var form = item.body.querySelector('#otsForm'), upload = item.body.querySelector('#otsUpload');
     function message(text) { var node = item.body.querySelector('#otsMessage'); if (node) node.textContent = text; }
-    function busy(value) { item.body.querySelectorAll('form button, form input').forEach(function (el) { el.disabled = value; }); item.body.setAttribute('aria-busy', String(value)); }
+    function busy(value) { item.body.querySelectorAll('button,input').forEach(function (el) { el.disabled = value; }); item.body.setAttribute('aria-busy', String(value)); }
+    async function action(payload){
+      if(item.busy)return;item.busy=true;busy(true);message('Operazione in corso…');
+      try{
+        var data=await request(payload);
+        if(payload.action==='receipt'){
+          var r=data.receipt,bytes=Uint8Array.from(atob(r.data),function(c){return c.charCodeAt(0);});
+          var url=URL.createObjectURL(new Blob([bytes],{type:r.kind==='pdf'?'application/pdf':'application/zip'}));
+          var link=document.createElement('a');link.href=url;link.download='Ricevuta-TS-'+r.protocol+'.'+r.kind;link.click();setTimeout(function(){URL.revokeObjectURL(url);},30000);message('Ricevuta scaricata.');
+        }else render(item,data,data.check?(data.check.verified?'Collegamento verificato. Invii attivati.':'Verifica non riuscita: '+checkLabel(data.check.code)+'. Gli invii restano disattivati.'):(data.result&&data.result.check_error?'Controllo esito non riuscito: '+checkLabel(data.result.check_error):'Stato aggiornato.'));
+      }catch(error){message(error.message);}finally{item.busy=false;if(current===item)busy(false);}
+    }
+    item.body.querySelector('#otsVerify').onclick=function(){return action({action:'verify'});};
+    item.body.querySelector('#otsRefresh').onclick=function(){return action({action:'status'});};
+    var pause=item.body.querySelector('#otsPause');if(pause)pause.onclick=function(){return action({action:'pause'});};
+    item.body.querySelectorAll('[data-ts-action]').forEach(function(button){button.onclick=function(){
+      var name=button.dataset.tsAction;
+      if(name==='send'&&!window.confirm('Inviare al Sistema TS la spesa dello scontrino '+button.dataset.tsNumber+'?'))return;
+      return action({action:name,id:button.dataset.tsId,confirmed:name==='send'});
+    };});
     form.onsubmit = async function (event) {
       event.preventDefault(); if (item.busy) return;
       var payload = {action:'save',revision:config.revision,username:form.elements.otsUsername.value.trim(),owner_code:form.elements.otsOwner.value.trim(),

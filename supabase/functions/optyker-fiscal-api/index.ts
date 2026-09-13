@@ -1,5 +1,6 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.116.0';
 import {makeDocument,makeVoid,reference,resultState,SERIAL,RELEASE} from './domain.mjs';
+declare const EdgeRuntime: {waitUntil(promise: Promise<unknown>): void};
 const db=createClient(Deno.env.get('SUPABASE_URL')||'',Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'',{auth:{persistSession:false,autoRefreshToken:false}});
 const origins=new Set(['https://www.optyker.it','https://optyker.it']);
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -92,6 +93,14 @@ async function saveReference(p:any,operator:string){
    lines:job.document.lines.filter((l:any)=>l.expenseCode!=='none'),referenceSource:'paper_confirmed',referenceConfirmedBy:operator};
  }
  job=await one(db.rpc('optyker_confirm_fiscal_reference',{p_job_id:job.id,p_number:ref.number,p_date:ref.date,p_operator:operator,p_ts_document:doc}));
+ if(doc&&job.operation==='sale'){
+  // The TS endpoint checks current authentication, immutable receipt and void locks.
+  // A TS failure must never undo or repeat a completed fiscal receipt.
+  EdgeRuntime.waitUntil(fetch((Deno.env.get('SUPABASE_URL')||'')+'/functions/v1/optyker-ts-api',{
+   method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'')},
+   body:JSON.stringify({action:'send_job',job_id:job.id}),signal:AbortSignal.timeout(25000)
+  }).then(r=>r.body?.cancel()).catch(()=>{}));
+ }
  return {job:publicJob(job)};
 }
 Deno.serve(async req=>{
@@ -115,7 +124,8 @@ Deno.serve(async req=>{
   if(a==='reference')return out({ok:true,data:await saveReference(p,operator)});
   if(a==='ts_outbox'){
    const data=await one(db.from('optyker_ts_outbox').select('id,job_id,state,document,protocol,outcome,created_at').order('created_at',{ascending:false}).limit(100));
-   return out({ok:true,data,transport_ready:false,reason:'Kit tecnico e accesso TS da verificare; nessun invio effettuato',release:RELEASE});
+   const connection=await one(db.rpc('optyker_ts_connection_status'));
+   return out({ok:true,data,transport_ready:connection.transport_ready,reason:connection.transport_ready?'Invio TS attivo per i nuovi documenti confermati':'Collegamento TS da verificare in Amministrazione',release:RELEASE});
   }
   throw new Error('Azione non valida');
  }catch(e){const message=e instanceof Error?e.message:'Errore fiscale';return out({ok:false,error:message},message==='AUTH_REQUIRED'?401:400);}

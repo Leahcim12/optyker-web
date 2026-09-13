@@ -6,7 +6,7 @@ const require=createRequire(process.env.OPTYKER_TEST_PACKAGE||import.meta.url);
 const {JSDOM}=require('jsdom');
 const source=readFileSync(new URL('../ts-connection.js',import.meta.url),'utf8');
 const initial={ok:true,config:{username:'FIXTURE1',owner_code:'000-000-000000',owner_fiscal_code:'AAAAAA00A00A000A',business_vat:'00000000000',revision:1,password_saved:false,pin_saved:true},files:[]};
-async function setup({admin=true,fail=false}={}) {
+async function setup({admin=true,fail=false,result=initial}={}) {
   const dom=new JSDOM('<body><button id="launcher">Sistema TS</button></body>',{url:'https://www.optyker.it',runScripts:'outside-only'});
   const w=dom.window,calls=[];
   w.AbortController=AbortController;w.OPTYKER_BILLING_ADMIN=admin;
@@ -14,7 +14,7 @@ async function setup({admin=true,fail=false}={}) {
   w.fetch=async(url,options)=>{
     const body=JSON.parse(options.body);calls.push({url,body,headers:options.headers});
     if(body.action==='save'&&fail) return {ok:false,json:async()=>({ok:false,error:'Errore di salvataggio'})};
-    return {ok:true,json:async()=>body.action==='save'?{...initial,config:{...initial.config,revision:2,password_saved:true}}:structuredClone(initial)};
+    return {ok:true,json:async()=>body.action==='save'?{...initial,config:{...initial.config,revision:2,password_saved:true}}:structuredClone(result)};
   };
   w.document.querySelector('#launcher').focus();w.eval(source);await w.OPTYKER_TS_CONNECTION.open();
   return {w,dom,calls};
@@ -32,6 +32,20 @@ for(const fail of [false,true]) test('secrets clear after '+(fail?'failed':'succ
     assert.match(w.document.body.textContent,/Invio TS da attivare/);
     w.document.querySelector('header button').click();assert.equal(w.document.activeElement.id,'launcher');
   }finally{dom.window.close();}
+});
+test('server readiness gates sending and voided or uncertain documents never offer resend',async()=>{
+  const rows=['awaiting_configuration','voided','uncertain','accepted'].map((state,i)=>({id:String(i),number:'1161-000'+i,date:'2026-09-12',total_cents:100,state,attempted:i>0,protocol:i===3?'99260913000000001':null}));
+  for(const ready of [false,true]){
+    const {w,dom,calls}=await setup({result:{...initial,transport_ready:ready,queue:rows}});
+    try{
+      assert.equal(w.document.querySelectorAll('[data-ts-action="send"]').length,ready?1:0);
+      assert.equal(w.document.querySelectorAll('[data-ts-action="reconcile"]').length,1);
+      assert.equal(w.document.querySelectorAll('[data-ts-action="receipt"]').length,1);
+      assert.equal(!!w.document.querySelector('#otsPause'),ready);
+      assert.match(w.document.body.textContent,/Annullato · escluso dagli invii/);
+      if(ready){w.confirm=()=>false;await w.document.querySelector('[data-ts-action="send"]').onclick();assert.equal(calls.length,1);w.confirm=()=>true;await w.document.querySelector('[data-ts-action="send"]').onclick();assert.deepEqual(calls[1].body,{action:'send',id:'0',confirmed:true});}
+    }finally{dom.window.close();}
+  }
 });
 test('ordinary operator cannot call protected endpoint',async()=>{
   const {w,dom,calls}=await setup({admin:false});try{

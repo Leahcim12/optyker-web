@@ -3,7 +3,7 @@ from shutil import copyfile
 from html.parser import HTMLParser
 import re
 
-VERSION = '20260913-ts2'
+VERSION = '20260913-ts3'
 
 
 class DocumentClosings(HTMLParser):
