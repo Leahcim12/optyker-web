@@ -34,6 +34,38 @@ for path in entry_points + [site / a for a in assets if a.endswith(('.js', '.css
         changed += count
     path.write_text(source, encoding='utf-8')
 
+# Physical POS channel split: a checkout that will print a real RCH receipt must
+# be registered only in Optyker POS. It must never create a Shopify order.
+# Product lookup, customer lookup, history and online/app channels keep using
+# their existing APIs. The replacement is deliberately narrow and idempotent.
+cash = site / 'cash-register.js'
+if cash.is_file():
+    source = cash.read_text(encoding='utf-8')
+    legacy = "var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-cash-register-api';"
+    local_decl = "var LOCAL_API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-cash-local-api';"
+    if local_decl not in source:
+        if legacy not in source:
+            raise SystemExit('Cash channel split: legacy API declaration not found')
+        source = source.replace(legacy, legacy + '\n' + local_decl, 1)
+    old_fetch = "  return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:action,username:c.username,password:c.password,payload:payload||{}})})"
+    new_fetch = "  var endpoint=(action==='checkout'&&payload&&payload.auto_receipt===true)?LOCAL_API:API;\n  return fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:action,username:c.username,password:c.password,payload:payload||{}})})"
+    if new_fetch not in source:
+        if old_fetch not in source:
+            raise SystemExit('Cash channel split: API fetch call not found')
+        source = source.replace(old_fetch, new_fetch, 1)
+    cash.write_text(source, encoding='utf-8')
+    if 'optyker-cash-local-api' not in source or "action==='checkout'&&payload&&payload.auto_receipt===true" not in source:
+        raise SystemExit('Cash channel split verification failed')
+
+# Force browsers/iPadOS to fetch the channel-split POS instead of the previously
+# cached 20260913 build.
+for path in entry_points:
+    if not path.is_file():
+        continue
+    html = path.read_text(encoding='utf-8')
+    html = re.sub(r'(cash-register\.js\?v=)[^\"\']+', r'\g<1>20260914-channel2', html)
+    path.write_text(html, encoding='utf-8')
+
 for path in entry_points:
     if not path.is_file():
         continue
