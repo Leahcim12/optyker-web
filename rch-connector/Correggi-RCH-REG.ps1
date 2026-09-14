@@ -80,7 +80,7 @@ function Assert-WindowsFiscalPlatform
 
   $autoPattern='(?s)\r?\n      if\(\$claimed\.document\.automaticReference -eq \$true -and \$operation -eq ''sale''\)\{.*?\r?\n      \}\r?\n    \} catch \{'
   if(([regex]::Matches($text,$autoPattern)).Count -ne 1){throw 'Blocco riferimento automatico non riconosciuto.'}
-  $autoReplacement="`n      # $Marker: documento chiuso e confermato; la RCH resta in REG.`n      # Il numero stampato viene confermato dalla schermata Emissione / esito RCH.`n    } catch {"
+  $autoReplacement="`n      # ${Marker}: documento chiuso e confermato; la RCH resta in REG.`n      # Il numero stampato viene confermato dalla schermata Emissione / esito RCH.`n    } catch {"
   $text=[regex]::Replace($text,$autoPattern,[System.Text.RegularExpressions.MatchEvaluator]{param($m)$autoReplacement},1)
 
   $text=$text.Replace('automaticReference=$true;manualReference=$true','automaticReference=$true;manualReference=$true;regSafeReceipt=$true')
