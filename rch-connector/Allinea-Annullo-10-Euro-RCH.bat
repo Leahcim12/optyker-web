@@ -4,7 +4,7 @@ set "OPTYKER_RECOVERY_FILE=%~f0"
 title Optyker - Allinea documento annullato 1163-0006
 echo Verifica della RCH e allineamento della sola pratica da 10 euro.
 echo Nessuna vendita o annullo verra inviato alla stampante.
-powershell.exe -NoLogo -NoProfile -Command "$raw=[IO.File]::ReadAllText($env:OPTYKER_RECOVERY_FILE); & ([scriptblock]::Create(($raw -split '# POWERSHELL_START\r?\n',2)[1]))"
+powershell.exe -NoLogo -NoProfile -ExecutionPolicy RemoteSigned -Command "$raw=[IO.File]::ReadAllText($env:OPTYKER_RECOVERY_FILE); & ([scriptblock]::Create(($raw -split '# POWERSHELL_START\r?\n',2)[1]))"
 endlocal
 goto :eof
 # POWERSHELL_START
