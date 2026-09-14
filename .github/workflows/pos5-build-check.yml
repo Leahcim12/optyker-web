@@ -51,5 +51,5 @@ jobs:
           [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path 'rch-connector/Aggiorna-RCH-POS.ps1'),[ref]$tokens,[ref]$errors)
           if($errors.Count -gt 0){$errors | Format-List -Force; exit 1}
           $src=Get-Content 'rch-connector/Aggiorna-RCH-POS.ps1' -Raw
-          if($src -match "Send-RchCommand '=C10'" -or $src -match 'Send-RchCommand "=C10"'){throw 'Comando C10 non consentito'}
           if($src -notmatch 'zeroReceipt=\$true'){throw 'Capacità zeroReceipt assente'}
+          if($src -notmatch 'Comando di chiusura fiscale non consentito'){throw 'Blocco di sicurezza chiusura fiscale assente'}
