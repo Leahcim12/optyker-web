@@ -41,9 +41,12 @@ try {
   $journal=Join-Path $base 'receipts'
   New-Item -ItemType Directory -Force -Path $journal | Out-Null
   $lock=[IO.File]::Open((Join-Path $journal 'printer.lock'),[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+  # The exclusive printer lock above excludes any active Emit-Receipt operation.
+  # Stale journals must survive installation verbatim; they still block fiscal operations.
+  $pending=0
   foreach($f in Get-ChildItem -LiteralPath $journal -Filter '*.json'){
     $j=Get-Content -LiteralPath $f.FullName -Raw | ConvertFrom-Json
-    if($j.state -in @('claiming','sending','uncertain')){throw 'Emissione in corso o da verificare. Completa la verifica prima di aggiornare.'}
+    if($j.state -in @('claiming','sending','uncertain')){$pending++}
   }
   $status=Invoke-RestMethod -Uri 'http://127.0.0.1:8765/status' -TimeoutSec 5
   if($status.ok -ne $true -or $status.mode -notmatch '^REG(?:\s*\(OP\s*\d+\))?$' -or [string]$status.idleState -cne '0'){throw 'La RCH deve essere pronta in REG, senza documenti aperti.'}
@@ -60,6 +63,10 @@ try {
     try{$h=Invoke-RestMethod -Uri 'http://127.0.0.1:8765/health' -TimeoutSec 2;if($h.capabilities.reprintReceipt -eq $true){$ok=$true;break}}catch{}
   }
   if(-not $ok){throw 'Aggiornamento salvato. Riavvia il PC per avviare il connettore aggiornato.'}
-  Write-Host 'Ristampa RCH attivata. Ricarica Optyker e apri Ultime vendite > Ristampa su RCH RT.' -ForegroundColor Green
+  Write-Host 'Aggiornamento ristampa installato. Ricarica Optyker.' -ForegroundColor Green
+  if($pending -gt 0){
+    Write-Host ('Restano '+$pending+' operazioni da verificare. I loro esiti sono stati conservati senza modifiche.') -ForegroundColor Yellow
+    Write-Host 'Prima di stampare: Ultime vendite > Emissione / esito RCH > Aggiorna esito. Controlla lo scontrino sulla stampante.' -ForegroundColor Yellow
+  }else{Write-Host 'Apri Ultime vendite > Ristampa su RCH RT.' -ForegroundColor Green}
 }catch{Write-Host ('ERRORE: '+$_.Exception.Message) -ForegroundColor Red;exit 1}
 finally{if($lock){$lock.Dispose()};Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue}

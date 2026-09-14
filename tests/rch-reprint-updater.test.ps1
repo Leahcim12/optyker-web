@@ -17,6 +17,9 @@ function Get-CimInstance {param($ClassName) return @()}
 function Start-Process {param($FilePath,$ArgumentList,$WindowStyle)}
 function Start-Sleep {param($Milliseconds)}
 try{
+ $journal=Join-Path $base 'receipts';New-Item -ItemType Directory -Path $journal -Force | Out-Null
+ foreach($state in @('uncertain','claiming','sending')){[IO.File]::WriteAllText((Join-Path $journal ($state+'.json')),('{"state":"'+$state+'","writeStarted":true}'))}
+ $snapshots=@{};Get-ChildItem $journal -Filter '*.json' | ForEach-Object {$snapshots[$_.Name]=[IO.File]::ReadAllText($_.FullName)}
  & (Join-Path $repo 'rch-connector/Aggiorna-Ristampa-RCH.ps1')
  $actual=Get-Content $target -Raw
  if(-not $actual.Contains("'1.9-pos'") -or -not $actual.Contains('Existing POS QR customisation must survive')){throw 'Existing version or POS customisations overwritten'}
@@ -24,5 +27,6 @@ try{
  & (Join-Path $repo 'rch-connector/Aggiorna-Ristampa-RCH.ps1')
  $again=Get-Content $target -Raw
  if(([regex]::Matches($again,'function Reprint-Receipt')).Count -ne 1){throw 'Updater duplicated functions'}
- Write-Host 'Updater preserves installed version and POS changes; repeated installation remains valid.'
+ foreach($name in $snapshots.Keys){if([IO.File]::ReadAllText((Join-Path $journal $name)) -cne $snapshots[$name]){throw 'Pending fiscal journal changed'}}
+ Write-Host 'Pending journals preserved verbatim. Updater preserves installed version and POS changes; repeated installation remains valid.'
 }finally{Remove-Item $env:LOCALAPPDATA -Recurse -Force;$env:LOCALAPPDATA=$oldLocal}
