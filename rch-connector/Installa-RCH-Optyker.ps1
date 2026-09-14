@@ -5,14 +5,27 @@
 )
 
 $ErrorActionPreference = "Stop"
+trap {
+  $message = if($_.Exception -and $_.Exception.Message){$_.Exception.Message}else{[string]$_}
+  Write-Host ""
+  Write-Host "ERRORE INSTALLAZIONE OPTYKER RCH" -ForegroundColor Red
+  Write-Host $message -ForegroundColor Red
+  Write-Host ""
+  Write-Host "La finestra resta aperta per permettere di leggere l'errore. Nessuno scontrino viene emesso dall'installazione." -ForegroundColor Yellow
+  if(-not $NoPause){$null=Read-Host "Premi INVIO per chiudere"}
+  exit 1
+}
+
 $base = Join-Path $env:LOCALAPPDATA "OptykerRCH"
 $connector = Join-Path $base "rch-optyker-connector.ps1"
 $worker = Join-Path $base "rch-optyker-cloud-worker.ps1"
 $relayConfig = Join-Path $base 'cloud-relay.json'
 $startup = [Environment]::GetFolderPath("Startup")
 $startupHelper = Join-Path $base 'Attiva-Avvio-Automatico-RCH.ps1'
-$source = "https://www.optyker.it/rch-connector/rch-optyker-connector.ps1?v=20260914-cloud1"
-$workerSource = "https://www.optyker.it/rch-connector/rch-optyker-cloud-worker.ps1?v=20260914-cloud1"
+$publicRoot = 'https://leahcim12.github.io/optyker-web/rch-connector'
+$source = "$publicRoot/rch-optyker-connector.ps1?v=20260914-cloud3"
+$workerSource = "$publicRoot/rch-optyker-cloud-worker.ps1?v=20260914-cloud3"
+$startupSource = "$publicRoot/Attiva-Avvio-Automatico-RCH.ps1?v=20260914-cloud3"
 $relayApi='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-rch-relay-api'
 
 New-Item -ItemType Directory -Force -Path $base | Out-Null
@@ -37,7 +50,10 @@ function New-HexSecret {
   return -join ($b | ForEach-Object {$_.ToString('x2')})
 }
 function Enroll-CloudRelay {
-  if(Test-Path -LiteralPath $relayConfig -PathType Leaf){return}
+  if(Test-Path -LiteralPath $relayConfig -PathType Leaf){
+    Write-Host "PC cassa gia configurato per il Cloud Relay." -ForegroundColor DarkGreen
+    return
+  }
   Write-Host ""
   Write-Host "Attivazione collegamento iPad / Cloud Relay" -ForegroundColor Cyan
   Write-Host "Le credenziali servono una sola volta e NON verranno salvate."
@@ -45,6 +61,7 @@ function Enroll-CloudRelay {
   if(-not $username){throw 'Utente Optyker obbligatorio per attivare il collegamento iPad.'}
   $secure=Read-Host 'Password Optyker' -AsSecureString
   $ptr=[IntPtr]::Zero
+  $password=$null
   try {
     $ptr=[Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
     $password=[Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr)
@@ -67,23 +84,25 @@ function Enroll-CloudRelay {
 }
 
 Write-Host "Installazione Optyker RCH..." -ForegroundColor Cyan
+Write-Host "Controllo componenti..." -ForegroundColor DarkGray
 $candidate = Join-Path $base "rch-optyker-connector.download.ps1"
 $workerCandidate = Join-Path $base "rch-optyker-cloud-worker.download.ps1"
+$startupCandidate = Join-Path $base 'Attiva-Avvio-Automatico-RCH.download.ps1'
 Invoke-WebRequest -UseBasicParsing -Uri $source -OutFile $candidate -TimeoutSec 60
 Invoke-WebRequest -UseBasicParsing -Uri $workerSource -OutFile $workerCandidate -TimeoutSec 60
-$startupCandidate = Join-Path $base 'Attiva-Avvio-Automatico-RCH.download.ps1'
-Invoke-WebRequest -UseBasicParsing -Uri 'https://www.optyker.it/rch-connector/Attiva-Avvio-Automatico-RCH.ps1?v=20260914-cloud1' -OutFile $startupCandidate -TimeoutSec 60
+Invoke-WebRequest -UseBasicParsing -Uri $startupSource -OutFile $startupCandidate -TimeoutSec 60
 
 $startupTokens=$null;$startupErrors=$null
-[void][Management.Automation.Language.Parser]::ParseFile($startupCandidate,[ref]$startupTokens,[ref]$startupErrors)
+[void][System.Management.Automation.Language.Parser]::ParseFile($startupCandidate,[ref]$startupTokens,[ref]$startupErrors)
 if($startupErrors.Count -gt 0 -or (Get-Content -Raw -LiteralPath $startupCandidate) -notmatch 'Set-OptykerRchCloudAutostart'){throw 'Download avvio automatico non valido. Installazione sospesa.'}
 $tokens=$null;$parseErrors=$null
-[void][Management.Automation.Language.Parser]::ParseFile($candidate,[ref]$tokens,[ref]$parseErrors)
+[void][System.Management.Automation.Language.Parser]::ParseFile($candidate,[ref]$tokens,[ref]$parseErrors)
 if($parseErrors.Count -gt 0 -or (Get-Content -Raw -LiteralPath $candidate) -notmatch '1\.8-auto-receipt'){throw "Download del connettore locale non valido. La versione precedente e rimasta invariata."}
 $workerTokens=$null;$workerErrors=$null
-[void][Management.Automation.Language.Parser]::ParseFile($workerCandidate,[ref]$workerTokens,[ref]$workerErrors)
+[void][System.Management.Automation.Language.Parser]::ParseFile($workerCandidate,[ref]$workerTokens,[ref]$workerErrors)
 if($workerErrors.Count -gt 0 -or (Get-Content -Raw -LiteralPath $workerCandidate) -notmatch '1\.9-cloud-relay'){throw 'Download Cloud Relay non valido. Installazione sospesa.'}
 
+Write-Host "Componenti verificati." -ForegroundColor Green
 Enroll-CloudRelay
 
 if(Test-Path -LiteralPath $connector){Copy-Item -LiteralPath $connector -Destination ($connector+'.previous') -Force}
