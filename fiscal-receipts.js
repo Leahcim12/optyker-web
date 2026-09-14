@@ -26,6 +26,18 @@ function drawJob(m,job,refresh){
  if(job.state==='completed'&&job.document_number&&job.document_date){var rp=document.createElement('button');rp.type='button';rp.textContent='Ristampa su RCH RT';box.appendChild(rp);rp.onclick=function(){return reprintJob(job,rp,m)}}
  var b=document.createElement('button');b.type='button';b.textContent='Aggiorna esito';box.appendChild(b);b.onclick=async function(){b.disabled=true;try{await bridge('/receipt/status',{jobId:job.id}).catch(function(){});var r=await api('job',{job_id:job.id});drawJob(m,r.data.job,refresh)}catch(e){message(m,e.message);b.disabled=false}};
  if(['prepared','not_started'].includes(job.state)){var back=document.createElement('button');back.type='button';back.textContent=isVoid?'Rivedi annullo':'Rivedi dati per emissione';box.appendChild(back);back.onclick=isVoid?function(){openVoid(job.original_job_id)}:refresh}
+ if(isVoid&&['prepared','not_started'].includes(job.state)){
+  var check=document.createElement('button');check.type='button';check.textContent='Verifica blocco locale';box.appendChild(check);
+  check.onclick=async function(){
+   check.disabled=true;
+   try{
+    var local=await bridge('/receipt/status',{jobId:job.original_job_id});
+    if(['uncertain','claiming','sending'].includes(local.state))message(m,'Il PC conserva ancora lo scontrino originale come da verificare. Stato locale: '+local.state+'. '+String(local.error||'')+' L’annullo resta bloccato: non ripeterlo.');
+    else message(m,'Stato locale dello scontrino originale: '+String(local.state||'non disponibile')+'. '+String(local.error||'')+' Nessun comando di stampa inviato.');
+   }catch(err){message(m,'Verifica locale: '+String(err.message||err)+'. Nessun comando di stampa inviato.');}
+   finally{check.disabled=false}
+  };
+ }
  if(!isVoid&&job.state==='completed'){var cancel=document.createElement('button');cancel.type='button';cancel.className='ofVoid';cancel.textContent='Annulla scontrino';box.appendChild(cancel);cancel.onclick=function(){return openVoid(job.id)}}
 }
 async function reprintJob(job,button,m){
@@ -71,7 +83,7 @@ async function openVoid(originalId){
     if(prepared.data.claim_token){message(m,'Annullo in corso. Attendi il documento stampato dalla RCH.');await bridge('/receipt/void',{jobId:jobId,token:prepared.data.claim_token})}
     var result=await api('job',{job_id:jobId});drawJob(m,result.data.job,function(){openVoid(originalId)});message(m,'');
    }catch(err){
-    if(jobId){try{await bridge('/receipt/status',{jobId:jobId});var current=await api('job',{job_id:jobId});drawJob(m,current.data.job,function(){openVoid(originalId)})}catch(ignore){}message(m,'Risposta incompleta. Usa Aggiorna esito e verifica la stampa sulla RCH. Non ripetere l’annullo.');}
+    if(jobId){try{await bridge('/receipt/status',{jobId:jobId});var current=await api('job',{job_id:jobId});drawJob(m,current.data.job,function(){openVoid(originalId)})}catch(ignore){}message(m,'Il connettore ha risposto: '+String(err.message||'Risposta incompleta')+'. Usa Verifica blocco locale. Non ripetere l’annullo.');}
     else message(m,err.message);
     emit.disabled=false;
    }finally{m.querySelector('.ofClose').disabled=false}
