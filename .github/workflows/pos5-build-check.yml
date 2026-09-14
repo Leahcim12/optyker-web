@@ -1,0 +1,55 @@
+name: Verifica Cassa POS5
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cash-pos5.js'
+      - 'scripts/apply_cash_pos5.py'
+      - 'scripts/vercel-finalize-20260914.sh'
+      - 'rch-connector/Aggiorna-RCH-POS.ps1'
+      - 'rch-connector/Aggiorna-RCH-POS.bat'
+      - 'supabase/functions/optyker-cash-register-api-v2/**'
+      - 'supabase/functions/optyker-fiscal-api-v2/**'
+      - '.github/workflows/pos5-build-check.yml'
+  workflow_dispatch:
+
+jobs:
+  production:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Assemble production
+        run: bash scripts/vercel-build-v13.sh
+      - name: Apply final patches
+        run: bash scripts/vercel-finalize-20260914.sh
+      - name: Verify POS5
+        run: |
+          node --check _site/cash-pos5.js
+          grep -q 'optykerCashPos5Js' _site/index.html
+          grep -q 'optykerCashLotteryCode' _site/cash-pos5.js
+          grep -q 'order_missing_items' _site/cash-pos5.js
+          grep -q 'Consegna' _site/cash-pos5.js
+          test -s _site/rch-connector/Aggiorna-RCH-POS.bat
+          test -s _site/rch-connector/Aggiorna-RCH-POS.ps1
+
+  powershell:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse RCH POS updater
+        shell: powershell
+        run: |
+          $tokens=$null
+          $errors=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path 'rch-connector/Aggiorna-RCH-POS.ps1'),[ref]$tokens,[ref]$errors)
+          if($errors.Count -gt 0){$errors | Format-List -Force; exit 1}
+          $src=Get-Content 'rch-connector/Aggiorna-RCH-POS.ps1' -Raw
+          if($src -match "Send-RchCommand '=C10'" -or $src -match 'Send-RchCommand "=C10"'){throw 'Comando C10 non consentito'}
+          if($src -notmatch 'zeroReceipt=\$true'){throw 'Capacità zeroReceipt assente'}
