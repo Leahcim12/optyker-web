@@ -25,8 +25,15 @@ jobs:
         run: |
           test -f _site/admin-cash-closure.js
           test -f _site/admin-cash-closure.css
+          test -f _site/admin-cash-today-controls.js
+          test -f _site/admin-cash-today-controls.css
           test -f _site/admin-cash-version.json
           node --check _site/admin-cash-closure.js
+          node --check _site/admin-cash-today-controls.js
           grep -q '__OPTYKER_ADMIN_CASH_CLOSURE_V2__' _site/admin-cash-closure.js
+          grep -q '__OPTYKER_ADMIN_CASH_TODAY_CONTROLS__' _site/admin-cash-today-controls.js
           grep -q 'optykerAdminCashClosureJs' _site/index.html
           grep -q 'optykerAdminCashClosureCss' _site/index.html
+          grep -q 'optykerAdminCashTodayJs' _site/index.html
+          grep -q 'optykerAdminCashTodayCss' _site/index.html
+          grep -q '20260915-admin-cash4' _site/admin-cash-version.json
