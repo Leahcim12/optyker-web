@@ -110,7 +110,7 @@ async function products(search:string,first:number,clientId:string){
     if(String(p?.status||"").toUpperCase()==="ARCHIVED")continue;
     const vars=Array.isArray(p?.variants?.nodes)?p.variants.nodes:[];
     for(const v of vars){
-      if(v?.availableForSale===false)continue;
+      // Stock availability online does not prevent a physical POS sale.
       outRows.push({
         product_id:String(p?.id||""),
         variant_id:String(v?.id||""),
@@ -130,13 +130,21 @@ async function products(search:string,first:number,clientId:string){
   }
   return await withFiscalCatalog([...serviceSearch(context,search),...listLensProducts(search),...outRows.filter(x=>!serviceForId(x.variant_id,context))]);
 }
-async function clients(search:string){
+async function clients(search:string,selectedId:string){
   let q=db.from("optyker_clients")
     .select("id,name,surname,email,phone,pec,fiscal,vat,street,street_number,postal_code,city,province,shopify_customer_id,reference_no")
     .order("surname",{ascending:true}).order("name",{ascending:true}).limit(300);
   const s=norm(search).replace(/[%_,()]/g," ").slice(0,80);
   if(s)q=q.or("name.ilike.%"+s+"%,surname.ilike.%"+s+"%,email.ilike.%"+s+"%,phone.ilike.%"+s+"%,reference_no.ilike.%"+s+"%,fiscal.ilike.%"+s+"%,vat.ilike.%"+s+"%");
-  const {data,error}=await q;if(error)throw error;return data||[];
+  const {data,error}=await q;if(error)throw error;
+  const rows=data||[];
+  if(selectedId&&!rows.some((c:any)=>String(c.id)===selectedId)){
+    const {data:selected,error:se}=await db.from("optyker_clients")
+      .select("id,name,surname,email,phone,pec,fiscal,vat,street,street_number,postal_code,city,province,shopify_customer_id,reference_no")
+      .eq("id",selectedId).maybeSingle();
+    if(se)throw se;if(selected)rows.unshift(selected);
+  }
+  return rows;
 }
 async function lookupVariants(ids:string[],context:any){
   const uniq=[...new Set(ids.filter(x=>!isLensCatalogId(x)&&!isServiceId(x)).map(x=>gid("ProductVariant",x)).filter(Boolean))].slice(0,100);
@@ -147,7 +155,7 @@ async function lookupVariants(ids:string[],context:any){
     "nodes(ids:$ids){",
     "... on ProductVariant{",
     "id title sku barcode price availableForSale",
-    "product{id title handle vendor productType featuredMedia{preview{image{url altText}}}}",
+    "product{id status title handle vendor productType featuredMedia{preview{image{url altText}}}}",
     "}",
     "}",
     "}"
@@ -155,7 +163,7 @@ async function lookupVariants(ids:string[],context:any){
   const data=await gql(q,{ids:uniq});
   return local.concat((Array.isArray(data?.nodes)?data.nodes:[]).filter(Boolean).map((v:any)=>({
     variant_id:String(v.id),title:String(v?.product?.title||"Prodotto"),variant_title:String(v?.title||""),
-    sku:String(v?.sku||""),barcode:String(v?.barcode||""),price:money(v?.price),available:v?.availableForSale!==false,
+    sku:String(v?.sku||""),barcode:String(v?.barcode||""),price:money(v?.price),available:!!v?.product&&v.product.status!=="ARCHIVED",
     product_id:String(v?.product?.id||""),image:img(v?.product),vendor:String(v?.product?.vendor||""),product_type:String(v?.product?.productType||"")
   })));
 }
@@ -635,7 +643,7 @@ Deno.serve(async(req:Request)=>{
     const p=body?.payload||{};
     if(action==="products")return out({ok:true,data:await products(norm(p.search),Number(p.first||60),norm(p.client_id))});
     if(action==="quote_lines")return out({ok:true,data:await quoteLines(Array.isArray(p.lines)?p.lines:[],norm(p.client_id))});
-    if(action==="clients")return out({ok:true,data:await clients(norm(p.search))});
+    if(action==="clients")return out({ok:true,data:await clients(norm(p.search),norm(p.selected_id))});
     if(action==="checkout_status")return out({ok:true,data:await checkoutStatus(norm(p.request_id))});
     if(action==="checkout")return out({ok:true,data:await checkout(body,operator)});
     if(action==="settle")return out({ok:true,data:await settleSale(body,operator)});

@@ -227,7 +227,8 @@ function ensureUI(){
 }
 function fillClients(id,rows){
   var s=E('optykerCashClient');if(!s)return;
-  var a=Array.isArray(rows)?rows:(S.clients.length?S.clients:clientsLocal());
+  var a=(Array.isArray(rows)?rows:(S.clients.length?S.clients:clientsLocal())).slice();
+  if(id&&!a.some(function(c){return String(c.id)===String(id)})){var selected=currentCashClient();a.unshift(selected&&String(selected.id)===String(id)?selected:{id:id,name:'Cliente selezionato'})}
   var h='<option value="">Cliente occasionale</option>';
   for(var i=0;i<a.length;i++)h+='<option value="'+esc(a[i].id)+'">'+esc(clientLabel(a[i]))+'</option>';
   s.innerHTML=h;
@@ -235,15 +236,20 @@ function fillClients(id,rows){
   S.clientId=s.value||''
 }
 function searchCashClients(q,keepId){
-  var clean=String(q||'').trim();
-  return api('clients',{search:clean}).then(function(x){
-    S.clients=Array.isArray(x.data)?x.data:[];
-    fillClients(keepId||S.clientId,S.clients);
+  var clean=String(q||'').trim(),request=S.clientSearchRequest=(S.clientSearchRequest||0)+1;
+  return api('clients',{search:clean,selected_id:keepId||S.clientId||''}).then(function(x){
+    if(request!==S.clientSearchRequest)return;
+    var selected=currentCashClient(),rows=Array.isArray(x.data)?x.data:[];
+    if(selected&&!rows.some(function(c){return String(c.id)===String(S.clientId)}))rows.unshift(selected);
+    S.clients=rows;
+    fillClients(S.clientId,S.clients);
     updateInvoiceAvailability();updateTsAvailability()
   }).catch(function(){
-    var all=clientsLocal(),k=clean.toLowerCase();
+    if(request!==S.clientSearchRequest)return;
+    var selected=currentCashClient(),all=clientsLocal(),k=clean.toLowerCase();
     S.clients=k?all.filter(function(c){return [c.name,c.surname,c.email,c.phone,c.fiscal,c.vat,c.reference_no].join(' ').toLowerCase().indexOf(k)>=0}):all;
-    fillClients(keepId||S.clientId,S.clients);updateInvoiceAvailability();updateTsAvailability()
+    if(selected&&!S.clients.some(function(c){return String(c.id)===String(S.clientId)}))S.clients.unshift(selected);
+    fillClients(S.clientId,S.clients);updateInvoiceAvailability();updateTsAvailability()
   })
 }
 function openCash(clientId){
@@ -345,9 +351,9 @@ function renderStage(){
 }
 function currentCashClient(){
   var id=String(S.clientId||'');if(!id)return null;
-  var pools=[S.clients,clientsLocal()];
-  for(var p=0;p<pools.length;p++){var a=Array.isArray(pools[p])?pools[p]:[];for(var i=0;i<a.length;i++)if(String(a[i]&&a[i].id||'')===id)return a[i]}
-  return null
+  var pools=[clientsLocal(),S.clients],client=null;
+  for(var p=0;p<pools.length;p++){var a=Array.isArray(pools[p])?pools[p]:[];for(var i=0;i<a.length;i++)if(String(a[i]&&a[i].id||'')===id)client=Object.assign(client||{},a[i])}
+  return client
 }
 function cashVatOptions(selected){return '<option value="">Seleziona IVA</option>'+[[1,'4% · bene'],[2,'22% · bene'],[3,'Esente Art.10 · servizio']].map(function(x){return '<option value="'+x[0]+'"'+(Number(selected)===x[0]?' selected':'')+'>'+x[1]+'</option>'}).join('')}
 function cashFiscalCode(){return cleanFiscal(E('optykerCashFiscalCode')&&E('optykerCashFiscalCode').value)}
@@ -357,8 +363,11 @@ function updateTsAvailability(){
   if(!box||!ck)return;
   var field=E('optykerCashFiscalCode'),cl=currentCashClient(),key=S.clientId||'';
   ck.disabled=false;box.classList.remove('disabled');
-  if(field&&field.dataset.client!==key){field.dataset.client=key;field.value=cleanFiscal(cl&&cl.fiscal)}
-  if(field){field.disabled=S.busy;field.required=!!ck.checked;field.oninput=function(){this.value=cleanFiscal(this.value)}}
+  if(field&&field.dataset.client!==key){field.dataset.client=key;field.dataset.edited='';field.value=cleanFiscal(cl&&cl.fiscal)}
+  if(field){
+    if(!field.dataset.edited&&cl)field.value=cleanFiscal(cl.fiscal);
+    field.disabled=S.busy;field.required=!!ck.checked;field.oninput=function(){this.dataset.edited='1';this.value=cleanFiscal(this.value)}
+  }
   S.tsRequested=!!ck.checked;
   if(opts)opts.style.display=S.tsRequested?'grid':'none';
   var code=E('optykerCashTsCode');S.tsCode=code&&code.value==='AA'?'AA':'AD';
