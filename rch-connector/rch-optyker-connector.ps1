@@ -384,6 +384,25 @@ function Sync-VerifiedReprintJournal($job) {
   # Save-Journal retains the exact previous file as .previous; keep original error/ACK evidence.
   Save-Journal $entry
 }
+function Reconcile-VerifiedReceipt($request) {
+  Assert-WindowsFiscalPlatform
+  $job=Get-ReprintJob $request
+  if([string]$job.id -cne [string]$request.jobId -or $job.operation -cne 'sale' -or $job.state -cne 'completed' -or $job.serial -cne '72IV6003831'){
+    throw 'Seleziona lo scontrino originale verificato in Optyker.'
+  }
+  New-Item -ItemType Directory -Force -Path $JournalRoot | Out-Null
+  $lock=[IO.File]::Open((Join-Path $JournalRoot 'printer.lock'),[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+  try {
+    Assert-IdleRegister
+    if((Read-RchValue '<</?m' 'm') -cne $job.serial){throw 'Matricola RCH non corrispondente allo scontrino.'}
+    $entry=Read-Journal ([string]$job.id)
+    if(-not $entry){throw 'Operazione non presente su questo PC.'}
+    Sync-VerifiedReprintJournal $job
+    $entry=Read-Journal ([string]$job.id)
+    if($entry.state -cnotin @('reconciled_completed','closing_acknowledged','awaiting_reference','completed')){throw 'Esito locale non riconciliabile automaticamente.'}
+    return @{ok=$true;reconciled=$true;jobId=$job.id;documentNumber=$job.document_number;documentDate=$job.document_date;emittedFiscalDocument=$false}
+  } finally {$lock.Dispose()}
+}
 function Reprint-Receipt($request) {
   Assert-WindowsFiscalPlatform
   $job=Get-ReprintJob $request
@@ -515,7 +534,7 @@ try {
       $ResponseOrigin=[string]$request.headers['origin']
       if($request.method -eq 'OPTIONS'){Json-Response $stream 200 @{ok=$true};continue}
       if($request.method -eq 'GET' -and $request.path -eq '/health'){
-        Json-Response $stream 200 @{ok=$true;connector='Optyker RCH';version=$ConnectorVersion;printer=$PrinterIp;port=$Port;capabilities=@{reprintReceipt=$true;diagnostics=$true;receipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);talkingReceipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);voidReceipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);adeOutcome=$false;automaticReference=$true;manualReference=$true}}
+        Json-Response $stream 200 @{ok=$true;connector='Optyker RCH';version=$ConnectorVersion;printer=$PrinterIp;port=$Port;capabilities=@{reconcileReceipt=$true;reprintReceipt=$true;diagnostics=$true;receipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);talkingReceipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);voidReceipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);adeOutcome=$false;automaticReference=$true;manualReference=$true}}
       } elseif($request.method -eq 'GET' -and $request.path -eq '/status'){
         Json-Response $stream 200 (Status-Rch)
       } elseif($request.method -eq 'GET' -and $request.path -eq '/diagnostics'){
@@ -524,6 +543,8 @@ try {
         $body=$request.body | ConvertFrom-Json
         if(-not $body.jobId -or -not $body.token){Json-Response $stream 409 @{ok=$false;error='Autorizzazione emissione mancante.';emittedFiscalDocument=$false}}
         else {$operation=if($request.path -eq '/receipt/void'){'void'}else{'sale'};Json-Response $stream 200 (Emit-Receipt $body $operation)}
+      } elseif($request.method -eq 'POST' -and $request.path -eq '/receipt/reconcile'){
+        Json-Response $stream 200 (Reconcile-VerifiedReceipt ($request.body | ConvertFrom-Json))
       } elseif($request.method -eq 'POST' -and $request.path -eq '/receipt/reprint'){
         Json-Response $stream 200 (Reprint-Receipt ($request.body | ConvertFrom-Json))
       } elseif($request.method -eq 'POST' -and $request.path -eq '/receipt/status'){
