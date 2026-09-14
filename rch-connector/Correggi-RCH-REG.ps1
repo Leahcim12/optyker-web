@@ -80,7 +80,7 @@ function Assert-WindowsFiscalPlatform
   $tmp=$path+'.tmp'
   [IO.File]::WriteAllText($tmp,$text,(New-Object Text.UTF8Encoding($true)))
   $tokens=$null;$errors=$null
-  [void][Management.Automation.Language.Parser]::ParseFile($tmp,[ref]$tokens,[ref]$errors)
+  [void][System.Management.Automation.Language.Parser]::ParseFile($tmp,[ref]$tokens,[ref]$errors)
   if($errors.Count -gt 0){Remove-Item -LiteralPath $tmp -Force;throw 'Il connettore corretto non supera il controllo PowerShell.'}
   Move-Item -LiteralPath $tmp -Destination $path -Force
   return $true
