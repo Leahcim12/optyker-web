@@ -39,10 +39,14 @@ jobs:
           cp rch-cloud-relay.js _site/rch-cloud-relay.js
           test -s _site/rch-connector/Installa-RCH-Optyker.bat
           test -s _site/rch-connector/Installa-RCH-Optyker.ps1
+          test -s _site/rch-connector/Installa-iPad-Optyker-RCH.bat
+          test -s _site/rch-connector/Installa-iPad-Optyker-RCH.ps1
           test -s _site/rch-connector/rch-optyker-connector.ps1
           test -s _site/rch-connector/rch-optyker-cloud-worker.ps1
           test -s _site/rch-connector/Attiva-Avvio-Automatico-RCH.ps1
-          grep -q "1.9-cloud-relay" _site/rch-connector/rch-optyker-cloud-worker.ps1
+          grep -q "2.0-cloud-relay-http" _site/rch-connector/rch-optyker-cloud-worker.ps1
+          grep -q "20260914-ipad2" _site/rch-connector/Installa-iPad-Optyker-RCH.bat
+          grep -q "Polling cloud confermato" _site/rch-connector/Installa-iPad-Optyker-RCH.ps1
           grep -q "Set-OptykerRchCloudAutostart" _site/rch-connector/Attiva-Avvio-Automatico-RCH.ps1
           grep -q "System.Management.Automation.Language.Parser" _site/rch-connector/Installa-RCH-Optyker.ps1
           grep -q "https://leahcim12.github.io/optyker-web/rch-connector" _site/rch-connector/Installa-RCH-Optyker.ps1
@@ -56,7 +60,7 @@ jobs:
           grep -q "Installazione non completata" _site/rch-connector/Installa-RCH-Optyker.bat
           grep -q "cloud-relay" _site/rch-connector/Installa-RCH-Optyker.ps1
           grep -q "__OPTYKER_RCH_CLOUD_RELAY__" _site/rch-cloud-relay.js
-          pwsh -NoLogo -NoProfile -Command '$files=@("_site/rch-connector/Installa-RCH-Optyker.ps1","_site/rch-connector/Attiva-Avvio-Automatico-RCH.ps1","_site/rch-connector/rch-optyker-cloud-worker.ps1"); foreach($f in $files){$tokens=$null;$errors=$null;[System.Management.Automation.Language.Parser]::ParseFile($f,[ref]$tokens,[ref]$errors)|Out-Null;if($errors.Count){Write-Host "Parser errors in $f" -ForegroundColor Red;$errors|ForEach-Object{Write-Host $_.Message -ForegroundColor Red};exit 1}}; Write-Host "RCH PowerShell syntax OK"'
+          pwsh -NoLogo -NoProfile -Command '$files=@("_site/rch-connector/Installa-RCH-Optyker.ps1","_site/rch-connector/Installa-iPad-Optyker-RCH.ps1","_site/rch-connector/Attiva-Avvio-Automatico-RCH.ps1","_site/rch-connector/rch-optyker-cloud-worker.ps1"); foreach($f in $files){$tokens=$null;$errors=$null;[System.Management.Automation.Language.Parser]::ParseFile($f,[ref]$tokens,[ref]$errors)|Out-Null;if($errors.Count){Write-Host "Parser errors in $f" -ForegroundColor Red;$errors|ForEach-Object{Write-Host $_.Message -ForegroundColor Red};exit 1}}; Write-Host "RCH PowerShell syntax OK"'
 
       - name: Ripristina interazioni Optyker
         run: |
