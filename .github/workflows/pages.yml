@@ -32,6 +32,21 @@ jobs:
           VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
         run: bash scripts/vercel-build-v13.sh
 
+      - name: Pubblica connettore RCH e relay iPad
+        run: |
+          mkdir -p _site/rch-connector
+          cp -R rch-connector/. _site/rch-connector/
+          cp rch-cloud-relay.js _site/rch-cloud-relay.js
+          test -s _site/rch-connector/Installa-RCH-Optyker.bat
+          test -s _site/rch-connector/Installa-RCH-Optyker.ps1
+          test -s _site/rch-connector/rch-optyker-connector.ps1
+          test -s _site/rch-connector/rch-optyker-cloud-worker.ps1
+          test -s _site/rch-connector/Attiva-Avvio-Automatico-RCH.ps1
+          grep -q "1.9-cloud-relay" _site/rch-connector/rch-optyker-cloud-worker.ps1
+          grep -q "Set-OptykerRchCloudAutostart" _site/rch-connector/Attiva-Avvio-Automatico-RCH.ps1
+          grep -q "cloud-relay" _site/rch-connector/Installa-RCH-Optyker.ps1
+          grep -q "__OPTYKER_RCH_CLOUD_RELAY__" _site/rch-cloud-relay.js
+
       - name: Verifica Scheda Occhiali aggiornata
         run: |
           grep -q "20260906-eyewear-flow9" _site/index.html
