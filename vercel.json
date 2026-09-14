@@ -1,5 +1,5 @@
 {
-  "buildCommand": "bash scripts/vercel-build-v13.sh",
+  "buildCommand": "bash scripts/vercel-build-v13.sh && python scripts/patch_shifts_save_refresh_20260914.py && python scripts/check_desktop_html.py",
   "outputDirectory": "_site",
   "framework": null,
   "cleanUrls": false
