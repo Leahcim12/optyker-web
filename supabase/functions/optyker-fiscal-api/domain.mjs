@@ -74,11 +74,10 @@ export function resultState(result,commandCount) {
 }
 export function markAutomaticDocument(document,jobId) {
   if(!/^[a-f0-9-]{36}$/i.test(jobId))throw new Error('Identificativo documento non valido');
-  // The former visible OPTYKER marker was only needed for automatic EJ readback.
-  // EJ readback is disabled to keep the RT permanently in REG. Print the customer
-  // review QR in the receipt tail instead; the document reference is confirmed on paper.
-  return {...document,reviewQr:REVIEW_URL,automaticReference:false,
-    commands:[...document.commands.slice(0,-1),'="/$11/('+REVIEW_URL+')',document.commands.at(-1)]};
+  // PRINT!F v14 pp.32,87: barcodes require fidelity mode and follow payment.
+  // Do not insert an optional QR between the fiscal items/CF and payment:
+  // that refusal leaves the receipt open. Keep the complete validated sale sequence.
+  return {...document,automaticReference:false,commands:[...document.commands]};
 }
 export function automaticReference(result,document) {
   const r=result?.reference;

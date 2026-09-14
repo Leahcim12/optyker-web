@@ -6,7 +6,6 @@ const KEY=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
 const OLD=U+"/functions/v1/optyker-fiscal-api";
 const SERIAL="72IV6003831";
 const RELEASE="20260914-pos5";
-const REVIEW_URL="https://g.page/r/CeicKuw6aQ5FEAE/review";
 const db=createClient(U,KEY,{auth:{persistSession:false,autoRefreshToken:false}});
 const origins=new Set(["https://www.optyker.it","https://optyker.it"]);
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -27,8 +26,8 @@ function zeroDocument(payment:any,snapshot:any){
   const paymentCode=payment.payment_method==="cash"?1:payment.payment_method==="card"?4:0;if(!paymentCode)throw new Error("Per lo scontrino a zero seleziona Contanti o Carta");
   let gross=0;const lines=snapshot.input.lines.map((l:any)=>{const department=Number(l.department),quantity=Number(l.quantity),unit=Math.round(Number(l.unit_price)*100);if(![1,2,3].includes(department)||!Number.isInteger(quantity)||quantity<1||quantity>99||!Number.isInteger(unit)||unit<=0)throw new Error("Riga scontrino a zero non valida");const total=unit*quantity;gross+=total;return {description:description(l.description),quantity,unitPriceCents:unit,totalCents:total,department,vatCode:department===1?"04":department===2?"22":"ART10",saleType:department===3?"services":"goods",expenseCode:"none"}});
   if(gross<=0||gross>100000000)throw new Error("Valore di partenza non valido per lo scontrino a zero");
-  const commands=lines.map((l:any)=>`=R${l.department}/$${l.unitPriceCents}/*${l.quantity}/(${l.description})`);commands.push("=S","=%/*100",`=\"/$11/(${REVIEW_URL})`,`=T${paymentCode}`);
-  return {version:RELEASE,operation:"sale",serial:SERIAL,paymentCode,paymentMethod:payment.payment_method,totalCents:0,grossTotalCents:gross,lines,talkingReceipt:false,fiscalCode:"",tsRequested:false,opposition:false,zeroReceipt:true,reviewQr:REVIEW_URL,automaticReference:false,commands};
+  const commands=lines.map((l:any)=>`=R${l.department}/$${l.unitPriceCents}/*${l.quantity}/(${l.description})`);commands.push("=S","=%/*100",`=T${paymentCode}`);
+  return {version:RELEASE,operation:"sale",serial:SERIAL,paymentCode,paymentMethod:payment.payment_method,totalCents:0,grossTotalCents:gross,lines,talkingReceipt:false,fiscalCode:"",tsRequested:false,opposition:false,zeroReceipt:true,automaticReference:false,commands};
 }
 async function prepareZero(p:any,operator:string){
   const payment=await one(db.from("optyker_pos_payments").select("*").eq("id",id(p.payment_id)).maybeSingle());if(!payment)throw new Error("Pagamento non trovato");

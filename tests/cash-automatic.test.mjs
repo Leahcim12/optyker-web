@@ -31,15 +31,18 @@ test('deposit plus balance preserve total and each tax amount exactly, including
   }
  }
 });
-test('only a fully acknowledged, matching journal readback can automatically confirm a reference',()=>{
- const snapshot=paymentDocument(fiscalLines(lines),'card',53.36,0,{fiscal:cf},{ts:true});
- const doc=markAutomaticDocument(makeDocument({amount:53.36,payment_method:'card'},snapshot.input,snapshot.fiscal),'12345678-1234-4234-8234-123456789abc');
- assert.match(doc.commands.at(-2),/^="\/\?A\/\(OPTYKER [A-F0-9]{32}\)$/);
- const result={state:'closing_acknowledged',writeStarted:true,idleAfter:true,commandsAcknowledged:doc.commands.length,
-  reference:{source:'rch_ej',marker:doc.receiptMarker,serial:doc.serial,fiscalCodeMatched:true,totalCents:5336,number:'1161-0010',date:'2026-09-12'}};
- assert.deepEqual(automaticReference(result,doc),{number:'1161-0010',date:'2026-09-12',amount:53.36});
- for(const patch of [{totalCents:5335},{serial:'OTHER'},{marker:'OTHER'},{fiscalCodeMatched:false},{source:'browser'}])assert.equal(automaticReference({...result,reference:{...result.reference,...patch}},doc),null);
- assert.equal(automaticReference({...result,state:'uncertain'},doc),null);
- assert.equal(automaticReference({...result,commandsAcknowledged:1},doc),null);
- assert.equal(automaticReference({...result,reference:null},doc),null);
+test('automatic receipts retain items and fiscal code, then close with the selected payment without a QR interruption',()=>{
+ for(const method of ['cash','card']){
+  const snapshot=paymentDocument(fiscalLines(lines),method,53.36,0,{fiscal:cf},{ts:true});
+  const base=makeDocument({amount:53.36,payment_method:method},snapshot.input,snapshot.fiscal);
+  const doc=markAutomaticDocument(base,'12345678-1234-4234-8234-123456789abc');
+  assert.deepEqual(doc.commands,base.commands);
+  assert.equal(doc.commands.at(-1),method==='cash'?'=T1':'=T4');
+  assert.ok(doc.commands.some(c=>c==='="/?C/('+cf+')'));
+  assert.ok(!doc.commands.some(c=>c.includes('/$11/')||c.includes('OPTYKER')));
+  assert.equal(doc.reviewQr,undefined);assert.equal(doc.automaticReference,false);
+  const result={state:'closing_acknowledged',writeStarted:true,idleAfter:true,commandsAcknowledged:doc.commands.length,
+   reference:{source:'rch_ej',marker:doc.receiptMarker,serial:doc.serial,fiscalCodeMatched:true,totalCents:5336,number:'1161-0010',date:'2026-09-12'}};
+  assert.equal(automaticReference(result,doc),null);
+ }
 });
