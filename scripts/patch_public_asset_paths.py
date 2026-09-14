@@ -80,7 +80,7 @@ if cash.is_file():
         ]
         for old,new,label in pairs:
             source = one(source, old, new, 'Manual POS '+label)
-        source, n = re.subn(r"window\.OPTYKER_CASH_BUILD='[^']+';", "window.OPTYKER_CASH_BUILD='20260914-manualprice1';\n/* "+marker+" */", source, count=1)
+        source, n = re.subn(r"window\.OPTYKER_CASH_BUILD='[^']+';", "window.OPTYKER_CASH_BUILD='20260914-manualprice1-reprint1';\n/* "+marker+" */", source, count=1)
         if n != 1: raise SystemExit('Manual POS build marker missing')
     cash.write_text(source, encoding='utf-8')
     for check in ("action==='checkout'?LOCAL_API:API", marker, 'optykerCashManualPrice', 'unit_price_override', "total===0?'Scarica magazzino'", "autoReceipt=!inv&&S.payment!=='pending'&&total>0"):
@@ -104,8 +104,8 @@ if cash_css.is_file():
 for path in entry_points:
     if not path.is_file(): continue
     html = path.read_text(encoding='utf-8')
-    html = re.sub(r'(cash-register\.js\?v=)[^\"\']+', r'\g<1>20260914-manualprice1', html)
-    html = re.sub(r'(cash-register\.css\?v=)[^\"\']+', r'\g<1>20260914-manualprice1', html)
+    html = re.sub(r'(cash-register\.js\?v=)[^\"\']+', r'\g<1>20260914-manualprice1-reprint1', html)
+    html = re.sub(r'(cash-register\.css\?v=)[^\"\']+', r'\g<1>20260914-manualprice1-reprint1', html)
     path.write_text(html, encoding='utf-8')
 
 for path in entry_points:
