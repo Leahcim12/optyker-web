@@ -346,6 +346,66 @@ function Emit-Receipt($request,[string]$operation='sale') {
   } finally {$lock.Dispose()}
 }
 
+# BEGIN OPTYKER_RCH_REPRINT_V1
+function Get-ReprintJob($request) {
+  $null=Journal-Path ([string]$request.jobId)
+  if(-not $request.username -or -not $request.password){throw 'Accedi a Optyker prima di ristampare.'}
+  $body=@{action='job';username=[string]$request.username;password=[string]$request.password;payload=@{job_id=[string]$request.jobId}}
+  try {
+    $response=Invoke-RestMethod -Uri $FiscalApi -Method Post -ContentType 'application/json' -Body ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -Depth 5 -Compress $body))) -TimeoutSec 20 -MaximumRedirection 0
+    if($response.ok -ne $true -or -not $response.data.job){throw 'job unavailable'}
+    return $response.data.job
+  } catch {throw 'Documento non accessibile. Verifica accesso Optyker e connessione Internet.'}
+}
+function Assert-ReprintJournal([string]$raw,$job) {
+  $status=Parse-Rch $raw
+  if(-not $status.ok -or $status.lastCmd -ne 1){throw 'Lettura documento RCH non confermata.'}
+  $xml=Read-SafeXml $raw;$nodes=$xml.SelectNodes('/Service/EJ')
+  if($nodes.Count -ne 1){throw 'Documento non trovato nel giornale RCH.'}
+  $text=$nodes[0].InnerText.Replace("`r",'')
+  $numbers=[regex]::Matches($text,'(?m)^\s*DOCUMENTO(?:\s+COMMERCIALE)?\s+N[.°]?\s*(\d{4}-\d{4})\s*$')
+  $dates=[regex]::Matches($text,'(?m)^\s*(\d{2}[-/]\d{2}[-/]\d{4})\s+\d{2}:\d{2}(?::\d{2})?\s*$')
+  if($numbers.Count -ne 1 -or $numbers[0].Groups[1].Value -cne $job.document_number -or $dates.Count -ne 1){throw 'Il documento nel giornale non corrisponde allo scontrino selezionato.'}
+  $date=[datetime]::ParseExact($dates[0].Groups[1].Value.Replace('/','-'),'dd-MM-yyyy',[Globalization.CultureInfo]::InvariantCulture)
+  if($date.ToString('yyyy-MM-dd') -cne $job.document_date -or -not [regex]::IsMatch($text,'(?<![A-Z0-9])'+[regex]::Escape([string]$job.serial)+'(?![A-Z0-9])')){throw 'Data o matricola del documento non corrispondente.'}
+}
+function Reprint-Receipt($request) {
+  Assert-WindowsFiscalPlatform
+  $job=Get-ReprintJob $request
+  if($job.state -cne 'completed' -or $job.serial -cne '72IV6003831' -or [string]$job.document_number -cnotmatch '^[0-9]{4}-[0-9]{4}$'){throw 'Lo scontrino deve avere numero e data confermati.'}
+  $date=[datetime]::MinValue
+  if(-not [datetime]::TryParseExact([string]$job.document_date,'yyyy-MM-dd',[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::None,[ref]$date) -or $date.Year -lt 2015 -or $date.Year -gt 2099 -or $date.Date -gt [datetime]::Now.Date){throw 'Data documento non valida.'}
+  $parts=([string]$job.document_number).Split('-');$number=[int]$parts[1]
+  if([int]$parts[0] -le 0 -or $number -le 0){throw 'Numero documento non valido.'}
+  # Manuale PRINT!F v14, p24. Limit both ends to ONE document; verify the full number (including closure) before printing.
+  $range='/&'+$date.ToString('ddMMyy',[Globalization.CultureInfo]::InvariantCulture)+'/['+$number+'/]'+$number
+  New-Item -ItemType Directory -Force -Path $JournalRoot | Out-Null
+  $lock=[IO.File]::Open((Join-Path $JournalRoot 'printer.lock'),[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+  $printStarted=$false
+  try {
+    Assert-NoUncertainReceipt
+    Assert-IdleRegister
+    if((Read-RchValue '<</?m' 'm') -cne $job.serial){throw 'La RCH collegata non corrisponde alla matricola dello scontrino.'}
+    try {
+      $z=Parse-Rch (Send-RchCommand '=C3')
+      if(-not $z.ok -or $z.lastCmd -ne 1){throw 'Accesso al giornale RCH non confermato.'}
+      Assert-ReprintJournal (Send-RchCommand ('=C452/$0'+$range)) $job
+      $printStarted=$true
+      $ack=Parse-Rch (Send-RchCommand ('=C452/$1'+$range))
+      if(-not $ack.ok -or $ack.lastCmd -ne 1){throw 'Ristampa non confermata.'}
+    } finally {
+      $reg=Parse-Rch (Send-RchCommand '=C1')
+      if(-not $reg.ok -or $reg.lastCmd -ne 1){throw 'Verifica il ritorno della RCH in REG.'}
+      Assert-IdleRegister
+    }
+    return @{ok=$true;reprinted=$true;documentNumber=$job.document_number;documentDate=$job.document_date;emittedFiscalDocument=$false}
+  } catch {
+    if($printStarted){throw 'Comando di ristampa inviato, ma esito non confermato. Controlla carta, documento e ritorno in REG prima di riprovare.'}
+    throw
+  } finally {$lock.Dispose()}
+}
+# END OPTYKER_RCH_REPRINT_V1
+
 function Diagnostics-Rch {
   $probes=Get-StatusProbes
   $reached=@($probes | Where-Object {$_.rchResponse -eq $true}).Count -gt 0
@@ -438,7 +498,7 @@ try {
       $ResponseOrigin=[string]$request.headers['origin']
       if($request.method -eq 'OPTIONS'){Json-Response $stream 200 @{ok=$true};continue}
       if($request.method -eq 'GET' -and $request.path -eq '/health'){
-        Json-Response $stream 200 @{ok=$true;connector='Optyker RCH';version=$ConnectorVersion;printer=$PrinterIp;port=$Port;capabilities=@{diagnostics=$true;receipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);talkingReceipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);voidReceipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);adeOutcome=$false;automaticReference=$true;manualReference=$true}}
+        Json-Response $stream 200 @{ok=$true;connector='Optyker RCH';version=$ConnectorVersion;printer=$PrinterIp;port=$Port;capabilities=@{reprintReceipt=$true;diagnostics=$true;receipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);talkingReceipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);voidReceipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);adeOutcome=$false;automaticReference=$true;manualReference=$true}}
       } elseif($request.method -eq 'GET' -and $request.path -eq '/status'){
         Json-Response $stream 200 (Status-Rch)
       } elseif($request.method -eq 'GET' -and $request.path -eq '/diagnostics'){
@@ -447,6 +507,8 @@ try {
         $body=$request.body | ConvertFrom-Json
         if(-not $body.jobId -or -not $body.token){Json-Response $stream 409 @{ok=$false;error='Autorizzazione emissione mancante.';emittedFiscalDocument=$false}}
         else {$operation=if($request.path -eq '/receipt/void'){'void'}else{'sale'};Json-Response $stream 200 (Emit-Receipt $body $operation)}
+      } elseif($request.method -eq 'POST' -and $request.path -eq '/receipt/reprint'){
+        Json-Response $stream 200 (Reprint-Receipt ($request.body | ConvertFrom-Json))
       } elseif($request.method -eq 'POST' -and $request.path -eq '/receipt/status'){
         $body=$request.body | ConvertFrom-Json
         Json-Response $stream 200 (Read-ReceiptStatus ([string]$body.jobId))

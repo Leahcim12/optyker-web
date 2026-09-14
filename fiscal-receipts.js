@@ -23,10 +23,34 @@ function drawJob(m,job,refresh){
  }
  if(isVoid&&['awaiting_reference','completed'].includes(job.state))box.insertAdjacentHTML('beforeend','<p>Le eventuali spese TS preparate per lo scontrino originale sono escluse dall’invio. L’ordine e il pagamento Shopify restano invariati.</p>');
  if(!isVoid&&job.state==='completed'&&job.ts_requested)box.innerHTML+='<p>Le righe sanitarie sono nella coda TS. Consulta stato e ricevute in Amministrazione → Sistema TS.</p>';
+ if(job.state==='completed'&&job.document_number&&job.document_date){var rp=document.createElement('button');rp.type='button';rp.textContent='Ristampa su RCH RT';box.appendChild(rp);rp.onclick=function(){return reprintJob(job,rp,m)}}
  var b=document.createElement('button');b.type='button';b.textContent='Aggiorna esito';box.appendChild(b);b.onclick=async function(){b.disabled=true;try{await bridge('/receipt/status',{jobId:job.id}).catch(function(){});var r=await api('job',{job_id:job.id});drawJob(m,r.data.job,refresh)}catch(e){message(m,e.message);b.disabled=false}};
  if(['prepared','not_started'].includes(job.state)){var back=document.createElement('button');back.type='button';back.textContent=isVoid?'Rivedi annullo':'Rivedi dati per emissione';box.appendChild(back);back.onclick=isVoid?function(){openVoid(job.original_job_id)}:refresh}
  if(!isVoid&&job.state==='completed'){var cancel=document.createElement('button');cancel.type='button';cancel.className='ofVoid';cancel.textContent='Annulla scontrino';box.appendChild(cancel);cancel.onclick=function(){return openVoid(job.id)}}
 }
+async function reprintJob(job,button,m){
+ button.disabled=true;m.querySelector('.ofClose').disabled=true;
+ try{
+  var h;try{h=await bridge('/health')}catch(e){throw new Error('Apri Optyker sul PC Windows collegato alla RCH per ristampare.')}
+  if(!h.capabilities||h.capabilities.reprintReceipt!==true){
+   message(m,'Aggiorna la funzione ristampa sul PC della cassa, poi riavvia il connettore.');
+   var a=document.createElement('a');a.href='/rch-connector/Aggiorna-Ristampa-RCH.bat?v=20260914-reprint1';a.textContent='Scarica aggiornamento ristampa RCH';a.setAttribute('download','');m.querySelector('.ofMessage').appendChild(document.createElement('br'));m.querySelector('.ofMessage').appendChild(a);return;
+  }
+  var c=window.OPTYKER_CLOUD||{};
+  message(m,'Verifica del documento e ristampa sulla RCH in corso…');
+  await bridge('/receipt/reprint',{jobId:job.id,username:c.username||window.OPTYKER_ACTIVE_USER,password:c.password});
+  message(m,'Ristampa confermata dalla RCH.');
+ }catch(e){message(m,e.message)}finally{button.disabled=false;m.querySelector('.ofClose').disabled=false}
+}
+async function openReprint(saleId){
+ var m=modal('Ristampa scontrino su RCH RT');
+ try{
+  var r=await api('sale',{sale_id:saleId}),jobs=(r.data.jobs||[]).filter(function(j){return j.state==='completed'&&j.document_number&&j.document_date});
+  var box=m.querySelector('.ofBody');box.textContent=jobs.length?'Seleziona il documento da ristampare sulla RCH del PC cassa.':'Nessuno scontrino RCH con numero e data confermati per questa vendita. Apri Emissione / esito RCH per verificarne il riferimento.';
+  jobs.forEach(function(j){var b=document.createElement('button');b.type='button';b.textContent='Ristampa '+j.document_number+' · '+j.document_date+' · '+euro(j.total);box.appendChild(b);b.onclick=function(){return reprintJob(j,b,m)}});
+ }catch(e){m.querySelector('.ofBody').textContent='';message(m,e.message)}
+}
+window.OPTYKER_RCH_REPRINT=Object.freeze({openSale:openReprint});
 async function openVoid(originalId){
  var m=modal('Annulla scontrino RCH');
  try{
