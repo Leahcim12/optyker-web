@@ -15,46 +15,57 @@ function Get-OptykerRchStartupPlan([string]$Base,[string]$StartupFolder,[string]
     WorkingDirectory=$Base
   }
 }
+function Get-OptykerRchCloudStartupPlan([string]$Base,[string]$StartupFolder,[string]$PowerShellPath,[string]$PrinterIp,[int]$Port) {
+  $local=Get-OptykerRchStartupPlan $Base $StartupFolder $PowerShellPath $PrinterIp $Port
+  $worker=Join-Path $Base 'rch-optyker-cloud-worker.ps1'
+  return [pscustomobject]@{
+    Connector=$worker; Link=(Join-Path $StartupFolder 'Optyker RCH Cloud.lnk'); Target=$PowerShellPath
+    Arguments=('-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File "{0}" -PrinterIp {1} -Port {2}' -f $worker,$PrinterIp,$Port)
+    WorkingDirectory=$Base
+  }
+}
 function New-OptykerRchShortcutShell { return New-Object -ComObject WScript.Shell }
-function Set-OptykerRchAutostart([string]$Base,[string]$StartupFolder,[string]$PowerShellPath,[string]$PrinterIp,[int]$Port) {
-  $plan=Get-OptykerRchStartupPlan $Base $StartupFolder $PowerShellPath $PrinterIp $Port
-  if(-not (Test-Path -LiteralPath $plan.Connector -PathType Leaf)){throw 'Connettore Optyker non installato.'}
+function Save-OptykerRchShortcut($plan,[string]$description) {
+  if(-not (Test-Path -LiteralPath $plan.Connector -PathType Leaf)){throw 'Componente Optyker RCH non installato.'}
   if(-not (Test-Path -LiteralPath $plan.Target -PathType Leaf)){throw 'Windows PowerShell non trovato.'}
   $tokens=$null; $parseErrors=$null
   [void][System.Management.Automation.Language.Parser]::ParseFile($plan.Connector,[ref]$tokens,[ref]$parseErrors)
-  if($parseErrors.Count -gt 0){throw 'Il connettore installato non e valido. Usa Installa / aggiorna connettore.'}
-  New-Item -ItemType Directory -Force -Path $StartupFolder | Out-Null
+  if($parseErrors.Count -gt 0){throw 'Il componente RCH installato non e valido. Usa Installa / aggiorna connettore.'}
+  New-Item -ItemType Directory -Force -Path ([System.IO.Path]::GetDirectoryName($plan.Link)) | Out-Null
   $shell=New-OptykerRchShortcutShell
   $shortcut=$shell.CreateShortcut($plan.Link)
-  $shortcut.TargetPath=$plan.Target; $shortcut.Arguments=$plan.Arguments
-  $shortcut.WorkingDirectory=$plan.WorkingDirectory; $shortcut.WindowStyle=7
-  $shortcut.Description='Connettore Optyker RCH - avvio automatico all accesso a Windows'
-  $shortcut.Save()
+  $shortcut.TargetPath=$plan.Target;$shortcut.Arguments=$plan.Arguments;$shortcut.WorkingDirectory=$plan.WorkingDirectory;$shortcut.WindowStyle=7;$shortcut.Description=$description;$shortcut.Save()
   $check=$shell.CreateShortcut($plan.Link)
   if(-not (Test-Path -LiteralPath $plan.Link) -or $check.TargetPath -ine $plan.Target -or $check.Arguments -cne $plan.Arguments){throw 'Impossibile verificare il collegamento di avvio automatico.'}
-  # Replaces only this user's shortcut. No process, receipt journal, registry
-  # startup approval or machine execution policy is changed.
   return $plan
+}
+function Set-OptykerRchAutostart([string]$Base,[string]$StartupFolder,[string]$PowerShellPath,[string]$PrinterIp,[int]$Port) {
+  return Save-OptykerRchShortcut (Get-OptykerRchStartupPlan $Base $StartupFolder $PowerShellPath $PrinterIp $Port) 'Connettore Optyker RCH - avvio automatico all accesso a Windows'
+}
+function Set-OptykerRchCloudAutostart([string]$Base,[string]$StartupFolder,[string]$PowerShellPath,[string]$PrinterIp,[int]$Port) {
+  return Save-OptykerRchShortcut (Get-OptykerRchCloudStartupPlan $Base $StartupFolder $PowerShellPath $PrinterIp $Port) 'Optyker RCH Cloud Relay - collegamento sicuro iPad'
 }
 if($LibraryOnly){return}
 if([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT){throw 'Esegui questo file sul PC Windows della cassa.'}
 $base=Join-Path $env:LOCALAPPDATA 'OptykerRCH'
-if(-not (Test-Path -LiteralPath (Join-Path $base 'rch-optyker-connector.ps1') -PathType Leaf)){
-  Write-Host 'Installazione iniziale del connettore Optyker RCH...' -ForegroundColor Cyan
+$worker=Join-Path $base 'rch-optyker-cloud-worker.ps1'
+if(-not (Test-Path -LiteralPath (Join-Path $base 'rch-optyker-connector.ps1') -PathType Leaf) -or -not (Test-Path -LiteralPath $worker -PathType Leaf)){
+  Write-Host 'Installazione / aggiornamento del connettore Optyker RCH...' -ForegroundColor Cyan
   $installer=Join-Path ([System.IO.Path]::GetTempPath()) ('Optyker-RCH-install-'+[guid]::NewGuid().ToString()+'.ps1')
   try {
-    Invoke-WebRequest -UseBasicParsing -Uri 'https://www.optyker.it/rch-connector/Installa-RCH-Optyker.ps1?v=20260913-autostart1' -OutFile $installer -TimeoutSec 60
+    Invoke-WebRequest -UseBasicParsing -Uri 'https://www.optyker.it/rch-connector/Installa-RCH-Optyker.ps1?v=20260914-cloud1' -OutFile $installer -TimeoutSec 60
     $tokens=$null; $parseErrors=$null
     [void][System.Management.Automation.Language.Parser]::ParseFile($installer,[ref]$tokens,[ref]$parseErrors)
-    if($parseErrors.Count -gt 0 -or (Get-Content -Raw -LiteralPath $installer) -notmatch 'Set-OptykerRchAutostart'){throw 'Download installazione non valido.'}
+    if($parseErrors.Count -gt 0 -or (Get-Content -Raw -LiteralPath $installer) -notmatch 'cloud-relay'){throw 'Download installazione non valido.'}
     & $installer -PrinterIp $PrinterIp -Port $Port -NoPause
   } finally {if(Test-Path -LiteralPath $installer){Remove-Item -LiteralPath $installer -Force}}
 } else {
   $powerShell=Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
-  $null=Set-OptykerRchAutostart $base ([Environment]::GetFolderPath('Startup')) $powerShell $PrinterIp $Port
-  Write-Host 'Avvio automatico configurato.' -ForegroundColor Green
-  Write-Host 'Dal prossimo accesso al tuo utente Windows, il connettore partira in background.'
-  Write-Host 'Il connettore gia aperto continua a funzionare.'
+  $startup=[Environment]::GetFolderPath('Startup')
+  $null=Set-OptykerRchAutostart $base $startup $powerShell $PrinterIp $Port
+  $null=Set-OptykerRchCloudAutostart $base $startup $powerShell $PrinterIp $Port
+  Write-Host 'Avvio automatico locale + Cloud Relay configurato.' -ForegroundColor Green
+  Write-Host 'Dal prossimo accesso a Windows, entrambi partiranno in background.'
 }
-Write-Host 'Se Windows lo mostra disabilitato: Impostazioni > App > Avvio > Optyker RCH > Attivato.'
+Write-Host 'Se Windows li mostra disabilitati: Impostazioni > App > Avvio > Optyker RCH / Optyker RCH Cloud > Attivato.'
 if(-not $NoPause){$null=Read-Host 'Premi INVIO per chiudere'}
