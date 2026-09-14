@@ -76,5 +76,5 @@
 
 (function(){
   if(window.__optykerCashDayControlLoader)return;window.__optykerCashDayControlLoader=true;
-  var s=document.createElement('script');s.src='/cash-day-control.js?v=20260915-1';s.async=true;(document.head||document.documentElement).appendChild(s);
+  var s=document.createElement('script');s.src='https://raw.githubusercontent.com/Leahcim12/optyker-web/main/cash-day-control.js?v=20260915-2';s.async=true;(document.head||document.documentElement).appendChild(s);
 })();
