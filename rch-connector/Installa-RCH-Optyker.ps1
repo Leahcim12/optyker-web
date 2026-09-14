@@ -23,19 +23,32 @@ $relayConfig = Join-Path $base 'cloud-relay.json'
 $startup = [Environment]::GetFolderPath("Startup")
 $startupHelper = Join-Path $base 'Attiva-Avvio-Automatico-RCH.ps1'
 $publicRoot = 'https://leahcim12.github.io/optyker-web/rch-connector'
-$source = "$publicRoot/rch-optyker-connector.ps1?v=20260914-cloud3"
-$workerSource = "$publicRoot/rch-optyker-cloud-worker.ps1?v=20260914-cloud3"
-$startupSource = "$publicRoot/Attiva-Avvio-Automatico-RCH.ps1?v=20260914-cloud3"
+$source = "$publicRoot/rch-optyker-connector.ps1?v=20260914-cloud4"
+$workerSource = "$publicRoot/rch-optyker-cloud-worker.ps1?v=20260914-cloud4"
+$startupSource = "$publicRoot/Attiva-Avvio-Automatico-RCH.ps1?v=20260914-cloud4"
 $relayApi='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-rch-relay-api'
 
 New-Item -ItemType Directory -Force -Path $base | Out-Null
 
 $journal = Join-Path $base "receipts"
+$uncertain = New-Object 'System.Collections.Generic.List[string]'
 if(Test-Path -LiteralPath $journal){
   foreach($f in Get-ChildItem -LiteralPath $journal -Filter '*.json'){
-    $j=Get-Content -LiteralPath $f.FullName -Raw | ConvertFrom-Json
-    if($j.state -in @('claiming','sending','uncertain')){throw "Emissione in corso o esito incerto: verificare la cassa prima di aggiornare il connettore."}
+    try {
+      $j=Get-Content -LiteralPath $f.FullName -Raw | ConvertFrom-Json
+      if($j.state -in @('claiming','sending','uncertain')){$uncertain.Add($f.FullName)}
+    } catch {
+      # A malformed fiscal journal is treated as uncertain: never replace the fiscal connector.
+      $uncertain.Add($f.FullName)
+    }
   }
+}
+$relayOnly = ($uncertain.Count -gt 0)
+if($relayOnly){
+  Write-Host ""
+  Write-Host "ATTENZIONE: esiste una emissione fiscale in corso o con esito incerto." -ForegroundColor Yellow
+  Write-Host "Il connettore fiscale attuale NON verra modificato, fermato o riavviato." -ForegroundColor Yellow
+  Write-Host "Installero solo il Cloud Relay necessario all'iPad." -ForegroundColor Cyan
 }
 
 function Protect-OptykerSecret([string]$value){
@@ -88,60 +101,72 @@ Write-Host "Controllo componenti..." -ForegroundColor DarkGray
 $candidate = Join-Path $base "rch-optyker-connector.download.ps1"
 $workerCandidate = Join-Path $base "rch-optyker-cloud-worker.download.ps1"
 $startupCandidate = Join-Path $base 'Attiva-Avvio-Automatico-RCH.download.ps1'
-Invoke-WebRequest -UseBasicParsing -Uri $source -OutFile $candidate -TimeoutSec 60
+
+if(-not $relayOnly){Invoke-WebRequest -UseBasicParsing -Uri $source -OutFile $candidate -TimeoutSec 60}
 Invoke-WebRequest -UseBasicParsing -Uri $workerSource -OutFile $workerCandidate -TimeoutSec 60
 Invoke-WebRequest -UseBasicParsing -Uri $startupSource -OutFile $startupCandidate -TimeoutSec 60
 
 $startupTokens=$null;$startupErrors=$null
 [void][System.Management.Automation.Language.Parser]::ParseFile($startupCandidate,[ref]$startupTokens,[ref]$startupErrors)
 if($startupErrors.Count -gt 0 -or (Get-Content -Raw -LiteralPath $startupCandidate) -notmatch 'Set-OptykerRchCloudAutostart'){throw 'Download avvio automatico non valido. Installazione sospesa.'}
-$tokens=$null;$parseErrors=$null
-[void][System.Management.Automation.Language.Parser]::ParseFile($candidate,[ref]$tokens,[ref]$parseErrors)
-if($parseErrors.Count -gt 0 -or (Get-Content -Raw -LiteralPath $candidate) -notmatch '1\.8-auto-receipt'){throw "Download del connettore locale non valido. La versione precedente e rimasta invariata."}
+if(-not $relayOnly){
+  $tokens=$null;$parseErrors=$null
+  [void][System.Management.Automation.Language.Parser]::ParseFile($candidate,[ref]$tokens,[ref]$parseErrors)
+  if($parseErrors.Count -gt 0 -or (Get-Content -Raw -LiteralPath $candidate) -notmatch '1\.8-auto-receipt'){throw "Download del connettore locale non valido. La versione precedente e rimasta invariata."}
+}
 $workerTokens=$null;$workerErrors=$null
 [void][System.Management.Automation.Language.Parser]::ParseFile($workerCandidate,[ref]$workerTokens,[ref]$workerErrors)
 if($workerErrors.Count -gt 0 -or (Get-Content -Raw -LiteralPath $workerCandidate) -notmatch '1\.9-cloud-relay'){throw 'Download Cloud Relay non valido. Installazione sospesa.'}
 
+if($relayOnly -and -not (Test-Path -LiteralPath $connector -PathType Leaf)){
+  throw 'Esito fiscale incerto presente ma connettore locale non trovato. Non modifico nulla: serve prima una verifica tecnica della cassa.'
+}
+
 Write-Host "Componenti verificati." -ForegroundColor Green
 Enroll-CloudRelay
 
-if(Test-Path -LiteralPath $connector){Copy-Item -LiteralPath $connector -Destination ($connector+'.previous') -Force}
 if(Test-Path -LiteralPath $worker){Copy-Item -LiteralPath $worker -Destination ($worker+'.previous') -Force}
-if(Test-Path -LiteralPath $journal){
-  foreach($f in Get-ChildItem -LiteralPath $journal -Filter '*.json'){
-    $j=Get-Content -LiteralPath $f.FullName -Raw | ConvertFrom-Json
-    if($j.state -in @('claiming','sending','uncertain')){throw "Emissione in corso: aggiornamento sospeso."}
-  }
-}
-Move-Item -LiteralPath $candidate -Destination $connector -Force
 Move-Item -LiteralPath $workerCandidate -Destination $worker -Force
 Move-Item -LiteralPath $startupCandidate -Destination $startupHelper -Force
 
 . $startupHelper -LibraryOnly -PrinterIp $PrinterIp -Port $Port -NoPause:$NoPause
 $powerShell = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
-$startupPlan = Set-OptykerRchAutostart $base $startup $powerShell $PrinterIp $Port
 $cloudPlan = Set-OptykerRchCloudAutostart $base $startup $powerShell $PrinterIp $Port
 
-Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue |
-  Where-Object { $_.CommandLine -like "*rch-optyker-connector.ps1*" -or $_.CommandLine -like "*rch-optyker-cloud-worker.ps1*" } |
-  ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
-
-Start-Process -FilePath $startupPlan.Target -ArgumentList $startupPlan.Arguments -WorkingDirectory $base -WindowStyle Hidden
-Start-Process -FilePath $cloudPlan.Target -ArgumentList $cloudPlan.Arguments -WorkingDirectory $base -WindowStyle Hidden
-
-Start-Sleep -Seconds 3
-try {
-  $r = Invoke-RestMethod -UseBasicParsing -Uri "http://127.0.0.1:$Port/health" -TimeoutSec 4
-  if(-not ($r.ok -and $r.version -eq "1.8-auto-receipt")){throw "Health check locale non valido"}
+if($relayOnly){
+  # Important: do not replace, stop or restart the fiscal connector while any local journal is uncertain.
+  Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue |
+    Where-Object { $_.CommandLine -like "*rch-optyker-cloud-worker.ps1*" } |
+    ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+  Start-Process -FilePath $cloudPlan.Target -ArgumentList $cloudPlan.Arguments -WorkingDirectory $base -WindowStyle Hidden
+  Start-Sleep -Seconds 3
   Write-Host ""
-  Write-Host "Installazione completata." -ForegroundColor Green
-  Write-Host "PC Windows: collegamento locale attivo."
-  Write-Host "iPad: Cloud Relay attivo tramite questo PC."
-  Write-Host "Registratore: $PrinterIp"
-} catch {
-  Write-Host ""
-  Write-Host "Installazione completata, ma il test locale non ha risposto subito." -ForegroundColor Yellow
-  Write-Host "Riapri Optyker e premi Test collegamento RCH."
+  Write-Host "Cloud Relay iPad installato senza modificare il connettore fiscale." -ForegroundColor Green
+  Write-Host "L'esito fiscale incerto resta protetto e dovra essere verificato prima di nuove emissioni, apertura cassetto o ristampe." -ForegroundColor Yellow
+  Write-Host "Il PC puo ora collegarsi a Optyker per mostrare lo stato della RCH all'iPad." -ForegroundColor Green
+} else {
+  if(Test-Path -LiteralPath $connector){Copy-Item -LiteralPath $connector -Destination ($connector+'.previous') -Force}
+  Move-Item -LiteralPath $candidate -Destination $connector -Force
+  $startupPlan = Set-OptykerRchAutostart $base $startup $powerShell $PrinterIp $Port
+  Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue |
+    Where-Object { $_.CommandLine -like "*rch-optyker-connector.ps1*" -or $_.CommandLine -like "*rch-optyker-cloud-worker.ps1*" } |
+    ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+  Start-Process -FilePath $startupPlan.Target -ArgumentList $startupPlan.Arguments -WorkingDirectory $base -WindowStyle Hidden
+  Start-Process -FilePath $cloudPlan.Target -ArgumentList $cloudPlan.Arguments -WorkingDirectory $base -WindowStyle Hidden
+  Start-Sleep -Seconds 3
+  try {
+    $r = Invoke-RestMethod -UseBasicParsing -Uri "http://127.0.0.1:$Port/health" -TimeoutSec 4
+    if(-not ($r.ok -and $r.version -eq "1.8-auto-receipt")){throw "Health check locale non valido"}
+    Write-Host ""
+    Write-Host "Installazione completata." -ForegroundColor Green
+    Write-Host "PC Windows: collegamento locale attivo."
+    Write-Host "iPad: Cloud Relay attivo tramite questo PC."
+    Write-Host "Registratore: $PrinterIp"
+  } catch {
+    Write-Host ""
+    Write-Host "Installazione completata, ma il test locale non ha risposto subito." -ForegroundColor Yellow
+    Write-Host "Riapri Optyker e premi Test collegamento RCH."
+  }
 }
 
 Write-Host ""
