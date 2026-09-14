@@ -20,50 +20,56 @@ eyewear_extra_tag='<script id="optykerEyewearExtraTreatmentsJs">'+eyewear_extra_
 catalog_types_addon=Path("eyewear-catalog-types-addon.js").read_text(encoding="utf-8")
 catalog_types_tag='<script id="optykerEyewearCatalogTypesJs">'+catalog_types_addon+'</script>'
 
+def safe_sub(pattern,replacement,value):
+    # JavaScript payloads legitimately contain backslashes (for example \s in regexes).
+    # Use a callable replacement so Python re.sub never interprets JS backslashes as
+    # replacement-template escapes.
+    return re.sub(pattern,lambda _m: replacement,value,count=1)
+
 if 'id="optykerFormAutomationJs"' in text:
-    text=re.sub(r'<script[^>]*id="optykerFormAutomationJs"[^>]*></script>',tag,text,count=1)
+    text=safe_sub(r'<script[^>]*id="optykerFormAutomationJs"[^>]*></script>',tag,text)
 else:
     pos=text.rfind("</body>")
     text=(text[:pos]+tag+"\n"+text[pos:]) if pos>=0 else text+"\n"+tag
 
 if 'id="optykerWarehouseFrameFormJs"' in text:
-    text=re.sub(r'<script[^>]*id="optykerWarehouseFrameFormJs"[^>]*>[\s\S]*?</script>',frame_tag,text,count=1)
+    text=safe_sub(r'<script[^>]*id="optykerWarehouseFrameFormJs"[^>]*>[\s\S]*?</script>',frame_tag,text)
 else:
     pos=text.rfind("</body>")
     text=(text[:pos]+frame_tag+"\n"+text[pos:]) if pos>=0 else text+"\n"+frame_tag
 
 if 'id="optykerWarehouseLacSolutionFormJs"' in text:
-    text=re.sub(r'<script[^>]*id="optykerWarehouseLacSolutionFormJs"[^>]*>[\s\S]*?</script>',solution_tag,text,count=1)
+    text=safe_sub(r'<script[^>]*id="optykerWarehouseLacSolutionFormJs"[^>]*>[\s\S]*?</script>',solution_tag,text)
 else:
     pos=text.rfind("</body>")
     text=(text[:pos]+solution_tag+"\n"+text[pos:]) if pos>=0 else text+"\n"+solution_tag
 
 if 'id="optykerWarehouseSupplementFormJs"' in text:
-    text=re.sub(r'<script[^>]*id="optykerWarehouseSupplementFormJs"[^>]*>[\s\S]*?</script>',supplement_tag,text,count=1)
+    text=safe_sub(r'<script[^>]*id="optykerWarehouseSupplementFormJs"[^>]*>[\s\S]*?</script>',supplement_tag,text)
 else:
     pos=text.rfind("</body>")
     text=(text[:pos]+supplement_tag+"\n"+text[pos:]) if pos>=0 else text+"\n"+supplement_tag
 
 if 'id="optykerWarehouseCompanySelectJs"' in text:
-    text=re.sub(r'<script[^>]*id="optykerWarehouseCompanySelectJs"[^>]*>[\s\S]*?</script>',company_tag,text,count=1)
+    text=safe_sub(r'<script[^>]*id="optykerWarehouseCompanySelectJs"[^>]*>[\s\S]*?</script>',company_tag,text)
 else:
     pos=text.rfind("</body>")
     text=(text[:pos]+company_tag+"\n"+text[pos:]) if pos>=0 else text+"\n"+company_tag
 
 if 'id="optykerEyewearRulesRuntimeJs"' in text:
-    text=re.sub(r'<script[^>]*id="optykerEyewearRulesRuntimeJs"[^>]*>[\s\S]*?</script>',eyewear_tag,text,count=1)
+    text=safe_sub(r'<script[^>]*id="optykerEyewearRulesRuntimeJs"[^>]*>[\s\S]*?</script>',eyewear_tag,text)
 else:
     pos=text.rfind("</body>")
     text=(text[:pos]+eyewear_tag+"\n"+text[pos:]) if pos>=0 else text+"\n"+eyewear_tag
 
 if 'id="optykerEyewearExtraTreatmentsJs"' in text:
-    text=re.sub(r'<script[^>]*id="optykerEyewearExtraTreatmentsJs"[^>]*>[\s\S]*?</script>',eyewear_extra_tag,text,count=1)
+    text=safe_sub(r'<script[^>]*id="optykerEyewearExtraTreatmentsJs"[^>]*>[\s\S]*?</script>',eyewear_extra_tag,text)
 else:
     pos=text.rfind("</body>")
     text=(text[:pos]+eyewear_extra_tag+"\n"+text[pos:]) if pos>=0 else text+"\n"+eyewear_extra_tag
 
 if 'id="optykerEyewearCatalogTypesJs"' in text:
-    text=re.sub(r'<script[^>]*id="optykerEyewearCatalogTypesJs"[^>]*>[\s\S]*?</script>',catalog_types_tag,text,count=1)
+    text=safe_sub(r'<script[^>]*id="optykerEyewearCatalogTypesJs"[^>]*>[\s\S]*?</script>',catalog_types_tag,text)
 else:
     pos=text.rfind("</body>")
     text=(text[:pos]+catalog_types_tag+"\n"+text[pos:]) if pos>=0 else text+"\n"+catalog_types_tag
