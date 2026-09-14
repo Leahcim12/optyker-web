@@ -39,7 +39,7 @@ function drawJob(m,job,refresh){
    finally{check.disabled=false}
   };
  }
- if(isVoid&&['prepared','not_started'].includes(job.state)){
+ if((isVoid&&['prepared','not_started'].includes(job.state))||(!isVoid&&job.state==='completed'&&job.result&&job.result.manualReconciliation)){
   var sync=document.createElement('button');sync.type='button';sync.textContent='Sincronizza documento verificato';box.appendChild(sync);
   sync.onclick=async function(){
    sync.disabled=true;
@@ -50,8 +50,8 @@ function drawJob(m,job,refresh){
      var link=document.createElement('a');link.href='/rch-connector/Aggiorna-Ristampa-RCH.bat?v=20260914-reconcile1';link.textContent='Scarica aggiornamento verifica RCH';link.setAttribute('download','');m.querySelector('.ofMessage').appendChild(document.createElement('br'));m.querySelector('.ofMessage').appendChild(link);return;
     }
     var c=window.OPTYKER_CLOUD||{};
-    await bridge('/receipt/reconcile',{jobId:job.original_job_id,username:c.username||window.OPTYKER_ACTIVE_USER,password:c.password});
-    message(m,'Documento verificato sincronizzato sul PC. Premi Rivedi annullo per proseguire. Nessuna stampa eseguita.');
+    await bridge('/receipt/reconcile',{jobId:isVoid?job.original_job_id:job.id,username:c.username||window.OPTYKER_ACTIVE_USER,password:c.password});
+    message(m,isVoid?'Documento verificato sincronizzato sul PC. Premi Rivedi annullo per proseguire. Nessuna stampa eseguita.':'Documento verificato sincronizzato sul PC. Nessuna stampa eseguita.');
    }catch(err){message(m,String(err.message||err));}
    finally{sync.disabled=false}
   };
