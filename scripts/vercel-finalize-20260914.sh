@@ -14,8 +14,10 @@ grep -q 'optykerAdminCashClosureCss' _site/index.html
 grep -q 'optykerCashPos5Js' _site/index.html
 grep -q '20260914-pos5' _site/cash-pos5.js
 grep -q 'optykerCashLotteryCode' _site/cash-pos5.js
+grep -q 'order_missing_items' _site/cash-pos5.js
 grep -q 'Consegna' _site/cash-pos5.js
 test -s _site/rch-connector/Aggiorna-RCH-POS.bat
 test -s _site/rch-connector/Aggiorna-RCH-POS.ps1
-! grep -q '=C10' _site/rch-connector/Aggiorna-RCH-POS.ps1
+grep -q 'zeroReceipt=\$true' _site/rch-connector/Aggiorna-RCH-POS.ps1
+grep -q 'Comando di chiusura fiscale non consentito' _site/rch-connector/Aggiorna-RCH-POS.ps1
 echo 'Optyker final production patches OK'
