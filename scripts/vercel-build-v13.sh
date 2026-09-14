@@ -200,3 +200,42 @@ python scripts/apply_client_details.py
 python scripts/patch_public_asset_paths.py
 verify_desktop_aliases
 python scripts/check_desktop_html.py
+
+# Emergency interaction guard: this MUST be part of the actual Vercel artifact.
+# It only neutralizes invisible/stale full-screen blockers and never mutates business data.
+node --check optyker-interaction-guard.js
+cp optyker-interaction-guard.js _site/optyker-interaction-guard.js
+cp optyker-interaction-guard.js _site/gestionale-v2/optyker-interaction-guard.js
+cp optyker-interaction-guard.js _site/gestionale-v3/optyker-interaction-guard.js
+python - <<'INTERACTION_GUARD'
+from pathlib import Path
+
+tag='<script src="optyker-interaction-guard.js?v=20260914-unlock2"></script>'
+for rel in ('index.html','gestionale-v2/index.html','gestionale-v3/index.html'):
+    p=Path('_site')/rel
+    text=p.read_text(encoding='utf-8')
+    # Remove the previous emergency tag if this build was layered on an older live artifact.
+    text=text.replace('<script src="optyker-interaction-guard.js?v=20260914-unlock1"></script>','')
+    if tag not in text:
+        i=text.lower().rfind('</body>')
+        if i < 0:
+            raise SystemExit('Closing body not found in '+rel)
+        text=text[:i]+tag+'\n'+text[i:]
+    p.write_text(text,encoding='utf-8')
+INTERACTION_GUARD
+grep -q 'optyker-interaction-guard.js?v=20260914-unlock2' _site/index.html
+grep -q '__OPTYKER_INTERACTION_GUARD__' _site/optyker-interaction-guard.js
+
+# Publish the RCH/iPad package in Vercel too, because optyker.it is served by Vercel.
+mkdir -p _site/rch-connector
+cp -R rch-connector/. _site/rch-connector/
+cp rch-cloud-relay.js _site/rch-cloud-relay.js
+test -s _site/rch-connector/Installa-RCH-Optyker.bat
+test -s _site/rch-connector/Installa-RCH-Optyker.ps1
+test -s _site/rch-connector/rch-optyker-cloud-worker.ps1
+grep -q '20260914-cloud4' _site/rch-connector/Installa-RCH-Optyker.bat
+grep -q 'Il connettore fiscale attuale NON verra modificato' _site/rch-connector/Installa-RCH-Optyker.ps1
+
+python scripts/check_desktop_html.py
+
+echo "Optyker Vercel interaction guard + RCH Cloud4 build OK"
