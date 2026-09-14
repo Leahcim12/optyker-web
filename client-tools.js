@@ -73,3 +73,8 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
   setInterval(install,800);
 })();
+
+(function(){
+  if(window.__optykerCashDayControlLoader)return;window.__optykerCashDayControlLoader=true;
+  var s=document.createElement('script');s.src='/cash-day-control.js?v=20260915-1';s.async=true;(document.head||document.documentElement).appendChild(s);
+})();
