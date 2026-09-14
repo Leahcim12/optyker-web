@@ -4,9 +4,16 @@ import hashlib,json,os,re,shutil
 ROOT=Path(__file__).resolve().parent.parent
 SITE=ROOT/'_site';VERSION='20260911-workflow1'
 p=SITE/'index.html';s=p.read_text()
+
+# The production base can already contain the Sept11 release while still carrying
+# the older single-root observer from a previous assembled artifact. Remove that
+# legacy observer on every build, not only on the first Sept11 installation.
+# This keeps the release idempotent and prevents two navigation observers from
+# competing for clicks.
+s,_legacy_by_id=re.subn(r'<script\b[^>]*id="optykerSingleRootViewJs"[^>]*>.*?</script>','',s,flags=re.S)
+s,_legacy_by_marker=re.subn(r'<script\b[^>]*>[^<]*?OPTYKER_SINGLE_ROOT_VIEW_V1.*?</script>','',s,flags=re.S)
+
 if 'id="optykerSept11Js"' not in s:
-    s,n=re.subn(r'<script\b[^>]*id="optykerSingleRootViewJs"[^>]*>.*?</script>','',s,flags=re.S)
-    if n!=1:raise SystemExit('Expected exactly one old root observer')
     # All quote print entry points share the prescription header at runtime.
     old=next(line for line in s.splitlines() if 'window.lacPrintSummary=function()' in line)
     new=old.replace('w.document.write(','w.document.write(window.optykerQuotePrint.decorate(',1)
@@ -20,6 +27,10 @@ if 'id="optykerSept11Js"' not in s:
     s=s.replace('optyker-operations.js?v=20260910-ovc2','optyker-operations.js?v='+VERSION)
     s=s.replace('cash-register.js?v=20260910-ovc2','cash-register.js?v='+VERSION)
     p.write_text(s)
+else:
+    # Persist legacy-observer cleanup even when the release is already installed.
+    p.write_text(s)
+
 for alias in ('gestionale-v2','gestionale-v3'):
     f=SITE/alias/'index.html'
     if f.exists():f.write_text(s)
@@ -37,7 +48,7 @@ for name in ('operations-version.json','cart-privacy-version.json'):
 (SITE/'sept11-version.json').write_text(json.dumps({'version':VERSION,'commit':os.environ.get('GITHUB_SHA',os.environ.get('VERCEL_GIT_COMMIT_SHA','')),'assets':{n:hashlib.sha256((SITE/n).read_bytes()).hexdigest() for n in ('optyker-sept11.js','optyker-sept11.css','billing-compose.js')}},indent=2)+'\n')
 assert 'OPTYKER_SINGLE_ROOT_VIEW_V1' not in s
 assert 'optykerQuotePrint.decorate' in s
-print('September 11 workflow, print and navigation release installed')
+print('September 11 workflow, print and navigation release installed; legacy root observer removed:',_legacy_by_id+_legacy_by_marker)
 
 # Tested against the complete assembled app: legacy writers and theme precedence.
 import runpy
