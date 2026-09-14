@@ -1,0 +1,32 @@
+name: Admin cash production build check
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Assemble Optyker production site
+        run: bash scripts/vercel-build-v13.sh
+      - name: Apply final production patches
+        run: bash scripts/vercel-finalize-20260914.sh
+      - name: Verify admin cash assets
+        run: |
+          test -f _site/admin-cash-closure.js
+          test -f _site/admin-cash-closure.css
+          test -f _site/admin-cash-version.json
+          node --check _site/admin-cash-closure.js
+          grep -q '__OPTYKER_ADMIN_CASH_CLOSURE_V2__' _site/admin-cash-closure.js
+          grep -q 'optykerAdminCashClosureJs' _site/index.html
+          grep -q 'optykerAdminCashClosureCss' _site/index.html
