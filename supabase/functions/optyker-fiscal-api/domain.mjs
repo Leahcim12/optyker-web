@@ -1,6 +1,7 @@
 // RCH protocol v14 pp.18-23. Shop mapping: readback 2026-09-12.
 export const SERIAL = '72IV6003831';
-export const RELEASE = '20260912-void1';
+export const RELEASE = '20260914-reviewqr1';
+export const REVIEW_URL = 'https://g.page/r/CeicKuw6aQ5FEAE/review';
 export const DEPARTMENTS = Object.freeze({1:{vat:'04',type:'goods'},2:{vat:'22',type:'goods'},3:{vat:'ART10',type:'services'}});
 export function cents(value) {
   const s=String(value);
@@ -73,9 +74,11 @@ export function resultState(result,commandCount) {
 }
 export function markAutomaticDocument(document,jobId) {
   if(!/^[a-f0-9-]{36}$/i.test(jobId))throw new Error('Identificativo documento non valido');
-  const marker='OPTYKER '+jobId.replaceAll('-','').toUpperCase();
-  return {...document,receiptMarker:marker,automaticReference:true,
-    commands:[...document.commands.slice(0,-1),'="/?A/('+marker+')',document.commands.at(-1)]};
+  // The former visible OPTYKER marker was only needed for automatic EJ readback.
+  // EJ readback is disabled to keep the RT permanently in REG. Print the customer
+  // review QR in the receipt tail instead; the document reference is confirmed on paper.
+  return {...document,reviewQr:REVIEW_URL,automaticReference:false,
+    commands:[...document.commands.slice(0,-1),'="/$11/('+REVIEW_URL+')',document.commands.at(-1)]};
 }
 export function automaticReference(result,document) {
   const r=result?.reference;
