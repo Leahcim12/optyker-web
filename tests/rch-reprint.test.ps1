@@ -2,7 +2,7 @@ $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot '../rch-connector/rch-optyker-connector.ps1') -LibraryOnly
 function Assert($v,$m){if(-not $v){throw $m}}
 function Assert-WindowsFiscalPlatform {}
-$script:job=[pscustomobject]@{state='completed';serial='72IV6003831';document_number='1162-0017';document_date='2026-09-13'}
+$script:job=[pscustomobject]@{id='12345678-1234-4234-8234-123456789abc';state='completed';serial='72IV6003831';document_number='1162-0017';document_date='2026-09-13'}
 function Get-ReprintJob($r){return $script:job}
 $script:ack='<Request><errorCode>0</errorCode><printerError>0</printerError><paperEnd>0</paperEnd><coverOpen>0</coverOpen><lastCmd>1</lastCmd><busy>0</busy></Request>'
 function Send-RchCommand([string]$cmd){

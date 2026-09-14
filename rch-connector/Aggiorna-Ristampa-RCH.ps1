@@ -10,7 +10,7 @@ try {
   if($health.ok -ne $true){throw 'Avvia il connettore Optyker RCH prima di aggiornare.'}
   $ip=$null
   if(-not [Net.IPAddress]::TryParse([string]$health.printer,[ref]$ip)){throw 'Indirizzo RCH non disponibile.'}
-  $sourceUrl='https://leahcim12.github.io/optyker-web/rch-connector/rch-optyker-connector.ps1?v=20260914-reprint1'
+  $sourceUrl='https://leahcim12.github.io/optyker-web/rch-connector/rch-optyker-connector.ps1?v=20260914-reprint3'
   Invoke-WebRequest -UseBasicParsing -Uri $sourceUrl -OutFile $temp
   $latest=Get-Content -LiteralPath $temp -Raw
   $block=[regex]::Match($latest,'(?s)# BEGIN OPTYKER_RCH_REPRINT_V1.*?# END OPTYKER_RCH_REPRINT_V1').Value
@@ -66,7 +66,7 @@ try {
   Write-Host 'Aggiornamento ristampa installato. Ricarica Optyker.' -ForegroundColor Green
   if($pending -gt 0){
     Write-Host ('Restano '+$pending+' operazioni da verificare. I loro esiti sono stati conservati senza modifiche.') -ForegroundColor Yellow
-    Write-Host 'Prima di stampare: Ultime vendite > Emissione / esito RCH > Aggiorna esito. Controlla lo scontrino sulla stampante.' -ForegroundColor Yellow
+    Write-Host 'Se il documento e stato verificato e registrato in Optyker, usa Ristampa su RCH RT per sincronizzare questa operazione. Gli altri esiti richiedono verifica.' -ForegroundColor Yellow
   }else{Write-Host 'Apri Ultime vendite > Ristampa su RCH RT.' -ForegroundColor Green}
 }catch{Write-Host ('ERRORE: '+$_.Exception.Message) -ForegroundColor Red;exit 1}
 finally{if($lock){$lock.Dispose()};Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue}

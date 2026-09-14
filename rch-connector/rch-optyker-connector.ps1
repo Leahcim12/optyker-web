@@ -369,9 +369,25 @@ function Assert-ReprintJournal([string]$raw,$job) {
   $date=[datetime]::ParseExact($dates[0].Groups[1].Value.Replace('/','-'),'dd-MM-yyyy',[Globalization.CultureInfo]::InvariantCulture)
   if($date.ToString('yyyy-MM-dd') -cne $job.document_date -or -not [regex]::IsMatch($text,'(?<![A-Z0-9])'+[regex]::Escape([string]$job.serial)+'(?![A-Z0-9])')){throw 'Data o matricola del documento non corrispondente.'}
 }
+function Sync-VerifiedReprintJournal($job) {
+  # Called only under the exclusive printer lock, after live REG/idle and serial checks.
+  # The proof is fetched from the authenticated cloud job, never accepted from the browser.
+  $entry=Read-Journal ([string]$job.id)
+  if(-not $entry -or $entry.state -cnotin @('uncertain','claiming','sending')){return}
+  $proof=$job.result.manualReconciliation
+  if($job.state -cne 'completed' -or -not $proof -or $proof.source -cne 'user_provided_receipt_photo' -or $proof.documentNumber -cne $job.document_number -or $proof.documentDate -cne $job.document_date -or $proof.serialMatched -ne $true -or $proof.fiscalCodeMatched -ne $true -or [decimal]$proof.totalCents -ne ([decimal]$job.total*100)){
+    throw 'Questa operazione locale richiede ancora una verifica documentata dello scontrino.'
+  }
+  if([string]$entry.jobId -cne [string]$job.id){throw 'Giornale locale non corrispondente alla verifica cloud.'}
+  $entry | Add-Member -NotePropertyName manualReconciliation -NotePropertyValue @{source='verified_cloud_receipt';documentNumber=$job.document_number;documentDate=$job.document_date;verifiedAt=[DateTime]::UtcNow.ToString('o')} -Force
+  $entry.state='reconciled_completed';$entry.cloudSaved=$true
+  # Save-Journal retains the exact previous file as .previous; keep original error/ACK evidence.
+  Save-Journal $entry
+}
 function Reprint-Receipt($request) {
   Assert-WindowsFiscalPlatform
   $job=Get-ReprintJob $request
+  if([string]$job.id -cne [string]$request.jobId){throw 'Operazione cloud non corrispondente alla richiesta.'}
   if($job.state -cne 'completed' -or $job.serial -cne '72IV6003831' -or [string]$job.document_number -cnotmatch '^[0-9]{4}-[0-9]{4}$'){throw 'Lo scontrino deve avere numero e data confermati.'}
   $date=[datetime]::MinValue
   if(-not [datetime]::TryParseExact([string]$job.document_date,'yyyy-MM-dd',[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::None,[ref]$date) -or $date.Year -lt 2015 -or $date.Year -gt 2099 -or $date.Date -gt [datetime]::Now.Date){throw 'Data documento non valida.'}
@@ -383,9 +399,10 @@ function Reprint-Receipt($request) {
   $lock=[IO.File]::Open((Join-Path $JournalRoot 'printer.lock'),[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
   $printStarted=$false
   try {
-    Assert-NoUncertainReceipt
     Assert-IdleRegister
     if((Read-RchValue '<</?m' 'm') -cne $job.serial){throw 'La RCH collegata non corrisponde alla matricola dello scontrino.'}
+    Sync-VerifiedReprintJournal $job
+    Assert-NoUncertainReceipt
     try {
       $z=Parse-Rch (Send-RchCommand '=C3')
       if(-not $z.ok -or $z.lastCmd -ne 1){throw 'Accesso al giornale RCH non confermato.'}
