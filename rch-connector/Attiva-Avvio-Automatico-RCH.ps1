@@ -53,7 +53,7 @@ if(-not (Test-Path -LiteralPath (Join-Path $base 'rch-optyker-connector.ps1') -P
   Write-Host 'Installazione / aggiornamento del connettore Optyker RCH...' -ForegroundColor Cyan
   $installer=Join-Path ([System.IO.Path]::GetTempPath()) ('Optyker-RCH-install-'+[guid]::NewGuid().ToString()+'.ps1')
   try {
-    Invoke-WebRequest -UseBasicParsing -Uri 'https://leahcim12.github.io/optyker-web/rch-connector/Installa-RCH-Optyker.ps1?v=20260914-cloud3' -OutFile $installer -TimeoutSec 60
+    Invoke-WebRequest -UseBasicParsing -Uri 'https://leahcim12.github.io/optyker-web/rch-connector/Installa-RCH-Optyker.ps1?v=20260914-cloud4' -OutFile $installer -TimeoutSec 60
     $tokens=$null; $parseErrors=$null
     [void][System.Management.Automation.Language.Parser]::ParseFile($installer,[ref]$tokens,[ref]$parseErrors)
     if($parseErrors.Count -gt 0 -or (Get-Content -Raw -LiteralPath $installer) -notmatch 'cloud-relay'){throw 'Download installazione non valido.'}
