@@ -297,6 +297,21 @@ function Read-PrintedReceipt($document) {
 function Assert-WindowsFiscalPlatform {
   if([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT){throw 'Emissione disponibile sul PC Windows della cassa.'}
 }
+function Complete-FidelityTail($entry) {
+  $status=Parse-Rch (Send-RchCommand '<</?s')
+  if(-not $status.ok -or $status.lastCmd -ne 1 -or $status.mode -notmatch '^REG(?:\s*\(OP\s*\d+\))?$'){throw 'Stato finale RCH non verificato.'}
+  if([string]$status.idleState -eq '0'){return}
+  if([string]$status.idleState -ne '4'){throw 'Documento non in attesa della sola chiusura finale.'}
+  if($entry.fidelityCloseStarted -eq $true){throw 'Chiusura finale gia tentata: verificarne l esito.'}
+  $entry | Add-Member -Force NoteProperty fidelityCloseStarted $true
+  Save-Journal $entry
+  $ack=Parse-Rch (Send-RchCommand '=c')
+  if(-not $ack.ok -or $ack.lastCmd -ne 1){throw 'Chiusura finale non confermata: non ripetere.'}
+  $entry | Add-Member -Force NoteProperty fidelityCloseAcknowledged $true
+  Save-Journal $entry
+  Assert-IdleRegister
+}
+
 function Emit-Receipt($request,[string]$operation='sale') {
   $id=[string]$request.jobId;$null=Journal-Path $id
   if([string]$request.token -notmatch '^[a-f0-9]{64}$'){throw 'Autorizzazione emissione mancante.'}
@@ -329,6 +344,7 @@ function Emit-Receipt($request,[string]$operation='sale') {
         if(-not $ack.ok -or $ack.lastCmd -ne 1){throw 'Comando fiscale non confermato. Verificare carta, stato e documento sul registratore.'}
         $entry.commandsAcknowledged++;Save-Journal $entry
       }
+      Complete-FidelityTail $entry
       Assert-IdleRegister
       $entry.idleAfter=$true;$entry.state='closing_acknowledged';Save-Journal $entry
       if($claimed.document.automaticReference -eq $true -and $operation -eq 'sale'){
