@@ -1,11 +1,13 @@
 """Add the signed delivery flow to saved buste without replacing any existing module."""
 from pathlib import Path
-import hashlib,json,os
+import hashlib,json,os,re
 root=Path(__file__).resolve().parent.parent;site=root/'_site';s=(site/'index.html').read_text()
 mfile=site/'client-sheets-version.json';m=json.loads(mfile.read_text());old=next(n for n in m['assets'] if n.endswith('.js'));j=(site/old).read_text()
 anchor='window.OPTYKER_MATERIAL_CERTIFICATE?.attach(box,s);'
-assert j.count(anchor)==1
-j=j.replace(anchor,anchor+'window.OPTYKER_EYEWEAR_DELIVERY?.attach(box,s);')
+delivery_call='window.OPTYKER_EYEWEAR_DELIVERY?.attach(box,s);'
+if delivery_call not in j:
+ assert j.count(anchor)==1
+ j=j.replace(anchor,anchor+delivery_call,1)
 b=j.encode();digest=hashlib.sha256(b).hexdigest();new='client-sheet-actions.'+digest[:12]+'.js';(site/new).write_bytes(b);s=s.replace(old,new);m['assets'].pop(old);m['assets'][new]=digest;mfile.write_text(json.dumps(m,indent=2))
 # Keep the previous module's integrity manifest accurate after integration.
 mm=site/'materials-certificate-version.json';mv=json.loads(mm.read_text());mv['assets'].pop(old,None);mv['assets'][new]=digest;mm.write_text(json.dumps(mv,indent=2))
@@ -15,7 +17,11 @@ for filename,tagid in [('eyewear-delivery.mjs','optykerEyewearDeliveryJs'),('eye
  if filename.endswith('.mjs'):b=b.replace(b'./delivery-schema.mjs',('./'+sn).encode())
  dg=hashlib.sha256(b).hexdigest();p=Path(filename);name=p.stem+'.'+dg[:12]+p.suffix;(site/name).write_bytes(b);assets[name]=dg
  tag='<script id="'+tagid+'" type="module" src="/'+name+'"></script>' if name.endswith('.mjs') else '<link id="'+tagid+'" rel="stylesheet" href="/'+name+'">'
- assert tagid not in s;s=s.replace('</head>',tag+'</head>',1)
+ if tagid in s:
+  pattern=(r'<script\b[^>]*id="'+re.escape(tagid)+r'"[^>]*>\s*</script>') if name.endswith('.mjs') else (r'<link\b[^>]*id="'+re.escape(tagid)+r'"[^>]*>')
+  s,n=re.subn(pattern,lambda _m:tag,s,count=1,flags=re.S)
+  if n!=1:raise SystemExit('Existing '+tagid+' tag could not be replaced safely')
+ else:s=s.replace('</head>',tag+'</head>',1)
 for n in ['index.html','gestionale-v2/index.html','gestionale-v3/index.html']:
  if (site/n).exists():(site/n).write_text(s)
 (site/'eyewear-delivery-version.json').write_text(json.dumps({'version':'20260911-delivery1','commit':os.getenv('VERCEL_GIT_COMMIT_SHA') or os.getenv('GITHUB_SHA',''),'assets':assets},indent=2))
