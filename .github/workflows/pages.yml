@@ -37,9 +37,6 @@ jobs:
           mkdir -p _site/rch-connector
           cp -R rch-connector/. _site/rch-connector/
           cp rch-cloud-relay.js _site/rch-cloud-relay.js
-          sed -i 's#https://www.optyker.it/rch-connector/rch-optyker-cloud-worker.ps1#https://leahcim12.github.io/optyker-web/rch-connector/rch-optyker-cloud-worker.ps1#g' _site/rch-connector/Installa-RCH-Optyker.ps1
-          sed -i 's#https://www.optyker.it/rch-connector/Installa-RCH-Optyker.ps1?v=20260914-cloud1#https://leahcim12.github.io/optyker-web/rch-connector/Installa-RCH-Optyker.ps1?v=20260914-cloud2#g' _site/rch-connector/Installa-RCH-Optyker.bat
-          sed -i 's#https://www.optyker.it/rch-connector/Installa-RCH-Optyker.ps1?v=20260914-cloud1#https://leahcim12.github.io/optyker-web/rch-connector/Installa-RCH-Optyker.ps1?v=20260914-cloud2#g' _site/rch-connector/Attiva-Avvio-Automatico-RCH.ps1
           test -s _site/rch-connector/Installa-RCH-Optyker.bat
           test -s _site/rch-connector/Installa-RCH-Optyker.ps1
           test -s _site/rch-connector/rch-optyker-connector.ps1
@@ -47,11 +44,17 @@ jobs:
           test -s _site/rch-connector/Attiva-Avvio-Automatico-RCH.ps1
           grep -q "1.9-cloud-relay" _site/rch-connector/rch-optyker-cloud-worker.ps1
           grep -q "Set-OptykerRchCloudAutostart" _site/rch-connector/Attiva-Avvio-Automatico-RCH.ps1
-          grep -q "leahcim12.github.io/optyker-web/rch-connector/rch-optyker-cloud-worker.ps1" _site/rch-connector/Installa-RCH-Optyker.ps1
-          grep -q "leahcim12.github.io/optyker-web/rch-connector/Installa-RCH-Optyker.ps1?v=20260914-cloud2" _site/rch-connector/Installa-RCH-Optyker.bat
-          grep -q "leahcim12.github.io/optyker-web/rch-connector/Installa-RCH-Optyker.ps1?v=20260914-cloud2" _site/rch-connector/Attiva-Avvio-Automatico-RCH.ps1
+          grep -q "System.Management.Automation.Language.Parser" _site/rch-connector/Installa-RCH-Optyker.ps1
+          grep -q "leahcim12.github.io/optyker-web/rch-connector/rch-optyker-cloud-worker.ps1?v=20260914-cloud3" _site/rch-connector/Installa-RCH-Optyker.ps1
+          grep -q "leahcim12.github.io/optyker-web/rch-connector/rch-optyker-connector.ps1?v=20260914-cloud3" _site/rch-connector/Installa-RCH-Optyker.ps1
+          grep -q "leahcim12.github.io/optyker-web/rch-connector/Attiva-Avvio-Automatico-RCH.ps1?v=20260914-cloud3" _site/rch-connector/Installa-RCH-Optyker.ps1
+          grep -q "leahcim12.github.io/optyker-web/rch-connector/Installa-RCH-Optyker.ps1?v=20260914-cloud3" _site/rch-connector/Installa-RCH-Optyker.bat
+          grep -q "leahcim12.github.io/optyker-web/rch-connector/Installa-RCH-Optyker.ps1?v=20260914-cloud3" _site/rch-connector/Attiva-Avvio-Automatico-RCH.ps1
+          grep -q "ERRORE INSTALLAZIONE OPTYKER RCH" _site/rch-connector/Installa-RCH-Optyker.ps1
+          grep -q "Installazione non completata" _site/rch-connector/Installa-RCH-Optyker.bat
           grep -q "cloud-relay" _site/rch-connector/Installa-RCH-Optyker.ps1
           grep -q "__OPTYKER_RCH_CLOUD_RELAY__" _site/rch-cloud-relay.js
+          pwsh -NoLogo -NoProfile -Command '$files=@("_site/rch-connector/Installa-RCH-Optyker.ps1","_site/rch-connector/Attiva-Avvio-Automatico-RCH.ps1","_site/rch-connector/rch-optyker-cloud-worker.ps1"); foreach($f in $files){$tokens=$null;$errors=$null;[System.Management.Automation.Language.Parser]::ParseFile($f,[ref]$tokens,[ref]$errors)|Out-Null;if($errors.Count){$errors|ForEach-Object{Write-Error $_.Message};exit 1}}'
 
       - name: Verifica Scheda Occhiali aggiornata
         run: |
