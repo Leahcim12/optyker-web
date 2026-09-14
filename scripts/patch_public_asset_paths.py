@@ -34,10 +34,8 @@ for path in entry_points + [site / a for a in assets if a.endswith(('.js', '.css
         changed += count
     path.write_text(source, encoding='utf-8')
 
-# Physical POS channel split: a checkout that will print a real RCH receipt must
-# be registered only in Optyker POS. It must never create a Shopify order.
-# Product lookup, customer lookup, history and online/app channels keep using
-# their existing APIs. The replacement is deliberately narrow and idempotent.
+# Every checkout born in the physical Optyker POS is local to Optyker.
+# It never creates a Shopify order. Shopify is only the online/app order channel.
 cash = site / 'cash-register.js'
 if cash.is_file():
     source = cash.read_text(encoding='utf-8')
@@ -48,22 +46,110 @@ if cash.is_file():
             raise SystemExit('Cash channel split: legacy API declaration not found')
         source = source.replace(legacy, legacy + '\n' + local_decl, 1)
     old_fetch = "  return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:action,username:c.username,password:c.password,payload:payload||{}})})"
-    new_fetch = "  var endpoint=(action==='checkout'&&payload&&payload.auto_receipt===true)?LOCAL_API:API;\n  return fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:action,username:c.username,password:c.password,payload:payload||{}})})"
-    if new_fetch not in source:
-        if old_fetch not in source:
+    route_v1 = "  var endpoint=(action==='checkout'&&payload&&payload.auto_receipt===true)?LOCAL_API:API;\n  return fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:action,username:c.username,password:c.password,payload:payload||{}})})"
+    route_v2 = "  var endpoint=action==='checkout'?LOCAL_API:API;\n  return fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:action,username:c.username,password:c.password,payload:payload||{}})})"
+    if route_v2 not in source:
+        if route_v1 in source:
+            source = source.replace(route_v1, route_v2, 1)
+        elif old_fetch in source:
+            source = source.replace(old_fetch, route_v2, 1)
+        else:
             raise SystemExit('Cash channel split: API fetch call not found')
-        source = source.replace(old_fetch, new_fetch, 1)
-    cash.write_text(source, encoding='utf-8')
-    if 'optyker-cash-local-api' not in source or "action==='checkout'&&payload&&payload.auto_receipt===true" not in source:
-        raise SystemExit('Cash channel split verification failed')
 
-# Force browsers/iPadOS to fetch the channel-split POS instead of the previously
-# cached 20260913 build.
+    marker = 'OPTYKER_MANUAL_POS_PRICE_20260914'
+    if marker not in source:
+        replacements = [
+            (
+                "if(!S.cart[id])S.cart[id]={item:p,qty:0};S.cart[id].qty=Math.min(99,S.cart[id].qty+1);renderCart();toast(p.title+' aggiunto','ok')",
+                "if(!S.cart[id])S.cart[id]={item:p,qty:0,unitPrice:Number(p.price||0)};S.cart[id].qty=Math.min(99,S.cart[id].qty+1);renderCart();toast(p.title+' aggiunto','ok')"
+            ),
+            (
+                "function removeLine(id){if(S.busy)return;delete S.cart[id];renderCart()}\nfunction cartRows()",
+                "function removeLine(id){if(S.busy)return;delete S.cart[id];renderCart()}\nfunction setManualPrice(id,value){var row=S.cart[id];if(!row)return;var s=String(value==null?'':value).replace(',','.').trim(),n=Number(s);if(s===''||!isFinite(n)||n<0||n>1000000){toast('Inserisci un prezzo valido da 0,00 € in su.','error');renderCart();return}row.unitPrice=Math.round(n*100)/100;renderCart()}\nfunction cartRows()"
+            ),
+            (
+                "var total=0;cartRows().forEach(function(x){total+=Number(x.item.price||0)*x.qty});return Math.round(total*100)/100",
+                "var total=0;cartRows().forEach(function(x){var u=x.unitPrice==null?Number(x.item.price||0):Number(x.unitPrice||0);total+=u*x.qty});return Math.round(total*100)/100"
+            ),
+            (
+                "var dep=depositAmount(),validDep=S.stage!=='deposit'||(dep>0&&dep<total);",
+                "var dep=depositAmount(),validDep=total===0||S.stage!=='deposit'||(dep>0&&dep<total);"
+            ),
+            (
+                "var payNow=S.payment==='pending'?0:(S.stage==='deposit'?dep:total);\n  cb.textContent=S.busy?'Operazione in corso…':rows.length?((S.invoice?'Prepara fattura':S.payment==='pending'?'Registra da pagare':'Incassa e stampa')+' · '+euro(payNow)):'Incassa e stampa';",
+                "var payNow=total===0?0:(S.payment==='pending'?0:(S.stage==='deposit'?dep:total));\n  var actionLabel=total===0?'Scarica magazzino':(S.invoice?'Prepara fattura':S.payment==='pending'?'Registra da pagare':'Incassa e stampa');\n  cb.textContent=S.busy?'Operazione in corso…':rows.length?(actionLabel+' · '+euro(payNow)):'Incassa e stampa';"
+            ),
+            (
+                "h+='<div class=\"optykerCashCartItem\"><div><div class=\"optykerCashCartItemTitle\">'+esc(p.title)+'</div><div class=\"optykerCashCartItemMeta\">'+esc([v,p.sku,discountLabel(p,x.qty)].filter(Boolean).join(' · '))+'</div><label class=\"optykerCashVat\">IVA <select aria-label=\"IVA articolo\" data-vat=\"'+esc(p.variant_id)+'\">'+cashVatOptions(x.department||({'04':1,'22':2,'ART10':3}[p.fiscal_vat_code||p.vat_code]))+'</select></label><div class=\"optykerCashQty\"><button type=\"button\" data-minus=\"'+esc(p.variant_id)+'\">−</button><span>'+x.qty+'</span><button type=\"button\" data-plus=\"'+esc(p.variant_id)+'\">+</button></div><button type=\"button\" class=\"optykerCashRemove\" data-remove=\"'+esc(p.variant_id)+'\">Rimuovi</button></div><div class=\"optykerCashCartItemPrice\">'+esc(euro(Number(p.price||0)*x.qty))+'</div></div>'",
+                "var unit=x.unitPrice==null?Number(p.price||0):Number(x.unitPrice||0),list=Number(p.price||0),changed=Math.abs(unit-list)>0.001;h+='<div class=\"optykerCashCartItem\"><div><div class=\"optykerCashCartItemTitle\">'+esc(p.title)+'</div><div class=\"optykerCashCartItemMeta\">'+esc([v,p.sku,discountLabel(p,x.qty)].filter(Boolean).join(' · '))+'</div><label class=\"optykerCashVat\">IVA <select aria-label=\"IVA articolo\" data-vat=\"'+esc(p.variant_id)+'\">'+cashVatOptions(x.department||({'04':1,'22':2,'ART10':3}[p.fiscal_vat_code||p.vat_code]))+'</select></label><div class=\"optykerCashQty\"><button type=\"button\" data-minus=\"'+esc(p.variant_id)+'\">−</button><span>'+x.qty+'</span><button type=\"button\" data-plus=\"'+esc(p.variant_id)+'\">+</button></div><button type=\"button\" class=\"optykerCashRemove\" data-remove=\"'+esc(p.variant_id)+'\">Rimuovi</button></div><div class=\"optykerCashCartItemPrice\"><label class=\"optykerCashManualPriceLabel\">Prezzo unitario<input class=\"optykerCashManualPrice\" type=\"number\" inputmode=\"decimal\" min=\"0\" max=\"1000000\" step=\"0.01\" data-price=\"'+esc(p.variant_id)+'\" value=\"'+esc(unit.toFixed(2))+'\"></label><span class=\"optykerCashLineTotal\">Totale riga <b>'+esc(euro(unit*x.qty))+'</b></span>'+(changed?'<small class=\"optykerCashOriginalPrice\">Prezzo precedente '+esc(euro(list))+'</small>':'')+'</div></div>'"
+            ),
+            (
+                "box.querySelectorAll('[data-vat]').forEach(function(v){v.disabled=S.busy;v.onchange=function(){if(S.busy)return;S.cart[this.dataset.vat].department=Number(this.value);renderCart()}});",
+                "box.querySelectorAll('[data-vat]').forEach(function(v){v.disabled=S.busy;v.onchange=function(){if(S.busy)return;S.cart[this.dataset.vat].department=Number(this.value);renderCart()}});\n  box.querySelectorAll('[data-price]').forEach(function(v){v.disabled=S.busy;v.onchange=function(){if(S.busy)return;setManualPrice(this.dataset.price,this.value)}});"
+            ),
+            (
+                "var rows=cartRows();if(!rows.length||S.busy)return;var total=cartTotal(),dep=depositAmount();\n  if(S.stage==='deposit'&&!(dep>0&&dep<total))",
+                "var rows=cartRows();if(!rows.length||S.busy)return;var total=cartTotal(),dep=depositAmount();\n  if(total===0){S.stage='balance';dep=0;if(E('optykerCashInvoice'))E('optykerCashInvoice').checked=false;if(E('optykerCashTs'))E('optykerCashTs').checked=false;S.invoice=false;S.tsRequested=false}\n  if(S.stage==='deposit'&&!(dep>0&&dep<total))"
+            ),
+            (
+                "var autoReceipt=!inv&&S.payment!=='pending';",
+                "var autoReceipt=!inv&&S.payment!=='pending'&&total>0;"
+            ),
+            (
+                "var lines=rows.map(function(x){return {variant_id:x.item.variant_id,quantity:x.qty,department:Number(x.department||({'04':1,'22':2,'ART10':3}[x.item.fiscal_vat_code||x.item.vat_code])||0)}});",
+                "var lines=rows.map(function(x){return {variant_id:x.item.variant_id,quantity:x.qty,unit_price_override:Number(x.unitPrice==null?x.item.price:x.unitPrice),department:Number(x.department||({'04':1,'22':2,'ART10':3}[x.item.fiscal_vat_code||x.item.vat_code])||0)}});"
+            ),
+            (
+                "var text='Vendita registrata'+(sale.shopify_order_name?' · '+sale.shopify_order_name:'');",
+                "var text=sale.stock_only?'Scarico magazzino registrato':('Vendita registrata'+(sale.shopify_order_name?' · '+sale.shopify_order_name:''));if(Number(sale.inventory_adjusted||0)>0)text+=' · magazzino aggiornato';if(sale.inventory_warning)text+=' · '+sale.inventory_warning;if(sale.invoice_warning)text+=' · '+sale.invoice_warning;"
+            ),
+            (
+                "unitPriceCents:preflight.toCents(x.item.price)",
+                "unitPriceCents:preflight.toCents(x.unitPrice==null?x.item.price:x.unitPrice)"
+            ),
+        ]
+        for old, new in replacements:
+            n = source.count(old)
+            if n != 1:
+                raise SystemExit('Manual POS price patch pattern inatteso (' + str(n) + '): ' + old[:90])
+            source = source.replace(old, new, 1)
+        source = source.replace("window.OPTYKER_CASH_BUILD='20260913-cash4';", "window.OPTYKER_CASH_BUILD='20260914-manualprice1';\n/* OPTYKER_MANUAL_POS_PRICE_20260914 */", 1)
+    cash.write_text(source, encoding='utf-8')
+    checks = [
+        "action==='checkout'?LOCAL_API:API",
+        marker,
+        'optykerCashManualPrice',
+        'unit_price_override',
+        "total===0?'Scarica magazzino'",
+        "autoReceipt=!inv&&S.payment!=='pending'&&total>0",
+    ]
+    for check in checks:
+        if check not in source:
+            raise SystemExit('Manual POS price verification failed: ' + check)
+
+cash_css = site / 'cash-register.css'
+if cash_css.is_file():
+    css = cash_css.read_text(encoding='utf-8')
+    css_marker = 'OPTYKER_MANUAL_POS_PRICE_CSS_20260914'
+    if css_marker not in css:
+        css += """
+/* OPTYKER_MANUAL_POS_PRICE_CSS_20260914 */
+.optykerCashManualPriceLabel{display:grid;gap:5px;font-size:11px;font-weight:800;color:#647484;text-align:left;min-width:132px}
+.optykerCashManualPrice{width:132px;box-sizing:border-box;border:1px solid #c9d5df;border-radius:9px;background:#fff;color:#122b3d;font:800 15px/1.1 Segoe UI,Arial,sans-serif;padding:9px 10px;text-align:right}
+.optykerCashManualPrice:focus{outline:2px solid rgba(23,105,170,.18);border-color:#1769aa}
+.optykerCashLineTotal{display:block;margin-top:7px;font-size:12px;color:#526778;white-space:nowrap}
+.optykerCashOriginalPrice{display:block;margin-top:4px;font-size:10px;color:#8b98a3;white-space:nowrap}
+@media(max-width:760px){.optykerCashManualPriceLabel,.optykerCashManualPrice{width:118px;min-width:118px}.optykerCashCartItemPrice{min-width:122px}}
+"""
+        cash_css.write_text(css, encoding='utf-8')
+
+# Force browsers/iPadOS to fetch the current POS bundle instead of cached builds.
 for path in entry_points:
     if not path.is_file():
         continue
     html = path.read_text(encoding='utf-8')
-    html = re.sub(r'(cash-register\.js\?v=)[^\"\']+', r'\g<1>20260914-channel2', html)
+    html = re.sub(r'(cash-register\.js\?v=)[^\"\']+', r'\g<1>20260914-manualprice1', html)
+    html = re.sub(r'(cash-register\.css\?v=)[^\"\']+', r'\g<1>20260914-manualprice1', html)
     path.write_text(html, encoding='utf-8')
 
 for path in entry_points:
