@@ -88,7 +88,13 @@ Write-Host 'Optyker RCH - scontrino pulito + QR recensioni Google' -ForegroundCo
 $changed=Patch-Connector $Target
 if($changed){Write-Host 'Connettore aggiornato: rimossa la dipendenza dal marcatore OPTYKER.' -ForegroundColor Green}else{Write-Host 'Aggiornamento connettore gia presente.' -ForegroundColor DarkGreen}
 
-# Remove the printer-programmed tail graphic/QR so the receipt has one QR only.
+# RCH protocol: QR in a commercial document is allowed in the tail with Fidelity enabled.
+# Disable the old programmed footer graphic/QR so the customer receives exactly one QR.
+Assert-RegIdle
+Write-Host 'Abilito la stampa QR in coda al documento...' -ForegroundColor Cyan
+$fidelity=Parse-Rch (Request-Rch '>C933/$1')
+if(-not $fidelity.ok){throw 'La RCH non ha confermato l abilitazione Fidelity necessaria al QR.'}
+Write-Host 'Stampa QR in documento abilitata.' -ForegroundColor Green
 Assert-RegIdle
 Write-Host 'Disattivo il vecchio logo/QR programmato in coda...' -ForegroundColor Cyan
 $ack=Parse-Rch (Request-Rch '>C120/$0')
