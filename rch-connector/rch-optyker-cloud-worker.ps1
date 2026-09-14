@@ -105,6 +105,10 @@ Write-RelayLog ('start '+$WorkerVersion)
 $lastStatusAt=[DateTime]::MinValue;$cachedStatus=$null
 do{
   try{Run-RelayCycle $config ([ref]$lastStatusAt) ([ref]$cachedStatus)}
-  catch{Write-RelayLog ('cycle_error '+$_.Exception.Message);Start-Sleep -Seconds 3}
+  catch{
+    Write-RelayLog ('cycle_error '+$_.Exception.Message)
+    if($Once){throw}
+    Start-Sleep -Seconds 3
+  }
   if(-not $Once){Start-Sleep -Milliseconds 1500}
 }while(-not $Once)
