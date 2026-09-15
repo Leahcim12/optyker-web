@@ -27,6 +27,12 @@ jobs:
       - name: Confirm visible birth country asset
         run: |
           grep -q 'id="optykerClientBirthCountryJs"' _site/index.html
-          grep -q 'client-birth-country.js?v=20260915-profile3' _site/index.html
+          python3 - <<'PYTHON'
+          import ast
+          from pathlib import Path
+          tree=ast.parse(Path('scripts/apply_client_profile_save.py').read_text())
+          version=next(n.value.value for n in tree.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='VERSION' for t in n.targets))
+          assert 'client-birth-country.js?v='+version in Path('_site/index.html').read_text()
+          PYTHON
           grep -q 'Paese di nascita' _site/client-birth-country.js
           grep -q 'optykerBirthCountryMainInput' _site/client-birth-country.js
