@@ -5,6 +5,8 @@ on:
     paths:
       - 'client-sheet-edit.js'
       - 'scripts/apply_client_sheet_actions.py'
+      - 'scripts/apply_materials_certificate.py'
+      - 'scripts/apply_eyewear_delivery.py'
       - '.github/workflows/client-sheet-edit-build-check.yml'
   workflow_dispatch:
 permissions:
