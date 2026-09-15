@@ -5,6 +5,7 @@ python scripts/patch_agenda_overlap_native_20260914.py
 python scripts/apply_admin_cash_closure.py
 python scripts/apply_cash_pos5.py
 python scripts/patch_agenda_auto_studio_20260915.py
+python scripts/prepare_order_cart_lab_20260915.py
 python scripts/patch_order_cart_lab_20260915.py
 python scripts/patch_public_asset_paths.py
 python scripts/check_desktop_html.py
