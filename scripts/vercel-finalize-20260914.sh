@@ -65,4 +65,7 @@ grep -q 'Comando di chiusura fiscale non consentito' _site/rch-connector/Aggiorn
 python scripts/apply_cash_cart_selection.py
 node --check _site/cash-register.js
 node --test tests/cash-cart-selection.test.mjs
+python scripts/apply_eyewear_order_parameters.py
+node --check _site/order-sheet-actions.js
+node --test tests/eyewear-order-parameters.test.mjs
 echo 'Optyker final production patches OK'

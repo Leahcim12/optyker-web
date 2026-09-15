@@ -68,7 +68,7 @@ async function sendEyewearOrder(v,s){
   const x=await rpc('submit',{client_id:v.cid,source_sheet_id:s.id,updated_at:s.updated_at},'optyker_eyewear_order_api');
   if(!x.data?.id)throw Error('Invio non confermato: premi Aggiorna per verificare lo stato della Busta.');
   if(view!==v)return;
-  s.laboratory_order={id:x.data.id,reference:x.data.reference_code||ref(s),status:x.data.status};s.delete_blocked=true;
+  s.laboratory_order={id:x.data.id,reference:x.data.reference_code||ref(s),status:x.data.status};s.delete_blocked=false;
   v.busy=false;v.d.querySelectorAll('nav button,[data-cs-close]').forEach(b=>b.disabled=false);cache(v.rows,v.cid);detail(v,s);
   feedback((x.already_sent?'Ordine già presente in Laboratorio':'Ordine inviato al Laboratorio')+' · '+ref(s)+' · '+statusName(x.data.status));
   window.dispatchEvent(new CustomEvent('optyker:sheet-order-created',{detail:{client_id:v.cid,sheet_id:s.id}}));
@@ -81,6 +81,7 @@ function sheetBody(s){
  if(isEye(s)){
  h+='<h3>Montatura</h3>'+fields([['Tipo',f.type],['Marca',f.brand],['Modello',f.model],['Colore',f.color],['Descrizione',f.description],['Barcode',f.barcode],['Prezzo montatura',f.price!=null?currency(f.price):null]]);
  h+='<h3>Lenti</h3>'+fields([['Lente destra',[l.lens_type_od,l.lens_od?.brand,l.lens_od?.lens_name].filter(Boolean).join(' · ')],['Lente sinistra',[l.lens_type_os,l.lens_os?.brand,l.lens_os?.lens_name].filter(Boolean).join(' · ')],['Marca / modello',[l.brand,l.lens_name].filter(Boolean).join(' · ')],['Materiale',l.material],['Indice',l.refractive_index],['Geometria',l.geometry],['Trattamenti',(l.treatments||[]).join(', ')],['Colore',l.color],['Montaggio',l.mounting],['Lente destra (€)',l.unit_price_od!=null?currency(l.unit_price_od):null],['Lente sinistra (€)',l.unit_price_os!=null?currency(l.unit_price_os):null],['Sconto lenti',p.discount_percent!=null?p.discount_percent+'%':null],['Promozione',d.promotion_name],['Garanzia',f.type==='Del cliente'?window.OPTYKER_SEPT11.ownText:d.warranty],['Note',d.notes]]);
+ if(window.OPTYKER_EYEWEAR_ORDER_PARAMETERS){var parameters=window.OPTYKER_EYEWEAR_ORDER_PARAMETERS.rows(d.order_parameters);if(parameters.length)h+='<h3>Parametri d’ordine</h3>'+fields(parameters);}
  }else if(type(s)==='lac')h+='<h3>Lenti a contatto</h3>'+fields([['Marca',st.brand],['Lente OD',st.odProductName],['Lente OS',st.osProductName],['Prezzo OD',st.odCost!=null?currency(st.odCost):null],['Prezzo OS',st.osCost!=null?currency(st.osCost):null],['Note',d.notes||st.notes]]);
  else {const arr=[];for(const [k,v] of Object.entries(d.elements||{})){const val=v&&typeof v==='object'?v.value??v.text??(v.checked===true?'Sì':''):v;if(val!==undefined&&val!=='')arr.push([k,String(val)]);}h+='<h3>Dati della scheda</h3>'+fields(arr);}
  if(total(s)!==null)h+='<p class="csDetailTotal">Totale <b>'+esc(currency(total(s)))+'</b></p>';
@@ -102,9 +103,9 @@ function print(v,s){
 async function remove(v,s){
  if(view!==v||v.busy||current()!==v.cid)return;
  if(s.delete_blocked){feedback('Scheda collegata a un ordine o a una garanzia: eliminazione bloccata.');return;}
- if(!confirm('Eliminare '+ref(s)+' dalla scheda di '+v.name+'?\n\nVerrà conservata una copia di recupero. Il cliente non viene eliminato.'))return;
+ if(!confirm('Eliminare '+ref(s)+' dalla scheda di '+v.name+'?\n\n'+((isEye(s)||/^lac(?:_|$)/.test(type(s)))?'Annulla anche l’ordine di Laboratorio e archivia gli eventuali Preventivo/Busta collegati allo stesso ordine, rimuovendoli dal carrello. Pagamenti, acconti e scontrini già registrati NON vengono annullati né rimborsati.\n\n':'')+'Verrà conservata una copia di recupero. Il cliente non viene eliminato.'))return;
  v.busy=true;v.d.querySelectorAll('button').forEach(b=>b.disabled=true);feedback('Eliminazione in corso…');
- try{await rpc('delete',{client_id:v.cid,sheet_id:s.id,expected_updated_at:s.updated_at,confirm:true});if(view!==v)return;v.busy=false;v.d.querySelectorAll('nav button,[data-cs-close]').forEach(b=>b.disabled=false);await load(v);feedback('Scheda eliminata dall’anagrafica. Copia di recupero conservata.');}
+ try{const result=await rpc('delete',{client_id:v.cid,sheet_id:s.id,expected_updated_at:s.updated_at,confirm:true});window.dispatchEvent(new CustomEvent('optyker:sheet-removed',{detail:{client_id:v.cid,sheet_id:s.id,archived_sheet_ids:result.archived_sheet_ids||[s.id]}}));window.dispatchEvent(new CustomEvent('optyker:client-cart-updated',{detail:{client_id:v.cid}}));if(view!==v)return;v.busy=false;v.d.querySelectorAll('nav button,[data-cs-close]').forEach(b=>b.disabled=false);await load(v);feedback(result.cancelled_orders?'Scheda eliminata e ordine annullato. Pagamenti e scontrini invariati. Copia di recupero conservata.':'Scheda eliminata dall’anagrafica. Copia di recupero conservata.');}
  catch(e){if(view===v){v.busy=false;v.d.querySelectorAll('nav button,[data-cs-close]').forEach(b=>b.disabled=false);render(v);feedback(errorText(e));}}
 }
 async function convert(v,s){

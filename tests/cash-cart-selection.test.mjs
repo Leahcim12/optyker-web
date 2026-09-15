@@ -13,7 +13,8 @@ function fixture(){
   const E=id=>id==='optykerCashCartItems'?null:(fields[id]??={value:'',checked:false,style:{},focus(){}});
   const noop=()=>{};
   const c=vm.createContext({console,Promise,crypto:webcrypto,setTimeout,clearTimeout,
-    document:{querySelector:()=>null},window:{addEventListener:noop,OPTYKER_FISCAL:{checkReady:async()=>events.push('ready'),issuePayment:async()=>events.push('print'),openSale:async()=>events.push('open')}},
+    CustomEvent:class{constructor(type,args){this.type=type;this.detail=args.detail}},
+    document:{querySelector:()=>null},window:{confirm:()=>true,dispatchEvent:e=>events.push(e.type),addEventListener:noop,OPTYKER_FISCAL:{checkReady:async()=>events.push('ready'),issuePayment:async()=>events.push('print'),openSale:async()=>events.push('open')}},
     S:{cart:{},clientId:'',stage:'balance',payment:'card',busy:false},E,
     renderCart:noop,add:noop,qty:noop,removeLine:noop,ensureUI:noop,openCash:noop,closeCash:noop,updateTsAvailability:noop,
     sessionStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
@@ -64,4 +65,21 @@ test('recovery applies remaining cart without clearing another selected customer
 test('a stale save cannot replace the cart while checkout is in progress',async()=>{
   const f=fixture();f.c.S.clientId='clientA';f.row('later',20,false);let release;f.c.respond=async()=>{await new Promise(r=>release=r);return {data:{items:[],updated_at:'old'}}};
   const pending=f.c.clientCartSaveNow('clientA');await Promise.resolve();f.c.S.busy=true;release();await pending;assert.ok(f.c.S.cart.later);
+});
+test('ordered row cancellation requires confirmation before any request',async()=>{
+  const f=fixture();f.c.S.clientId='clientA';f.row('client_cart:work',80);f.c.window.confirm=()=>false;
+  await f.c.removeLine('client_cart:work');assert.equal(f.requests.length,0);assert.ok(f.c.S.cart['client_cart:work']);
+});
+test('ordered row cancellation flushes cart then applies only server remaining rows',async()=>{
+  const f=fixture();f.c.S.clientId='clientA';f.row('client_cart:work',80);f.row('later',20,false);
+  f.c.respond=async(a,p)=>({data:a==='client_cart_save'?{items:p.items,updated_at:'saved'}:{sheet_id:'sheet',archived_sheet_ids:['sheet'],client_cart:{items:[{variant_id:'later',price:20,quantity:1,selected:false}],updated_at:'cancelled'}}});
+  await f.c.removeLine('client_cart:work');assert.deepEqual(f.requests.map(x=>x.action),['client_cart_save','cancel_order_sheet']);
+  assert.equal(f.requests[1].payload.work_order_id,'work');assert.equal(f.requests[1].payload.expected_cart_updated_at,'saved');
+  assert.deepEqual(Object.keys(f.c.S.cart),['later']);assert.equal(f.c.S.cart.later.selected,false);assert.equal(f.c.S.busy,false);
+  assert.deepEqual(f.events,['optyker:sheet-removed']);
+});
+test('failed cancellation never removes local rows or issues payment',async()=>{
+  const f=fixture();f.c.S.clientId='clientA';f.row('client_cart:work',80);
+  f.c.respond=async(a,p)=>{if(a==='client_cart_save')return {data:{items:p.items,updated_at:'saved'}};throw new Error('Stale order')};
+  await f.c.removeLine('client_cart:work');assert.ok(f.c.S.cart['client_cart:work']);assert.equal(f.c.S.busy,false);assert.equal(f.events.length,0);
 });

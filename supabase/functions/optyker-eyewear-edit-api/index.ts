@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import {normalizeOrderParameters} from '../../../eyewear-order-parameters.mjs';
 
 const U=Deno.env.get("SUPABASE_URL")||"";
 const S=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
@@ -118,6 +119,7 @@ async function updateSheet(p:any,operator:string){
   if(!id||!clientId||!expected)throw new Error("Apri di nuovo il documento dall’anagrafica prima di salvarlo.");
   const {data:existing,error:eErr}=await db.from("optyker_sheets").select("*").eq("id",id).eq("client_id",clientId).maybeSingle();
   if(eErr)throw eErr;if(!existing)throw new Error("Scheda Occhiali non disponibile per il cliente selezionato.");
+  if(existing.archived_at)throw new Error('Scheda annullata: non può essere modificata.');
   if(!["eyewear_quote","eyewear_job"].includes(String(existing.sheet_type||"")))throw new Error("Il documento selezionato non è una scheda Occhiali.");
   if(!sameInstant(expected,existing.updated_at))throw new Error("La scheda è stata modificata: riaprila dall’anagrafica prima di salvare.");
   if(existing.sheet_type==="eyewear_quote"){
@@ -128,6 +130,7 @@ async function updateSheet(p:any,operator:string){
   if(wErr)throw wErr;if(work&&["completato","annullato"].includes(String(work.status||"")))throw new Error("Ordine già chiuso: la scheda non può essere modificata.");
   let cleaned=cleanData({...p,mode:existing.sheet_type==="eyewear_quote"?"quote":"job",client_id:clientId});
   const old=existing.data&&typeof existing.data==="object"?existing.data:{};
+  cleaned.order_parameters=normalizeOrderParameters(p.order_parameters??old.order_parameters);
   cleaned={...old,...cleaned,frame:{...(old.frame||{}),...(cleaned.frame||{})},lens:{...(old.lens||{}),...(cleaned.lens||{})},pricing:cleaned.pricing};
   cleaned.mode=existing.sheet_type==="eyewear_quote"?"quote":"job";cleaned.sheetType=existing.sheet_type;cleaned.documentType=existing.document_type||(cleaned.mode==="quote"?"Preventivo":"Busta");cleaned.reference_code=existing.reference_code||old.reference_code||"";cleaned.client_id=clientId;cleaned.savedAt=new Date().toISOString();
   const {data:client,error:cErr}=await db.from("optyker_clients").select("id,name,surname,reference_no").eq("id",clientId).maybeSingle();if(cErr)throw cErr;if(!client)throw new Error("Cliente non trovato.");

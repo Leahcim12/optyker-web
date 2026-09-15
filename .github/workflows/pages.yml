@@ -134,6 +134,12 @@ jobs:
           node --check _site/cash-register.js
           node --test tests/cash-cart-selection.test.mjs
 
+      - name: Parametri Occhiali e annullamento ordini
+        run: |
+          python scripts/apply_eyewear_order_parameters.py
+          node --check _site/order-sheet-actions.js
+          node --test tests/eyewear-order-parameters.test.mjs
+
       - name: Carica sito GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
@@ -142,4 +148,3 @@ jobs:
       - name: Pubblica GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-

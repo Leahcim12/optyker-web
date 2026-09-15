@@ -34,6 +34,24 @@ Deno.serve(async req=>{
   if(action==="checkout_status"){await auth(body);return out({ok:true,data:await checkoutStatusV2(body),release:RELEASE})}
   if(action==="client_cart_get"){await auth(body);return out({ok:true,data:await getClientCart(body),release:RELEASE})}
   if(action==="client_cart_save"){const op=await auth(body);return out({ok:true,data:await saveClientCart(body,op),release:RELEASE})}
+  if(action==='cancel_order_sheet'){
+   const op=await auth(body);if(p.confirm!==true)throw new Error('Conferma esplicita richiesta');
+   let sheetId=norm(p.sheet_id),expected=p.expected_updated_at;
+   if(p.work_order_id){
+    if(sheetId)throw new Error('Seleziona una sola scheda');
+    const {data:w,error}=await db.from('optyker_work_orders').select('id,source_sheet_id,status').eq('id',p.work_order_id).eq('client_id',p.client_id).maybeSingle();if(error)throw error;
+    if(!w?.source_sheet_id)throw new Error('Scheda collegata all’ordine non disponibile');
+    if(w.status!=='annullato'){
+     const cart=await getClientCart(body);
+     if(String(cart.updated_at||'')!==String(p.expected_cart_updated_at||''))throw new Error('Il carrello è cambiato: riapri la Cassa prima di annullare');
+     if(!cart.items.some((x:any)=>x.variant_id==='client_cart:'+w.id))throw new Error('Ordine non presente in questo carrello');
+    }
+    sheetId=w.source_sheet_id;
+    const {data:s,error:se}=await db.from('optyker_sheets').select('updated_at').eq('id',sheetId).eq('client_id',p.client_id).single();if(se)throw se;expected=s.updated_at;
+   }
+   const {data,error}=await db.rpc('optyker_cancel_order_sheet',{p_client_id:p.client_id,p_sheet_id:sheetId,p_expected_updated_at:expected,p_operator:op,p_confirm:true});if(error)throw error;
+   return out({ok:true,data:{...data,client_cart:await getClientCart(body)},release:RELEASE});
+  }
   if(action==="client_cart_clear"){const op=await auth(body);return out({ok:true,data:await clearClientCart(p.client_id,op),release:RELEASE})}
   if(action==="order_missing_items"){const op=await auth(body);return out({ok:true,data:await createOrderRequest(body,op),release:RELEASE})}
   if(action==="deliveries"){await auth(body);return out({ok:true,data:await deliveries(),release:RELEASE})}
@@ -53,4 +71,3 @@ Deno.serve(async req=>{
   return out({...await proxy(body),release:RELEASE});
  }catch(e){const m=e instanceof Error?e.message:String(e);return out({ok:false,error:m},m==="AUTH_REQUIRED"?401:400)}
 });
-

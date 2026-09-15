@@ -1,0 +1,7 @@
+.eyOrderParameters{border:1px solid #cbdbea;border-radius:12px;padding:16px;margin:14px 0;background:#f6f9fd;color:#284965}
+.eyOrderParameters h3{margin:0 0 8px;font-size:15px}.eyOrderParameters p{font-size:11px;color:#5f7286}
+.eyOrderParameterGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.eyOrderParameterGrid .eyField{min-width:0}.eyOrderCustom{display:flex!important;align-items:center;gap:8px;min-height:32px}
+.eyOrderCustom input[type=checkbox]{appearance:auto!important;-webkit-appearance:checkbox!important;width:18px!important;height:18px!important;margin:0!important;padding:0!important}
+.eyOrderParameters input:disabled{background:#e7edf4;color:#68798a}
+@media(max-width:600px){.eyOrderParameterGrid{grid-template-columns:1fr}}
