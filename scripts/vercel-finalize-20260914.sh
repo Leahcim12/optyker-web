@@ -5,6 +5,7 @@ python scripts/patch_agenda_overlap_native_20260914.py
 python scripts/apply_admin_cash_closure.py
 python scripts/apply_cash_pos5.py
 python scripts/patch_agenda_auto_studio_20260915.py
+python scripts/patch_agenda_staff_rules_20260915.py
 python scripts/prepare_order_cart_lab_20260915.py
 python scripts/patch_order_cart_lab_20260915.py
 python scripts/patch_public_asset_paths.py
@@ -23,6 +24,11 @@ grep -q 'order_missing_items' _site/cash-pos5.js
 grep -q 'Consegna' _site/cash-pos5.js
 grep -q 'OPTYKER_AGENDA_AUTO_STUDIO_20260915' _site/index.html
 grep -q "autoStudio" _site/index.html
+grep -q 'OPTYKER_AGENDA_STAFF_RULES_20260915' _site/index.html
+grep -q 'oaPrivateNotes' _site/index.html
+grep -q 'oaV10ForceOccupied' _site/index.html
+grep -q 'Fiera / trasferta' _site/index.html
+grep -q 'almeno email oppure telefono' _site/index.html
 grep -q '__OPTYKER_CLIENT_CART_PERSISTENCE_V1__' _site/cash-register.js
 grep -q 'OPTYKER_ORDER_CART_LAB_20260915' _site/index.html
 grep -q 'Pronto per la consegna' _site/index.html
