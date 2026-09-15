@@ -47,12 +47,15 @@ ops.write_text(s, encoding='utf-8')
 check = ops.read_text(encoding='utf-8')
 required = [
     MARK,
+    "function ensureOrderButton()",
+    "eyOrderProduct",
+    "eySave",
+    "eyFinalActions",
     "b.className='eyBtn primary'",
     "b.onclick=()=>sendOrder()",
     "b.hidden=false;b.disabled=orderBusy",
     "function tick(){ensureOrderButton();if(!logged()){",
     "b.textContent=orderBusy?'Ordino…':'Ordina lenti'",
-    "const actions=$('eySave')?.closest('.eyFinalActions')",
 ]
 for needle in required:
     if needle not in check:
