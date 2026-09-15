@@ -1,0 +1,15 @@
+<!doctype html><html lang="it"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Verifica storico LAC</title><link rel="stylesheet" href="../lac-focus-history.css"><style>body{font:14px Arial;background:#f4f7fb;margin:24px auto;max-width:1050px}nav{display:flex;flex-wrap:wrap;gap:10px}button{padding:8px}#clientLacPageExtras{display:none}</style>
+<h1>Verifica con dati sintetici</h1><nav><button onclick="select('A')">Cliente A</button><button onclick="select('B')">Cliente B</button><button onclick="fail=true">Simula errore</button><button onclick="fail=false">Ripristina rete</button><button onclick="slow=true">Risposta lenta A</button><button onclick="OPTYKER_CLOUD.password=''">Esci</button><button onclick="OPTYKER_CLOUD.password='SYNTHETIC'">Accedi al test</button><button onclick="lacRestoreClientSheet(sample)">Apri LAC importata</button><button onclick="lacRestoreClientSheet({})">Apri LAC ordinaria</button></nav>
+<section id="clientAnagraficaSection"></section><section id="clientLacPageExtras"></section><section id="lacPanel"><div id="lacDataView"></div></section>
+<script>
+const a='11111111-1111-4111-8111-111111111111',b='22222222-2222-4222-8222-222222222222';
+window.clientCurrentId=a;window.OPTYKER_CLOUD={root:'https://example.invalid',username:'SYNTHETIC',password:'SYNTHETIC',key:'SYNTHETIC'};let fail=false,slow=false;
+function select(which){window.clientCurrentId=which==='A'?a:b;}
+const sample={focusImport:{entity:'lac_clinical',record:{data:'09/07/2023 00:00:00',codiceLentiContatto:'LAC-TEST',sferaDx:'-4',sferaSx:'-4.25',sferaLDx:'-3.75',sferaLSx:'-3.75',cilindroLDx:'-0.75',asseLDx:'105',rb1Dx:'8 40',diametroDx:'14 20',marcaDx:'Marca test',prodottoDx:'Multifocale',addDx:'1.75'}}};
+window.lacRestoreClientSheet=function(){};window.clientCreateNewLacSheet=function(){};window.lacResetAll=function(){};
+window.fetch=async function(url,options){
+ const request=JSON.parse(options.body),id=request.p_payload.client_id;if(request.p_action!=='get_lac_history')throw Error('Unexpected action');if(slow&&id===a){await new Promise(r=>setTimeout(r,2200));slow=false;}if(fail)throw Error('Errore simulato. Premi Aggiorna.');
+ const supplies=id===a?[{id:'test',raw:{data:'09/07/2023 00:00:00',dataConsegna:'09/15/2023 00:00:00',codiceFornitura:'SUPPLY-TEST',prodottoDx:'Lente test A',marcaDx:'Marca test',descrizioneDx:'sf:-4 00 add:+1 75',quantitaDx:'1',lottoDx:'LOT-A',totaleLenteDx:'40',totaleLenteSx:'',totaleLiquidi:'10',totale:'50'},liquids:[{id:'test-l',raw:{descrizione:'Liquido test <img src=x onerror=alert(1)>',quantita:'1',lotto:'LOT-L',codiceABarre:'00000123',totale:'10'}}]}]:[{id:'test-b',raw:{data:'08/01/2025 00:00:00',prodottoDx:'Lente test B',quantitaDx:'2',totaleLenteDx:'0',totaleLenteSx:'',totaleLiquidi:'',totale:'0'},liquids:[]}];
+ return {ok:true,json:async()=>({ok:true,data:{client_id:id,supplies,liquid_count:id===a?1:0,unassigned_liquids:[]}})};
+};
+</script><script src="../lac-focus-history.js"></script></html>

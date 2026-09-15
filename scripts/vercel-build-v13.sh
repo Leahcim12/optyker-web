@@ -245,3 +245,10 @@ node --check prescription-ophthalmic.js
 python scripts/apply_prescription_ophthalmic.py
 python scripts/patch_public_asset_paths.py
 verify_desktop_aliases
+
+# Imported LAC records and sold supplies, authenticated and scoped to the client.
+node --check lac-focus-history.js
+node --test tests/lac-focus-history.test.cjs
+python scripts/apply_lac_focus_history.py
+python scripts/patch_public_asset_paths.py
+verify_desktop_aliases
