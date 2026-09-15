@@ -3,8 +3,8 @@ from pathlib import Path
 import hashlib, json, os, re, sys
 
 ROOT=Path(__file__).resolve().parent.parent
-VERSION='20260915-selection1'
-MARK='OPTYKER_CART_SELECTION_20260915'
+VERSION='20260916-selection2'
+MARK='OPTYKER_CART_SELECTION_20260916'
 
 def once(s,old,new):
     if s.count(old)!=1: raise ValueError('Cart selection anchor must be unique: '+old[:100])
@@ -22,6 +22,8 @@ def patch(s):
     s=once(s,"var sale=x.data||{};S.checkoutRequestId='';", "var sale=x.data||{};applyCheckoutCart(sale,rows);S.checkoutRequestId='';")
     s=once(s,";S.cart={};E('optykerCashNote').value='';", ";E('optykerCashNote').value='';")
     s=once(s,"S.cart={};if(E('optykerCashFiscalCode'))", "applyCheckoutCart(Object.assign({},sale,{client_cart:r.data.client_cart}),null);if(E('optykerCashFiscalCode'))")
+    # Keep the visible cart synchronized when an existing deposit is settled.
+    s=once(s,".then(function(x){var sale=x.data||{};var t='Saldo registrato'", ".then(function(x){var sale=x.data||{};applyCheckoutCart(sale,null);var t='Saldo registrato'")
     # Do not lose recovery if synchronization fails after the payment succeeds.
     clear="S.checkoutRequestId='';sessionStorage.removeItem('optykerCashPendingRequest');"
     s=once(s,clear,"if(!sale){"+clear+"}")
