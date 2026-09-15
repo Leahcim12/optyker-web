@@ -5,7 +5,8 @@ begin
  if has_table_privilege('anon','public.optyker_ts_cancellations','SELECT') or has_table_privilege('authenticated','public.optyker_ts_cancellations','INSERT')
  or has_function_privilege('anon','public.optyker_ts_claim_cancellation(text,text)','EXECUTE')
  or has_function_privilege('authenticated','public.optyker_ts_finish_cancellation(uuid,text,text,jsonb)','EXECUTE') then raise exception 'TEST_UNAUTHORIZED_ACCESS';end if;
- select * into j from public.optyker_fiscal_jobs where document_number='1164-0005' and document_date='2026-09-15' and operation='sale';
+ select f.* into j from public.optyker_fiscal_jobs f join public.optyker_ts_outbox o on o.job_id=f.id
+  where f.operation='sale' and f.state='completed' and o.state='accepted' order by f.created_at limit 1;
  select * into q from public.optyker_ts_outbox where job_id=j.id;
  if q.state is distinct from 'accepted' then raise exception 'TEST_FIXTURE_NOT_ACCEPTED';end if;
  if public.optyker_ts_can_void(q.id) then raise exception 'TEST_ACCEPTED_SPEND_VOIDABLE';end if;
@@ -38,4 +39,3 @@ begin
  if (select protocol from public.optyker_ts_outbox where id=q.id) is distinct from q.protocol then raise exception 'TEST_ORIGINAL_PROTOCOL_CHANGED';end if;
  if (select state from public.optyker_fiscal_jobs where id=j.id) is distinct from 'completed' then raise exception 'TEST_RCH_CHANGED';end if;
 end;$test$;
-

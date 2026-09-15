@@ -2,7 +2,7 @@
 
 Da **Amministrazione → Sistema TS** si verificano le credenziali, si attivano o sospendono gli invii e si controllano documenti, protocolli, esiti e ricevute.
 
-Gli invii automatici riguardano i nuovi scontrini RCH con richiesta TS e righe sanitarie AD/AA, dopo la conferma del numero e della data stampati. Le spese già in coda richiedono un invio individuale. Il solo salvataggio della vendita Shopify o la risposta della stampante non attestano un invio TS. Fatture e rettifiche TS non sono gestite da questo trasporto.
+Gli invii automatici riguardano i nuovi scontrini RCH con richiesta TS e righe sanitarie AD/AA, dopo la conferma del numero e della data stampati. Le spese già in coda richiedono un invio individuale. Il solo salvataggio della vendita Shopify o la risposta della stampante non attestano un invio TS. Le fatture e le variazioni TS non sono gestite da questo trasporto. Le cancellazioni autorizzate delle spese già accettate sono gestite dal [worker di cancellazione](../optyker-ts-cancel/README.md), con controllo del documento e del relativo esito.
 
 ## Protocollo verificato
 
@@ -21,7 +21,7 @@ Una transazione blocca l'emissione originale, controlla eventuali annulli e regi
 
 Il protocollo di ricezione produce lo stato **submitted**. Lo stato **accepted** richiede un esito finale coerente per il documento o un'interrogazione puntuale che ne confermi identità, importi e assenza di errori. Dopo un invio vengono eseguiti tre controlli brevi in background; un'elaborazione più lunga richiede **Verifica esito**. La ricevuta PDF/ZIP, quando disponibile, è salvata privatamente e scaricabile dall'amministratore.
 
-L'opposizione esclude il codice fiscale dell'assistito dal tracciato. I documenti annullati prima della trasmissione restano esclusi. Per documenti già trasmessi, il flusso di annullo RCH si blocca e richiede la gestione della rettifica TS: questa versione non trasmette cancellazioni TS automaticamente.
+L'opposizione esclude il codice fiscale dell'assistito dal tracciato. I documenti annullati prima della trasmissione restano esclusi. Per documenti già trasmessi, il flusso di annullo RCH resta bloccato fino alla cancellazione TS verificata dal worker dedicato. Lo stato `ts_cancelled` mantiene separata la cancellazione TS dall'annullo fiscale RCH ancora da eseguire; il controllo richiede anche la prova del relativo protocollo.
 
 ## Verifiche
 
@@ -30,3 +30,4 @@ L'opposizione esclude il codice fiscale dell'assistito dal tracciato. I document
 Il 13 settembre 2026 il controllo in produzione ha restituito `TS_VERIFIED`, con codice TS `0`, usando le credenziali protette esistenti. Nessuna spesa reale è stata inviata durante lo sviluppo; la coda conteneva soltanto un documento già annullato. Il primo invio reale resta da verificare sul suo protocollo e sulla ricevuta.
 
 Gli amministratori tecnici possono programmare un controllo di sola lettura con una capability monouso: hash nel database, scadenza massima cinque minuti, consumo atomico. Il percorso `verify-once` non consente invii, lettura di credenziali o accesso ai documenti. Tutte le normali azioni dell'interfaccia richiedono una sessione amministrativa valida.
+

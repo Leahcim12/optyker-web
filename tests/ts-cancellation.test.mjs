@@ -7,13 +7,13 @@ import {execFileSync} from 'node:child_process';
 import {buildRequest,parseResponse,SERVICES} from '../supabase/functions/optyker-ts-api/transport.mjs';
 import {createCancellationRunner,validateCancellationScope} from '../supabase/functions/optyker-ts-cancel/worker.mjs';
 const c={username:'FIXTURE',password:'fixture-password',pin:'1234567890',owner_code:'604-030-419926',owner_fiscal_code:'RSSMRA80A01H501U',business_vat:'04679780165'};
-const document={serial:'72IV6003831',number:'1164-0005',date:'2026-09-15',paymentDate:'2026-09-15',paymentMethod:'card',opposition:false,fiscalCode:'RSSMRA80A01H501U',referenceSource:'rch_ej',lines:[{expenseCode:'AD',vatCode:'04',totalCents:58000}]};
+const document={serial:'72IV6003831',number:'1000-0001',date:'2026-09-01',paymentDate:'2026-09-01',paymentMethod:'card',opposition:false,fiscalCode:'RSSMRA80A01H501U',referenceSource:'rch_ej',lines:[{expenseCode:'AD',vatCode:'04',totalCents:12500}]};
 const original='99260915000000001',cancel='99260915000000002',hash='a'.repeat(64);
-const query={esito:'0',document:{vat:c.business_vat,date:document.date,device:'1',number:document.number,paymentDate:document.paymentDate,protocol:original,totals:[{code:'AD',amount:'580.00'}],errors:0}};
+const query={esito:'0',document:{vat:c.business_vat,date:document.date,device:'1',number:document.number,paymentDate:document.paymentDate,protocol:original,totals:[{code:'AD',amount:'125.00'}],errors:0}};
 const outcome={esito:'0',codes:[],outcomes:[{protocol:cancel,state:'2',sent:'1',accepted:'1',errors:'0',warnings:'0'}]};
 function fixture() {
  const q={id:'outbox',state:'accepted',protocol:original,document:structuredClone(document)};
- const k={id:'cancel',outbox_id:q.id,original_protocol:original,expected_number:document.number,expected_date:document.date,expected_total_cents:58000,state:'prepared',protocol:null};
+ const k={id:'cancel',outbox_id:q.id,original_protocol:original,expected_number:document.number,expected_date:document.date,expected_total_cents:12500,state:'prepared',protocol:null};
  let used=false;const finishes=[];
  const db={
   async rpc(name,p){
@@ -51,7 +51,7 @@ test('cancellation parser requires the cancellation response, not an insertion s
 });
 test('only a matching original identity, protocol, issuer and amount can be cancelled',()=>{
  const {q,k}=fixture(),scope={outbox:q,cancellation:k,issuer:c};validateCancellationScope(scope,c,query);
- for(const response of [{...query,document:{...query.document,protocol:cancel}},{...query,document:{...query.document,number:'1164-0006'}},{...query,document:{...query.document,totals:[{code:'AD',amount:'58.00'}]}}])assert.throws(()=>validateCancellationScope(scope,c,response));
+ for(const response of [{...query,document:{...query.document,protocol:cancel}},{...query,document:{...query.document,number:'1000-0002'}},{...query,document:{...query.document,totals:[{code:'AD',amount:'58.00'}]}}])assert.throws(()=>validateCancellationScope(scope,c,response));
  assert.throws(()=>validateCancellationScope({...scope,issuer:{...c,business_vat:'00000000000'}},c,query));
 });
 test('successful cancellation is confirmed by its own final protocol and stores its receipt',async()=>{
