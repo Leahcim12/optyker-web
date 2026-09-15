@@ -39,19 +39,24 @@ jobs:
           python3 - <<'PY'
           import json, urllib.request, urllib.error
           base='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-fiscal-code-decode'
-          with urllib.request.urlopen(base+'?cf=VRNGNY07D68C351V', timeout=20) as r:
-              x=json.load(r)
-          assert x.get('ok') is True, x
+          def get(url):
+              try:
+                  with urllib.request.urlopen(url, timeout=20) as r:
+                      return r.status,json.load(r)
+              except urllib.error.HTTPError as e:
+                  raw=e.read().decode(errors='replace')
+                  print('HTTP',e.code,raw)
+                  try: body=json.loads(raw)
+                  except Exception: body={'raw':raw}
+                  return e.code,body
+          status,x=get(base+'?cf=VRNGNY07D68C351V')
+          assert status==200 and x.get('ok') is True, x
           d=x.get('data') or {}
           assert d.get('gender')=='F', d
           assert str(d.get('birth_place','')).lower()=='catania', d
           assert d.get('birth_place_code')=='C351', d
-          try:
-              urllib.request.urlopen(base+'?cf=VRNGNY07D68C351A', timeout=20)
-              raise AssertionError('invalid fiscal code unexpectedly accepted')
-          except urllib.error.HTTPError as e:
-              assert e.code==400, e.code
-              bad=json.loads(e.read().decode())
-              assert bad.get('ok') is False, bad
+          status,bad=get(base+'?cf=VRNGNY07D68C351A')
+          assert status==400, status
+          assert bad.get('ok') is False, bad
           print('Fiscal-code decoder OK:', d.get('birth_place'), d.get('gender'), d.get('birth_place_code'))
           PY
