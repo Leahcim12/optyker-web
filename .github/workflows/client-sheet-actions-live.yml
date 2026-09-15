@@ -37,7 +37,7 @@ jobs:
               for attempt in range(35):
                   try:
                       m=json.loads(get(base+'client-sheets-version.json?check='+expected))
-                      assert m['version']=='20260911-client-sheets1','Previous feature version'
+                      assert m['version']=='20260915-client-sheets2','Previous feature version'
                       assert m['commit']==expected,'Previous source commit'
                       assets={}
                       for filename,digest in m['assets'].items():
@@ -46,7 +46,7 @@ jobs:
                           assets[filename]=digest
                       for alias in ('','gestionale-v2/','gestionale-v3/'):
                           html=get(base+alias+'?check='+expected).decode('utf8')
-                          assert 'id="optykerClientSheetActionsJs"' in html and 'id="optykerClientSheetActionsCss"' in html
+                          assert 'id="optykerClientSheetActionsJs"' in html and 'id="optykerClientSheetEditJs"' in html and 'id="optykerClientSheetActionsCss"' in html
                           assert all(filename in html for filename in m['assets'])
                       return {'base':base,'ok':True,'commit':expected,'assets':assets}
                   except Exception as e:
