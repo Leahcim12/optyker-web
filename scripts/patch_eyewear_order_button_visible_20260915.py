@@ -1,11 +1,11 @@
 from pathlib import Path
+import re
 
 ROOT = Path('_site')
 HTMLS = [ROOT/'index.html', ROOT/'gestionale-v2/index.html', ROOT/'gestionale-v3/index.html']
 MARK = 'OPTYKER_EYEWEAR_ORDER_BUTTON_VISIBLE_20260915'
-
-needle = '<div class=\\"eyFinalActions\\"><button id=\\"eySave\\" class=\\"eyBtn primary\\" type=\\"button\\">Salva Preventivo</button>'
-with_button = needle + '<button id=\\"eyOrderProduct\\" class=\\"eyBtn primary\\" type=\\"button\\">Ordina lenti</button>'
+BUTTON = '<button id=\\"eyOrderProduct\\" class=\\"eyBtn primary\\" type=\\"button\\">Ordina lenti</button>'
+SAVE_RE = re.compile(r'<button id=\\"eySave\\"[^>]*>.*?</button>')
 
 for path in HTMLS:
     if not path.exists():
@@ -13,9 +13,11 @@ for path in HTMLS:
     s = path.read_text(encoding='utf-8')
     if MARK not in s:
         if 'id=\\"eyOrderProduct\\"' not in s:
-            if s.count(needle) != 1:
-                raise SystemExit(f'Comandi finali Occhiali non trovati in {path}')
-            s = s.replace(needle, with_button, 1)
+            matches = list(SAVE_RE.finditer(s))
+            if len(matches) != 1:
+                raise SystemExit(f'Comando eySave non univoco in {path}: {len(matches)}')
+            m = matches[0]
+            s = s[:m.end()] + BUTTON + s[m.end():]
         pos = s.lower().rfind('</body>')
         if pos < 0:
             raise SystemExit(f'Chiusura body non trovata in {path}')
@@ -27,11 +29,15 @@ for path in HTMLS:
         raise SystemExit(f'Pulsante Ordina lenti non univoco in {path}')
     if 'id=\\"eyOrderProduct\\" class=\\"eyBtn primary\\"' not in check:
         raise SystemExit(f'Pulsante Ordina lenti non visibile/stilizzato in {path}')
+    save_pos = check.find('id=\\"eySave\\"')
+    order_pos = check.find('id=\\"eyOrderProduct\\"')
+    if save_pos < 0 or order_pos < 0 or order_pos < save_pos or order_pos-save_pos > 500:
+        raise SystemExit(f'Ordina lenti non è accanto a Salva in {path}')
 
 ops = ROOT/'optyker-operations.js'
 s = ops.read_text(encoding='utf-8')
-# The final order/cart patch already makes the button available to both document modes.
-# Make an already-present static button receive the same action and styling as a dynamically-created one.
+# The final order/cart patch makes this control usable for the eyewear document flow.
+# A static button must receive the same handler as a dynamically-created one.
 anchor = "b.hidden=false;b.disabled=orderBusy;"
 replacement = "b.className='eyBtn primary';b.onclick=()=>sendOrder();b.hidden=false;b.disabled=orderBusy;"
 if replacement not in s:
@@ -39,7 +45,7 @@ if replacement not in s:
         raise SystemExit('Gestore visibilità Ordina lenti non trovato')
     s = s.replace(anchor, replacement, 1)
 
-# Do not let an authentication timing race prevent the button from being wired.
+# Wire the control even if the authentication flag settles after the panel is rendered.
 tick_old = "function tick(){if(!logged()){"
 tick_new = "function tick(){ensureOrderButton();if(!logged()){"
 if tick_new not in s:
@@ -56,4 +62,4 @@ for required in ["b.onclick=()=>sendOrder()", "b.className='eyBtn primary'", "fu
 if (ROOT/'gestionale-v2/index.html').read_bytes() != (ROOT/'index.html').read_bytes() or (ROOT/'gestionale-v3/index.html').read_bytes() != (ROOT/'index.html').read_bytes():
     raise SystemExit('Le tre pagine desktop non coincidono dopo il pulsante Ordina lenti')
 
-print('Busta/Preventivo Occhiali: Ordina lenti è visibile nei comandi finali e collegato al Laboratorio')
+print('Occhiali: Ordina lenti è accanto a Salva nei comandi finali ed è collegato al Laboratorio')
