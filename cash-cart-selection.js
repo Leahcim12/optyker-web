@@ -1,5 +1,5 @@
-/* Injected last in the cash closure: OPTYKER_CART_SELECTION_20260915 */
-window.OPTYKER_CART_SELECTION='20260915-selection1';
+/* Injected last in the cash closure: OPTYKER_CART_SELECTION_20260916 */
+window.OPTYKER_CART_SELECTION='20260916-selection2';
 function payableCartRows(){return cartRows().filter(function(x){return x.selected!==false})}
 cartTotal=function(){return Math.round(payableCartRows().reduce(function(n,x){return n+Number(x.unitPrice==null?x.item.price:x.unitPrice)*x.qty},0)*100)/100};
 
@@ -27,8 +27,13 @@ renderCart=function(){
   return result;
 };
 
+function localDeliveredRows(sale,rows){
+  if(Array.isArray(rows)&&rows.length)return rows;
+  var lines=sale&&sale.data&&Array.isArray(sale.data.lines)?sale.data.lines:[];
+  return lines.map(function(x){return {item:{variant_id:String(x.variant_id||x.catalog_id||'')},qty:Math.max(0,Number(x.quantity||0))}});
+}
 function applyCheckoutCart(sale,rows){
-  var current=String(S.clientId||''),client=String(sale.client_id||'');
+  var current=String(S.clientId||''),client=String(sale&&sale.client_id||'');
   if(current!==client)return;
   if(current){
     if(!sale.client_cart||String(sale.client_cart.client_id)!==current)throw new Error('Carrello da sincronizzare: usa Recupera incasso prima di continuare.');
@@ -36,7 +41,9 @@ function applyCheckoutCart(sale,rows){
     clientCartVersions[current]=sale.client_cart.updated_at||null;
     clientCartApply(sale.client_cart.items||[],current);return;
   }
-  (rows||[]).forEach(function(x){var id=String(x.item.variant_id),now=S.cart[id];if(!now)return;now.qty-=x.qty;if(now.qty<=0)delete S.cart[id]});
+  // An occasional/local cart follows the same rule: only physical delivery consumes lines.
+  if(!sale||!sale.delivered_at)return;
+  localDeliveredRows(sale,rows).forEach(function(x){var id=String(x.item.variant_id),now=S.cart[id];if(!now)return;now.qty-=x.qty;if(now.qty<=0)delete S.cart[id]});
 }
 
 var selectionNativeCheckout=checkout;

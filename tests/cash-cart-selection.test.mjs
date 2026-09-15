@@ -20,29 +20,33 @@ function fixture(){
     sessionStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
     toast:(m)=>messages.push(m),euro:n=>String(n),depositAmount:()=>Number(E('optykerCashDeposit').value),cashFiscalCode:()=>'',
     api:async(action,payload)=>{requests.push({action,payload});return await c.respond(action,payload)},
-    respond:async(action,p)=>({data:action==='client_cart_save'?{client_id:p.client_id,items:p.items,updated_at:'v2'}:{id:'sale',client_id:p.client_id||'',payment:{id:'payment'},total:p.expected_total}}),
+    respond:async(action,p)=>({data:action==='client_cart_save'?{client_id:p.client_id,items:p.items,updated_at:'v2'}:{id:'sale',client_id:p.client_id||'',payment:{id:'payment'},total:p.expected_total,delivered_at:p.payment_stage==='delivery_balance'?'2026-09-16T00:00:00.000Z':null,data:{lines:Array.isArray(p.lines)?p.lines.map(x=>({variant_id:x.variant_id,quantity:x.quantity||1})):[]}}}),
   });
   vm.runInContext('function cartRows(){return Object.values(S.cart).filter(x=>x.qty>0)}\n'+checkoutSource+'\n'+persistence+'\n'+selection,c);
   function row(id,price,selected=true){c.S.cart[id]={item:{variant_id:id,title:id,price},qty:1,department:1,selected};return c.S.cart[id]}
   return {c,row,fields,E,requests,messages,events,storage};
 }
-test('only checked lines enter total, checkout and fiscal emission; deferred line remains',async()=>{
+test('only checked lines enter total, checkout and fiscal emission; all rows stay until delivery',async()=>{
   const f=fixture();f.row('one',12);f.row('client_cart:deferred',100,false).department=null;
   assert.equal(f.c.cartTotal(),12);await f.c.checkout();
   const req=f.requests.find(x=>x.action==='checkout');assert.equal(req.payload.lines.length,1);assert.equal(req.payload.lines[0].variant_id,'one');assert.equal(req.payload.expected_total,12);
-  assert.deepEqual(Object.keys(f.c.S.cart),['client_cart:deferred']);assert.deepEqual(f.events,['ready','print']);
+  assert.deepEqual(Object.keys(f.c.S.cart),['one','client_cart:deferred']);assert.deepEqual(f.events,['ready','print']);
 });
 test('nothing selected cannot start a zero-price stock movement',async()=>{
   const f=fixture();f.row('one',12,false);await f.c.checkout();assert.equal(f.requests.length,0);assert.equal(f.events.length,0);assert.equal(f.c.cartTotal(),0);
 });
-test('manual unit prices and deposits are calculated on selected lines',async()=>{
+test('manual unit prices and deposits are calculated on selected lines and deposit keeps cart rows',async()=>{
   const f=fixture();f.row('one',100).unitPrice=80;f.row('later',500,false);f.c.S.stage='deposit';f.E('optykerCashDeposit').value='90';await f.c.checkout();assert.equal(f.requests.length,0);
   f.E('optykerCashDeposit').value='20';await f.c.checkout();const p=f.requests.find(r=>r.action==='checkout').payload;
-  assert.equal(p.expected_total,80);assert.equal(p.deposit_amount,20);assert.equal(p.lines[0].unit_price_override,80);
+  assert.equal(p.expected_total,80);assert.equal(p.deposit_amount,20);assert.equal(p.lines[0].unit_price_override,80);assert.deepEqual(Object.keys(f.c.S.cart),['one','later']);
 });
-test('zero-price selected line still supports existing stock-only flow',async()=>{
+test('normal balance keeps the product; delivery balance removes only delivered selected rows',async()=>{
+  const balance=fixture();balance.row('one',12);balance.row('later',30,false);await balance.c.checkout();assert.deepEqual(Object.keys(balance.c.S.cart),['one','later']);
+  const delivery=fixture();delivery.row('one',12);delivery.row('later',30,false);delivery.c.S.stage='delivery_balance';await delivery.c.checkout();assert.deepEqual(Object.keys(delivery.c.S.cart),['later']);
+});
+test('zero-price selected line still supports existing stock-only flow without consuming before delivery',async()=>{
   const f=fixture();f.row('free',0);f.row('later',100,false);await f.c.checkout();const p=f.requests.find(r=>r.action==='checkout').payload;
-  assert.equal(p.expected_total,0);assert.equal(p.auto_receipt,false);assert.deepEqual(f.events,[]);assert.deepEqual(Object.keys(f.c.S.cart),['later']);
+  assert.equal(p.expected_total,0);assert.equal(p.auto_receipt,false);assert.deepEqual(f.events,[]);assert.deepEqual(Object.keys(f.c.S.cart),['free','later']);
 });
 test('client save completes before checkout; server remaining cart and selections are restored',async()=>{
   const f=fixture();f.c.S.clientId='clientA';f.row('pay',10);f.row('later',20,false).unitPrice=18;
