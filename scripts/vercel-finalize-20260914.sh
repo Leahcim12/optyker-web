@@ -35,9 +35,15 @@ grep -q '__OPTYKER_CLIENT_CART_PERSISTENCE_V1__' _site/cash-register.js
 grep -q 'OPTYKER_ORDER_CART_LAB_20260915' _site/index.html
 grep -q 'Pronto per la consegna' _site/index.html
 grep -Fq "selectFrame(Number(this.getAttribute('data-ey-frame')))" _site/index.html
-grep -Fq 'id=\"eyOrderProduct\" class=\"eyBtn primary\"' _site/index.html
+grep -Fq "OPTYKER_EYEWEAR_ORDER_BUTTON_VISIBLE_20260915" _site/optyker-operations.js
+grep -Fq "b.className='eyBtn primary'" _site/optyker-operations.js
 grep -Fq "b.onclick=()=>sendOrder()" _site/optyker-operations.js
+grep -Fq "b.textContent=orderBusy?'Ordino…':'Ordina lenti'" _site/optyker-operations.js
 grep -Fq "function tick(){ensureOrderButton();if(!logged()){" _site/optyker-operations.js
+if grep -Fq "b.hidden=!job" _site/optyker-operations.js; then
+  echo 'Eyewear order button is still Busta-only hidden' >&2
+  exit 1
+fi
 test -s _site/rch-connector/Aggiorna-RCH-POS.bat
 test -s _site/rch-connector/Aggiorna-RCH-POS.ps1
 grep -q 'zeroReceipt=\$true' _site/rch-connector/Aggiorna-RCH-POS.ps1
