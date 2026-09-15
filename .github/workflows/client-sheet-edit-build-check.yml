@@ -1,0 +1,40 @@
+name: Verifica build modifica schede cliente
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'client-sheet-edit.js'
+      - 'scripts/apply_client_sheet_actions.py'
+      - '.github/workflows/client-sheet-edit-build-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check edit script syntax
+        run: node --check client-sheet-edit.js
+      - name: Run exact Vercel production build
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p client-sheet-edit-check
+          (bash scripts/vercel-build-v13.sh && bash scripts/vercel-finalize-20260914.sh) 2>&1 | tee client-sheet-edit-check/build.log
+      - name: Confirm edit asset in built app
+        run: |
+          grep -q 'id="optykerClientSheetEditJs"' _site/index.html
+          grep -q '20260915-client-sheets2' _site/client-sheets-version.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: client-sheet-edit-build
+          path: client-sheet-edit-check/
+          retention-days: 3
