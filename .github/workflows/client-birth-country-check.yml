@@ -1,0 +1,32 @@
+name: Verifica Paese di nascita
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'client-birth-country.js'
+      - 'scripts/apply_client_profile_save.py'
+      - '.github/workflows/client-birth-country-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check birth country script syntax
+        run: node --check client-birth-country.js
+      - name: Run production build
+        run: bash scripts/vercel-build-v13.sh && bash scripts/vercel-finalize-20260914.sh
+      - name: Confirm visible birth country asset
+        run: |
+          grep -q 'id="optykerClientBirthCountryJs"' _site/index.html
+          grep -q 'client-birth-country.js?v=20260915-profile3' _site/index.html
+          grep -q 'Paese di nascita' _site/client-birth-country.js
+          grep -q 'optykerBirthCountryMainInput' _site/client-birth-country.js
