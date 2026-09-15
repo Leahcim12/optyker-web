@@ -1,8 +1,8 @@
 # Cancellazione di una spesa TS già accettata
 
-Il worker cancella un solo documento autorizzato da un amministratore tecnico attraverso il collegamento autenticato al progetto. La tabella delle cancellazioni conserva motivo, autorizzazione, protocollo originale, nuovo protocollo, esito e ricevuta. RLS è attiva; anon e authenticated non hanno accesso alla tabella né alle funzioni di controllo.
+Il worker cancella un solo documento autorizzato da un amministratore tecnico oppure dal coordinatore di annullamento unificato, dopo autenticazione staff e conferma esplicita dell’operatore. Il coordinatore conserva un’intenzione immutabile per lo scontrino originale e genera la capability soltanto sul server. La tabella delle cancellazioni conserva motivo, autorizzazione, protocollo originale, nuovo protocollo, esito e ricevuta. RLS è attiva; anon e authenticated non hanno accesso alla tabella né alle funzioni di controllo.
 
-L'endpoint non accetta identificativi di documenti dal chiamante: richiede una capability casuale di 256 bit, valida al massimo cinque minuti e consumata atomicamente, associata a una singola cancellazione e all'azione cancel o reconcile. Solo il controllo amministrativo può predisporre tale autorizzazione. Le credenziali TS rimangono nel Vault e sono lette soltanto dal server.
+L'endpoint non accetta identificativi di documenti dal chiamante: richiede una capability casuale di 256 bit, valida al massimo cinque minuti e consumata atomicamente, associata a una singola cancellazione e all'azione cancel o reconcile. Soltanto il controllo amministrativo e il coordinatore server autorizzato possono predisporre tale autorizzazione. Le credenziali TS rimangono nel Vault e sono lette soltanto dal server.
 
 Prima dell'invio sono verificati lo scontrino completato, la sua data e il totale, il protocollo TS originale accettato, il mittente originale e l'interrogazione puntuale TS, inclusi gli importi sanitari. Il messaggio di cancellazione usa Cancellazione del WSDL DocumentoSpesa730p fornito nel kit ufficiale. Non invia il codice fiscale del cliente né le righe di spesa.
 
@@ -16,4 +16,3 @@ ts_cancelled significa cancellazione della spesa sul TS; non significa annullo f
 
 - node --test tests/ts-transport.test.mjs tests/ts-cancellation.test.mjs
 - tests/ts-cancellation-db.test.sql deve essere eseguito fra BEGIN e ROLLBACK; non esegue chiamate di rete. Verifica autenticazione, token monouso, esiti incompleti e sblocco esclusivamente con prova della cancellazione.
-

@@ -140,6 +140,13 @@ jobs:
           node --check _site/order-sheet-actions.js
           node --test tests/eyewear-order-parameters.test.mjs
 
+      - name: Annullamento unico TS e RCH
+        run: |
+          python scripts/apply_unified_fiscal_void.py
+          node --check _site/unified-fiscal-void.js
+          node --check _site/rch-cloud-relay.js
+          node --test tests/unified-fiscal-void.test.mjs
+
       - name: Carica sito GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:

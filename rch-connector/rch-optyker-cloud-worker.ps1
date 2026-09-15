@@ -75,7 +75,9 @@ function Read-LocalStatus {
   try{
     $h=Invoke-LocalGet '/health'
     if($h.ok -ne $true){throw 'Health check del connettore locale non confermato.'}
-    return Public-CloudStatus (Invoke-LocalGet '/status')
+    $s=Public-CloudStatus (Invoke-LocalGet '/status')
+    $s.automaticVoidReference=($h.capabilities.automaticVoidReference -eq $true)
+    return $s
   }catch{
     return @{ok=$false;mode='';idleState='';errorCode=-1;printerError=-1;paperEnd=-1;coverOpen=-1;busy=-1;lastCmd=-1;error=('Connettore locale: '+$_.Exception.Message)}
   }

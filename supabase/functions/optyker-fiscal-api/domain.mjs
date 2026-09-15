@@ -91,11 +91,14 @@ export function receiptSuccessor(previous,current) {
 }
 export function automaticReference(result,document) {
   const r=result?.reference;
-  if(document.operation!=='sale'||!r||r.source!=='rch_ej'||
+  if(!['sale','void'].includes(document.operation)||!r||r.source!=='rch_ej'||
     r.serial!==document.serial||r.fiscalCodeMatched!==true||
     r.totalCents!==document.totalCents||resultState(result,document.commands.length)!=='awaiting_reference')return null;
   const plan=document.referenceReadback;
-  if(plan?.strategy==='ej-successor-v1'){
+  if(document.operation==='void'){
+    if(plan?.strategy!=='ej-void-successor-v1'||r.strategy!==plan.strategy||r.jobId!==plan.jobId||r.date!==plan.date||!receiptSuccessor(r.previous,r)||
+      r.documentKind!=='void'||r.originalNumber!==document.original?.number||r.originalDate!==document.original?.date||r.number===document.original.number)return null;
+  }else if(plan?.strategy==='ej-successor-v1'){
     if(r.strategy!==plan.strategy||r.jobId!==plan.jobId||r.date!==plan.date||!receiptSuccessor(r.previous,r))return null;
   }else if(!document.automaticReference||!document.receiptMarker||r.marker!==document.receiptMarker)return null;
   return reference({document_number:r.number,document_date:r.date,amount:r.totalCents/100,paper_verified:true},document.totalCents);

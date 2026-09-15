@@ -1,5 +1,6 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.116.0';
 import {makeDocument,makeVoid,reference,resultState,markAutomaticDocument,automaticReference,SERIAL,RELEASE} from './domain.mjs';
+import {createUnifiedVoid} from './unified-void.mjs';
 declare const EdgeRuntime: {waitUntil(promise: Promise<unknown>): void};
 const db=createClient(Deno.env.get('SUPABASE_URL')||'',Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'',{auth:{persistSession:false,autoRefreshToken:false}});
 const origins=new Set(['https://www.optyker.it','https://optyker.it']);
@@ -57,14 +58,16 @@ async function prepare(p:any,operator:string){
  return {job:publicJob(job),claim_token:cap};
 }
 async function prepareVoid(p:any,operator:string){
- const original=await getJob(p.original_job_id),document=makeVoid(original,p);
+ const original=await getJob(p.original_job_id);let document=makeVoid(original,p);
  const existing=await one(db.from('optyker_fiscal_jobs').select('*').eq('original_job_id',original.id).eq('operation','void').maybeSingle());
  if(existing&&!['prepared','not_started'].includes(existing.state))return {job:publicJob(existing)};
  const queue=await one(db.from('optyker_ts_outbox').select('id').eq('job_id',original.id).maybeSingle());
  if(queue&&!await one(db.rpc('optyker_ts_can_void',{p_id:queue.id})))throw new Error('Spesa TS già elaborata o sospesa: verificarne la rettifica prima dell’annullo');
+ const jobId=existing?.id||crypto.randomUUID();
+ document={...document,referenceReadback:{strategy:'ej-void-successor-v1',jobId,date:new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Rome'}).format(new Date())}};
  const cap=token(),patch={state:'prepared',document,claim_hash:await hash(cap),claim_expires_at:new Date(Date.now()+600000).toISOString(),operator_username:operator,updated_at:now()};
  const job=existing?await one(db.from('optyker_fiscal_jobs').update(patch).eq('id',existing.id).in('state',['prepared','not_started']).select('*').maybeSingle()):
-  await one(db.from('optyker_fiscal_jobs').insert({...patch,operation:'void',original_job_id:original.id,payment_id:original.payment_id,sale_id:original.sale_id,serial:original.serial}).select('*').single());
+  await one(db.from('optyker_fiscal_jobs').insert({...patch,id:jobId,operation:'void',original_job_id:original.id,payment_id:original.payment_id,sale_id:original.sale_id,serial:original.serial}).select('*').single());
  if(!job)throw new Error('Stato modificato: aggiorna prima di continuare');
  return {job:publicJob(job),claim_token:cap};
 }
@@ -82,11 +85,13 @@ async function outcome(p:any){
  const r=p.result||{},state=resultState(r,job.document.commands.length);
  let ref=null;try{ref=automaticReference(r,job.document)}catch{/* Missing/malformed readback stays pending; never invent a reference. */}
  const safe={state,commandsAcknowledged:Number.isInteger(r.commandsAcknowledged)?r.commandsAcknowledged:0,writeStarted:r.writeStarted===true,idleAfter:r.idleAfter===true,error:String(r.error||'').slice(0,250),connectorVersion:String(r.connectorVersion||'').slice(0,60),
-  ...(ref?{reference:{...ref,source:'rch_ej',serial:job.serial,marker:job.document.receiptMarker,time:/^\d{2}:\d{2}:\d{2}$/.test(r.reference.time||'')?r.reference.time:null}}:{})};
+  ...(ref?{reference:{...ref,source:'rch_ej',serial:job.serial,marker:job.document.receiptMarker,
+   ...(job.operation==='void'?{documentKind:'void',originalNumber:r.reference.originalNumber,originalDate:r.reference.originalDate,previous:r.reference.previous,strategy:r.reference.strategy}:{}),
+   time:/^\d{2}:\d{2}:\d{2}$/.test(r.reference.time||'')?r.reference.time:null}}:{})};
  let updated=job;
  if(job.state==='sending')updated=await one(db.rpc('optyker_record_fiscal_outcome',{p_job_id:job.id,p_result_hash:await hash(p.token),p_state:state,p_result:safe}));
  // Retried outcome delivery may finish reference persistence but never print again.
- if(ref&&updated.state==='awaiting_reference')return await saveReference({job_id:job.id,document_number:ref.number,document_date:ref.date,amount:ref.amount,paper_verified:true},'RCH connettore','rch_ej');
+ if(ref&&updated.state==='awaiting_reference')return await saveReference({job_id:job.id,document_number:ref.number,document_date:ref.date,amount:ref.amount,paper_verified:true,void_verified:job.operation==='void'},'RCH connettore','rch_ej');
  return {job:publicJob(updated)};
 }
 
@@ -115,6 +120,7 @@ async function saveReference(p:any,operator:string,source='paper_confirmed'){
  }
  return {job:publicJob(job)};
 }
+const unified=createUnifiedVoid(db,{getJob,jobView,prepareVoid,background:(p:Promise<unknown>)=>EdgeRuntime.waitUntil(p.catch(()=>{}))});
 Deno.serve(async req=>{
  const origin=req.headers.get('origin')||'';
  const headers={'Content-Type':'application/json','Cache-Control':'no-store','Vary':'Origin','Access-Control-Allow-Origin':origins.has(origin)?origin:'https://www.optyker.it','Access-Control-Allow-Headers':'content-type','Access-Control-Allow-Methods':'POST,OPTIONS'};
@@ -129,6 +135,11 @@ Deno.serve(async req=>{
   if(a==='bridge_claim')return out({ok:true,data:await claim(p)});
   if(a==='bridge_outcome')return out({ok:true,data:await outcome(p)});
   const operator=await login(body);
+  if(a==='unified_void_start')return out({ok:true,data:await unified.start(p,operator)});
+  if(a==='unified_void_step')return out({ok:true,data:await unified.step(p)});
+  if(a==='unified_void_view')return out({ok:true,data:await unified.view(p.original_job_id)});
+  if(a==='unified_void_prepare')return out({ok:true,data:await unified.prepare(p,operator)});
+  if(a==='unified_void_pending')return out({ok:true,data:await unified.pending()});
   if(a==='sale')return out({ok:true,data:await saleView(p.sale_id)});
   if(a==='prepare')return out({ok:true,data:await prepare(p,operator)});
   if(a==='prepare_void')return out({ok:true,data:await prepareVoid(p,operator)});

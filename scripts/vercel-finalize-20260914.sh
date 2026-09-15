@@ -68,4 +68,7 @@ node --test tests/cash-cart-selection.test.mjs
 python scripts/apply_eyewear_order_parameters.py
 node --check _site/order-sheet-actions.js
 node --test tests/eyewear-order-parameters.test.mjs
+python scripts/apply_unified_fiscal_void.py
+node --check _site/unified-fiscal-void.js
+node --test tests/unified-fiscal-void.test.mjs
 echo 'Optyker final production patches OK'

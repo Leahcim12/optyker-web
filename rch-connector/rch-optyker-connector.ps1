@@ -352,7 +352,7 @@ function Emit-Receipt($request,[string]$operation='sale') {
       Assert-IdleRegister
       $entry.idleAfter=$true;$entry.state='closing_acknowledged';Save-Journal $entry
       # BEGIN OPTYKER_REFERENCE_AFTER_V2
-      if($claimed.document.referenceReadback.strategy -ceq 'ej-successor-v1' -and $operation -ceq 'sale'){
+      if(($claimed.document.referenceReadback.strategy -ceq 'ej-successor-v1' -and $operation -ceq 'sale') -or ($claimed.document.referenceReadback.strategy -ceq 'ej-void-successor-v1' -and $operation -ceq 'void')){
         try {$entry.reference=Complete-ReceiptReference $claimed.document $id $receiptBefore}
         catch {$entry.error='Scontrino emesso. Numero non recuperato: verificare la stampa e il ritorno in REG.'}
       }
@@ -488,7 +488,14 @@ function Get-ReceiptEvidence([string]$raw,$document,[bool]$identityOnly=$false) 
   if(-not [datetime]::TryParseExact($printedDate,[string[]]@('dd-MM-yyyy HH:mm','dd-MM-yyyy HH:mm:ss'),[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::None,[ref]$date)){throw 'Data RCH non valida.'}
   $evidence=@{serial=$serial;number=$numbers[0].Groups[1].Value;date=$date.ToString('yyyy-MM-dd');time=$date.ToString('HH:mm:ss')}
   if($identityOnly){return $evidence}
-  if($text -match '(?i)DOCUMENTO\s+(?:COMMERCIALE\s+)?(?:DI\s+)?(?:ANNULL|RESO)'){throw 'Il giornale non contiene una vendita.'}
+  if($document.operation -ceq 'void'){
+    if($text -notmatch '(?i)DOCUMENTO\s+(?:COMMERCIALE\s+)?(?:DI\s+)?ANNULL' -or $text -match '(?i)DOCUMENTO\s+(?:COMMERCIALE\s+)?(?:DI\s+)?RESO'){throw 'Documento di annullo non verificato.'}
+    $originalDate=[datetime]::ParseExact([string]$document.original.date,'yyyy-MM-dd',[Globalization.CultureInfo]::InvariantCulture)
+    $printedOriginal=$originalDate.ToString('dd-MM-yyyy')
+    if(-not $text.Contains([string]$document.original.number) -or (-not $text.Contains($printedOriginal) -and -not $text.Contains($printedOriginal.Replace('-','/')))){throw 'Riferimento originale non verificato nel documento di annullo.'}
+    if($evidence.number -ceq $document.original.number){throw 'Numero annullo uguale all’originale.'}
+    $evidence.documentKind='void';$evidence.originalNumber=[string]$document.original.number;$evidence.originalDate=[string]$document.original.date
+  }elseif($text -match '(?i)DOCUMENTO\s+(?:COMMERCIALE\s+)?(?:DI\s+)?(?:ANNULL|RESO)'){throw 'Il giornale non contiene una vendita.'}
   $totals=[regex]::Matches($text,'(?m)^\s*TOTALE COMPLESSIVO\s+(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})\s*(?:EUR|€)?\s*$')
   if($totals.Count -ne 1){throw 'Importo non univoco.'}
   $amount=[decimal]::Parse($totals[0].Groups[1].Value.Replace('.','').Replace(',','.'),[Globalization.CultureInfo]::InvariantCulture)*100
@@ -511,7 +518,7 @@ function Read-ReceiptEvidence($document,[bool]$identityOnly=$false) {
 }
 function Start-ReceiptReference($document,[string]$jobId) {
   $plan=$document.referenceReadback
-  if($document.operation -cne 'sale' -or $plan.strategy -cne 'ej-successor-v1' -or $plan.jobId -cne $jobId){return $null}
+  if($plan.jobId -cne $jobId -or -not (($document.operation -ceq 'sale' -and $plan.strategy -ceq 'ej-successor-v1') -or ($document.operation -ceq 'void' -and $plan.strategy -ceq 'ej-void-successor-v1'))){return $null}
   try {return Read-ReceiptEvidence $document $true}
   catch {return $null}
   # Emit-Receipt must independently recheck REG/idle before the first fiscal write.
@@ -523,7 +530,7 @@ function Complete-ReceiptReference($document,[string]$jobId,$previous) {
   if($p.Count -ne 2 -or $n.Count -ne 2 -or [int]$p[0] -le 0 -or [int]$p[1] -le 0){throw 'Numero precedente non valido.'}
   $successor=(([int]$n[0] -eq [int]$p[0] -and [int]$n[1] -eq ([int]$p[1]+1)) -or ([int]$n[0] -eq ([int]$p[0]+1) -and [int]$n[1] -eq 1))
   if(-not $successor -or $actual.date -cne $document.referenceReadback.date -or $previous.date -gt $actual.date){throw 'Il giornale non identifica univocamente la nuova vendita.'}
-  $actual.source='rch_ej';$actual.strategy='ej-successor-v1';$actual.jobId=$jobId
+  $actual.source='rch_ej';$actual.strategy=[string]$document.referenceReadback.strategy;$actual.jobId=$jobId
   $actual.previous=@{number=$previous.number;date=$previous.date}
   return $actual
 }
@@ -621,7 +628,7 @@ try {
       $ResponseOrigin=[string]$request.headers['origin']
       if($request.method -eq 'OPTIONS'){Json-Response $stream 200 @{ok=$true};continue}
       if($request.method -eq 'GET' -and $request.path -eq '/health'){
-        Json-Response $stream 200 @{ok=$true;connector='Optyker RCH';version=$ConnectorVersion;printer=$PrinterIp;port=$Port;capabilities=@{reconcileReceipt=$true;reprintReceipt=$true;diagnostics=$true;receipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);talkingReceipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);voidReceipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);adeOutcome=$false;automaticReference=$true;manualReference=$true;journalReference=$true}}
+        Json-Response $stream 200 @{ok=$true;connector='Optyker RCH';version=$ConnectorVersion;printer=$PrinterIp;port=$Port;capabilities=@{reconcileReceipt=$true;reprintReceipt=$true;diagnostics=$true;receipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);talkingReceipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);voidReceipt=([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT);adeOutcome=$false;automaticReference=$true;manualReference=$true;journalReference=$true;automaticVoidReference=$true}}
       } elseif($request.method -eq 'GET' -and $request.path -eq '/status'){
         Json-Response $stream 200 (Status-Rch)
       } elseif($request.method -eq 'GET' -and $request.path -eq '/diagnostics'){

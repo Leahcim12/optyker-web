@@ -105,6 +105,7 @@ async function openReprint(saleId){
 }
 window.OPTYKER_RCH_REPRINT=Object.freeze({openSale:openReprint});
 async function openVoid(originalId){
+ if(window.OPTYKER_UNIFIED_VOID)return window.OPTYKER_UNIFIED_VOID.open(originalId);
  var m=modal('Annulla scontrino RCH');
  try{
   var r=await api('job',{job_id:originalId}),original=r.data.job;
@@ -194,4 +195,3 @@ async function openSale(saleId){
 async function openTs(){var m=modal('Spese collegate ai documenti RCH');try{var x=await api('ts_outbox');m.querySelector('.ofBody').innerHTML='<p>'+esc(x.reason)+'. Per invii, verifica esiti e ricevute apri Amministrazione → Sistema TS.</p>'+(x.data.length?'<table><thead><tr><th>Documento</th><th>Data</th><th>Stato</th><th>Protocollo TS</th></tr></thead><tbody>'+x.data.map(function(r){return '<tr><td>'+esc(r.document.number)+'</td><td>'+esc(r.document.date)+'</td><td>'+esc(({sending:'Invio TS in corso',uncertain:'Esito TS da verificare'}[r.state])||stateLabel(r.state))+'</td><td>'+esc(r.protocol||'—')+'</td></tr>'}).join('')+'</tbody></table>':'<p>Nessuna spesa collegata a un documento RCH confermato.</p>')}catch(e){message(m,e.message)}}
 window.OPTYKER_FISCAL=Object.freeze({openSale:openSale,openTs:openTs,checkReady:checkReady,issuePayment:issuePayment});
 })();
-
