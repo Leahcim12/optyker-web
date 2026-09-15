@@ -8,7 +8,7 @@ const {JSDOM} = require('jsdom');
 const site = resolve(process.env.OPTYKER_TEST_SITE || '_site');
 const cid = '11111111-1111-4111-8111-111111111111';
 const other = '22222222-2222-4222-8222-222222222222';
-const original = {id:cid,name:'Cliente',surname:'Prova',fiscal:'',email:'client@example.invalid',phone:'111',notes:'Nota iniziale'};
+const original = {reference_no:'42C',id:cid,name:'Cliente',surname:'Prova',fiscal:'',email:'client@example.invalid',phone:'111',notes:'Nota iniziale'};
 const until = async f => { for(let i=0;i<70;i++){if(f())return;await new Promise(r=>setTimeout(r,10));}assert.fail('State not reached'); };
 async function setup() {
   const html = readFileSync(resolve(site,'index.html'),'utf8');
@@ -52,13 +52,14 @@ test('visible save updates existing client, all form fields, CF cache and reload
     assert.equal(el('optykerClientSaveStatus').textContent,'Modifiche da salvare');
     el('optykerClientSaveButton').click();
     await until(()=>el('optykerClientSaveBar').dataset.state==='saved');
-    assert.equal(calls.length,1);assert.equal(calls[0].p_payload.id,cid);
+    const writes=calls.filter(c=>c.p_action==='save_client');assert.equal(writes.length,1);assert.equal(writes[0].p_payload.id,cid);
+    assert.equal(el('optykerClientProfileId').textContent,'ID cliente: 42C');
     assert.equal(w.OPTYKER_CLOUD.clients[0].fiscal,'RSSMRA80A01H501U');
     const read=await w.cloudApi('get_client',{id:cid});
     w.clientClearForm(false);w.clientFillForm(w.cloudDbToClient(read.data));
     for(const [id,value] of Object.entries(fields))assert.equal(el(id).value,id==='clientDbFiscal'||id==='clientDbProvince'?value.toUpperCase():value,id);
     assert.equal(w.clientCurrentId,cid);assert.equal(x.rows.size,1);
-  }finally{x.dom.window.close()}
+  }finally{await new Promise(r=>setTimeout(r,0));x.dom.window.close()}
 });
 test('double click sends one save; success is displayed only after server confirmation',async()=>{
   const x=await setup();try{
@@ -66,10 +67,10 @@ test('double click sends one save; success is displayed only after server confir
     const a=x.w.clientSaveMetadata(),b=x.w.clientSaveMetadata();assert.equal(a,b);
     assert.equal(x.el('optykerClientSaveButton').disabled,true);assert.equal(x.el('clientDbPhone').disabled,true);
     assert.equal(x.el('optykerClientSaveBar').dataset.state,'saving');
-    await until(()=>x.calls.length===1);release();assert.equal(await a,true);
+    await until(()=>x.calls.filter(c=>c.p_action==='save_client').length===1);release();assert.equal(await a,true);
     assert.equal(x.el('optykerClientSaveStatus').textContent,'Modifiche salvate');
     assert.equal(x.el('clientDbPhone').disabled,false);
-  }finally{x.dom.window.close()}
+  }finally{await new Promise(r=>setTimeout(r,0));x.dom.window.close()}
 });
 test('network or unconfirmed response preserves edits and allows a manual retry',async()=>{
   for(const kind of ['failure','empty']){
@@ -80,25 +81,25 @@ test('network or unconfirmed response preserves edits and allows a manual retry'
       assert.equal(x.el('clientDbFiscal').value,'RSSMRA80A01H501U');
       assert.equal(x.el('optykerClientSaveButton').disabled,false);assert.equal(x.w.OPTYKER_CLOUD.clients[0].fiscal,'');
       x.state[kind]=false;assert.equal(await x.w.clientSaveMetadata(),true);
-    }finally{x.dom.window.close()}
+    }finally{await new Promise(r=>setTimeout(r,0));x.dom.window.close()}
   }
 });
 test('late save response cannot overwrite another client opened in the meantime',async()=>{
   const x=await setup();try{
     let release;x.state.delay=new Promise(r=>release=r);x.edit('clientDbPhone','555');
-    const saving=x.w.clientSaveMetadata();await until(()=>x.calls.length===1);
+    const saving=x.w.clientSaveMetadata();await until(()=>x.calls.filter(c=>c.p_action==='save_client').length===1);
     x.w.clientFillForm({id:other,name:'Altro',surname:'Cliente',fiscal:'ALTRO'});
     release();assert.equal(await saving,true);
     assert.equal(x.w.clientCurrentId,other);assert.equal(x.el('clientDbFiscal').value,'ALTRO');
     assert.equal(x.rows.get(cid).phone,'555');assert.equal(x.el('optykerClientSaveBar').dataset.state,'ready');
-  }finally{x.dom.window.close()}
+  }finally{await new Promise(r=>setTimeout(r,0));x.dom.window.close()}
 });
 test('new record remains creatable; clearing an existing field persists its removal',async()=>{
   const x=await setup();try{
     x.edit('clientDbNotes','');assert.equal(await x.w.clientSaveMetadata(),true);assert.equal(x.rows.get(cid).notes,'');
     x.w.clientClearForm(false);assert.equal(x.el('optykerClientSaveButton').textContent,'Salva cliente');
-    assert.equal(await x.w.clientSaveMetadata(),false);assert.equal(x.calls.length,1);
+    assert.equal(await x.w.clientSaveMetadata(),false);assert.equal(x.calls.filter(c=>c.p_action==='save_client').length,1);
     x.edit('clientDbName','Nuovo');assert.equal(await x.w.clientSaveMetadata(),true);
-    assert.equal(x.calls[1].p_payload.id,undefined);assert.equal(x.w.clientCurrentId,other);assert.equal(x.rows.size,2);
-  }finally{x.dom.window.close()}
+    assert.equal(x.calls.filter(c=>c.p_action==='save_client')[1].p_payload.id,undefined);assert.equal(x.w.clientCurrentId,other);assert.equal(x.rows.size,2);
+  }finally{await new Promise(r=>setTimeout(r,0));x.dom.window.close()}
 });

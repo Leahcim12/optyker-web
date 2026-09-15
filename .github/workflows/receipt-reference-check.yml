@@ -7,7 +7,9 @@ on:
       - 'client-profile-save.*'
       - 'rch-connector/**'
       - 'supabase/functions/optyker-fiscal-api/**'
+      - 'supabase/functions/optyker-fiscal-api-v2/**'
       - 'tests/receipt-reference*'
+      - 'tests/client-profile-save.test.mjs'
       - 'tests/rch-reference*'
       - 'scripts/apply_client_profile_save.py'
       - 'scripts/patch_cash_register.py'
@@ -34,6 +36,13 @@ jobs:
           export NODE_PATH="$RUNNER_TEMP/reference-qa/node_modules"
           OPTYKER_BUILT=1 node --test tests/receipt-reference-ui.test.cjs
           node --test tests/receipt-reference-domain.test.mjs tests/cash-automatic.test.mjs tests/fiscal-domain.test.mjs tests/fiscal-ui.test.mjs tests/fiscal-void-ui.test.mjs tests/client-profile-save.test.mjs
+  windows_connector:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Verifica connettore e aggiornamento Windows senza stampante
         shell: pwsh
         run: |

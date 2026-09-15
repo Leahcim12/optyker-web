@@ -16,3 +16,10 @@ test('rejects stale, skipped, mismatched and unconfirmed printer evidence',()=>{
  assert.equal(automaticReference(outcome(proof),{...doc,operation:'void'}),null);
  assert.equal(automaticReference(outcome(proof),{...doc,referenceReadback:undefined}),null);
 });
+test('zero receipt keeps its discount and payment sequence and accepts only a zero printed total',()=>{
+ const base={...doc,totalCents:0,zeroReceipt:true,commands:['=R1/$1250/*1/(ARTICOLO)','=S','=%/*100','=T4']};
+ const zero=markAutomaticDocument(base,jobId),r={...outcome({...proof,totalCents:0}),commandsAcknowledged:4};
+ assert.deepEqual(zero.commands,base.commands);
+ assert.equal(automaticReference(r,zero).amount,0);
+ assert.equal(automaticReference({...r,reference:proof},zero),null);
+});

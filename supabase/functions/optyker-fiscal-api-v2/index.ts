@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import {markAutomaticDocument} from '../optyker-fiscal-api/domain.mjs';
 
 const U=Deno.env.get("SUPABASE_URL")||"";
 const KEY=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
@@ -35,8 +36,9 @@ async function prepareZero(p:any,operator:string){
   if(Number(payment.amount)!==0||payment.data?.fiscal_snapshot?.input?.zero_receipt!==true)return null;
   const sale=await one(db.from("optyker_pos_sales").select("id,status").eq("id",payment.sale_id).single());if(!["completed","open_balance"].includes(sale.status))throw new Error("Completa prima la registrazione della vendita");
   const existing=await one(db.from("optyker_fiscal_jobs").select("*").eq("payment_id",payment.id).eq("operation","sale").maybeSingle());if(existing&&!['prepared','not_started'].includes(existing.state))return {job:publicJob(existing)};
-  const document=zeroDocument(payment,payment.data.fiscal_snapshot),cap=token(),patch={state:"prepared",document,claim_hash:await hash(cap),claim_expires_at:new Date(Date.now()+600000).toISOString(),updated_at:now(),operator_username:operator};
-  const job=existing?await one(db.from("optyker_fiscal_jobs").update(patch).eq("id",existing.id).in("state",["prepared","not_started"]).select("*").maybeSingle()):await one(db.from("optyker_fiscal_jobs").insert({...patch,id:crypto.randomUUID(),payment_id:payment.id,sale_id:sale.id,serial:SERIAL,operation:"sale"}).select("*").single());if(!job)throw new Error("Stato modificato: aggiorna prima di continuare");return {job:publicJob(job),claim_token:cap};
+  const jobId=existing?.id||crypto.randomUUID();
+  const document=markAutomaticDocument(zeroDocument(payment,payment.data.fiscal_snapshot),jobId),cap=token(),patch={state:"prepared",document,claim_hash:await hash(cap),claim_expires_at:new Date(Date.now()+600000).toISOString(),updated_at:now(),operator_username:operator};
+  const job=existing?await one(db.from("optyker_fiscal_jobs").update(patch).eq("id",existing.id).in("state",["prepared","not_started"]).select("*").maybeSingle()):await one(db.from("optyker_fiscal_jobs").insert({...patch,id:jobId,payment_id:payment.id,sale_id:sale.id,serial:SERIAL,operation:"sale"}).select("*").single());if(!job)throw new Error("Stato modificato: aggiorna prima di continuare");return {job:publicJob(job),claim_token:cap};
 }
 async function saleViewV2(body:any){
   await login(body);const x=await proxy(body),saleId=id(body.payload?.sale_id);
