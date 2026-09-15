@@ -1,4 +1,4 @@
-/* OPTYKER_CART_SELECTION_20260915 */
+/* OPTYKER_CART_SELECTION_20260916 */
 #optykerCashOverlay .optykerCashSelectLine{display:flex!important;align-items:center;gap:8px;min-height:36px;margin:0 0 6px!important;font-size:12px!important;font-weight:700;color:#254c78;cursor:pointer}
 #optykerCashOverlay .optykerCashSelectLine input[type=checkbox]{appearance:auto!important;-webkit-appearance:checkbox!important;display:inline-block!important;width:20px!important;height:20px!important;min-width:20px!important;margin:0!important;padding:0!important;accent-color:#275fcc;cursor:pointer}
 #optykerCashOverlay .optykerCashSelectLine input:focus-visible{outline:3px solid #89b4ff;outline-offset:3px}
