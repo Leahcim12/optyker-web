@@ -14,8 +14,8 @@ shutil.copyfile(SOURCE,TARGET)
 
 header_old='<th>Totale</th><th>Stato SDI</th></tr></thead><tbody>'
 header_new='<th>Totale</th><th>Stato SDI</th><th>Azioni</th></tr></thead><tbody>'
-literal_old=r'''<td><span class=\"optykerDocsStatus '+statusClass(r.sdi_status)+'\">'+esc(r.sdi_status||'—')+'</span></td></tr>'});'''
-literal_new=r'''<td><span class=\"optykerDocsStatus '+statusClass(r.sdi_status)+'\">'+esc(r.sdi_status||'—')+'</span></td><td><button class=\"optykerInvoicePrintBtn\" type=\"button\" data-invoice-print=\"'+esc(r.id)+'\">Visualizza / Stampa</button></td></tr>'});'''
+invoice_tail="esc(r.sdi_status||'—')+'</span></td></tr>'});"
+invoice_tail_new="esc(r.sdi_status||'—')+'</span></td><td><button class=\"optykerInvoicePrintBtn\" type=\"button\" data-invoice-print=\"'+esc(r.id)+'\">Visualizza / Stampa</button></td></tr>'});"
 loader=f'<script id="optykerCustomerInvoicePrintJs" src="/customer-invoice-print.js?v={VERSION}"></script>'
 
 for path in HTMLS:
@@ -27,9 +27,9 @@ for path in HTMLS:
         if text.count(header_old)!=1:
             raise SystemExit(f'Customer invoice table header contract changed in {path}: {text.count(header_old)}')
         text=text.replace(header_old,header_new,1)
-        if text.count(literal_old)!=1:
-            raise SystemExit(f'Customer invoice row contract changed in {path}: {text.count(literal_old)}')
-        text=text.replace(literal_old,literal_new,1)
+        if text.count(invoice_tail)!=1:
+            raise SystemExit(f'Customer invoice SDI row contract changed in {path}: {text.count(invoice_tail)}')
+        text=text.replace(invoice_tail,invoice_tail_new,1)
     close=text.lower().rfind('</body>')
     if close<0:
         raise SystemExit(f'Closing body missing in {path}')
