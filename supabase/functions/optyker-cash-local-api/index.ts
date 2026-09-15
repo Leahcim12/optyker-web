@@ -5,7 +5,7 @@ import { purchaseIdentity, fiscalLines, paymentDocument } from "https://raw.gith
 const U=Deno.env.get('SUPABASE_URL')||'';
 const S=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
 const db=createClient(U,S,{auth:{autoRefreshToken:false,persistSession:false}});
-const LEGACY=U+'/functions/v1/optyker-cash-register-api';
+const LEGACY=U+'/functions/v1/optyker-cash-register-api-v2';
 const INVENTORY=U+'/functions/v1/optyker-inventory-api';
 const CORS={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'content-type, authorization','Access-Control-Allow-Methods':'POST,OPTIONS','Cache-Control':'no-store'};
 const out=(x:any,s=200)=>new Response(JSON.stringify(x),{status:s,headers:{...CORS,'Content-Type':'application/json; charset=utf-8'}});
@@ -93,12 +93,13 @@ async function applyInventory(body:any,sale:any,lines:any[],operator:string){
  if(movements.length<payload.length)warnings.push('Uno o più prodotti non risultano collegati al magazzino Optyker.');
  return {count:movements.length,warnings};
 }
+async function completeCart(sale:any,operator:string){const {data,error}=await db.rpc('optyker_complete_client_cart_sale',{p_sale_id:sale.id,p_operator:operator});if(error)throw new Error('Carrello da sincronizzare: usa Recupera incasso. '+error.message);return data}
 async function previous(body:any,requestId:string){
  if(!requestId)return null;
  const {data,error}=await db.from('optyker_pos_sales').select('*').eq('data->>checkout_request_id',requestId).maybeSingle();if(error)throw error;if(!data)return null;
  const {data:payments,error:pe}=await db.from('optyker_pos_payments').select('*').eq('sale_id',data.id).order('created_at');if(pe)throw pe;
  const warnings=await syncInventory(body,data.id).catch(e=>[e instanceof Error?e.message:String(e)]);
- return {...data,payment:payments?.[0]||null,recovered:true,shopify_order_created:false,inventory_warning:warnings.join(' · ')};
+ return {...data,client_cart:await completeCart(data,norm(body.username)),payment:payments?.[0]||null,recovered:true,shopify_order_created:false,inventory_warning:warnings.join(' · ')};
 }
 function stageLabel(v:string){return v==='deposit'?'Acconto':v==='delivery_balance'?'Saldo consegna':'Saldo'}
 async function invoiceDraft(sale:any,payment:any,client:any,operator:string,stage:string,method:string,amount:number){
@@ -133,16 +134,18 @@ async function checkout(body:any,operator:string){
  let lines:any[]=priced,snapshot:any=null;if(autoReceipt){lines=fiscalLines(priced,choices);snapshot=paymentDocument(lines,method,paidNow,0,identity,{ts,code:tsCode,opposition})}
  const requestHash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(p))))].map(v=>v.toString(16).padStart(2,'0')).join('');
  const channel=stockOnly?'physical_stock_only':autoReceipt?'physical_rch_receipt':invoiceRequested?'physical_invoice':'physical_pos_pending';
- const salePayload:any={client_id:client?.id||null,operator_username:operator,payment_stage:stage,payment_method:method,payment_status:paymentStatus,status:due>0?'open_balance':'completed',subtotal:total,discount_total:money(q.discount_total),total,paid_amount:paidNow,due_amount:due,currency:'EUR',shopify_draft_order_id:null,shopify_order_id:null,shopify_order_name:null,note:norm(p.note).slice(0,1000),invoice_requested:invoiceRequested,completed_at:due>0?null:new Date().toISOString(),delivered_at:stage==='delivery_balance'&&due===0?new Date().toISOString():null,data:{source:'optyker_pos_local',channel,shopify_order_created:false,stock_only:stockOnly,checkout_request_id:requestId,checkout_request_hash:requestHash,pricing,client_snapshot:client||null,fiscal_identity:identity,lines,payment_stage:stage,paid_now:paidNow,due_amount:due}};
+ const salePayload:any={client_id:client?.id||null,operator_username:operator,payment_stage:stage,payment_method:method,payment_status:paymentStatus,status:due>0?'open_balance':'completed',subtotal:total,discount_total:money(q.discount_total),total,paid_amount:paidNow,due_amount:due,currency:'EUR',shopify_draft_order_id:null,shopify_order_id:null,shopify_order_name:null,note:norm(p.note).slice(0,1000),invoice_requested:invoiceRequested,completed_at:due>0?null:new Date().toISOString(),delivered_at:stage==='delivery_balance'&&due===0?new Date().toISOString():null,data:{source:'optyker_pos_local',channel,shopify_order_created:false,stock_only:stockOnly,checkout_request_id:requestId,checkout_request_hash:requestHash,client_cart_selection:true,pricing,client_snapshot:client||null,fiscal_identity:identity,lines,payment_stage:stage,paid_now:paidNow,due_amount:due}};
  const {data:sale,error:se}=await db.from('optyker_pos_sales').insert(salePayload).select('*').single();if(se)throw se;
- let inventoryDone=false;
+ let inventoryDone=false,saleDone=false;
  try{
    const items=lines.map((x:any)=>({sale_id:sale.id,shopify_product_id:x.product_id||null,shopify_variant_id:x.catalog_id?'':(x.shopify_variant_id||x.variant_id||''),title:String(x.title||'Prodotto'),variant_title:String(x.variant_title||''),sku:String(x.sku||''),barcode:String(x.barcode||''),quantity:Number(x.quantity||1),unit_price:money(x.price),total:money(x.total??Number(x.price||0)*Number(x.quantity||1)),data:{image:x.image||'',vendor:x.vendor||'',product_type:x.product_type||'',catalog_id:x.catalog_id||null,inventory_item_id:x.inventory_item_id||null,fiscal_department:x.fiscal_department||null,fiscal_vat_code:x.fiscal_vat_code||'',fiscal_item_type:x.fiscal_item_type||'',quoted_unit_price:money(x.quoted_unit_price??x.price),manual_price_override:x.manual_price_override===true,shopify_order_created:false}}));
    const {error:ie}=await db.from('optyker_pos_sale_items').insert(items);if(ie)throw ie;
    let payment:any=null;if(paidNow>0){const {data,error:pe}=await db.from('optyker_pos_payments').insert({sale_id:sale.id,client_id:client?.id||null,operator_username:operator,payment_stage:stage,payment_method:method,amount:paidNow,currency:'EUR',invoice_requested:invoiceRequested,note:norm(p.note).slice(0,1000),data:{source:'optyker_pos_local',channel,shopify_order_id:'',shopify_order_name:'',shopify_order_created:false,fiscal_snapshot:snapshot}}).select('*').single();if(pe)throw pe;payment=data}
    const inventory=await applyInventory(body,sale,lines,operator);inventoryDone=true;
    let invoice:any=null,invoiceWarning='';if(invoiceRequested&&payment){try{invoice=await invoiceDraft(sale,payment,client,operator,stage,method,paidNow)}catch(e){invoiceWarning=e instanceof Error?e.message:String(e)}}
-   return {...sale,payment,billing_invoice:invoice,invoice_warning:invoiceWarning,shopify_order_created:false,stock_only:stockOnly,inventory_adjusted:inventory.count,inventory_warning:inventory.warnings.join(' · ')};
- }catch(e){if(!inventoryDone)await db.from('optyker_pos_sales').delete().eq('id',sale.id);else await db.from('optyker_pos_sales').update({status:'error',updated_at:new Date().toISOString()}).eq('id',sale.id);throw e}
+   saleDone=true;const client_cart=await completeCart(sale,operator);
+   return {...sale,client_cart,payment,billing_invoice:invoice,invoice_warning:invoiceWarning,shopify_order_created:false,stock_only:stockOnly,inventory_adjusted:inventory.count,inventory_warning:inventory.warnings.join(' · ')};
+ }catch(e){if(saleDone)throw e;if(!inventoryDone)await db.from('optyker_pos_sales').delete().eq('id',sale.id);else await db.from('optyker_pos_sales').update({status:'error',updated_at:new Date().toISOString()}).eq('id',sale.id);throw e}
 }
 Deno.serve(async(req:Request)=>{if(req.method==='OPTIONS')return new Response(null,{status:204,headers:CORS});if(req.method!=='POST')return out({ok:false,error:'METHOD_NOT_ALLOWED'},405);try{const body=await req.json().catch(()=>({})),operator=await auth(body);if(norm(body.action)!=='checkout')return out({ok:false,error:'Azione non riconosciuta'},400);return out({ok:true,data:await checkout(body,operator)})}catch(e){const m=e instanceof Error?e.message:String(e);return out({ok:false,error:m},/AUTH_REQUIRED|Credenziali/.test(m)?401:400)}});
+

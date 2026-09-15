@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import {auth,cleanLottery,CORS,missingStock,norm,out,productsV2,proxy,RELEASE} from './base.ts';
+import {auth,cleanLottery,db,CORS,missingStock,norm,out,productsV2,proxy,RELEASE} from './base.ts';
 import {checkoutStatusV2,createOrderRequest,customCheckout,deliveries,markDelivery,postZeroSale} from './actions.ts';
-import {clearClientCart,getClientCart,hasClientCartLine,quoteClientCartLines,saveClientCart} from './cart.ts';
+import {clearClientCart,completeClientCart,getClientCart,hasClientCartLine,quoteClientCartLines,saveClientCart} from './cart.ts';
 import {clientCartCheckout} from './cart-checkout.ts';
 
 function money(v:any){const n=Number(v||0);return Number.isFinite(n)?Math.round(n*100)/100:0}
@@ -44,9 +44,13 @@ Deno.serve(async req=>{
    if(persistent)sale=await clientCartCheckout(body,op,missing);
    else if(missing.length||lottery)sale=await customCheckout(body,op,missing);
    else {const x=await proxy(body);sale=await postZeroSale(body,x.data)}
-   if(p.client_id)await clearClientCart(p.client_id,op);
+   if(!sale.recovered&&!sale.data?.client_cart_selection){
+    const {error}=await db.from('optyker_pos_sales').update({data:{...(sale.data||{}),client_cart_selection:true}}).eq('id',sale.id);if(error)throw error;
+   }
+   sale.client_cart=await completeClientCart(sale.id,op);
    return out({ok:true,data:sale,release:RELEASE});
   }
   return out({...await proxy(body),release:RELEASE});
  }catch(e){const m=e instanceof Error?e.message:String(e);return out({ok:false,error:m},m==="AUTH_REQUIRED"?401:400)}
 });
+

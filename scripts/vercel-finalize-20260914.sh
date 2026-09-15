@@ -62,4 +62,7 @@ test -s _site/rch-connector/Aggiorna-RCH-POS.bat
 test -s _site/rch-connector/Aggiorna-RCH-POS.ps1
 grep -q 'zeroReceipt=\$true' _site/rch-connector/Aggiorna-RCH-POS.ps1
 grep -q 'Comando di chiusura fiscale non consentito' _site/rch-connector/Aggiorna-RCH-POS.ps1
+python scripts/apply_cash_cart_selection.py
+node --check _site/cash-register.js
+node --test tests/cash-cart-selection.test.mjs
 echo 'Optyker final production patches OK'
