@@ -33,8 +33,12 @@ set search_path='pg_catalog'
 as $$
 declare s text;
 begin
-  s:=replace(replace(coalesce(p_value,''),chr(160),''),',','.');
-  s:=regexp_replace(s,'[^0-9.\-]','','g');
+  s:=replace(coalesce(p_value,''),chr(160),'');
+  s:=regexp_replace(s,'[^0-9,\.\-]','','g');
+  if position(',' in s)>0 then
+    s:=replace(s,'.','');
+    s:=replace(s,',','.');
+  end if;
   if s='' or s='-' or s='.' then return 0; end if;
   begin return round(s::numeric,2); exception when others then return 0; end;
 end;
@@ -149,6 +153,8 @@ begin
   return n1+n2;
 end;
 $$;
+revoke all on function public.optyker_work_orders_auto_advance() from public, anon, authenticated;
+grant execute on function public.optyker_work_orders_auto_advance() to service_role;
 
 create or replace function public.optyker_api(p_username text,p_password text,p_action text,p_payload jsonb default '{}'::jsonb)
 returns jsonb
