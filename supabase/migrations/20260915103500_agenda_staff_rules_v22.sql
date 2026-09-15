@@ -265,8 +265,8 @@ begin
   from pg_proc p join pg_namespace n on n.oid=p.pronamespace
   where n.nspname='public' and p.proname='optyker_staff_schedule_api' limit 1;
   if d is null then raise exception 'optyker_staff_schedule_api missing'; end if;
-  if position("'fair'" in d)=0 then
-    patched:=replace(d,"('work','sick','vacation','rest','permission','other')","('work','sick','vacation','rest','permission','fair','other')");
+  if position($needle$'fair'$needle$ in d)=0 then
+    patched:=replace(d,$old$('work','sick','vacation','rest','permission','other')$old$,$new$('work','sick','vacation','rest','permission','fair','other')$new$);
     if patched=d then raise exception 'Unable to patch fair status into optyker_staff_schedule_api'; end if;
     execute patched;
   end if;
