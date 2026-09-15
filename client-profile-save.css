@@ -21,7 +21,16 @@
     cursor:default!important;
   }
   #mainApp #clientsPanel .optykerAgeField span,
-  #mainApp #clientsPanel .optykerBirthPlaceField span {font-weight:650!important}
+  #mainApp #clientsPanel .optykerBirthPlaceField span,
+  #mainApp #clientsPanel .optykerSexField span {font-weight:650!important}
+  #mainApp #clientsPanel #optykerSexMainInput {font-weight:800!important;text-align:center!important}
+  #mainApp #clientsPanel #optykerFiscalAutofillStatus {
+    display:block;margin-top:6px;font-size:10px;line-height:1.35;font-weight:650;color:#61788c;text-transform:none;letter-spacing:0;
+  }
+  #mainApp #clientsPanel #optykerFiscalAutofillStatus[data-state="ok"] {color:#237244}
+  #mainApp #clientsPanel #optykerFiscalAutofillStatus[data-state="bad"] {color:#a32b2b}
+  #mainApp #clientsPanel #optykerFiscalAutofillStatus[data-state="warn"] {color:#8a5b08}
+  #mainApp #clientsPanel #optykerFiscalAutofillStatus[data-state="loading"] {color:#1769aa}
   @media(max-width:600px) {
     #mainApp #clientsPanel #optykerClientSaveBar {gap:10px;padding:12px!important;top:4px}
     #mainApp #clientsPanel #optykerClientSaveButton {padding:10px 12px!important;max-width:48%;white-space:normal}
