@@ -35,9 +35,15 @@ jobs:
       - name: Ripara inserimento appuntamenti Agenda
         run: |
           python scripts/patch_agenda_auto_studio_20260915.py
+          python scripts/patch_agenda_staff_rules_20260915.py
           python scripts/check_desktop_html.py
           grep -q "OPTYKER_AGENDA_AUTO_STUDIO_20260915" _site/index.html
           grep -q "autoStudio" _site/index.html
+          grep -q "OPTYKER_AGENDA_STAFF_RULES_20260915" _site/index.html
+          grep -q "oaPrivateNotes" _site/index.html
+          grep -q "oaV10ForceOccupied" _site/index.html
+          grep -q "Fiera / trasferta" _site/index.html
+          grep -q "almeno email oppure telefono" _site/index.html
 
       - name: Carrello cliente e ordini Laboratorio
         run: |
