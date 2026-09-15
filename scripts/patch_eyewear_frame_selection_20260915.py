@@ -8,6 +8,12 @@ FILES = [
     Path('_site/gestionale-v3/index.html'),
 ]
 
+def excerpt(text, needle, radius=900):
+    pos = text.find(needle)
+    if pos < 0:
+        return ''
+    return text[max(0, pos-radius):min(len(text), pos+len(needle)+radius)].replace('\n', ' ')
+
 for path in FILES:
     if not path.exists():
         raise SystemExit(f'Frame selection: missing {path}')
@@ -20,6 +26,11 @@ for path in FILES:
     elif bad_count == 0 and good_count == 1:
         pass
     else:
+        if path.name == 'index.html' and path.parent.name == '_site':
+            for needle in ('eyFrameSearchResults', 'eyFrameWarehouseSearch', 'Cerca montatura', 'frameResults', 'selectFrame', 'Montatura selezionata'):
+                sample = excerpt(text, needle)
+                if sample:
+                    print('FRAME_DIAG', needle, sample)
         raise SystemExit(
             f'Frame selection: unexpected renderer state in {path}: '
             f'bad={bad_count}, good={good_count}'
