@@ -1,18 +1,12 @@
 from pathlib import Path
 
-BAD = "data-ey-frame=\\\"'+i+'>"
-GOOD = "data-ey-frame=\\\"'+i+'\\\">"
+BAD = "data-ey-frame=\"'+i+'>"
+GOOD = "data-ey-frame=\"'+i+'\">"
 FILES = [
     Path('_site/index.html'),
     Path('_site/gestionale-v2/index.html'),
     Path('_site/gestionale-v3/index.html'),
 ]
-
-def excerpt(text, needle, radius=900):
-    pos = text.find(needle)
-    if pos < 0:
-        return ''
-    return text[max(0, pos-radius):min(len(text), pos+len(needle)+radius)].replace('\n', ' ')
 
 for path in FILES:
     if not path.exists():
@@ -26,11 +20,6 @@ for path in FILES:
     elif bad_count == 0 and good_count == 1:
         pass
     else:
-        if path.name == 'index.html' and path.parent.name == '_site':
-            for needle in ('eyFrameSearchResults', 'eyFrameWarehouseSearch', 'Cerca montatura', 'frameResults', 'selectFrame', 'Montatura selezionata'):
-                sample = excerpt(text, needle)
-                if sample:
-                    print('FRAME_DIAG', needle, sample)
         raise SystemExit(
             f'Frame selection: unexpected renderer state in {path}: '
             f'bad={bad_count}, good={good_count}'
@@ -44,5 +33,9 @@ for path in FILES:
     for field in ('eyFrameBrand', 'eyFrameModel', 'eyFrameColor', 'eyFramePrice', 'eyFrameBarcode', 'eyFrameSku'):
         if field not in check:
             raise SystemExit(f'Frame selection: target field {field} missing in {path}')
+
+root = FILES[0].read_bytes()
+if any(path.read_bytes() != root for path in FILES[1:]):
+    raise SystemExit('Frame selection: desktop aliases differ after patch')
 
 print('Eyewear frame search results are selectable and populate the quote/job fields')
