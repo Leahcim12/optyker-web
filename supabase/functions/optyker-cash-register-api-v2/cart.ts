@@ -56,5 +56,12 @@ export async function quoteClientCartLines(clientId:any,linesIn:any[]){
  return out;
 }
 
-
-export async function completeClientCart(saleId:string,operator:string){const {data,error}=await db.rpc('optyker_complete_client_cart_sale',{p_sale_id:saleId,p_operator:operator});if(error)throw error;return data}
+export async function completeClientCart(saleId:string,operator:string){
+ const id=norm(saleId);if(!UUID.test(id))throw new Error('Vendita non valida');
+ const {data:sale,error:se}=await db.from('optyker_pos_sales').select('id,client_id,delivered_at').eq('id',id).maybeSingle();if(se)throw se;if(!sale?.client_id)return null;
+ const clientId=cleanClientId(sale.client_id);await assertClient(clientId);
+ // Payment and delivery are separate states: deposits and balances never consume the cart.
+ if(!sale.delivered_at)return await rowFor(clientId);
+ const {data,error}=await db.rpc('optyker_complete_client_cart_sale',{p_sale_id:id,p_operator:operator});if(error)throw error;
+ return data||await rowFor(clientId);
+}
