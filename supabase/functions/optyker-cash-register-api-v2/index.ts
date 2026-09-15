@@ -1,8 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {auth,cleanLottery,CORS,missingStock,norm,out,productsV2,proxy,RELEASE} from './base.ts';
 import {checkoutStatusV2,createOrderRequest,customCheckout,deliveries,markDelivery,postZeroSale} from './actions.ts';
-import {clearClientCart,getClientCart,hasClientCartLine,saveClientCart} from './cart.ts';
+import {clearClientCart,getClientCart,hasClientCartLine,quoteClientCartLines,saveClientCart} from './cart.ts';
 import {clientCartCheckout} from './cart-checkout.ts';
+
+function money(v:any){const n=Number(v||0);return Number.isFinite(n)?Math.round(n*100)/100:0}
+function isClientCartId(v:any){return norm(v).startsWith('client_cart:')}
 
 Deno.serve(async req=>{
  if(req.method==="OPTIONS")return new Response(null,{status:204,headers:CORS});
@@ -10,6 +13,24 @@ Deno.serve(async req=>{
  try{
   const body=await req.json().catch(()=>({})),action=norm(body.action),p=body.payload||{};
   if(action==="products")return out({ok:true,...await productsV2(body)});
+  if(action==="quote_lines"){
+   await auth(body);
+   const lines=Array.isArray(p.lines)?p.lines:[];
+   const locked=lines.filter((x:any)=>isClientCartId(x?.variant_id));
+   const normal=lines.filter((x:any)=>!isClientCartId(x?.variant_id));
+   const base=await proxy({...body,payload:{...p,lines:normal}}),baseData=base.data||{};
+   const lockedQuoted=locked.length?await quoteClientCartLines(p.client_id,locked):[];
+   const normalQuoted=Array.isArray(baseData.lines)?baseData.lines:[];
+   const byId=new Map([...normalQuoted,...lockedQuoted].map((x:any)=>[String(x.variant_id||x.catalog_id||''),x]));
+   const ordered=lines.map((x:any)=>{
+    const id=String(x?.variant_id||'');
+    return byId.get(id)||byId.get(String(x?.catalog_id||''));
+   }).filter(Boolean);
+   if(ordered.length!==lines.length)throw new Error('Un articolo del carrello non è più disponibile. Ricarica la Cassa.');
+   const listTotal=money(ordered.reduce((s:number,x:any)=>s+Number(x.list_price??x.price||0)*Number(x.quantity||1),0));
+   const total=money(ordered.reduce((s:number,x:any)=>s+Number(x.price||0)*Number(x.quantity||1),0));
+   return out({ok:true,data:{...baseData,lines:ordered,list_total:listTotal,discount_total:money(listTotal-total),total},release:RELEASE});
+  }
   if(action==="checkout_status"){await auth(body);return out({ok:true,data:await checkoutStatusV2(body),release:RELEASE})}
   if(action==="client_cart_get"){await auth(body);return out({ok:true,data:await getClientCart(body),release:RELEASE})}
   if(action==="client_cart_save"){const op=await auth(body);return out({ok:true,data:await saveClientCart(body,op),release:RELEASE})}
