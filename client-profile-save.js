@@ -156,7 +156,8 @@
     var payload = window.cloudClientPayload(m);
     payload.fiscal = String(payload.fiscal || '').replace(/\s+/g, '').toUpperCase();
     if (id) payload.id = id; else delete payload.id;
-    var view = generation, sent = snapshot(), frozen = controls().map(function (x) { return {node:x, disabled:x.disabled}; });
+    var freezeControls = controls(); if (place) freezeControls.push(place);
+    var view = generation, sent = snapshot(), frozen = freezeControls.map(function (x) { return {node:x, disabled:x.disabled}; });
     frozen.forEach(function (x) { x.node.disabled = true; });
     tell('Salvataggio…', 'saving');
     pending = Promise.resolve().then(function () { return window.cloudApi('save_client', payload); }).then(function (result) {
