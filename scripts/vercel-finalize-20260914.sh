@@ -8,6 +8,7 @@ python scripts/patch_agenda_auto_studio_20260915.py
 python scripts/patch_agenda_staff_rules_20260915.py
 python scripts/prepare_order_cart_lab_20260915.py
 python scripts/patch_order_cart_lab_20260915.py
+python scripts/patch_eyewear_frame_selection_20260915.py
 python scripts/patch_public_asset_paths.py
 python scripts/check_desktop_html.py
 node --check _site/admin-cash-closure.js
@@ -32,6 +33,12 @@ grep -q 'almeno email oppure telefono' _site/index.html
 grep -q '__OPTYKER_CLIENT_CART_PERSISTENCE_V1__' _site/cash-register.js
 grep -q 'OPTYKER_ORDER_CART_LAB_20260915' _site/index.html
 grep -q 'Pronto per la consegna' _site/index.html
+grep -Fq 'data-ey-frame=\"' _site/index.html
+if grep -Fq "data-ey-frame=\\\"'+i+'>" _site/index.html; then
+  echo 'Eyewear frame selection renderer is still malformed' >&2
+  exit 1
+fi
+grep -Fq "selectFrame(Number(this.getAttribute('data-ey-frame')))" _site/index.html
 test -s _site/rch-connector/Aggiorna-RCH-POS.bat
 test -s _site/rch-connector/Aggiorna-RCH-POS.ps1
 grep -q 'zeroReceipt=\$true' _site/rch-connector/Aggiorna-RCH-POS.ps1
