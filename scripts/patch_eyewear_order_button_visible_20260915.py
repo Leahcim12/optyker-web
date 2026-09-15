@@ -1,6 +1,7 @@
 from pathlib import Path
 import hashlib
 import json
+import os
 import re
 
 ROOT = Path('_site')
@@ -72,10 +73,16 @@ for needle in required:
 if "b.hidden=!job" in check:
     raise SystemExit('Ordina lenti risulta ancora nascosto dalla modalità documento')
 
+asset_base = '/'
+if os.environ.get('GITHUB_PAGES', '').lower() == 'true':
+    repo = os.environ.get('GITHUB_REPOSITORY', 'Leahcim12/optyker-web').split('/')[-1]
+    if not re.fullmatch(r'[A-Za-z0-9_.-]+', repo):
+        raise SystemExit('Invalid GitHub Pages repository path')
+    asset_base += repo+'/'
 for rel in ('index.html', 'gestionale-v2/index.html', 'gestionale-v3/index.html'):
     page = ROOT/rel
     html = page.read_text(encoding='utf-8')
-    html, count = re.subn(r'(optyker-operations\.js)(?:\?[^"\s<>]*)?', r'\1?v=20260915-eyewear-send-order', html)
+    html, count = re.subn(r'src="[^"<>]*\boptyker-operations\.js(?:\?[^"<>]*)?"', 'src="'+asset_base+'optyker-operations.js?v=20260915-eyewear-send-order"', html)
     if count != 1:
         raise SystemExit('Loader operazioni mancante o duplicato: '+rel)
     page.write_text(html, encoding='utf-8')

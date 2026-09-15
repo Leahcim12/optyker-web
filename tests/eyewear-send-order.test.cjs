@@ -14,6 +14,21 @@ function source(file) {
 }
 const flush = () => new Promise(resolve => setImmediate(resolve));
 
+test('built entry points load each current sheet module exactly once', {skip:process.env.OPTYKER_BUILT!=='1'}, () => {
+  const manifest=JSON.parse(fs.readFileSync(path.join(root,'_site/client-sheets-version.json'),'utf8'));
+  for(const entry of ['index.html','gestionale-v2/index.html','gestionale-v3/index.html']){
+    const dom=new JSDOM(fs.readFileSync(path.join(root,'_site',entry),'utf8'));
+    for(const [id,prefix] of [['optykerClientSheetActionsJs','client-sheet-actions.'],['optykerClientSheetEditJs','client-sheet-edit.'],['optykerClientSheetActionsCss','client-sheet-actions.']]){
+      const nodes=dom.window.document.querySelectorAll('#'+id);assert.equal(nodes.length,1,entry+': '+id);
+      const attr=id.endsWith('Css')?'href':'src',filename=nodes[0].getAttribute(attr).split('/').pop();
+      assert(filename.startsWith(prefix));assert(manifest.assets[filename],entry+': stale '+filename);
+    }
+    const operations=dom.window.document.querySelectorAll('#optykerOperationsJs');assert.equal(operations.length,1);
+    assert.equal(operations[0].getAttribute('src'),'/optyker-operations.js?v=20260915-eyewear-send-order');
+    dom.window.close();
+  }
+});
+
 function setup(t) {
   const dom = new JSDOM('<!doctype html><html><head></head><body><section id="clientsPanel"><div id="clientAnagraficaSection"></div><nav id="clientPageNav"></nav></section></body></html>', {url:'https://optyker.test/',runScripts:'outside-only',pretendToBeVisual:true});
   t.after(() => dom.window.close());
