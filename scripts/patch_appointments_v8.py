@@ -19,7 +19,20 @@ script=r'''<script id="optykerAppointmentsV8Js">(function(){/* OPTYKER_APPOINTME
 function E(i){return document.getElementById(i)}
 function apply(){
   var filter=E('oaStudioFilter');if(filter){filter.value='';filter.style.setProperty('display','none','important')}
-  var studio=E('oaStudio');if(studio){studio.value='';var f=studio.closest('.oaF');if(f)f.classList.add('oaUnifiedStudioHidden')}
+  var studio=E('oaStudio');if(studio){
+    var f=studio.closest('.oaF');if(f)f.classList.add('oaUnifiedStudioHidden');
+    /* Lo studio e' nascosto perche' l'agenda e' unica, ma la logica V20/V21
+       richiede comunque una scelta prima di abilitare Conferma appuntamento.
+       Se esiste almeno uno studio libero, seleziona automaticamente il primo
+       e genera lo stesso change che avrebbe fatto l'operatore a mano. */
+    if(!studio.disabled&&!studio.value&&studio.options&&studio.options.length>1){
+      var first='';for(var i=0;i<studio.options.length;i++){if(String(studio.options[i].value||'')!==''){first=studio.options[i].value;break}}
+      if(first!==''){
+        studio.value=first;
+        try{studio.dispatchEvent(new Event('change',{bubbles:true}))}catch(e){if(typeof studio.onchange==='function')studio.onchange()}
+      }
+    }
+  }
   document.querySelectorAll('#oaRules .avStudio').forEach(function(sel){sel.value='';var f=sel.closest('.oaAvailField');if(f)f.classList.add('oaUnifiedRuleStudioHidden')});
   var panel=E('optykerAppointmentsPanel');if(panel&&!E('oaUnifiedAgendaNoteV8')){var mode=E('oaCalendarModeV7')||panel.querySelector('.oaToolbar');if(mode){var n=document.createElement('div');n.id='oaUnifiedAgendaNoteV8';n.className='oaUnifiedAgendaNoteV8';n.textContent='Agenda unica: per i servizi che richiedono uno studio, Optyker assegna automaticamente Studio 1 o Studio 2. Quando entrambi sono occupati, quella fascia non accetta altri appuntamenti.';mode.insertAdjacentElement('afterend',n)}}
   var rules=E('oaRules');if(rules){var h=rules.previousElementSibling,txt='Scegli servizio, uno o più giorni della settimana, orario e intervallo. L’agenda è unica e usa automaticamente il primo studio libero tra Studio 1 e Studio 2.';if(h&&h.classList.contains('oaHelp')&&h.textContent!==txt)h.textContent=txt}
@@ -38,6 +51,6 @@ b=s.rfind('</body>')
 if b<0: raise SystemExit('body non trovato')
 s=s[:b]+script+s[b:]
 p.write_text(s,encoding='utf-8')
-if MARK not in s or 'Agenda unica' not in s or 'oaUnifiedRuleStudioHidden' not in s:
+if MARK not in s or 'Agenda unica' not in s or 'oaUnifiedRuleStudioHidden' not in s or "dispatchEvent(new Event('change'" not in s:
     raise SystemExit('Agenda V8 non inserita')
 print('Appointments V8 unified two-studio agenda OK')
