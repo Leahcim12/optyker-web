@@ -1,4 +1,7 @@
 from pathlib import Path
+import hashlib
+import json
+import re
 
 ROOT = Path('_site')
 ops = ROOT/'optyker-operations.js'
@@ -43,6 +46,9 @@ if MARK not in s:
         raise SystemExit('Chiusura runtime operazioni non trovata')
     s = s[:close] + "window.OPTYKER_EYEWEAR_ORDER_BUTTON_VISIBLE='20260915-order-button2';/* "+MARK+" */\n" + s[close:]
 
+s = s.replace("b.textContent=orderBusy?'Ordino…':'Ordina lenti'", "b.textContent=orderBusy?'Invio in corso…':($('eyModeJob')?.classList.contains('active')?'Invia ordine':'Ordina lenti')")
+s = s.replace("b.textContent='Ordina lenti';b.onclick=()=>sendOrder(r)", "b.textContent=r.sheet_type==='eyewear_job'?'Invia ordine':'Ordina lenti';b.onclick=()=>sendOrder(r)")
+
 ops.write_text(s, encoding='utf-8')
 check = ops.read_text(encoding='utf-8')
 required = [
@@ -55,7 +61,8 @@ required = [
     "b.onclick=()=>sendOrder()",
     "b.hidden=false;b.disabled=orderBusy",
     "function tick(){ensureOrderButton();if(!logged()){",
-    "b.textContent=orderBusy?'Ordino…':'Ordina lenti'",
+    "b.textContent=orderBusy?'Invio in corso…':",
+    "?'Invia ordine':'Ordina lenti'",
 ]
 for needle in required:
     if needle not in check:
@@ -64,5 +71,18 @@ for needle in required:
 # Do not reintroduce the old Busta-only visibility rule.
 if "b.hidden=!job" in check:
     raise SystemExit('Ordina lenti risulta ancora nascosto dalla modalità documento')
+
+for rel in ('index.html', 'gestionale-v2/index.html', 'gestionale-v3/index.html'):
+    page = ROOT/rel
+    html = page.read_text(encoding='utf-8')
+    html, count = re.subn(r'(optyker-operations\.js)(?:\?[^"\s<>]*)?', r'\1?v=20260915-eyewear-send-order', html)
+    if count != 1:
+        raise SystemExit('Loader operazioni mancante o duplicato: '+rel)
+    page.write_text(html, encoding='utf-8')
+manifest = ROOT/'operations-version.json'
+if manifest.exists():
+    data = json.loads(manifest.read_text())
+    data['assets']['optyker-operations.js'] = hashlib.sha256(ops.read_bytes()).hexdigest()
+    manifest.write_text(json.dumps(data, indent=2)+'\n')
 
 print('Occhiali: Ordina lenti viene creato e collegato stabilmente nei comandi finali')

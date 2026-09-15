@@ -49,7 +49,7 @@ grep -Fq "selectFrame(Number(this.getAttribute('data-ey-frame')))" _site/index.h
 grep -Fq "OPTYKER_EYEWEAR_ORDER_BUTTON_VISIBLE_20260915" _site/optyker-operations.js
 grep -Fq "b.className='eyBtn primary'" _site/optyker-operations.js
 grep -Fq "b.onclick=()=>sendOrder()" _site/optyker-operations.js
-grep -Fq "b.textContent=orderBusy?'Ordino…':'Ordina lenti'" _site/optyker-operations.js
+grep -Fq "?'Invia ordine':'Ordina lenti'" _site/optyker-operations.js
 grep -Fq "function tick(){ensureOrderButton();if(!logged()){" _site/optyker-operations.js
 if grep -Fq "b.hidden=!job" _site/optyker-operations.js; then
   echo 'Eyewear order button is still Busta-only hidden' >&2

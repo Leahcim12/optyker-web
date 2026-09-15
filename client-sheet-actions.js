@@ -1,7 +1,7 @@
 /* Customer-scoped sheet actions. Every read/write is authorized by the server RPC. */
 (function(){
 'use strict';if(window.OPTYKER_CLIENT_SHEETS)return;
-const VERSION='20260911-client-sheets1',$=id=>document.getElementById(id);
+const VERSION='20260915-eyewear-send-order',$=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const currency=v=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(Number(v));
 const date=v=>v?new Date(v).toLocaleDateString('it-IT'):'—';
@@ -15,10 +15,10 @@ const total=s=>s.data?.pricing?.total??(type(s)==='lac'?(Number(s.data?.lacState
 const current=()=>String(window.clientCurrentId||'');
 const logged=()=>!!(window.optykerAuthenticated&&window.OPTYKER_CLOUD?.username&&window.OPTYKER_CLOUD?.password);
 let view=null,seq=0,previousClient='';
-async function rpc(action,payload){
+async function rpc(action,payload,endpoint='optyker_client_sheet_actions'){
  const c=window.OPTYKER_CLOUD||{},user=c.username,client=payload.client_id;
  if(!logged())throw Error('Accedi con un operatore autorizzato.');
- const r=await fetch(c.root+'/rest/v1/rpc/optyker_client_sheet_actions',{method:'POST',cache:'no-store',signal:AbortSignal.timeout(20000),headers:{'Content-Type':'application/json',apikey:c.key,Authorization:'Bearer '+c.key},body:JSON.stringify({p_username:c.username,p_password:c.password,p_action:action,p_payload:payload})});
+ const r=await fetch(c.root+'/rest/v1/rpc/'+endpoint,{method:'POST',cache:'no-store',signal:AbortSignal.timeout(20000),headers:{'Content-Type':'application/json',apikey:c.key,Authorization:'Bearer '+c.key},body:JSON.stringify({p_username:c.username,p_password:c.password,p_action:action,p_payload:payload})});
  const x=await r.json();if(!r.ok||!x?.ok)throw Error(x?.error||'Operazione non riuscita');
  if(!logged()||window.OPTYKER_CLOUD.username!==user||current()!==client)throw Error('Cliente o sessione cambiati: riapri la scheda corretta.');return x;
 }
@@ -46,11 +46,35 @@ function render(v){
  v.d.querySelectorAll('[data-cs-filter]').forEach(b=>b.classList.toggle('active',b.dataset.csFilter===v.filter));
  const rows=v.rows.filter(s=>v.filter==='all'||v.filter==='quotes'&&isQuote(s)||v.filter==='eyewear'&&isEye(s));
  const box=v.d.querySelector('[data-cs-body]');
- box.innerHTML=rows.length?rows.map(s=>'<article class="csRow '+(isQuote(s)?'csQuote':'')+'" data-cs-id="'+esc(s.id)+'"><div><span class="csType">'+esc((isQuote(s)?'Preventivo · ':'')+kind(s))+'</span><h3>'+esc(ref(s))+'</h3><p>'+esc(date(s.created_at))+' · '+esc(s.operator||'Operatore non indicato')+'</p>'+(s.converted_order?'<p class="csLinked">Trasformato nell’ordine '+esc(s.converted_order.reference)+'</p>':s.laboratory_order?'<p class="csLinked">In Laboratorio · '+esc(statusName(s.laboratory_order.status))+'</p>':'')+'</div>'+(total(s)!==null?'<strong class="csTotal">'+esc(currency(total(s)))+'</strong>':'')+'<div class="csActions"><button type="button" data-cs-open>Apri</button>'+(isQuote(s)?'<button type="button" data-cs-convert class="csPrimary">'+(s.converted_order?'Apri ordine':'Trasforma in ordine')+'</button>':'')+'<button type="button" data-cs-delete class="csDanger" '+(s.delete_blocked?'disabled title="Collegata a un ordine o a una garanzia"':'')+'>Elimina</button></div></article>').join(''):'<p class="csEmpty">Nessuna '+(v.filter==='quotes'?'preventivazione':v.filter==='eyewear'?'scheda Occhiali':'scheda')+' salvata per questo cliente.</p>';
- box.querySelectorAll('[data-cs-id]').forEach(el=>{const s=rows.find(r=>r.id===el.dataset.csId);el.querySelector('[data-cs-open]').onclick=()=>detail(v,s);el.querySelector('[data-cs-delete]').onclick=()=>remove(v,s);const c=el.querySelector('[data-cs-convert]');if(c)c.onclick=()=>convert(v,s);});
+ box.innerHTML=rows.length?rows.map(s=>'<article class="csRow '+(isQuote(s)?'csQuote':'')+'" data-cs-id="'+esc(s.id)+'"><div><span class="csType">'+esc((isQuote(s)?'Preventivo · ':'')+kind(s))+'</span><h3>'+esc(ref(s))+'</h3><p>'+esc(date(s.created_at))+' · '+esc(s.operator||'Operatore non indicato')+'</p>'+(s.converted_order?'<p class="csLinked">Trasformato nell’ordine '+esc(s.converted_order.reference)+'</p>':s.laboratory_order?'<p class="csLinked">In Laboratorio · '+esc(statusName(s.laboratory_order.status))+'</p>':'')+'</div>'+(total(s)!==null?'<strong class="csTotal">'+esc(currency(total(s)))+'</strong>':'')+'<div class="csActions"><button type="button" data-cs-open>Apri</button>'+(isQuote(s)?'<button type="button" data-cs-convert class="csPrimary">'+(s.converted_order?'Apri ordine':'Trasforma in ordine')+'</button>':'')+orderButton(s)+'<button type="button" data-cs-delete class="csDanger" '+(s.delete_blocked?'disabled title="Collegata a un ordine o a una garanzia"':'')+'>Elimina</button></div></article>').join(''):'<p class="csEmpty">Nessuna '+(v.filter==='quotes'?'preventivazione':v.filter==='eyewear'?'scheda Occhiali':'scheda')+' salvata per questo cliente.</p>';
+ box.querySelectorAll('[data-cs-id]').forEach(el=>{const s=rows.find(r=>r.id===el.dataset.csId);el.querySelector('[data-cs-open]').onclick=()=>detail(v,s);el.querySelector('[data-cs-delete]').onclick=()=>remove(v,s);const c=el.querySelector('[data-cs-convert]');if(c)c.onclick=()=>convert(v,s);bindOrderButtons(v,s,el);});
  feedback('Elimina richiede conferma. Le schede collegate a ordini o garanzie sono protette.');
 }
-const statusName=s=>({da_fare:'Da fare',in_preparazione:'In preparazione',costruzione:'In costruzione',in_spedizione:'In spedizione',completato:'Completato',annullato:'Annullato'}[s]||s||'');
+const statusName=s=>({da_fare:'Inserito',in_preparazione:'In preparazione',costruzione:'In lavorazione',in_spedizione:'In spedizione',pronto_consegna:'Pronto per la consegna',completato:'Consegnato',annullato:'Annullato'}[s]||s||'');
+function orderButton(s){
+ if(!isEye(s)||isQuote(s))return '';
+ return s.laboratory_order?'<button type="button" data-cs-lab>Apri Laboratorio</button>':'<button type="button" data-cs-send-order class="csPrimary">Invia ordine</button>';
+}
+function bindOrderButtons(v,s,el){
+ const send=el.querySelector('[data-cs-send-order]');if(send)send.onclick=()=>sendEyewearOrder(v,s);
+ const lab=el.querySelector('[data-cs-lab]');if(lab)lab.onclick=()=>{if(v.busy)return;close();window.openLaboratory?.();};
+}
+async function sendEyewearOrder(v,s){
+ if(view!==v||v.busy||current()!==v.cid||!isEye(s)||isQuote(s))return;
+ if(s.laboratory_order){close();window.openLaboratory?.();return;}
+ if(!confirm('Inviare '+ref(s)+' di '+v.name+' al Laboratorio?\n\nL’ordine userà i prodotti e i prezzi salvati in questa Busta.'))return;
+ v.busy=true;v.d.querySelectorAll('button').forEach(b=>b.disabled=true);feedback('Invio ordine in corso…');
+ try{
+  const x=await rpc('submit',{client_id:v.cid,source_sheet_id:s.id,updated_at:s.updated_at},'optyker_eyewear_order_api');
+  if(!x.data?.id)throw Error('Invio non confermato: premi Aggiorna per verificare lo stato della Busta.');
+  if(view!==v)return;
+  s.laboratory_order={id:x.data.id,reference:x.data.reference_code||ref(s),status:x.data.status};s.delete_blocked=true;
+  v.busy=false;v.d.querySelectorAll('nav button,[data-cs-close]').forEach(b=>b.disabled=false);cache(v.rows,v.cid);detail(v,s);
+  feedback((x.already_sent?'Ordine già presente in Laboratorio':'Ordine inviato al Laboratorio')+' · '+ref(s)+' · '+statusName(x.data.status));
+  window.dispatchEvent(new CustomEvent('optyker:sheet-order-created',{detail:{client_id:v.cid,sheet_id:s.id}}));
+  window.dispatchEvent(new CustomEvent('optyker:client-cart-updated',{detail:{client_id:v.cid}}));
+ }catch(e){if(view===v){v.busy=false;v.d.querySelectorAll('nav button,[data-cs-close]').forEach(b=>b.disabled=false);detail(v,s);feedback(errorText(e));}}
+}
 function fields(pairs){return '<dl>'+pairs.filter(([k,v])=>v!==null&&v!==undefined&&v!=='').map(([k,v])=>'<div><dt>'+esc(k)+'</dt><dd>'+esc(v)+'</dd></div>').join('')+'</dl>';}
 function sheetBody(s){
  const d=s.data||{},f=d.frame||{},l=d.lens||{},p=d.pricing||{},st=d.lacState||{};let h=fields([['Data',date(s.created_at)],['Riferimento',ref(s)],['Operatore',s.operator]]);
@@ -64,9 +88,9 @@ function sheetBody(s){
 }
 function detail(v,s){
  if(view!==v||v.busy)return;v.selected=s;v.d.classList.add('csDetail');
- const box=v.d.querySelector('[data-cs-body]');box.innerHTML='<div class="csDocument '+(isQuote(s)?'csQuote':'')+'"><h2>'+esc((isQuote(s)?'Preventivo ':s.document_type==='Busta'?'Busta ':'')+kind(s))+'</h2>'+sheetBody(s)+'</div><div class="csActions csBottom"><button type="button" data-cs-back>Torna all’elenco</button><button type="button" data-cs-print>Stampa</button>'+(!isEye(s)?'<button type="button" data-cs-editor>Apri nella scheda</button>':'')+(isQuote(s)?'<button type="button" data-cs-convert class="csPrimary">'+(s.converted_order?'Apri ordine':'Trasforma in ordine')+'</button>':'')+(s.laboratory_order?'<button type="button" data-cs-lab>Apri Laboratorio</button>':'')+'<button type="button" class="csDanger" data-cs-delete '+(s.delete_blocked?'disabled':'')+'>Elimina scheda</button></div>';
+ const box=v.d.querySelector('[data-cs-body]');box.innerHTML='<div class="csDocument '+(isQuote(s)?'csQuote':'')+'"><h2>'+esc((isQuote(s)?'Preventivo ':s.document_type==='Busta'?'Busta ':'')+kind(s))+'</h2>'+sheetBody(s)+'</div><div class="csActions csBottom"><button type="button" data-cs-back>Torna all’elenco</button><button type="button" data-cs-print>Stampa</button>'+(!isEye(s)?'<button type="button" data-cs-editor>Apri nella scheda</button>':'')+(isQuote(s)?'<button type="button" data-cs-convert class="csPrimary">'+(s.converted_order?'Apri ordine':'Trasforma in ordine')+'</button>':'')+orderButton(s)+(!isEye(s)&&s.laboratory_order?'<button type="button" data-cs-lab>Apri Laboratorio</button>':'')+'<button type="button" class="csDanger" data-cs-delete '+(s.delete_blocked?'disabled':'')+'>Elimina scheda</button></div>';
  box.querySelector('[data-cs-back]').onclick=()=>render(v);box.querySelector('[data-cs-print]').onclick=()=>print(v,s);box.querySelector('[data-cs-delete]').onclick=()=>remove(v,s);const cv=box.querySelector('[data-cs-convert]');if(cv)cv.onclick=()=>convert(v,s);
- const lab=box.querySelector('[data-cs-lab]');if(lab)lab.onclick=()=>{close();window.openLaboratory?.();};
+ bindOrderButtons(v,s,box);
  const edit=box.querySelector('[data-cs-editor]');if(edit)edit.onclick=()=>{cache(v.rows,v.cid);close();window.clientOpenVisitInEditor(s.id);};
  feedback(s.converted_order?'Ordine collegato: '+s.converted_order.reference:s.laboratory_order?'In Laboratorio: '+statusName(s.laboratory_order.status):'Dati del documento salvato.');
 }

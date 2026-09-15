@@ -36,7 +36,7 @@ try{
    if(file.startsWith(path.resolve('_site')+path.sep)&&fs.existsSync(file)&&fs.statSync(file).isFile())return route.fulfill({status:200,contentType:({'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.webp':'image/webp','.png':'image/png','.svg':'image/svg+xml'}[path.extname(file)]||'application/octet-stream'),body:fs.readFileSync(file)});
   }return route.continue();
  });
- await page.goto('https://www.optyker.it/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.OPTYKER_CLIENT_SHEETS?.version==='20260911-client-sheets1');
+ await page.goto('https://www.optyker.it/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.OPTYKER_CLIENT_SHEETS?.version==='20260915-eyewear-send-order');
  const operator=await page.locator('#optykerLoginOperator option').evaluateAll(a=>a.find(x=>/michael/i.test(x.value))?.value);await page.selectOption('#optykerLoginOperator',operator);await page.waitForTimeout(300);await page.fill('#optykerAuthPassword','SYNTHETIC_PASSWORD_NOT_REAL');await page.click('.optykerLoginButton');await page.waitForFunction(()=>window.optykerAuthenticated);
  await page.click('#navClients');await page.evaluate(({clients,cid,rows})=>{OPTYKER_CLOUD.clients=clients;OPTYKER_CLOUD.sheets[cid]=rows;clientSelect(cid);}, {clients,cid,rows});await page.waitForSelector('#clientSheetActionsDock');await page.waitForTimeout(1500);
  assert(await page.locator('#clientSheetActionsDock [data-cs-launch=quotes]').isVisible());assert(await page.locator('#clientSheetActionsDock [data-cs-launch=eyewear]').isVisible());report.checks.push('Anagrafica exposes Preventivi, Occhiali and Gestisci schede buttons');

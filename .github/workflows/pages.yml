@@ -50,6 +50,7 @@ jobs:
           python scripts/apply_cash_pos5.py
           python scripts/prepare_order_cart_lab_20260915.py
           python scripts/patch_order_cart_lab_20260915.py
+          python scripts/patch_eyewear_order_button_visible_20260915.py
           node --check _site/cash-register.js
           node --check _site/cash-pos5.js
           node --check _site/optyker-operations.js
