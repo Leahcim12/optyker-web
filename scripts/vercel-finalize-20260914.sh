@@ -10,7 +10,6 @@ python scripts/prepare_order_cart_lab_20260915.py
 python scripts/patch_order_cart_lab_20260915.py
 python scripts/patch_eyewear_frame_selection_20260915.py
 python scripts/patch_eyewear_order_button_visible_20260915.py
-python scripts/patch_cash_client_cart_route_20260915.py
 python scripts/patch_rch_relay_order_20260915.py
 python scripts/patch_public_asset_paths.py
 python scripts/check_desktop_html.py
@@ -37,9 +36,6 @@ grep -q 'almeno email oppure telefono' _site/index.html
 grep -q '__OPTYKER_CLIENT_CART_PERSISTENCE_V1__' _site/cash-register.js
 grep -q 'OPTYKER_ORDER_CART_LAB_20260915' _site/index.html
 grep -q 'Pronto per la consegna' _site/index.html
-grep -Fq 'OPTYKER_CLIENT_CART_ROUTE_20260915' _site/cash-register.js
-grep -Fq 'sameUrl(input,CASH_V2)' _site/cash-pos5.js
-grep -Fq 'cash-register.js?v=20260915-client-cart-route1' _site/index.html
 grep -Fq "selectFrame(Number(this.getAttribute('data-ey-frame')))" _site/index.html
 grep -Fq "OPTYKER_EYEWEAR_ORDER_BUTTON_VISIBLE_20260915" _site/optyker-operations.js
 grep -Fq "b.className='eyBtn primary'" _site/optyker-operations.js
