@@ -1,8 +1,14 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { CodiceFiscaleUtils } from "npm:@marketto/codice-fiscale-utils@3.1.3";
-import belfioreConnector from "npm:@marketto/belfiore-connector-embedded@1.2.1";
+import embeddedModule from "npm:@marketto/belfiore-connector-embedded@1.2.1";
 
-const cfUtils = new CodiceFiscaleUtils(belfioreConnector as any);
+const rawConnector:any=embeddedModule as any;
+const belfioreConnector:any=
+  (rawConnector && typeof rawConnector.findByCode==="function" ? rawConnector : null) ||
+  (rawConnector?.default && typeof rawConnector.default.findByCode==="function" ? rawConnector.default : null) ||
+  (rawConnector?.belfioreConnector && typeof rawConnector.belfioreConnector.findByCode==="function" ? rawConnector.belfioreConnector : null);
+if(!belfioreConnector)throw new Error("BELFIORE_CONNECTOR_NOT_AVAILABLE");
+const cfUtils = new CodiceFiscaleUtils(belfioreConnector);
 const CORS={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"GET,POST,OPTIONS","Cache-Control":"no-store"};
 const out=(x:unknown,s=200)=>new Response(JSON.stringify(x),{status:s,headers:{...CORS,"Content-Type":"application/json; charset=utf-8"}});
 
