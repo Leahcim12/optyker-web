@@ -2,7 +2,7 @@
 from pathlib import Path
 import hashlib,json,os,re
 root=Path(__file__).resolve().parent.parent;site=root/'_site';s=(site/'index.html').read_text()
-mfile=site/'client-sheets-version.json';m=json.loads(mfile.read_text());old=next(n for n in m['assets'] if n.endswith('.js'));j=(site/old).read_text()
+mfile=site/'client-sheets-version.json';m=json.loads(mfile.read_text());old=next(n for n in m['assets'] if n.startswith('client-sheet-actions.') and n.endswith('.js'));j=(site/old).read_text()
 anchor='window.OPTYKER_MATERIAL_CERTIFICATE?.attach(box,s);'
 delivery_call='window.OPTYKER_EYEWEAR_DELIVERY?.attach(box,s);'
 if delivery_call not in j:
