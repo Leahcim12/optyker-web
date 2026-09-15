@@ -4,11 +4,11 @@ from shutil import copyfile
 import re
 from apply_ts_connection import DocumentClosings
 
-VERSION = '20260913-profile1'
+VERSION = '20260915-profile2'
 root = Path('_site')
 page = root / 'index.html'
 text = page.read_text()
-for marker in ('id="clientAnagraficaSection"', 'clientSaveMetadata=function()', 'function cloudClientPayload('):
+for marker in ('id="clientAnagraficaSection"', 'id="clientDbBirth"', 'clientSaveMetadata=function()', 'function cloudClientPayload('):
     if marker not in text:
         raise SystemExit('Anagrafica save: existing cloud form missing: ' + marker)
 text = re.sub(r'<script[^>]*id="optykerClientProfileSaveJs"[^>]*></script>\s*', '', text)
