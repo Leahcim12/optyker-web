@@ -1,0 +1,57 @@
+name: Verifica compilazione automatica anagrafica
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'client-anagrafica-autofill.js'
+      - 'client-profile-save.css'
+      - 'scripts/apply_client_profile_save.py'
+      - 'supabase/functions/optyker-fiscal-code-decode/index.ts'
+      - '.github/workflows/client-anagrafica-autofill-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check browser script syntax
+        run: node --check client-anagrafica-autofill.js
+      - name: Run exact production build
+        run: bash scripts/vercel-build-v13.sh && bash scripts/vercel-finalize-20260914.sh
+      - name: Confirm fields and cache-busted asset in built Optyker
+        run: |
+          grep -q 'id="optykerClientAnagraficaAutofillJs"' _site/index.html
+          grep -q 'client-anagrafica-autofill.js?v=20260915-profile4' _site/index.html
+          grep -q 'Sesso (M/F)' _site/client-anagrafica-autofill.js
+          grep -q 'clientDbName' _site/client-anagrafica-autofill.js
+          grep -q 'clientDbSurname' _site/client-anagrafica-autofill.js
+          grep -q 'optyker-fiscal-code-decode' _site/client-anagrafica-autofill.js
+      - name: Verify live fiscal-code decoder with fictitious documented sample
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request, urllib.error
+          base='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-fiscal-code-decode'
+          with urllib.request.urlopen(base+'?cf=VRNGNY07D68C351V', timeout=20) as r:
+              x=json.load(r)
+          assert x.get('ok') is True, x
+          d=x.get('data') or {}
+          assert d.get('gender')=='F', d
+          assert str(d.get('birth_place','')).lower()=='catania', d
+          assert d.get('birth_place_code')=='C351', d
+          try:
+              urllib.request.urlopen(base+'?cf=VRNGNY07D68C351A', timeout=20)
+              raise AssertionError('invalid fiscal code unexpectedly accepted')
+          except urllib.error.HTTPError as e:
+              assert e.code==400, e.code
+              bad=json.loads(e.read().decode())
+              assert bad.get('ok') is False, bad
+          print('Fiscal-code decoder OK:', d.get('birth_place'), d.get('gender'), d.get('birth_place_code'))
+          PY
