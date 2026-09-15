@@ -27,7 +27,7 @@ Deno.serve(async req=>{
     return byId.get(id)||byId.get(String(x?.catalog_id||''));
    }).filter(Boolean);
    if(ordered.length!==lines.length)throw new Error('Un articolo del carrello non è più disponibile. Ricarica la Cassa.');
-   const listTotal=money(ordered.reduce((s:number,x:any)=>s+Number(x.list_price??x.price||0)*Number(x.quantity||1),0));
+   const listTotal=money(ordered.reduce((s:number,x:any)=>s+Number((x.list_price??x.price)||0)*Number(x.quantity||1),0));
    const total=money(ordered.reduce((s:number,x:any)=>s+Number(x.price||0)*Number(x.quantity||1),0));
    return out({ok:true,data:{...baseData,lines:ordered,list_total:listTotal,discount_total:money(listTotal-total),total},release:RELEASE});
   }
