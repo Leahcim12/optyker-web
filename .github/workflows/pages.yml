@@ -39,6 +39,19 @@ jobs:
           grep -q "OPTYKER_AGENDA_AUTO_STUDIO_20260915" _site/index.html
           grep -q "autoStudio" _site/index.html
 
+      - name: Carrello cliente e ordini Laboratorio
+        run: |
+          python scripts/apply_cash_pos5.py
+          python scripts/patch_order_cart_lab_20260915.py
+          node --check _site/cash-register.js
+          node --check _site/cash-pos5.js
+          node --check _site/optyker-operations.js
+          python scripts/check_desktop_html.py
+          grep -q "__OPTYKER_CLIENT_CART_PERSISTENCE_V1__" _site/cash-register.js
+          grep -q "OPTYKER_ORDER_CART_LAB_20260915" _site/index.html
+          grep -q "Pronto per la consegna" _site/index.html
+          grep -q "optykerCashPos5Js" _site/index.html
+
       - name: Pubblica connettore RCH e relay iPad
         run: |
           mkdir -p _site/rch-connector
