@@ -239,3 +239,9 @@ grep -q 'Il connettore fiscale attuale NON verra modificato' _site/rch-connector
 python scripts/check_desktop_html.py
 
 echo "Optyker Vercel interaction guard + RCH Cloud4 build OK"
+
+# Shared oculists and prescription metadata, after the existing sheet editors.
+node --check prescription-ophthalmic.js
+python scripts/apply_prescription_ophthalmic.py
+python scripts/patch_public_asset_paths.py
+verify_desktop_aliases
