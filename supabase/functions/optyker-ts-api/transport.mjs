@@ -7,6 +7,7 @@ export const KIT_SHA256='02cbcdb02702fcc3dad2d157de64dcf0d3b591639792bdf1ba2d0b7
 export const TRANSPORT_VERSION='20260913-ts3';
 const SOAP='http://schemas.xmlsoap.org/soap/envelope/';
 export const SERVICES=Object.freeze({
+  cancel:{path:'/DocumentoSpesa730pWeb/DocumentoSpesa730pPort',ns:'http://documentospesap730.sanita.finanze.it',request:'cancellazioneDocumentoSpesaRequest',response:'cancellazioneDocumentoSpesaResponse',action:'cancellazione.documentospesap730.sanita.finanze.it'},
   insert:{path:'/DocumentoSpesa730pWeb/DocumentoSpesa730pPort',ns:'http://documentospesap730.sanita.finanze.it',request:'inserimentoDocumentoSpesaRequest',response:'inserimentoDocumentoSpesaResponse',action:'inserimento.documentospesap730.sanita.finanze.it'},
   query:{path:'/InterrogazionePuntuale730Web/InterrogazionePuntuale730Port',ns:'http://interrogazionepuntuale.p730.sanita.finanze.it',request:'interrogazionePuntualeRequest',response:'interrogazionePuntualeResponse',action:''},
   verify:{path:'/ReportMensile730Web/ReportMensilePort',ns:'http://reportmensile.p730.sanita.finanze.it',request:'reportMensileRequest',response:'reportMensileResponse',action:''},
@@ -75,6 +76,10 @@ export function buildRequest(kind,c,{document:d,protocol,month}={},encrypt=encry
       if(!/^20\d{2}(0[1-9]|1[0-2])$/.test(month||''))throw new Error('TS_INVALID_DOCUMENT');
       body+=tag('annoMese',month)+tag('tipoEstrazione','I');
     } else if(kind==='query') body+='<t:idDocumentoFiscale>'+identity(d,c)+'</t:idDocumentoFiscale>';
+    else if(kind==='cancel') {
+      validateDocument(d);
+      body+='<t:idCancellazioneDocumentoFiscale>'+identity(d,c)+'</t:idCancellazioneDocumentoFiscale>';
+    }
     else {
       validateDocument(d);
       body+='<t:idInserimentoDocumentoFiscale><t:idSpesa>'+identity(d,c)+'</t:idSpesa>'+tag('dataPagamento',d.paymentDate);

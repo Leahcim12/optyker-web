@@ -33,7 +33,7 @@
     return '<label for="' + id + '">' + label + '<input id="' + id + '" name="' + id + '" value="' + esc(value) + '" ' + (attrs || '') + '></label>';
   }
   function queueHtml(rows, ready) {
-    var labels={awaiting_configuration:'Da inviare',sending:'Invio in corso',submitted:'Protocollo ricevuto · verifica esito',uncertain:'Esito da verificare',accepted:'Accettato dal Sistema TS',rejected:'Scartato dal Sistema TS',held_for_void:'Sospeso per annullo RCH',voided:'Annullato · escluso dagli invii'};
+    var labels={awaiting_configuration:'Da inviare',sending:'Invio in corso',submitted:'Protocollo ricevuto · verifica esito',uncertain:'Esito da verificare',ts_cancelled:'Spesa cancellata dal TS · annullo RCH da eseguire',accepted:'Accettato dal Sistema TS',rejected:'Scartato dal Sistema TS',held_for_void:'Sospeso per annullo RCH',voided:'Annullato · escluso dagli invii'};
     return '<section><h3>Spese da scontrini RCH</h3><p>I nuovi scontrini con righe TS vengono trasmessi dopo la conferma di numero e data. I documenti già in coda si inviano singolarmente da qui.</p>' +
       (!rows.length?'<p>Nessun documento in coda.</p>':'<div class="otsTable"><table><thead><tr><th>Documento</th><th>Importo TS</th><th>Esito</th><th>Azioni</th></tr></thead><tbody>'+rows.map(function(r){
         var button=function(action,label){return '<button type="button" data-ts-action="'+action+'" data-ts-id="'+esc(r.id)+'" data-ts-number="'+esc(r.number)+'">'+label+'</button>';};
@@ -128,3 +128,4 @@
   }
   window.OPTYKER_TS_CONNECTION = Object.freeze({open:open});
 })();
+

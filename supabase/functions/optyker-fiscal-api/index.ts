@@ -60,8 +60,8 @@ async function prepareVoid(p:any,operator:string){
  const original=await getJob(p.original_job_id),document=makeVoid(original,p);
  const existing=await one(db.from('optyker_fiscal_jobs').select('*').eq('original_job_id',original.id).eq('operation','void').maybeSingle());
  if(existing&&!['prepared','not_started'].includes(existing.state))return {job:publicJob(existing)};
- const queue=await one(db.from('optyker_ts_outbox').select('state,protocol').eq('job_id',original.id).maybeSingle());
- if(queue&&(queue.state!=='awaiting_configuration'||queue.protocol))throw new Error('Spesa TS già elaborata o sospesa: verificarne la rettifica prima dell’annullo');
+ const queue=await one(db.from('optyker_ts_outbox').select('id').eq('job_id',original.id).maybeSingle());
+ if(queue&&!await one(db.rpc('optyker_ts_can_void',{p_id:queue.id})))throw new Error('Spesa TS già elaborata o sospesa: verificarne la rettifica prima dell’annullo');
  const cap=token(),patch={state:'prepared',document,claim_hash:await hash(cap),claim_expires_at:new Date(Date.now()+600000).toISOString(),operator_username:operator,updated_at:now()};
  const job=existing?await one(db.from('optyker_fiscal_jobs').update(patch).eq('id',existing.id).in('state',['prepared','not_started']).select('*').maybeSingle()):
   await one(db.from('optyker_fiscal_jobs').insert({...patch,operation:'void',original_job_id:original.id,payment_id:original.payment_id,sale_id:original.sale_id,serial:original.serial}).select('*').single());
