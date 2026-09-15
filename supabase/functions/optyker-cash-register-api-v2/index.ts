@@ -55,7 +55,11 @@ Deno.serve(async req=>{
   if(action==="client_cart_clear"){const op=await auth(body);return out({ok:true,data:await clearClientCart(p.client_id,op),release:RELEASE})}
   if(action==="order_missing_items"){const op=await auth(body);return out({ok:true,data:await createOrderRequest(body,op),release:RELEASE})}
   if(action==="deliveries"){await auth(body);return out({ok:true,data:await deliveries(),release:RELEASE})}
-  if(action==="mark_delivery"){const op=await auth(body);return out({ok:true,data:await markDelivery(body,op),release:RELEASE})}
+  if(action==="mark_delivery"){
+   const op=await auth(body),sale=await markDelivery(body,op);
+   sale.client_cart=await completeClientCart(sale.id,op);
+   return out({ok:true,data:sale,release:RELEASE});
+  }
   if(action==="checkout"){
    const op=await auth(body),lines=Array.isArray(p.lines)?p.lines:[],missing=await missingStock(lines),lottery=cleanLottery(p.lottery_code),persistent=hasClientCartLine(lines);
    let sale:any;
@@ -67,6 +71,11 @@ Deno.serve(async req=>{
    }
    sale.client_cart=await completeClientCart(sale.id,op);
    return out({ok:true,data:sale,release:RELEASE});
+  }
+  if(action==="settle"){
+   const op=await auth(body),result=await proxy(body),sale=result?.data;
+   if(sale?.id)sale.client_cart=await completeClientCart(sale.id,op);
+   return out({...result,data:sale,release:RELEASE});
   }
   return out({...await proxy(body),release:RELEASE});
  }catch(e){const m=e instanceof Error?e.message:String(e);return out({ok:false,error:m},m==="AUTH_REQUIRED"?401:400)}
