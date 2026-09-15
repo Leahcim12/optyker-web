@@ -1,5 +1,6 @@
 from pathlib import Path
 import re
+import runpy
 
 ROOT=Path('_site')
 MARK='OPTYKER_ORDER_CART_LAB_20260915'
@@ -61,7 +62,6 @@ if MARK not in h:
     h,n=re.subn(r"function statusLabel\(s\)\{return \{[^}]*\}\[s\]\|\|s\|\|'Da fare'\}",
                 "function statusLabel(s){return {da_fare:'Inserito',in_preparazione:'In preparazione',costruzione:'In lavorazione',in_spedizione:'In spedizione',pronto_consegna:'Pronto per la consegna',completato:'Consegnato',annullato:'Annullato'}[s]||s||'Inserito'}",h,count=1)
     if n!=1: raise SystemExit('Laboratory statusLabel anchor not found')
-    # Replace the old 24h construction hint with the two fixed milestones.
     h,n=re.subn(r"var prods=productsFor\(o\),automatic=o\.status==='in_preparazione'[^;]*;",
                 "var prods=productsFor(o),automatic=o.manual_status?'Stato modificato manualmente da '+(o.manual_status_by||'operatore'):(o.status==='da_fare'||o.status==='in_preparazione'?'In lavorazione prevista · '+dt(o.auto_work_at)+' · Pronto consegna · '+dt(o.auto_ready_at):o.status==='costruzione'||o.status==='in_spedizione'?'Pronto consegna previsto · '+dt(o.auto_ready_at):'');",h,count=1)
     if n!=1: raise SystemExit('Laboratory automatic hint anchor not found')
@@ -94,3 +94,6 @@ for name,needle in checks:
     if needle not in (ROOT/name).read_text(encoding='utf-8'):
         raise SystemExit('Missing order/cart/lab patch: '+name+' -> '+needle)
 print('Order + persistent client cart + 48h/10d laboratory UI installed')
+
+# Final eyewear usability repair: quote/job ordering, current-client binding and visible order button.
+runpy.run_path(str(Path(__file__).with_name('patch_eyewear_simple_order_20260915.py')),run_name='__main__')
