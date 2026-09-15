@@ -3,7 +3,7 @@ from pathlib import Path
 import hashlib,json,os,re
 root=Path(__file__).resolve().parent.parent;site=root/'_site';entry=site/'index.html';s=entry.read_text()
 manifest=site/'client-sheets-version.json';m=json.loads(manifest.read_text())
-old=next(x for x in m['assets'] if x.endswith('.js'))
+old=next(x for x in m['assets'] if x.startswith('client-sheet-actions.') and x.endswith('.js'))
 js=(site/old).read_text()
 anchor="feedback(s.converted_order?'Ordine collegato: '"
 attach_call="window.OPTYKER_MATERIAL_CERTIFICATE?.attach(box,s);"
