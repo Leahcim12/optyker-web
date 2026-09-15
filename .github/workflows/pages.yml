@@ -32,6 +32,13 @@ jobs:
           VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
         run: bash scripts/vercel-build-v13.sh
 
+      - name: Ripara inserimento appuntamenti Agenda
+        run: |
+          python scripts/patch_agenda_auto_studio_20260915.py
+          python scripts/check_desktop_html.py
+          grep -q "OPTYKER_AGENDA_AUTO_STUDIO_20260915" _site/index.html
+          grep -q "autoStudio" _site/index.html
+
       - name: Pubblica connettore RCH e relay iPad
         run: |
           mkdir -p _site/rch-connector
