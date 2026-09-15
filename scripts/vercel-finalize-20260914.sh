@@ -10,6 +10,7 @@ python scripts/prepare_order_cart_lab_20260915.py
 python scripts/patch_order_cart_lab_20260915.py
 python scripts/patch_eyewear_frame_selection_20260915.py
 python scripts/patch_eyewear_order_button_visible_20260915.py
+python scripts/patch_customer_invoice_print_20260915.py
 python scripts/patch_rch_relay_order_20260915.py
 python scripts/patch_public_asset_paths.py
 python scripts/check_desktop_html.py
@@ -18,6 +19,7 @@ node --check _site/cash-pos5.js
 node --check _site/cash-register.js
 node --check _site/optyker-operations.js
 node --check _site/rch-cloud-relay.js
+node --check _site/customer-invoice-print.js
 grep -q '__OPTYKER_ADMIN_CASH_CLOSURE_V2__' _site/admin-cash-closure.js
 grep -q 'optykerAdminCashClosureJs' _site/index.html
 grep -q 'optykerAdminCashClosureCss' _site/index.html
@@ -36,6 +38,13 @@ grep -q 'almeno email oppure telefono' _site/index.html
 grep -q '__OPTYKER_CLIENT_CART_PERSISTENCE_V1__' _site/cash-register.js
 grep -q 'OPTYKER_ORDER_CART_LAB_20260915' _site/index.html
 grep -q 'Pronto per la consegna' _site/index.html
+grep -Fq 'Visualizza / Stampa' _site/index.html
+grep -Fq 'optykerCustomerInvoicePrintJs' _site/index.html
+grep -Fq 'optyker-customer-invoice-print-api' _site/customer-invoice-print.js
+if grep -Fq 'fic_send' _site/customer-invoice-print.js; then
+  echo 'Customer invoice print flow must not send to SDI' >&2
+  exit 1
+fi
 grep -Fq "selectFrame(Number(this.getAttribute('data-ey-frame')))" _site/index.html
 grep -Fq "OPTYKER_EYEWEAR_ORDER_BUTTON_VISIBLE_20260915" _site/optyker-operations.js
 grep -Fq "b.className='eyBtn primary'" _site/optyker-operations.js
