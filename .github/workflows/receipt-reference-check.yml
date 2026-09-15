@@ -1,0 +1,43 @@
+name: Verifica numero scontrino e ID cliente
+on:
+  push:
+    branches: [main, 'optyker/receipt-client-reference']
+    paths:
+      - 'fiscal-receipts.js'
+      - 'client-profile-save.*'
+      - 'rch-connector/**'
+      - 'supabase/functions/optyker-fiscal-api/**'
+      - 'tests/receipt-reference*'
+      - 'tests/rch-reference*'
+      - 'scripts/apply_client_profile_save.py'
+      - 'scripts/patch_cash_register.py'
+      - '.github/workflows/receipt-reference-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build produzione e verifica con dati sintetici
+        run: |
+          bash scripts/vercel-build-v13.sh
+          bash scripts/vercel-finalize-20260914.sh
+          npm install --prefix "$RUNNER_TEMP/reference-qa" --ignore-scripts --no-audit --no-fund jsdom@26.1.0
+          export NODE_PATH="$RUNNER_TEMP/reference-qa/node_modules"
+          OPTYKER_BUILT=1 node --test tests/receipt-reference-ui.test.cjs
+          node --test tests/receipt-reference-domain.test.mjs tests/cash-automatic.test.mjs tests/fiscal-domain.test.mjs tests/fiscal-ui.test.mjs tests/fiscal-void-ui.test.mjs tests/client-profile-save.test.mjs
+      - name: Verifica connettore e aggiornamento Windows senza stampante
+        shell: pwsh
+        run: |
+          & ./tests/rch-emission.test.ps1
+          & ./tests/rch-auto-reference.test.ps1
+          & ./tests/rch-reference-successor.test.ps1
+          & ./tests/rch-reference-updater.test.ps1

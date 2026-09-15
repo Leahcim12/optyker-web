@@ -1,6 +1,6 @@
 // RCH protocol v14 pp.18-23. Shop mapping: readback 2026-09-12.
 export const SERIAL = '72IV6003831';
-export const RELEASE = '20260914-reviewqr1';
+export const RELEASE = '20260915-reference2';
 export const REVIEW_URL = 'https://g.page/r/CeicKuw6aQ5FEAE/review';
 export const DEPARTMENTS = Object.freeze({1:{vat:'04',type:'goods'},2:{vat:'22',type:'goods'},3:{vat:'ART10',type:'services'}});
 export function cents(value) {
@@ -77,13 +77,27 @@ export function markAutomaticDocument(document,jobId) {
   // PRINT!F v14 pp.32,87: barcodes require fidelity mode and follow payment.
   // Do not insert an optional QR between the fiscal items/CF and payment:
   // that refusal leaves the receipt open. Keep the complete validated sale sequence.
-  return {...document,automaticReference:false,commands:[...document.commands]};
+  // Older installed connectors safely ignore this opt-in readback plan.
+  // It adds no print commands and never enables the old marker/QR path.
+  return {...document,automaticReference:false,
+    referenceReadback:{strategy:'ej-successor-v1',jobId,date:new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Rome'}).format(new Date())},
+    commands:[...document.commands]};
+}
+export function receiptSuccessor(previous,current) {
+  if(!previous||!current||!/^\d{4}-\d{4}$/.test(previous.number||'')||!/^\d{4}-\d{4}$/.test(current.number||''))return false;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(previous.date||'')||previous.date>current.date)return false;
+  const [pc,pn]=previous.number.split('-').map(Number),[cc,cn]=current.number.split('-').map(Number);
+  return pc>0&&pn>0&&((cc===pc&&cn===pn+1)||(cc===pc+1&&cn===1));
 }
 export function automaticReference(result,document) {
   const r=result?.reference;
-  if(!document.automaticReference||document.operation!=='sale'||!r||r.source!=='rch_ej'||
-    r.serial!==document.serial||r.marker!==document.receiptMarker||r.fiscalCodeMatched!==true||
+  if(document.operation!=='sale'||!r||r.source!=='rch_ej'||
+    r.serial!==document.serial||r.fiscalCodeMatched!==true||
     r.totalCents!==document.totalCents||resultState(result,document.commands.length)!=='awaiting_reference')return null;
+  const plan=document.referenceReadback;
+  if(plan?.strategy==='ej-successor-v1'){
+    if(r.strategy!==plan.strategy||r.jobId!==plan.jobId||r.date!==plan.date||!receiptSuccessor(r.previous,r))return null;
+  }else if(!document.automaticReference||!document.receiptMarker||r.marker!==document.receiptMarker)return null;
   return reference({document_number:r.number,document_date:r.date,amount:r.totalCents/100,paper_verified:true},document.totalCents);
 }
 export function reference(input,expectedCents) {

@@ -4,7 +4,7 @@ from shutil import copyfile
 import re
 from apply_ts_connection import DocumentClosings
 
-VERSION = '20260915-profile4'
+VERSION = '20260915-profile-id'
 root = Path('_site')
 page = root / 'index.html'
 text = page.read_text()

@@ -21,3 +21,22 @@ Dopo il successivo accesso a Windows, aprire Optyker e premere **Test collegamen
 ## Verifiche di sviluppo
 
 `pwsh -NoProfile -File tests/rch-autostart.test.ps1` verifica la sintassi, i percorsi con spazi, la riattivazione e la rimozione senza perdita di dati. Le operazioni sui collegamenti Windows sono simulate: il test non sostituisce la verifica sul PC Windows dopo l'accesso. `node --test tests/rch-loader.test.mjs` verifica la pubblicazione del modulo cassa e dei relativi riferimenti nella pagina.
+# Numero e importo automatici (15 settembre 2026)
+
+Sul PC della cassa eseguire `Aggiorna-Riferimenti-RCH.bat`, poi ricaricare
+Optyker. L'aggiornamento conserva versione, configurazione POS, scontrini a zero,
+ristampa, personalizzazioni e giornale locale. Richiede RCH libera in REG.
+
+Per le nuove vendite autorizzate dal server, il connettore legge l'identità
+dell'ultimo documento prima e dopo la normale emissione, sotto lo stesso blocco
+esclusivo della stampante. Usa il numero effettivamente letto dal giornale e
+accetta solo il documento immediatamente successivo, con matricola, data,
+importo e codice fiscale corrispondenti. La lettura usa la stessa sequenza
+`=C3`, `=C453/$0`, `=C1` già presente in `Read-PrintedReceipt`: non aggiunge
+comandi fiscali, QR o marcatori alla vendita e non esegue chiusure giornaliere.
+
+Un errore di lettura lascia lo scontrino emesso in attesa di riferimento manuale.
+Il recupero di un esito salvato non accede alla stampante. Le vecchie operazioni
+senza osservazione iniziale e gli annulli richiedono la verifica del documento.
+I test usano risposte sintetiche: il recupero sul registratore reale deve essere
+verificato dopo l'aggiornamento, alla prima vendita ordinaria.

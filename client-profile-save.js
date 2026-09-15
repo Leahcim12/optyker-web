@@ -1,13 +1,33 @@
 (function () {
   'use strict';
   if (window.OPTYKER_CLIENT_PROFILE_SAVE) return;
-  window.OPTYKER_CLIENT_PROFILE_SAVE = '20260915-profile2';
+  window.OPTYKER_CLIENT_PROFILE_SAVE = '20260915-profile-id';
   var pending = null, baseline = '', generation = 0;
   var section, bar, status, button, profileObserver;
   var birthPlaceDirtyFor = '';
   function controls() { return section ? Array.from(section.querySelectorAll('input[id^="clientDb"],textarea[id^="clientDb"],select[id^="clientDb"]')) : []; }
   function snapshot() { return JSON.stringify(controls().map(function (x) { return [x.id, x.value]; })); }
   function currentId() { return String(window.clientCurrentId || ''); }
+  var referenceGeneration = 0, referenceLabel;
+  function showClientReference(row) {
+    if (!referenceLabel) return;
+    var code = row && String(row.reference_no || row.reference_code || '').trim();
+    referenceLabel.textContent = !currentId() ? 'ID cliente: assegnato al salvataggio' : code ? 'ID cliente: ' + code : 'ID cliente: non disponibile';
+  }
+  function updateClientReference() {
+    var id = currentId(), view = ++referenceGeneration;
+    var rows = window.OPTYKER_CLOUD && window.OPTYKER_CLOUD.clients || [];
+    var row = rows.find(function (c) { return String(c.id) === id; });
+    showClientReference(row);
+    if (!id || row && (row.reference_no || row.reference_code)) return;
+    // Older cloud form adapters omit the public reference. Read the saved row,
+    // without replacing the form or assigning a new customer number.
+    referenceLabel.textContent = 'ID cliente: caricamento…';
+    Promise.resolve().then(function () { return window.cloudApi('get_client', {id:id}); }).then(function (r) {
+      if (view !== referenceGeneration || currentId() !== id) return;
+      showClientReference(r && r.ok !== false && r.data && String(r.data.id) === id ? r.data : null);
+    }).catch(function () { if (view === referenceGeneration && currentId() === id) showClientReference(null); });
+  }
   function currentBirthKey() { return currentId() || '__new__'; }
   function buttons() { return Array.from(document.querySelectorAll('[data-client-profile-save]')); }
   function tell(text, kind) {
@@ -95,6 +115,7 @@
   }
   function reset() {
     generation++;
+    updateClientReference();
     mountBirthProfileFields();
     updateAge();
     baseline = snapshot();
@@ -166,6 +187,8 @@
         throw new Error('Il server non ha confermato il salvataggio. I dati inseriti sono ancora nella scheda.');
       }
       var saved = window.cloudDbToClient(row), cloud = window.OPTYKER_CLOUD;
+      if (row.reference_no) saved.reference_no = row.reference_no;
+      if (row.reference_code) saved.reference_code = row.reference_code;
       var index = cloud.clients.findIndex(function (c) { return c.id === saved.id; });
       if (index < 0) cloud.clients.push(saved); else cloud.clients[index] = Object.assign({}, cloud.clients[index], saved);
       // A late reply must never replace another customer or later form edits.
@@ -204,8 +227,10 @@
     bar = document.createElement('div'); bar.id = 'optykerClientSaveBar';
     var copy = document.createElement('div'), title = document.createElement('strong');
     title.textContent = 'Anagrafica cliente';
+    referenceLabel = document.createElement('span'); referenceLabel.id = 'optykerClientProfileId';
+    referenceLabel.setAttribute('aria-live','polite');
     status = document.createElement('span'); status.id = 'optykerClientSaveStatus'; status.setAttribute('role','status'); status.setAttribute('aria-live','polite');
-    copy.append(title, status);
+    copy.append(title, referenceLabel, status);
     button = document.createElement('button'); button.type = 'button'; button.id = 'optykerClientSaveButton'; button.className = 'primary'; button.setAttribute('data-client-profile-save',''); button.setAttribute('aria-describedby',status.id); button.onclick = save;
     bar.append(copy, button);
     var header = section.querySelector('.clientIdentityHeader');
@@ -218,6 +243,7 @@
       if (typeof original === 'function') window[name] = function () { var result = original.apply(this, arguments); reset(); return result; };
     });
     section.addEventListener('input', changed); section.addEventListener('change', changed);
+    window.addEventListener('optyker:client-saved', updateClientReference);
     if (window.MutationObserver) {
       profileObserver = new MutationObserver(function () { mountBirthProfileFields(); });
       profileObserver.observe(section, {childList:true, subtree:true});

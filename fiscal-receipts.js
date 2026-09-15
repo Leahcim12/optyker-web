@@ -4,12 +4,13 @@ var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-fiscal-ap
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function euro(v){return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(v)}
 function api(action,payload){var c=window.OPTYKER_CLOUD||{};return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:action,payload:payload||{},username:c.username||window.OPTYKER_ACTIVE_USER,password:c.password})}).then(function(r){return r.json().then(function(x){if(!r.ok||x.ok!==true)throw new Error(x.error||'Registro fiscale non disponibile');return x})})}
-function bridge(path,payload){return fetch('http://127.0.0.1:8765'+path,{method:payload?'POST':'GET',headers:payload?{'Content-Type':'application/json'}:{},body:payload?JSON.stringify(payload):undefined,cache:'no-store',signal:AbortSignal.timeout(150000)}).then(function(r){return r.json().then(function(x){if(!r.ok||x.ok!==true)throw new Error(x.error||'Connettore non disponibile');return x})})}
+function bridge(path,payload,timeout){return fetch('http://127.0.0.1:8765'+path,{method:payload?'POST':'GET',headers:payload?{'Content-Type':'application/json'}:{},body:payload?JSON.stringify(payload):undefined,cache:'no-store',signal:AbortSignal.timeout(timeout||150000)}).then(function(r){return r.json().then(function(x){if(!r.ok||x.ok!==true)throw new Error(x.error||'Connettore non disponibile');return x})})}
 function modal(title){var old=document.getElementById('optykerFiscalModal');if(old)old.remove();var m=document.createElement('div');m.id='optykerFiscalModal';m.className='optykerCashModal open';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');m.setAttribute('aria-label',title);m.innerHTML='<div class="optykerCashModalCard" style="max-width:950px"><div class="optykerCashModalTitle">'+esc(title)+'</div><div class="ofBody">Caricamento…</div><p class="ofMessage" role="status" aria-live="polite"></p><button type="button" class="ofClose optykerCashModalClose">Chiudi</button></div>';document.body.appendChild(m);m.querySelector('.ofClose').onclick=function(){m.remove()};return m}
 function message(m,s){m.querySelector('.ofMessage').textContent=s}
 function stateLabel(s){return {prepared:'Pronto per l’invio alla RCH',sending:'Emissione in corso o esito da recuperare',not_started:'Nessun comando fiscale inviato',uncertain:'Esito da verificare sul registratore',awaiting_reference:'Chiusura confermata: registra il numero stampato',completed:'Documento registrato',cancelled:'Documento annullato durante l’emissione',awaiting_configuration:'Da inviare al TS',submitted:'Protocollo TS ricevuto: verifica esito',accepted:'Accettato dal Sistema TS',rejected:'Scartato dal Sistema TS',held_for_void:'Sospesa: annullo RCH da verificare',voided:'Scontrino annullato: escluso dall’invio TS'}[s]||s}
 function drawJob(m,job,refresh){
  if(job.operation!=='void'&&job.void_job){drawJob(m,job.void_job,refresh);return}
+ clearTimeout(m.referenceTimer);m.referenceView=(m.referenceView||0)+1;
  var isVoid=job.operation==='void',box=m.querySelector('.ofBody');
  var label=isVoid?({prepared:'Annullo pronto per la conferma',sending:'Annullo in corso: recupera l’esito',not_started:'Annullo non avviato',uncertain:'Esito annullo da verificare sulla RCH',awaiting_reference:'Annullo confermato dalla RCH: registra la nuova stampa',completed:'Scontrino annullato'}[job.state]||stateLabel(job.state)):stateLabel(job.state);
 
@@ -17,8 +18,15 @@ function drawJob(m,job,refresh){
  if(isVoid&&job.original_document)box.innerHTML+='<p>Scontrino originale: <b>'+esc(job.original_document.number)+'</b> del '+esc(job.original_document.date)+'. Motivo: '+esc(job.void_reason||'')+'</p>';
  if(['sending','uncertain'].includes(job.state))box.innerHTML+='<p>Controlla la carta e il display della RCH. Non registrare nuovamente questa vendita e non ripetere la stampa. Se il connettore è stato interrotto, l’esito deve essere verificato prima di altre emissioni.</p>';
  if(job.state==='awaiting_reference'){
-  box.innerHTML+='<p>La risposta del registratore non contiene il numero documento. Copialo dal documento commerciale appena stampato.</p><form class="ofReference"><label>Numero documento <input name="number" placeholder="1160-0001" pattern="[0-9]{4}-[0-9]{4}" required></label><label>Data stampata <input name="date" type="date" required></label><label>Totale stampato <input name="amount" type="number" min="0.01" step="0.01" required></label><label><input name="verified" type="checkbox" required> Ho verificato numero, data, totale e codice fiscale sul documento.</label><button type="submit">Registra documento</button></form>';
+  box.innerHTML+='<p>Importo compilato dal pagamento. Recupero del numero scontrino in corso. Se non è disponibile, riportalo dal documento stampato.</p><form class="ofReference"><label>Numero documento <input name="number" placeholder="In attesa del numero RCH" pattern="[0-9]{4}-[0-9]{4}" required></label><label>Data stampata <input name="date" type="date" required></label><label>Totale stampato <input name="amount" type="number" min="0" step="0.01" required></label><label><input name="verified" type="checkbox" required> Ho verificato numero, data, totale e codice fiscale sul documento.</label><button type="submit">Registra documento</button></form>';
   var form=box.querySelector('form');if(isVoid){form.insertAdjacentHTML('afterbegin','<p>Trascrivi il numero del <b>nuovo documento di annullo</b>, diverso da quello originale.</p>');form.querySelector('[name=verified]').parentNode.lastChild.textContent=' Ho verificato che la stampa è un documento di annullo riferito allo scontrino originale, con data e importo corretti.'}form.elements.date.value=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Rome'}).format(new Date());
+  if(job.total!=null&&Number.isFinite(Number(job.total))&&Number(job.total)>=0)form.elements.amount.value=Number(job.total).toFixed(2);
+  var savedRef=job.result&&job.result.reference;
+  if(savedRef&&savedRef.source==='rch_ej'&&savedRef.serial===job.serial&&Number(savedRef.amount)===Number(job.total)&&/^\d{4}-\d{4}$/.test(savedRef.number||'')){
+   form.elements.number.value=savedRef.number;form.elements.date.value=savedRef.date;
+  }
+  if(!isVoid){var update=document.createElement('p');update.innerHTML='Per il recupero automatico del numero: <a href="/rch-connector/Aggiorna-Riferimenti-RCH.bat?v=20260915-reference2" download>Aggiorna RCH sul PC della cassa</a>.';box.appendChild(update)}
+  watchReference(m,job,refresh);
   form.onsubmit=async function(e){e.preventDefault();var b=form.querySelector('button');b.disabled=true;try{var x=await api('reference',{job_id:job.id,document_number:form.elements.number.value,document_date:form.elements.date.value,amount:form.elements.amount.value,paper_verified:form.elements.verified.checked,void_verified:isVoid&&form.elements.verified.checked});drawJob(m,x.data.job,refresh);message(m,isVoid?'Annullo registrato. Ordine e pagamento Shopify invariati.':job.ts_requested?'Documento salvato. Spese TS nella coda di invio.':'Documento salvato.')}catch(err){message(m,err.message);b.disabled=false}};
  }
  if(isVoid&&['awaiting_reference','completed'].includes(job.state))box.insertAdjacentHTML('beforeend','<p>Le eventuali spese TS preparate per lo scontrino originale sono escluse dall’invio. L’ordine e il pagamento Shopify restano invariati.</p>');
@@ -57,6 +65,21 @@ function drawJob(m,job,refresh){
   };
  }
  if(!isVoid&&job.state==='completed'){var cancel=document.createElement('button');cancel.type='button';cancel.className='ofVoid';cancel.textContent='Annulla scontrino';box.appendChild(cancel);cancel.onclick=function(){return openVoid(job.id)}}
+}
+function watchReference(m,job,refresh){
+ var view=m.referenceView,attempts=0;
+ async function poll(){
+  if(!m.isConnected||m.referenceView!==view)return;
+  try{
+   // Retry only delivery of the stored printer outcome. Never issue or reprint.
+   if(attempts===0)await bridge('/receipt/status',{jobId:job.id},5000).catch(function(){});
+   var r=await api('job',{job_id:job.id});
+   if(!m.isConnected||m.referenceView!==view)return;
+   if(r.data.job.state!=='awaiting_reference'){drawJob(m,r.data.job,refresh);return}
+  }catch(_){/* The manual form remains available, including any edits. */}
+  if(++attempts<5&&m.isConnected&&m.referenceView===view)m.referenceTimer=setTimeout(poll,2000);
+ }
+ m.referenceTimer=setTimeout(poll,300);
 }
 async function reprintJob(job,button,m){
  button.disabled=true;m.querySelector('.ofClose').disabled=true;

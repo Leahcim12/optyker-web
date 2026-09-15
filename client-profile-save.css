@@ -6,6 +6,7 @@
     box-shadow:0 5px 18px #15375f14; color:#183e60;
   }
   #optykerClientSaveBar strong {display:block;font-size:13px;font-weight:650}
+  #optykerClientProfileId {display:block!important;margin-top:5px;font-size:15px!important;font-weight:750!important;letter-spacing:.02em;overflow-wrap:anywhere;color:#173d5f!important}
   #optykerClientSaveStatus {display:block;margin-top:4px;font-size:12px;line-height:1.45;overflow-wrap:anywhere}
   #mainApp #clientsPanel #optykerClientSaveButton {flex:none;min-height:44px!important;padding:11px 20px!important;border-radius:10px!important;border:1px solid #147cec!important;background:#197bef!important;color:#fff!important;font-size:13px!important;font-weight:650!important;cursor:pointer}
   #mainApp #clientsPanel [data-client-profile-save]:disabled {opacity:.65;cursor:wait!important}

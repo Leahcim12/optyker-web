@@ -47,7 +47,7 @@ async function prepare(p:any,operator:string){
  // Automatic issuance uses the immutable payment snapshot validated before checkout.
  let document=makeDocument(payment,p.automatic===true?snapshot.input:p,
    snapshot?.fiscal||sale.data?.fiscal_identity?.fiscal||sale.data?.client_snapshot?.fiscal||'');
- if(p.automatic===true)document=markAutomaticDocument(document,jobId);
+ document=markAutomaticDocument(document,jobId);
 
  const cap=token();const patch={state:'prepared',document,claim_hash:await hash(cap),claim_expires_at:new Date(Date.now()+600000).toISOString(),updated_at:now()};
  let job;
