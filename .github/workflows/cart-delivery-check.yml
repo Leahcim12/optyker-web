@@ -1,0 +1,20 @@
+name: Cart delivery build check
+
+on:
+  push:
+    branches:
+      - fix/cart-consume-on-delivery-20260916
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Build Optyker and run final checks
+        run: bash scripts/vercel-build-v13.sh && bash scripts/vercel-finalize-20260914.sh
