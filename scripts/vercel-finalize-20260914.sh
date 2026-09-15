@@ -10,12 +10,14 @@ python scripts/prepare_order_cart_lab_20260915.py
 python scripts/patch_order_cart_lab_20260915.py
 python scripts/patch_eyewear_frame_selection_20260915.py
 python scripts/patch_eyewear_order_button_visible_20260915.py
+python scripts/patch_rch_relay_order_20260915.py
 python scripts/patch_public_asset_paths.py
 python scripts/check_desktop_html.py
 node --check _site/admin-cash-closure.js
 node --check _site/cash-pos5.js
 node --check _site/cash-register.js
 node --check _site/optyker-operations.js
+node --check _site/rch-cloud-relay.js
 grep -q '__OPTYKER_ADMIN_CASH_CLOSURE_V2__' _site/admin-cash-closure.js
 grep -q 'optykerAdminCashClosureJs' _site/index.html
 grep -q 'optykerAdminCashClosureCss' _site/index.html
@@ -44,6 +46,9 @@ if grep -Fq "b.hidden=!job" _site/optyker-operations.js; then
   echo 'Eyewear order button is still Busta-only hidden' >&2
   exit 1
 fi
+grep -Fq 'id="optykerRchCloudRelayJs" defer src="/rch-cloud-relay.js?v=20260915-relay5"' _site/index.html
+grep -Fq "String(s.idleState)!=='0'" _site/rch-cloud-relay.js
+grep -Fq "['busy','errorCode','printerError','paperEnd','coverOpen']" _site/rch-cloud-relay.js
 test -s _site/rch-connector/Aggiorna-RCH-POS.bat
 test -s _site/rch-connector/Aggiorna-RCH-POS.ps1
 grep -q 'zeroReceipt=\$true' _site/rch-connector/Aggiorna-RCH-POS.ps1
