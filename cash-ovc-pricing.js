@@ -16,7 +16,7 @@ renderCart=function(){
   if(S.cashOpen){var key=ovcCartKey();if(key!==S.ovcPriceKey){
     S.ovcPriceKey=key;S.ovcPricePending=true;S.ovcPriceError='';var seq=++S.ovcPriceSeq;
     clearTimeout(S.ovcPriceTimer);S.ovcPriceTimer=setTimeout(function(){
-      var lines=cartRows().map(function(x){return {variant_id:x.item.variant_id,quantity:x.qty}}),clientId=S.clientId||'';
+      var lines=cartRows().map(function(x){return {variant_id:x.item.variant_id,quantity:x.qty,department:Number(x.department||0)||null}}),clientId=S.clientId||'';
       api('quote_lines',{client_id:clientId,lines:lines}).then(function(x){
         if(seq!==S.ovcPriceSeq||key!==ovcCartKey())return;
         var q=x.data||{},quoted=q.lines||[];
@@ -24,8 +24,8 @@ renderCart=function(){
         if(quoted.length!==lines.length)throw new Error('Ricalcolo del carrello incompleto.');
         quoted.forEach(function(l){if(S.cart[l.variant_id])S.cart[l.variant_id].item=l;});
         S.ovcCard=q.card||null;S.ovcQuoteKey=key;S.ovcPricePending=false;S.ovcPriceError='';
-        ovcOriginalRenderCart();ovcStatus();
-      }).catch(function(e){if(seq!==S.ovcPriceSeq)return;S.ovcPricePending=false;S.ovcPriceError='Tariffe non verificate: '+e.message;ovcOriginalRenderCart();ovcStatus();});
+        renderCart();
+      }).catch(function(e){if(seq!==S.ovcPriceSeq)return;S.ovcPricePending=false;S.ovcPriceError='Tariffe non verificate: '+e.message;renderCart();});
     },170);
   }}
   ovcOriginalRenderCart();ovcStatus();
