@@ -4,7 +4,7 @@ import hashlib,json,re,shutil,sys,os
 
 ROOT=Path(__file__).resolve().parent.parent
 SITE=Path(sys.argv[1]) if len(sys.argv)>1 else Path('_site')
-VERSION='20260916-admin-cash6'
+VERSION='20260916-admin-cash7'
 page=SITE/'index.html'
 h=page.read_text(encoding='utf-8')
 if 'billing-admin.js' not in h:
@@ -18,9 +18,18 @@ for marker in (
     h=re.sub(r'<link\b[^>]*id=["\']'+marker+r'["\'][^>]*>\s*','',h,flags=re.I)
     h=re.sub(r'<script\b[^>]*id=["\']'+marker+r'["\'][^>]*>[\s\S]*?</script>\s*','',h,flags=re.I)
 
+# Remove an older static administration entry, if this patch is re-applied.
+h=re.sub(r'<div\b[^>]*id=["\']optykerAdminEntryBox["\'][^>]*>[\s\S]*?</div>\s*</div>\s*', '', h, count=1, flags=re.I)
+
 # Repair stale repository-subpath references when the app is served on the custom domain.
-h=re.sub(r'(["\'])/optyker-web/billing-admin\.js(?:\?[^"\']*)?\1',r'"/billing-admin.js?v=20260916-adminentry2"',h,flags=re.I)
-h=re.sub(r'(["\'])/optyker-web/billing-admin\.css(?:\?[^"\']*)?\1',r'"/billing-admin.css?v=20260916-adminentry2"',h,flags=re.I)
+h=re.sub(r'(["\'])/optyker-web/billing-admin\.js(?:\?[^"\']*)?\1',r'"/billing-admin.js?v=20260916-adminentry3"',h,flags=re.I)
+h=re.sub(r'(["\'])/optyker-web/billing-admin\.css(?:\?[^"\']*)?\1',r'"/billing-admin.css?v=20260916-adminentry3"',h,flags=re.I)
+
+admin_entry_markup='''<div id="optykerAdminEntryBox"><button id="optykerAdminEntryButton" type="button">AMMINISTRAZIONE · OTTICA VISUAL CARE</button><div id="optykerAdminEntryHint">Accesso separato per fatture, chiusure cassa, Sistema TS e impostazioni</div><div id="optykerAdminEntryError"></div></div>'''
+login_shell=re.search(r'<div\b[^>]*class=["\'][^"\']*optykerLoginShell[^"\']*["\'][^>]*>',h,re.I)
+if not login_shell:
+    raise SystemExit('Admin entry: login shell not found')
+h=h[:login_shell.end()]+'\n'+admin_entry_markup+h[login_shell.end():]
 
 admin_entry_css='''<style id="optykerAdminEntryCss">
 #optykerAdminEntryBox{display:block;margin:14px auto 0;max-width:430px;text-align:center}
@@ -34,7 +43,8 @@ admin_entry_css='''<style id="optykerAdminEntryCss">
 # This loader deliberately builds /billing-admin.js dynamically, so later path-rewrite
 # patches cannot turn it back into the old /optyker-web/ path on the custom domain.
 admin_entry_js='''<script id="optykerAdminEntryJs">(function(){
-  if(window.__OPTYKER_ADMIN_ENTRY_V1__)return;window.__OPTYKER_ADMIN_ENTRY_V1__=true;
+  if(window.__OPTYKER_ADMIN_ENTRY_V2__)return;window.__OPTYKER_ADMIN_ENTRY_V2__=true;
+  var autoStarted=false;
   function E(id){return document.getElementById(id)}
   function rootAsset(name){return location.origin+'/'+name}
   function ensureOption(){
@@ -52,23 +62,20 @@ admin_entry_js='''<script id="optykerAdminEntryJs">(function(){
     var screen=E('optykerLoginScreen');if(!screen)return;
     var shell=screen.querySelector('.optykerLoginShell')||screen;if(!shell)return;
     var box=E('optykerAdminEntryBox');
-    if(!box){
-      box=document.createElement('div');box.id='optykerAdminEntryBox';
-      box.innerHTML='<button id="optykerAdminEntryButton" type="button">AMMINISTRAZIONE · OTTICA VISUAL CARE</button><div id="optykerAdminEntryHint">Accesso separato per fatture, chiusure cassa, Sistema TS e impostazioni</div><div id="optykerAdminEntryError"></div>';
-      shell.appendChild(box);
-      E('optykerAdminEntryButton').onclick=openAdmin;
-    }
+    if(!box){box=document.createElement('div');box.id='optykerAdminEntryBox';box.innerHTML='<button id="optykerAdminEntryButton" type="button">AMMINISTRAZIONE · OTTICA VISUAL CARE</button><div id="optykerAdminEntryHint">Accesso separato per fatture, chiusure cassa, Sistema TS e impostazioni</div><div id="optykerAdminEntryError"></div>';shell.insertBefore(box,shell.firstChild)}
+    var btn=E('optykerAdminEntryButton');if(btn&&!btn.__optykerAdminBound){btn.__optykerAdminBound=true;btn.onclick=openAdmin}
     box.style.display=E('optykerAdminLoginCard')?'none':'block';
     ensureOption();
+    try{if(!autoStarted&&new URLSearchParams(location.search).get('admin')==='1'){autoStarted=true;setTimeout(openAdmin,120)}}catch(e){}
   }
   function setErr(msg){var e=E('optykerAdminEntryError');if(!e)return;e.textContent=msg||'';e.style.display=msg?'block':'none'}
   function loadAdmin(cb){
     var css=E('optykerBillingAdminRootCss');
-    if(!css){css=document.createElement('link');css.id='optykerBillingAdminRootCss';css.rel='stylesheet';css.href=rootAsset(['billing','admin.css'].join('-'))+'?v=20260916-adminentry2';document.head.appendChild(css)}
+    if(!css){css=document.createElement('link');css.id='optykerBillingAdminRootCss';css.rel='stylesheet';css.href=rootAsset(['billing','admin.css'].join('-'))+'?v=20260916-adminentry3';document.head.appendChild(css)}
     if(window.__optykerBillingAdminLoaded){cb();return}
     var old=E('optykerBillingAdminRootLoader');
     if(old){var n=0,t=setInterval(function(){if(window.__optykerBillingAdminLoaded||n++>40){clearInterval(t);cb()}},100);return}
-    var s=document.createElement('script');s.id='optykerBillingAdminRootLoader';s.src=rootAsset(['billing','admin.js'].join('-'))+'?v=20260916-adminentry2';
+    var s=document.createElement('script');s.id='optykerBillingAdminRootLoader';s.src=rootAsset(['billing','admin.js'].join('-'))+'?v=20260916-adminentry3';
     s.onload=function(){cb()};s.onerror=function(){setErr('Modulo Amministrazione non caricato. Ricarica la pagina.');var b=E('optykerAdminEntryButton');if(b){b.disabled=false;b.textContent='AMMINISTRAZIONE · OTTICA VISUAL CARE'}};
     document.head.appendChild(s)
   }
@@ -119,7 +126,7 @@ for name in asset_names:
 release={
     'version':VERSION,
     'commit':os.environ.get('VERCEL_GIT_COMMIT_SHA') or os.environ.get('GITHUB_SHA',''),
-    'features':['admin_login_entry','admin_opening','daily_closure','turnover_vs_paid','automatic_receipt_count','monthly_paid_total','today_open_button','today_close_button','carry_forward_cash_fund','rch_daily_closure','rch_closure_recovery'],
+    'features':['admin_static_login_entry','admin_direct_query','admin_opening','daily_closure','turnover_vs_paid','automatic_receipt_count','monthly_paid_total','today_open_button','today_close_button','carry_forward_cash_fund','rch_daily_closure','rch_closure_recovery'],
     'assets':{n:hashlib.sha256((SITE/n).read_bytes()).hexdigest() for n in asset_names}
 }
 (SITE/'admin-cash-version.json').write_text(json.dumps(release,indent=2)+'\n',encoding='utf-8')
