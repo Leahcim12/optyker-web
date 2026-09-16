@@ -3,7 +3,7 @@ from pathlib import Path
 import json,os,re
 ROOT=Path(__file__).resolve().parent.parent
 VERSION='20260915-unified1'
-RCH_RELAY_VERSION='20260916-manualreg2'
+RCH_RELAY_VERSION='20260916-manualreg2&clickfix=1'
 def main():
     site=ROOT/'_site'
     for name in ('fiscal-receipts.js','rch-cloud-relay.js','unified-fiscal-void.js'):

@@ -22,8 +22,75 @@ async function commandWait(id,maxMs){var end=Date.now()+(maxMs||30000),last;whil
 async function queueFiscal(jobId,token,operation,maxMs){var q=await relay('queue_fiscal',{job_id:jobId,token:token,operation:operation||'sale'}),command=q.data,end=Date.now()+(maxMs||155000),lastJob=null;while(Date.now()<end){var j=await fiscal('job',{job_id:jobId});lastJob=j.data&&j.data.job;if(lastJob&&['not_started','uncertain','awaiting_reference','completed'].indexOf(lastJob.state)>=0)return lastJob;var cs=await relay('command_status',{command_id:command.id});if(cs.data&&['failed','expired'].indexOf(cs.data.state)>=0)throw new Error(cs.data.error||'Il PC cassa non ha eseguito lo scontrino.');await delay(1000)}throw new Error('Emissione ancora in corso. Non ripetere la vendita: verifica lo scontrino e usa Aggiorna esito.')}
 async function queueAux(kind){await cloudReady();var q=await relay('queue_aux',{kind:kind});return commandWait(q.data.id,20000)}
 async function restoreRegManual(){var d=await cloudConnection(),s=d.status||{};if(regMode(s)&&String(s.idleState)==='0')return {alreadyReg:true,status:s};if(!manualRegWorkerReady(d))throw new Error('Prima aggiorna una sola volta il collegamento RCH sul PC cassa. Poi questo pulsante funzionerà direttamente da Optyker.');if(!safeZIdle(s))throw new Error('Il comando manuale è consentito solo quando la RCH è in Z, inattiva e senza errori.');var q=await relay('queue_aux',{kind:'restore_reg'}),done=await commandWait(q.data.id,20000),result=done&&done.result||{};if(result.ok===false)throw new Error(result.error||'Ritorno in REG non confermato.');await delay(1800);var after=await cloudConnection();updateBadge(after);if(!regMode(after.status||{}))throw new Error('Il PC ha eseguito il comando ma lo stato REG non è ancora confermato.');return {alreadyReg:false,status:after.status||{}}}
-function ensureRegButton(){var badge=document.getElementById('optykerCashRch');if(!badge)return null;var b=document.getElementById('optykerRchRegBtn');if(!b){b=document.createElement('button');b.id='optykerRchRegBtn';b.type='button';b.className='secondary';b.textContent='Porta RCH in REG';b.style.marginLeft='8px';b.title='Comando manuale: nessuna chiusura Z';if(badge.parentNode)badge.parentNode.insertBefore(b,badge.nextSibling);b.onclick=async function(ev){if(ev){ev.preventDefault();ev.stopPropagation()}if(!confirm('Portare manualmente la RCH in REG? Il comando non esegue alcuna chiusura Z.'))return;var oldText=b.textContent;b.disabled=true;b.textContent='Passaggio a REG…';try{var r=await restoreRegManual();alert(r.alreadyReg?'La RCH è già in REG.':'RCH riportata in REG.')}catch(e){alert(e.message);if(/aggiorna una sola volta/i.test(e.message))showCloudStatus()}finally{b.textContent=oldText;cloudConnection().then(updateBadge).catch(function(){})}}}return b}
-function updateBadge(d){var b=document.getElementById('optykerCashRch'),r=ensureRegButton();if(!b)return;if(d&&d.online){var s=d.status||{},ok=s.ok===true&&regMode(s);b.classList.toggle('ok',ok);b.classList.toggle('error',!ok);b.textContent=(ok?'● ':'○ ')+'RCH via PC'+(s.mode?' · '+s.mode:'');if(r){r.disabled=!safeZIdle(s);r.title=safeZIdle(s)?'Porta manualmente la RCH da Z a REG':'Disponibile solo con RCH in Z, inattiva e senza errori'}}else{b.classList.remove('ok');b.classList.add('error');b.textContent='○ RCH · PC offline';if(r)r.disabled=true}}
+/* OPTYKER_RCH_REG_CLICK_FIX_V1 */
+var manualRegBusy=false;
+async function runManualRegClick(ev,b){
+  if(ev){ev.preventDefault();ev.stopPropagation();if(ev.stopImmediatePropagation)ev.stopImmediatePropagation()}
+  if(manualRegBusy)return false;
+  manualRegBusy=true;
+  var oldText=(b&&b.textContent)||'Porta RCH in REG';
+  if(b){b.disabled=true;b.textContent='Verifica RCH…'}
+  var m=modal('RCH · ritorno manuale in REG');
+  m.querySelector('.orcBody').innerHTML='<p>Verifica collegamento e stato della RCH…</p>';
+  msg(m,'');
+  try{
+    var d=await cloudConnection(),st=d.status||{};
+    if(regMode(st)&&String(st.idleState)==='0'){
+      m.querySelector('.orcBody').innerHTML='<p><b>La RCH è già in REG.</b></p>';
+      msg(m,'Nessun comando necessario.');
+      return false;
+    }
+    if(!manualRegWorkerReady(d))throw new Error('Il collegamento RCH del PC cassa non è aggiornato alla modalità manuale REG.');
+    if(!safeZIdle(st))throw new Error('Comando bloccato: la RCH deve essere in Z, inattiva e senza errori.');
+    m.querySelector('.orcBody').innerHTML='<p><b>RCH in Z, inattiva e senza errori.</b></p><p>Invio del comando manuale di ritorno in REG…</p>';
+    msg(m,'Invio comando al PC cassa…');
+    if(b)b.textContent='Passaggio a REG…';
+    var r=await restoreRegManual();
+    m.querySelector('.orcBody').innerHTML='<p><b>'+(r.alreadyReg?'La RCH era già in REG.':'RCH riportata in REG.')+'</b></p><p>Nessuna chiusura Z è stata eseguita.</p>';
+    msg(m,'Operazione completata.');
+  }catch(e){
+    m.querySelector('.orcBody').innerHTML='<p><b>Il comando non è stato eseguito.</b></p>';
+    msg(m,(e&&e.message)||String(e));
+  }finally{
+    manualRegBusy=false;
+    if(b){b.disabled=false;b.textContent=oldText||'Porta RCH in REG'}
+    cloudConnection().then(updateBadge).catch(function(){var rb=ensureRegButton();if(rb){rb.disabled=false;rb.title='Clicca per verificare lo stato RCH'}})
+  }
+  return false;
+}
+function ensureRegButton(){
+  var badge=document.getElementById('optykerCashRch');if(!badge)return null;
+  var b=document.getElementById('optykerRchRegBtn');
+  if(!b){
+    b=document.createElement('button');b.id='optykerRchRegBtn';b.type='button';b.className='secondary';b.textContent='Porta RCH in REG';b.style.marginLeft='8px';
+    if(badge.parentNode)badge.parentNode.insertBefore(b,badge.nextSibling)
+  }
+  b.disabled=manualRegBusy;
+  b.style.setProperty('pointer-events','auto','important');
+  b.style.setProperty('cursor','pointer','important');
+  b.title='Clicca per verificare e, solo se sicuro, riportare la RCH in REG';
+  b.onclick=function(ev){return runManualRegClick(ev,b)};
+  return b;
+}
+function updateBadge(d){
+  var b=document.getElementById('optykerCashRch'),r=ensureRegButton();if(!b)return;
+  if(d&&d.online){
+    var st=d.status||{},ok=st.ok===true&&regMode(st),can=safeZIdle(st);
+    b.classList.toggle('ok',ok);b.classList.toggle('error',!ok);b.textContent=(ok?'● ':'○ ')+'RCH via PC'+(st.mode?' · '+st.mode:'');
+    if(r){r.disabled=manualRegBusy;r.dataset.rchAllowed=can?'1':'0';r.title=can?'Porta manualmente la RCH da Z a REG':regMode(st)?'La RCH è già in REG':'Clicca per verificare lo stato RCH'}
+  }else{
+    b.classList.remove('ok');b.classList.add('error');b.textContent='○ RCH · verifica collegamento';
+    if(r){r.disabled=manualRegBusy;r.dataset.rchAllowed='0';r.title='Clicca per verificare il collegamento RCH'}
+  }
+}
+if(!window.__OPTYKER_RCH_REG_CLICK_CAPTURE__){
+  window.__OPTYKER_RCH_REG_CLICK_CAPTURE__=true;
+  document.addEventListener('click',function(ev){
+    var t=ev.target,b=t&&t.closest?t.closest('#optykerRchRegBtn'):null;if(!b)return;
+    ev.preventDefault();ev.stopPropagation();if(ev.stopImmediatePropagation)ev.stopImmediatePropagation();
+    runManualRegClick(null,b);
+  },true)
+}
 async function showCloudStatus(){var m=modal('RCH · collegamento tramite PC cassa');try{var d=await cloudConnection(),s=d.status||{},can=safeZIdle(s),worker=manualRegWorkerReady(d);m.querySelector('.orcBody').innerHTML='<p><b>Cloud Relay attivo.</b> Questo dispositivo non deve avere il connettore RCH installato.</p><div class="optykerCashRchInfo"><div><span>PC cassa</span><b>Online</b></div><div><span>RCH</span><b>'+esc(s.mode||'stato non disponibile')+'</b></div><div><span>Connettore</span><b>'+esc(d.connector_version||'Cloud Relay')+'</b></div><div><span>Ultimo contatto</span><b>'+esc(d.last_seen_at?new Date(d.last_seen_at).toLocaleTimeString('it-IT'):'—')+'</b></div></div><p><b>Porta RCH in REG è un comando manuale.</b> Optyker non cambia modalità automaticamente.</p>'+(can?'<p><button class="primary" id="orcRestoreReg" type="button">Porta RCH in REG</button></p>':regMode(s)?'<p>La RCH è già in REG.</p>':'<p>Il pulsante viene abilitato solo con RCH in Z, inattiva e senza errori.</p>')+(!worker?'<p><b>Serve un solo aggiornamento sul PC cassa</b> per attivare il nuovo pulsante.</p>':'')+'<p><a href="/rch-connector/Installa-RCH-Optyker.bat?v=20260916-manualreg1" download>Aggiorna collegamento RCH sul PC Windows</a></p>';var rb=m.querySelector('#orcRestoreReg');if(rb)rb.onclick=async function(){if(!confirm('Portare manualmente la RCH in REG? Nessuna chiusura Z verrà eseguita.'))return;rb.disabled=true;rb.textContent='Passaggio a REG…';try{var r=await restoreRegManual();msg(m,r.alreadyReg?'La RCH era già in REG.':'RCH riportata in REG.');setTimeout(function(){showCloudStatus()},700)}catch(e){msg(m,e.message);rb.disabled=false;rb.textContent='Porta RCH in REG'}};updateBadge(d)}catch(e){m.querySelector('.orcBody').innerHTML='<p>Cloud Relay non ancora disponibile.</p><p>Sul <b>PC Windows della cassa</b> esegui una sola volta <b>Installa / aggiorna connettore</b>.</p><p><a href="/rch-connector/Installa-RCH-Optyker.bat?v=20260916-manualreg1" download>Aggiorna collegamento RCH sul PC Windows</a></p>';msg(m,e.message);updateBadge(null)}}
 function installCashButtons(){var badge=document.getElementById('optykerCashRch'),drawer=document.getElementById('optykerCashDrawer'),gift=document.getElementById('optykerCashGiftBtn');ensureRegButton();if(badge&&!badge.dataset.cloudRelay){var old=badge.onclick;badge.dataset.cloudRelay='1';badge.onclick=async function(ev){if(ev){ev.preventDefault();ev.stopPropagation()}if(await localAvailable()){if(old)return old.call(this,ev)}return showCloudStatus()}}
  if(drawer&&!drawer.dataset.cloudRelay){var oldDrawer=drawer.onclick;drawer.dataset.cloudRelay='1';drawer.onclick=async function(ev){if(await localAvailable()){if(oldDrawer)return oldDrawer.call(this,ev)}this.disabled=true;try{await queueAux('drawer');alert('Cassetto contanti aperto dalla RCH tramite il PC cassa.')}catch(e){alert(e.message)}finally{this.disabled=false}}}

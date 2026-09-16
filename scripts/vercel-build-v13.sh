@@ -240,7 +240,7 @@ grep -q 'Il connettore fiscale attuale NON verra modificato' _site/rch-connector
 
 python - <<'RCH_MANUAL_REG_UI'
 from pathlib import Path
-tag='<script src="/rch-cloud-relay.js?v=20260916-manualreg2"></script>'
+tag='<script src="/rch-cloud-relay.js?v=20260916-manualreg2&clickfix=1"></script>'
 old='<script src="/rch-cloud-relay.js?v=20260916-manualreg1"></script>'
 for rel in ('index.html','gestionale-v2/index.html','gestionale-v3/index.html'):
     f=Path('_site')/rel
@@ -253,7 +253,7 @@ for rel in ('index.html','gestionale-v2/index.html','gestionale-v3/index.html'):
     f.write_text(text,encoding='utf-8')
 RCH_MANUAL_REG_UI
 verify_desktop_aliases
-grep -q 'rch-cloud-relay.js?v=20260916-manualreg2' _site/index.html
+grep -q 'rch-cloud-relay.js?v=20260916-manualreg2&clickfix=1' _site/index.html
 python scripts/check_desktop_html.py
 
 echo "Optyker manual RCH REG UI build OK"
