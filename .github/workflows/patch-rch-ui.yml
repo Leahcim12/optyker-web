@@ -1,0 +1,42 @@
+name: Patch RCH manual REG UI
+
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-rch-ui.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inject RCH cloud relay loader
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          marker = "    document.open();document.write(html);document.close();"
+          line = "    if(!html.includes('rch-cloud-relay.js?v=20260916-manualreg2'))html=html.replace('</body>','<script src=\"/rch-cloud-relay.js?v=20260916-manualreg2\"><\\/script></body>');\n"
+          if 'rch-cloud-relay.js?v=20260916-manualreg2' not in s:
+              if marker not in s:
+                  raise SystemExit('index marker not found')
+              s = s.replace(marker, line + marker, 1)
+              p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit patch
+        shell: bash
+        run: |
+          if git diff --quiet -- index.html; then
+            echo 'No index change needed.'
+            exit 0
+          fi
+          git config user.name 'optyker-bot'
+          git config user.email 'optyker-bot@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Load manual RCH REG relay in Optyker'
+          git push
