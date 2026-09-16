@@ -76,7 +76,8 @@ node --test tests/unified-fiscal-void.test.mjs
 node --check eyewear-manual-final-price-v14.js
 python scripts/patch_eyewear_manual_final_price_20260916.py
 grep -q 'OPTYKER_EYEWEAR_MANUAL_FINAL_PRICE_V14' _site/index.html
+grep -q '20260916-finalprice2' _site/index.html
 grep -q 'eyManualFinalPrice' _site/index.html
-grep -q '__OPTYKER_EYEWEAR_MANUAL_FINAL_RESTORE__' _site/index.html
+grep -q 'restoreManualFinalCurrent' _site/index.html
 python scripts/check_desktop_html.py
 echo 'Optyker final production patches OK'
