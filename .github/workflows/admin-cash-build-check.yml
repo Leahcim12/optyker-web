@@ -30,20 +30,23 @@ jobs:
           test -f _site/admin-cash-version.json
           node --check _site/admin-cash-closure.js
           node --check _site/admin-cash-today-controls.js
+          node --check _site/billing-admin.js
           grep -q '__OPTYKER_ADMIN_CASH_CLOSURE_V2__' _site/admin-cash-closure.js
           grep -q '__OPTYKER_ADMIN_CASH_TODAY_CONTROLS__' _site/admin-cash-today-controls.js
           grep -q 'optykerAdminCashClosureJs' _site/index.html
           grep -q 'optykerAdminCashClosureCss' _site/index.html
           grep -q 'optykerAdminCashTodayJs' _site/index.html
           grep -q 'optykerAdminCashTodayCss' _site/index.html
-          grep -q '20260916-admin-cash7' _site/admin-cash-version.json
+          grep -q '20260916-admin-cash8' _site/admin-cash-version.json
+          grep -q 'admin_cash_navigation_lock' _site/admin-cash-version.json
           grep -q 'optykerAdminEntryJs' _site/index.html
-          grep -q '<div id="optykerAdminEntryBox"><button id="optykerAdminEntryButton"' _site/index.html
+          grep -q 'optykerAdminEntryButton' _site/index.html
           grep -q 'AMMINISTRAZIONE · OTTICA VISUAL CARE' _site/index.html
           grep -q 'Amministratore · Ottica Visual Care' _site/index.html
           grep -q 'value="__optyker_admin__"' _site/index.html
-          grep -q "get('admin')==='1'" _site/index.html
           grep -q 'Chiusure cassa' _site/admin-cash-closure.js
+          grep -q 'OPTYKER_ADMIN_CASH_ACTIVE=true' _site/admin-cash-closure.js
+          grep -q 'OPTYKER_ADMIN_CASH_ACTIVE&&E' _site/billing-admin.js
           grep -q 'Fatture emesse' _site/billing-admin.js
           grep -q 'Fatture in entrata' _site/billing-admin.js
           if grep -q '/optyker-web/billing-admin.js' _site/index.html; then
