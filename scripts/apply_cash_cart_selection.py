@@ -3,7 +3,7 @@ from pathlib import Path
 import hashlib, json, os, re, sys
 
 ROOT=Path(__file__).resolve().parent.parent
-VERSION='20260916-selection2'
+VERSION='20260916-selection3'
 MARK='OPTYKER_CART_SELECTION_20260916'
 
 def once(s,old,new):
