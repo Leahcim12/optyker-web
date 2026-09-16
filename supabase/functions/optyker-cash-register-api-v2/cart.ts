@@ -50,7 +50,7 @@ export async function quoteClientCartLines(clientId:any,linesIn:any[]){
  const out:any[]=[];
  for(const choice of requested){
   const key=norm(choice?.variant_id),saved=server.get(key);if(!saved)throw new Error('Un ordine non è più presente nel carrello del cliente. Ricarica la Cassa.');
-  const price=money(saved.price);if(price<0)throw new Error('Importo ordine non valido');
+  const override=manualPrice(saved.unit_price_override),price=override==null?money(saved.price):override;if(price<0)throw new Error('Importo ordine non valido');
   out.push({product_id:'',variant_id:key,title:cleanText(saved.title||'Ordine cliente'),variant_title:cleanText(saved.variant_title||''),vendor:'Ottica Visual Care',product_type:saved.source_type==='eyewear_busta'?'Occhiali su ordinazione':'Lenti a contatto su ordinazione',sku:cleanText(saved.sku||saved.variant_title||''),barcode:'',image:'',inventory_item_id:null,price,quantity:Number(saved.quantity||1),total:money(price*Number(saved.quantity||1)),list_price:price,discount_percent:0,discount_amount:0,discount_total:0,inventory_quantity:null,needs_order:false,fiscal_vat_code:cleanText(saved.fiscal_vat_code||'',40),fiscal_item_type:'goods',is_client_cart_order:true,source_work_order_id:saved.source_work_order_id||null,source_sheet_id:saved.source_sheet_id||null,department:cleanDepartment(choice?.department??saved.department)});
  }
  return out;
