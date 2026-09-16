@@ -83,5 +83,8 @@ node --check sheet-reference-numbers.js
 python scripts/patch_sheet_reference_numbers_20260916.py
 grep -q 'optykerSheetReferenceNumbersJs' _site/index.html
 grep -q 'OPTYKER_SHEET_REFERENCE_NUMBERS_20260916' _site/sheet-reference-numbers.js
+python scripts/patch_rch_daily_closure_compat_20260916.py
+node --check _site/rch-cloud-relay.js
+grep -q '2\\.2-daily-closure' _site/rch-cloud-relay.js
 python scripts/check_desktop_html.py
 echo 'Optyker final production patches OK'
