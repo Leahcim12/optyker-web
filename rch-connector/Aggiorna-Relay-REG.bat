@@ -1,10 +1,10 @@
 @echo off
 setlocal
-title Aggiorna Optyker RCH - REG manuale
+title Aggiorna Optyker RCH - chiusura giornaliera
 echo.
 echo Optyker RCH - aggiornamento SOLO Cloud Relay
 echo Il connettore fiscale non verra modificato.
-echo Nessuna chiusura fiscale e nessuno scontrino vengono eseguiti.
+echo Nessuna chiusura fiscale e nessuno scontrino vengono eseguiti DURANTE l'aggiornamento.
 echo.
 set "TMPPS1=%TEMP%\Aggiorna-Relay-REG.ps1"
 echo Download aggiornamento...
@@ -27,7 +27,7 @@ if not "%RC%"=="0" (
   exit /b %RC%
 )
 echo AGGIORNAMENTO COMPLETATO.
-echo Ora riapri Optyker e usa Porta RCH in REG.
-echo Il passaggio in REG NON e automatico.
+echo Ora Chiudi cassa puo avviare la chiusura giornaliera RCH.
+echo Il ritorno da Z a REG resta manuale.
 pause
 endlocal
