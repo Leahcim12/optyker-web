@@ -21,16 +21,18 @@ jobs:
         run: bash scripts/vercel-build-v13.sh
       - name: Apply final production patches
         run: bash scripts/vercel-finalize-20260914.sh
-      - name: Verify admin cash assets
+      - name: Verify administration assets
         run: |
           test -f _site/admin-cash-closure.js
           test -f _site/admin-cash-closure.css
           test -f _site/admin-cash-today-controls.js
           test -f _site/admin-cash-today-controls.css
           test -f _site/admin-cash-version.json
+          test -f _site/billing-customer-company-split.js
           node --check _site/admin-cash-closure.js
           node --check _site/admin-cash-today-controls.js
           node --check _site/billing-admin.js
+          node --check _site/billing-customer-company-split.js
           grep -q '__OPTYKER_ADMIN_CASH_CLOSURE_V2__' _site/admin-cash-closure.js
           grep -q '__OPTYKER_ADMIN_CASH_TODAY_CONTROLS__' _site/admin-cash-today-controls.js
           grep -q 'optykerAdminCashClosureJs' _site/index.html
@@ -47,7 +49,12 @@ jobs:
           grep -q 'Chiusure cassa' _site/admin-cash-closure.js
           grep -q 'OPTYKER_ADMIN_CASH_ACTIVE=true' _site/admin-cash-closure.js
           grep -q 'OPTYKER_ADMIN_CASH_ACTIVE&&E' _site/billing-admin.js
-          grep -q 'Fatture emesse' _site/billing-admin.js
+          grep -q 'optykerBillingCustomerCompanySplitScript' _site/index.html
+          grep -q '__OPTYKER_BILLING_CUSTOMER_COMPANY_SPLIT__' _site/billing-customer-company-split.js
+          grep -q 'Fatture clienti · no SDI' _site/billing-customer-company-split.js
+          grep -q 'Fatture aziende · SDI' _site/billing-customer-company-split.js
+          grep -q "supplier_type:'cliente'" _site/billing-customer-company-split.js
+          grep -q "option\[value=\\\"sdi\\\"\]" _site/billing-customer-company-split.js
           grep -q 'Fatture in entrata' _site/billing-admin.js
           if grep -q '/optyker-web/billing-admin.js' _site/index.html; then
             echo 'Stale billing-admin repository subpath still present' >&2
