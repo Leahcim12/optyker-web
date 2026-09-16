@@ -4,7 +4,6 @@ on:
   push:
     paths:
       - '.github/workflows/patch-rch-ui.yml'
-      - 'scripts/patch_manual_reg_production.py'
   workflow_dispatch:
 
 permissions:
@@ -17,24 +16,121 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Patch production files
-        run: python scripts/patch_manual_reg_production.py
-
-      - name: Verify patch
+      - name: Fix RCH REG click handling
+        shell: bash
         run: |
-          grep -q "2.1-manual-reg" scripts/vercel-build-v13.sh
-          grep -q "restore_reg" .github/workflows/pages.yml
-          grep -q "rch-cloud-relay.js?v=20260916-manualreg2" index.html
+          python - <<'PY'
+          from pathlib import Path
 
-      - name: Commit build patch only
+          relay=Path('rch-cloud-relay.js')
+          s=relay.read_text(encoding='utf-8')
+          start=s.find('function ensureRegButton(){')
+          end=s.find('async function showCloudStatus(){', start)
+          if start < 0 or end < 0:
+              raise SystemExit('Manual REG button block not found')
+
+          fixed=r'''/* OPTYKER_RCH_REG_CLICK_FIX_V1 */
+          var manualRegBusy=false;
+          async function runManualRegClick(ev,b){
+            if(ev){ev.preventDefault();ev.stopPropagation();if(ev.stopImmediatePropagation)ev.stopImmediatePropagation()}
+            if(manualRegBusy)return false;
+            manualRegBusy=true;
+            var oldText=(b&&b.textContent)||'Porta RCH in REG';
+            if(b){b.disabled=true;b.textContent='Verifica RCH…'}
+            var m=modal('RCH · ritorno manuale in REG');
+            m.querySelector('.orcBody').innerHTML='<p>Verifica collegamento e stato della RCH…</p>';
+            msg(m,'');
+            try{
+              var d=await cloudConnection(),st=d.status||{};
+              if(regMode(st)&&String(st.idleState)==='0'){
+                m.querySelector('.orcBody').innerHTML='<p><b>La RCH è già in REG.</b></p>';
+                msg(m,'Nessun comando necessario.');
+                return false;
+              }
+              if(!manualRegWorkerReady(d))throw new Error('Il collegamento RCH del PC cassa non è aggiornato alla modalità manuale REG.');
+              if(!safeZIdle(st))throw new Error('Comando bloccato: la RCH deve essere in Z, inattiva e senza errori.');
+              m.querySelector('.orcBody').innerHTML='<p><b>RCH in Z, inattiva e senza errori.</b></p><p>Invio del comando manuale di ritorno in REG…</p>';
+              msg(m,'Invio comando al PC cassa…');
+              if(b)b.textContent='Passaggio a REG…';
+              var r=await restoreRegManual();
+              m.querySelector('.orcBody').innerHTML='<p><b>'+(r.alreadyReg?'La RCH era già in REG.':'RCH riportata in REG.')+'</b></p><p>Nessuna chiusura Z è stata eseguita.</p>';
+              msg(m,'Operazione completata.');
+            }catch(e){
+              m.querySelector('.orcBody').innerHTML='<p><b>Il comando non è stato eseguito.</b></p>';
+              msg(m,(e&&e.message)||String(e));
+            }finally{
+              manualRegBusy=false;
+              if(b){b.disabled=false;b.textContent=oldText||'Porta RCH in REG'}
+              cloudConnection().then(updateBadge).catch(function(){var rb=ensureRegButton();if(rb){rb.disabled=false;rb.title='Clicca per verificare lo stato RCH'}})
+            }
+            return false;
+          }
+          function ensureRegButton(){
+            var badge=document.getElementById('optykerCashRch');if(!badge)return null;
+            var b=document.getElementById('optykerRchRegBtn');
+            if(!b){
+              b=document.createElement('button');b.id='optykerRchRegBtn';b.type='button';b.className='secondary';b.textContent='Porta RCH in REG';b.style.marginLeft='8px';
+              if(badge.parentNode)badge.parentNode.insertBefore(b,badge.nextSibling)
+            }
+            b.disabled=manualRegBusy;
+            b.style.setProperty('pointer-events','auto','important');
+            b.style.setProperty('cursor','pointer','important');
+            b.title='Clicca per verificare e, solo se sicuro, riportare la RCH in REG';
+            b.onclick=function(ev){return runManualRegClick(ev,b)};
+            return b;
+          }
+          function updateBadge(d){
+            var b=document.getElementById('optykerCashRch'),r=ensureRegButton();if(!b)return;
+            if(d&&d.online){
+              var st=d.status||{},ok=st.ok===true&&regMode(st),can=safeZIdle(st);
+              b.classList.toggle('ok',ok);b.classList.toggle('error',!ok);b.textContent=(ok?'● ':'○ ')+'RCH via PC'+(st.mode?' · '+st.mode:'');
+              if(r){r.disabled=manualRegBusy;r.dataset.rchAllowed=can?'1':'0';r.title=can?'Porta manualmente la RCH da Z a REG':regMode(st)?'La RCH è già in REG':'Clicca per verificare lo stato RCH'}
+            }else{
+              b.classList.remove('ok');b.classList.add('error');b.textContent='○ RCH · verifica collegamento';
+              if(r){r.disabled=manualRegBusy;r.dataset.rchAllowed='0';r.title='Clicca per verificare il collegamento RCH'}
+            }
+          }
+          if(!window.__OPTYKER_RCH_REG_CLICK_CAPTURE__){
+            window.__OPTYKER_RCH_REG_CLICK_CAPTURE__=true;
+            document.addEventListener('click',function(ev){
+              var t=ev.target,b=t&&t.closest?t.closest('#optykerRchRegBtn'):null;if(!b)return;
+              ev.preventDefault();ev.stopPropagation();if(ev.stopImmediatePropagation)ev.stopImmediatePropagation();
+              runManualRegClick(null,b);
+            },true)
+          }
+          '''
+          s=s[:start]+fixed+s[end:]
+          relay.write_text(s,encoding='utf-8')
+
+          # Cache-bust the fixed relay without breaking existing prefix checks.
+          for rel in ('index.html','scripts/vercel-build-v13.sh','scripts/apply_unified_fiscal_void.py','scripts/patch_manual_reg_production.py'):
+              p=Path(rel)
+              if not p.exists():
+                  continue
+              t=p.read_text(encoding='utf-8')
+              if '20260916-manualreg2&clickfix=1' not in t:
+                  t=t.replace('20260916-manualreg2','20260916-manualreg2&clickfix=1')
+                  p.write_text(t,encoding='utf-8')
+          PY
+
+      - name: Verify fixed relay
+        shell: bash
         run: |
-          git checkout -- .github/workflows/pages.yml
-          if git diff --quiet -- index.html scripts/vercel-build-v13.sh; then
-            echo "No build changes needed"
+          node --check rch-cloud-relay.js
+          grep -q "OPTYKER_RCH_REG_CLICK_FIX_V1" rch-cloud-relay.js
+          grep -q "runManualRegClick" rch-cloud-relay.js
+          grep -q "20260916-manualreg2&clickfix=1" index.html
+          grep -q "20260916-manualreg2&clickfix=1" scripts/vercel-build-v13.sh
+
+      - name: Commit RCH click fix
+        shell: bash
+        run: |
+          if git diff --quiet -- rch-cloud-relay.js index.html scripts/vercel-build-v13.sh scripts/apply_unified_fiscal_void.py scripts/patch_manual_reg_production.py; then
+            echo "No changes needed"
             exit 0
           fi
           git config user.name "optyker-bot"
           git config user.email "optyker-bot@users.noreply.github.com"
-          git add index.html scripts/vercel-build-v13.sh
-          git commit -m "Publish manual RCH REG control in build"
+          git add rch-cloud-relay.js index.html scripts/vercel-build-v13.sh scripts/apply_unified_fiscal_void.py scripts/patch_manual_reg_production.py
+          git commit -m "Fix manual RCH REG button click"
           git push
