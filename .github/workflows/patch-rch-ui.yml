@@ -26,14 +26,15 @@ jobs:
           grep -q "restore_reg" .github/workflows/pages.yml
           grep -q "rch-cloud-relay.js?v=20260916-manualreg2" index.html
 
-      - name: Commit production patch
+      - name: Commit build patch only
         run: |
-          if git diff --quiet -- index.html scripts/vercel-build-v13.sh .github/workflows/pages.yml; then
-            echo "No changes needed"
+          git checkout -- .github/workflows/pages.yml
+          if git diff --quiet -- index.html scripts/vercel-build-v13.sh; then
+            echo "No build changes needed"
             exit 0
           fi
           git config user.name "optyker-bot"
           git config user.email "optyker-bot@users.noreply.github.com"
-          git add index.html scripts/vercel-build-v13.sh .github/workflows/pages.yml
-          git commit -m "Publish manual RCH REG control"
+          git add index.html scripts/vercel-build-v13.sh
+          git commit -m "Publish manual RCH REG control in build"
           git push
