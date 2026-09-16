@@ -233,12 +233,30 @@ cp rch-cloud-relay.js _site/rch-cloud-relay.js
 test -s _site/rch-connector/Installa-RCH-Optyker.bat
 test -s _site/rch-connector/Installa-RCH-Optyker.ps1
 test -s _site/rch-connector/rch-optyker-cloud-worker.ps1
-grep -q '20260914-cloud4' _site/rch-connector/Installa-RCH-Optyker.bat
+grep -q '2.1-manual-reg' _site/rch-connector/rch-optyker-cloud-worker.ps1
+grep -q 'restore_reg' _site/rch-connector/rch-optyker-cloud-worker.ps1
+grep -q 'Porta RCH in REG' _site/rch-cloud-relay.js
 grep -q 'Il connettore fiscale attuale NON verra modificato' _site/rch-connector/Installa-RCH-Optyker.ps1
 
+python - <<'RCH_MANUAL_REG_UI'
+from pathlib import Path
+tag='<script src="/rch-cloud-relay.js?v=20260916-manualreg2"></script>'
+old='<script src="/rch-cloud-relay.js?v=20260916-manualreg1"></script>'
+for rel in ('index.html','gestionale-v2/index.html','gestionale-v3/index.html'):
+    f=Path('_site')/rel
+    text=f.read_text(encoding='utf-8').replace(old,'')
+    if tag not in text:
+        i=text.lower().rfind('</body>')
+        if i < 0:
+            raise SystemExit('Closing body not found in '+rel)
+        text=text[:i]+tag+'\n'+text[i:]
+    f.write_text(text,encoding='utf-8')
+RCH_MANUAL_REG_UI
+verify_desktop_aliases
+grep -q 'rch-cloud-relay.js?v=20260916-manualreg2' _site/index.html
 python scripts/check_desktop_html.py
 
-echo "Optyker Vercel interaction guard + RCH Cloud4 build OK"
+echo "Optyker manual RCH REG UI build OK"
 
 # Shared oculists and prescription metadata, after the existing sheet editors.
 node --check prescription-ophthalmic.js
