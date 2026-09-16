@@ -70,7 +70,10 @@ jobs:
           test -s _site/rch-connector/rch-optyker-connector.ps1
           test -s _site/rch-connector/rch-optyker-cloud-worker.ps1
           test -s _site/rch-connector/Attiva-Avvio-Automatico-RCH.ps1
-          grep -q "2.1-manual-reg" _site/rch-connector/rch-optyker-cloud-worker.ps1
+          grep -q "2.2-daily-closure" _site/rch-connector/rch-optyker-cloud-worker.ps1
+          grep -q "daily_closure" _site/rch-connector/rch-optyker-cloud-worker.ps1
+          grep -q "Close-DailyManual" _site/rch-connector/rch-optyker-cloud-worker.ps1
+          grep -q "=C10" _site/rch-connector/rch-optyker-cloud-worker.ps1
           grep -q "restore_reg" _site/rch-connector/rch-optyker-cloud-worker.ps1
           grep -q "=C1" _site/rch-connector/rch-optyker-cloud-worker.ps1
           grep -q "Porta RCH in REG" _site/rch-cloud-relay.js
