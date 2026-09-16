@@ -65,10 +65,18 @@ grep -q 'Comando di chiusura fiscale non consentito' _site/rch-connector/Aggiorn
 python scripts/apply_cash_cart_selection.py
 node --check _site/cash-register.js
 node --test tests/cash-cart-selection.test.mjs
+grep -q '20260916-selection3' _site/cash-register.js
+grep -q 'data-price' _site/cash-register.js
 python scripts/apply_eyewear_order_parameters.py
 node --check _site/order-sheet-actions.js
 node --test tests/eyewear-order-parameters.test.mjs
 python scripts/apply_unified_fiscal_void.py
 node --check _site/unified-fiscal-void.js
 node --test tests/unified-fiscal-void.test.mjs
+node --check eyewear-manual-final-price-v14.js
+python scripts/patch_eyewear_manual_final_price_20260916.py
+grep -q 'OPTYKER_EYEWEAR_MANUAL_FINAL_PRICE_V14' _site/index.html
+grep -q 'eyManualFinalPrice' _site/index.html
+grep -q '__OPTYKER_EYEWEAR_MANUAL_FINAL_RESTORE__' _site/client-sheet-edit.js
+python scripts/check_desktop_html.py
 echo 'Optyker final production patches OK'
