@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - '.github/workflows/patch-rch-ui.yml'
+      - 'scripts/patch_manual_reg_production.py'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -12,97 +14,26 @@ jobs:
   patch:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Fix manual REG production build and deployment
-        shell: bash
+      - name: Patch production files
+        run: python scripts/patch_manual_reg_production.py
+
+      - name: Verify patch
         run: |
-          python - <<'PY'
-          from pathlib import Path
+          grep -q "2.1-manual-reg" scripts/vercel-build-v13.sh
+          grep -q "restore_reg" .github/workflows/pages.yml
+          grep -q "rch-cloud-relay.js?v=20260916-manualreg2" index.html
 
-          # Keep the lightweight repository loader able to load the relay too.
-          p = Path('index.html')
-          s = p.read_text(encoding='utf-8')
-          marker = "    document.open();document.write(html);document.close();"
-          line = "    if(!html.includes('rch-cloud-relay.js?v=20260916-manualreg2'))html=html.replace('</body>','<script src=\"/rch-cloud-relay.js?v=20260916-manualreg2\"><\\/script></body>');\n"
-          if 'rch-cloud-relay.js?v=20260916-manualreg2' not in s:
-              if marker not in s:
-                  raise SystemExit('index marker not found')
-              s = s.replace(marker, line + marker, 1)
-              p.write_text(s, encoding='utf-8')
-
-          # The production build was still rejecting the old cloud4 version.
-          p = Path('scripts/vercel-build-v13.sh')
-          s = p.read_text(encoding='utf-8')
-          s = s.replace(
-              "grep -q '20260914-cloud4' _site/rch-connector/Installa-RCH-Optyker.bat",
-              "grep -q '2.1-manual-reg' _site/rch-connector/rch-optyker-cloud-worker.ps1\ngrep -q 'restore_reg' _site/rch-connector/rch-optyker-cloud-worker.ps1\ngrep -q 'Porta RCH in REG' _site/rch-cloud-relay.js"
-          )
-          ui_marker = "python scripts/check_desktop_html.py\n\necho \"Optyker Vercel interaction guard + RCH Cloud4 build OK\""
-          ui_patch = r'''python - <<'RCH_MANUAL_REG_UI'
-          from pathlib import Path
-          tag='<script src="/rch-cloud-relay.js?v=20260916-manualreg2"></script>'
-          old='<script src="/rch-cloud-relay.js?v=20260916-manualreg1"></script>'
-          for rel in ('index.html','gestionale-v2/index.html','gestionale-v3/index.html'):
-              f=Path('_site')/rel
-              text=f.read_text(encoding='utf-8').replace(old,'')
-              if tag not in text:
-                  i=text.lower().rfind('</body>')
-                  if i < 0:
-                      raise SystemExit('Closing body not found in '+rel)
-                  text=text[:i]+tag+'\n'+text[i:]
-              f.write_text(text,encoding='utf-8')
-          RCH_MANUAL_REG_UI
-          verify_desktop_aliases
-          grep -q 'rch-cloud-relay.js?v=20260916-manualreg2' _site/index.html
-          python scripts/check_desktop_html.py
-
-          echo "Optyker manual RCH REG UI build OK"'''
-          if 'Optyker manual RCH REG UI build OK' not in s:
-              if ui_marker not in s:
-                  raise SystemExit('RCH production build marker not found')
-              s = s.replace(ui_marker, ui_patch, 1)
-          p.write_text(s, encoding='utf-8')
-
-          # Replace stale RCH deployment assertions with the current manual-only relay checks.
-          p = Path('.github/workflows/pages.yml')
-          s = p.read_text(encoding='utf-8')
-          start = s.find('      - name: Pubblica connettore RCH e relay iPad\n')
-          end = s.find('      - name: Ripristina interazioni Optyker\n', start)
-          if start < 0 or end < 0:
-              raise SystemExit('RCH Pages step not found')
-          block = r'''      - name: Pubblica connettore RCH e relay iPad
-        run: |
-          mkdir -p _site/rch-connector
-          cp -R rch-connector/. _site/rch-connector/
-          cp rch-cloud-relay.js _site/rch-cloud-relay.js
-          test -s _site/rch-connector/Installa-RCH-Optyker.bat
-          test -s _site/rch-connector/Installa-RCH-Optyker.ps1
-          test -s _site/rch-connector/rch-optyker-connector.ps1
-          test -s _site/rch-connector/rch-optyker-cloud-worker.ps1
-          test -s _site/rch-connector/Attiva-Avvio-Automatico-RCH.ps1
-          grep -q "2.1-manual-reg" _site/rch-connector/rch-optyker-cloud-worker.ps1
-          grep -q "restore_reg" _site/rch-connector/rch-optyker-cloud-worker.ps1
-          grep -q "=C1" _site/rch-connector/rch-optyker-cloud-worker.ps1
-          grep -q "Porta RCH in REG" _site/rch-cloud-relay.js
-          grep -q "__OPTYKER_RCH_CLOUD_RELAY__" _site/rch-cloud-relay.js
-          grep -q "rch-cloud-relay.js?v=20260916-manualreg2" _site/index.html
-          pwsh -NoLogo -NoProfile -Command '$files=@("_site/rch-connector/Installa-RCH-Optyker.ps1","_site/rch-connector/Attiva-Avvio-Automatico-RCH.ps1","_site/rch-connector/rch-optyker-cloud-worker.ps1"); foreach($f in $files){$tokens=$null;$errors=$null;[System.Management.Automation.Language.Parser]::ParseFile($f,[ref]$tokens,[ref]$errors)|Out-Null;if($errors.Count){Write-Host "Parser errors in $f" -ForegroundColor Red;$errors|ForEach-Object{Write-Host $_.Message -ForegroundColor Red};exit 1}}; Write-Host "RCH PowerShell syntax OK"'
-
-'''
-          s = s[:start] + block + s[end:]
-          p.write_text(s, encoding='utf-8')
-          PY
-
-      - name: Commit deployment fix
-        shell: bash
+      - name: Commit production patch
         run: |
           if git diff --quiet -- index.html scripts/vercel-build-v13.sh .github/workflows/pages.yml; then
-            echo 'No changes needed.'
+            echo "No changes needed"
             exit 0
           fi
-          git config user.name 'optyker-bot'
-          git config user.email 'optyker-bot@users.noreply.github.com'
+          git config user.name "optyker-bot"
+          git config user.email "optyker-bot@users.noreply.github.com"
           git add index.html scripts/vercel-build-v13.sh .github/workflows/pages.yml
-          git commit -m 'Fix manual RCH REG production deployment'
+          git commit -m "Publish manual RCH REG control"
           git push
