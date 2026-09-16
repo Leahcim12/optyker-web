@@ -79,5 +79,9 @@ grep -q 'OPTYKER_EYEWEAR_MANUAL_FINAL_PRICE_V14' _site/index.html
 grep -q '20260916-finalprice2' _site/index.html
 grep -q 'eyManualFinalPrice' _site/index.html
 grep -q 'restoreManualFinalCurrent' _site/index.html
+node --check sheet-reference-numbers.js
+python scripts/patch_sheet_reference_numbers_20260916.py
+grep -q 'optykerSheetReferenceNumbersJs' _site/index.html
+grep -q 'OPTYKER_SHEET_REFERENCE_NUMBERS_20260916' _site/sheet-reference-numbers.js
 python scripts/check_desktop_html.py
 echo 'Optyker final production patches OK'
