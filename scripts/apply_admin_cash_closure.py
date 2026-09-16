@@ -4,7 +4,7 @@ import hashlib,json,re,shutil,sys,os
 
 ROOT=Path(__file__).resolve().parent.parent
 SITE=Path(sys.argv[1]) if len(sys.argv)>1 else Path('_site')
-VERSION='20260916-admin-cash7'
+VERSION='20260916-admin-cash8'
 page=SITE/'index.html'
 h=page.read_text(encoding='utf-8')
 if 'billing-admin.js' not in h:
@@ -22,8 +22,10 @@ for marker in (
 h=re.sub(r'<div\b[^>]*id=["\']optykerAdminEntryBox["\'][^>]*>[\s\S]*?</div>\s*</div>\s*', '', h, count=1, flags=re.I)
 
 # Repair stale repository-subpath references when the app is served on the custom domain.
-h=re.sub(r'(["\'])/optyker-web/billing-admin\.js(?:\?[^"\']*)?\1',r'"/billing-admin.js?v=20260916-adminentry3"',h,flags=re.I)
-h=re.sub(r'(["\'])/optyker-web/billing-admin\.css(?:\?[^"\']*)?\1',r'"/billing-admin.css?v=20260916-adminentry3"',h,flags=re.I)
+h=re.sub(r'(["\'])/optyker-web/billing-admin\.js(?:\?[^"\']*)?\1',r'"/billing-admin.js?v=20260916-adminnavlock1"',h,flags=re.I)
+h=re.sub(r'(["\'])/optyker-web/billing-admin\.css(?:\?[^"\']*)?\1',r'"/billing-admin.css?v=20260916-adminnavlock1"',h,flags=re.I)
+h=re.sub(r'(["\'])/billing-admin\.js(?:\?[^"\']*)?\1',r'"/billing-admin.js?v=20260916-adminnavlock1"',h,flags=re.I)
+h=re.sub(r'(["\'])/billing-admin\.css(?:\?[^"\']*)?\1',r'"/billing-admin.css?v=20260916-adminnavlock1"',h,flags=re.I)
 
 admin_entry_markup='''<div id="optykerAdminEntryBox"><button id="optykerAdminEntryButton" type="button">AMMINISTRAZIONE · OTTICA VISUAL CARE</button><div id="optykerAdminEntryHint">Accesso separato per fatture, chiusure cassa, Sistema TS e impostazioni</div><div id="optykerAdminEntryError"></div></div>'''
 login_shell=re.search(r'<div\b[^>]*class=["\'][^"\']*optykerLoginShell[^"\']*["\'][^>]*>',h,re.I)
@@ -71,11 +73,11 @@ admin_entry_js='''<script id="optykerAdminEntryJs">(function(){
   function setErr(msg){var e=E('optykerAdminEntryError');if(!e)return;e.textContent=msg||'';e.style.display=msg?'block':'none'}
   function loadAdmin(cb){
     var css=E('optykerBillingAdminRootCss');
-    if(!css){css=document.createElement('link');css.id='optykerBillingAdminRootCss';css.rel='stylesheet';css.href=rootAsset(['billing','admin.css'].join('-'))+'?v=20260916-adminentry3';document.head.appendChild(css)}
+    if(!css){css=document.createElement('link');css.id='optykerBillingAdminRootCss';css.rel='stylesheet';css.href=rootAsset(['billing','admin.css'].join('-'))+'?v=20260916-adminnavlock1';document.head.appendChild(css)}
     if(window.__optykerBillingAdminLoaded){cb();return}
     var old=E('optykerBillingAdminRootLoader');
     if(old){var n=0,t=setInterval(function(){if(window.__optykerBillingAdminLoaded||n++>40){clearInterval(t);cb()}},100);return}
-    var s=document.createElement('script');s.id='optykerBillingAdminRootLoader';s.src=rootAsset(['billing','admin.js'].join('-'))+'?v=20260916-adminentry3';
+    var s=document.createElement('script');s.id='optykerBillingAdminRootLoader';s.src=rootAsset(['billing','admin.js'].join('-'))+'?v=20260916-adminnavlock1';
     s.onload=function(){cb()};s.onerror=function(){setErr('Modulo Amministrazione non caricato. Ricarica la pagina.');var b=E('optykerAdminEntryButton');if(b){b.disabled=false;b.textContent='AMMINISTRAZIONE · OTTICA VISUAL CARE'}};
     document.head.appendChild(s)
   }
@@ -123,10 +125,50 @@ for alias in ('gestionale-v2','gestionale-v3'):
 asset_names=('admin-cash-closure.js','admin-cash-closure.css','admin-cash-today-controls.js','admin-cash-today-controls.css','admin-cash-rch-recovery.js')
 for name in asset_names:
     shutil.copyfile(ROOT/name,SITE/name)
+
+# Keep Chiusure cassa selected until the user explicitly chooses another admin section.
+cash_path=SITE/'admin-cash-closure.js'
+cash=cash_path.read_text(encoding='utf-8')
+cash_anchor="function openSection(){var p=ensurePanel();if(!p)return;hidePanels();"
+if cash_anchor not in cash:
+    raise SystemExit('Admin cash navigation: openSection anchor missing')
+cash=cash.replace(cash_anchor,"function openSection(){window.OPTYKER_ADMIN_CASH_ACTIVE=true;document.body.classList.add('optykerAdminCashMode');var p=ensurePanel();if(!p)return;hidePanels();",1)
+cash_path.write_text(cash,encoding='utf-8')
+
+billing_path=SITE/'billing-admin.js'
+billing=billing_path.read_text(encoding='utf-8')
+show_anchor="function showSection(mode){\n    state.section='billing';"
+if show_anchor not in billing:
+    raise SystemExit('Admin cash navigation: billing showSection anchor missing')
+billing=billing.replace(show_anchor,"function showSection(mode){\n    window.OPTYKER_ADMIN_CASH_ACTIVE=false;document.body.classList.remove('optykerAdminCashMode');\n    state.section='billing';",1)
+settings_anchor="function showAdminSettings(){\n    var c=window.OPTYKER_CLOUD;"
+if settings_anchor not in billing:
+    raise SystemExit('Admin cash navigation: settings anchor missing')
+billing=billing.replace(settings_anchor,"function showAdminSettings(){\n    window.OPTYKER_ADMIN_CASH_ACTIVE=false;document.body.classList.remove('optykerAdminCashMode');\n    var c=window.OPTYKER_CLOUD;",1)
+maintenance_old="""if(window.OPTYKER_BILLING_ADMIN){
+      document.body.classList.add('optykerBillingMode');ensureHeaderTools();ensureSidebar();ensurePanel();hideRegularPanels();
+      var p=E(state.section==='settings'?'optykerSettingsPanel':'optykerBillingPanel');if(p)p.style.setProperty('display','block','important')
+    }else restoreSession()"""
+maintenance_new="""if(window.OPTYKER_BILLING_ADMIN){
+      document.body.classList.add('optykerBillingMode');ensureHeaderTools();ensureSidebar();ensurePanel();
+      if(window.OPTYKER_ADMIN_CASH_ACTIVE&&E('optykerAdminCashPanel')){
+        var bp=E('optykerBillingPanel');if(bp)bp.style.setProperty('display','none','important');
+        var sp=E('optykerSettingsPanel');if(sp)sp.style.setProperty('display','none','important');
+        E('optykerAdminCashPanel').style.setProperty('display','block','important')
+      }else{
+        hideRegularPanels();
+        var p=E(state.section==='settings'?'optykerSettingsPanel':'optykerBillingPanel');if(p)p.style.setProperty('display','block','important')
+      }
+    }else restoreSession()"""
+if maintenance_old not in billing:
+    raise SystemExit('Admin cash navigation: maintenance anchor missing')
+billing=billing.replace(maintenance_old,maintenance_new,1)
+billing_path.write_text(billing,encoding='utf-8')
+
 release={
     'version':VERSION,
     'commit':os.environ.get('VERCEL_GIT_COMMIT_SHA') or os.environ.get('GITHUB_SHA',''),
-    'features':['admin_static_login_entry','admin_direct_query','admin_opening','daily_closure','turnover_vs_paid','automatic_receipt_count','monthly_paid_total','today_open_button','today_close_button','carry_forward_cash_fund','rch_daily_closure','rch_closure_recovery'],
+    'features':['admin_static_login_entry','admin_direct_query','admin_cash_navigation_lock','admin_opening','daily_closure','turnover_vs_paid','automatic_receipt_count','monthly_paid_total','today_open_button','today_close_button','carry_forward_cash_fund','rch_daily_closure','rch_closure_recovery'],
     'assets':{n:hashlib.sha256((SITE/n).read_bytes()).hexdigest() for n in asset_names}
 }
 (SITE/'admin-cash-version.json').write_text(json.dumps(release,indent=2)+'\n',encoding='utf-8')
