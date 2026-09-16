@@ -115,12 +115,21 @@ jobs:
           grep -q "Lente SX" _site/index.html
           grep -q "Indice lente" _site/index.html
           grep -q "Base · inclusa" _site/index.html
+          node --check eyewear-manual-final-price-v14.js
+          python scripts/patch_eyewear_manual_final_price_20260916.py
+          grep -q "OPTYKER_EYEWEAR_MANUAL_FINAL_PRICE_V14" _site/index.html
+          grep -q "20260916-finalprice2" _site/index.html
+          grep -q "eyManualFinalPrice" _site/index.html
+          grep -q "restoreManualFinalCurrent" _site/index.html
+          python scripts/check_desktop_html.py
 
       - name: Selezione voci da pagare nel carrello
         run: |
           python scripts/apply_cash_cart_selection.py
           node --check _site/cash-register.js
           node --test tests/cash-cart-selection.test.mjs
+          grep -q "20260916-selection3" _site/cash-register.js
+          grep -q "data-price" _site/cash-register.js
 
       - name: Parametri Occhiali e annullamento ordini
         run: |
