@@ -36,4 +36,9 @@ jobs:
           grep -q 'optykerAdminCashClosureCss' _site/index.html
           grep -q 'optykerAdminCashTodayJs' _site/index.html
           grep -q 'optykerAdminCashTodayCss' _site/index.html
-          grep -q '20260915-admin-cash4' _site/admin-cash-version.json
+          grep -q '20260916-admin-cash5' _site/admin-cash-version.json
+          grep -q 'Amministratore · Ottica Visual Care' _site/index.html
+          grep -q 'value="__optyker_admin__"' _site/index.html
+          grep -q 'Chiusure cassa' _site/admin-cash-closure.js
+          grep -q 'Fatture emesse' _site/billing-admin.js
+          grep -q 'Fatture in entrata' _site/billing-admin.js
