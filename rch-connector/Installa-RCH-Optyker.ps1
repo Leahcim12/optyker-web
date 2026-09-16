@@ -24,7 +24,7 @@ $startup = [Environment]::GetFolderPath("Startup")
 $startupHelper = Join-Path $base 'Attiva-Avvio-Automatico-RCH.ps1'
 $publicRoot = 'https://leahcim12.github.io/optyker-web/rch-connector'
 $source = "$publicRoot/rch-optyker-connector.ps1?v=20260914-cloud4"
-$workerSource = "$publicRoot/rch-optyker-cloud-worker.ps1?v=20260914-cloud4"
+$workerSource = "$publicRoot/rch-optyker-cloud-worker.ps1?v=20260916-manualreg1"
 $startupSource = "$publicRoot/Attiva-Avvio-Automatico-RCH.ps1?v=20260914-cloud4"
 $relayApi='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-rch-relay-api'
 
@@ -38,7 +38,6 @@ if(Test-Path -LiteralPath $journal){
       $j=Get-Content -LiteralPath $f.FullName -Raw | ConvertFrom-Json
       if($j.state -in @('claiming','sending','uncertain')){$uncertain.Add($f.FullName)}
     } catch {
-      # A malformed fiscal journal is treated as uncertain: never replace the fiscal connector.
       $uncertain.Add($f.FullName)
     }
   }
@@ -81,7 +80,7 @@ function Enroll-CloudRelay {
     if([string]::IsNullOrWhiteSpace($password) -or $password.Length -lt 8){throw 'Password Optyker non valida.'}
     $machineId=[guid]::NewGuid().ToString()
     $secret=New-HexSecret
-    $payload=@{action='enroll';username=$username;password=$password;payload=@{machine_id=$machineId;secret=$secret;serial='72IV6003831';connector_version='1.9-cloud-relay'}}
+    $payload=@{action='enroll';username=$username;password=$password;payload=@{machine_id=$machineId;secret=$secret;serial='72IV6003831';connector_version='2.1-manual-reg'}}
     $bytes=[Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -Depth 10 -Compress $payload))
     $r=Invoke-RestMethod -Uri $relayApi -Method Post -ContentType 'application/json' -Body $bytes -TimeoutSec 25 -MaximumRedirection 0
     if($r.ok -ne $true){throw 'Optyker non ha autorizzato questo PC come PC cassa.'}
@@ -116,7 +115,7 @@ if(-not $relayOnly){
 }
 $workerTokens=$null;$workerErrors=$null
 [void][System.Management.Automation.Language.Parser]::ParseFile($workerCandidate,[ref]$workerTokens,[ref]$workerErrors)
-if($workerErrors.Count -gt 0 -or (Get-Content -Raw -LiteralPath $workerCandidate) -notmatch '1\.9-cloud-relay'){throw 'Download Cloud Relay non valido. Installazione sospesa.'}
+if($workerErrors.Count -gt 0 -or (Get-Content -Raw -LiteralPath $workerCandidate) -notmatch '2\.1-manual-reg'){throw 'Download Cloud Relay manuale REG non valido. Installazione sospesa.'}
 
 if($relayOnly -and -not (Test-Path -LiteralPath $connector -PathType Leaf)){
   throw 'Esito fiscale incerto presente ma connettore locale non trovato. Non modifico nulla: serve prima una verifica tecnica della cassa.'
@@ -134,16 +133,14 @@ $powerShell = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.
 $cloudPlan = Set-OptykerRchCloudAutostart $base $startup $powerShell $PrinterIp $Port
 
 if($relayOnly){
-  # Important: do not replace, stop or restart the fiscal connector while any local journal is uncertain.
   Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue |
     Where-Object { $_.CommandLine -like "*rch-optyker-cloud-worker.ps1*" } |
     ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
   Start-Process -FilePath $cloudPlan.Target -ArgumentList $cloudPlan.Arguments -WorkingDirectory $base -WindowStyle Hidden
   Start-Sleep -Seconds 3
   Write-Host ""
-  Write-Host "Cloud Relay iPad installato senza modificare il connettore fiscale." -ForegroundColor Green
+  Write-Host "Cloud Relay aggiornato con il pulsante manuale Porta RCH in REG." -ForegroundColor Green
   Write-Host "L'esito fiscale incerto resta protetto e dovra essere verificato prima di nuove emissioni, apertura cassetto o ristampe." -ForegroundColor Yellow
-  Write-Host "Il PC puo ora collegarsi a Optyker per mostrare lo stato della RCH all'iPad." -ForegroundColor Green
 } else {
   if(Test-Path -LiteralPath $connector){Copy-Item -LiteralPath $connector -Destination ($connector+'.previous') -Force}
   Move-Item -LiteralPath $candidate -Destination $connector -Force
@@ -160,7 +157,7 @@ if($relayOnly){
     Write-Host ""
     Write-Host "Installazione completata." -ForegroundColor Green
     Write-Host "PC Windows: collegamento locale attivo."
-    Write-Host "iPad: Cloud Relay attivo tramite questo PC."
+    Write-Host "Cloud Relay: pulsante manuale Porta RCH in REG attivo."
     Write-Host "Registratore: $PrinterIp"
   } catch {
     Write-Host ""
@@ -170,5 +167,6 @@ if($relayOnly){
 }
 
 Write-Host ""
+Write-Host "Il ritorno in REG NON e automatico: avviene soltanto premendo il pulsante in Optyker." -ForegroundColor Cyan
 Write-Host "Puoi chiudere questa finestra."
 if(-not $NoPause){$null=Read-Host "Premi INVIO per terminare"}
