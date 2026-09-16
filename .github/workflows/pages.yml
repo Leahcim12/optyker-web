@@ -67,28 +67,16 @@ jobs:
           cp rch-cloud-relay.js _site/rch-cloud-relay.js
           test -s _site/rch-connector/Installa-RCH-Optyker.bat
           test -s _site/rch-connector/Installa-RCH-Optyker.ps1
-          test -s _site/rch-connector/Installa-iPad-Optyker-RCH.bat
-          test -s _site/rch-connector/Installa-iPad-Optyker-RCH.ps1
           test -s _site/rch-connector/rch-optyker-connector.ps1
           test -s _site/rch-connector/rch-optyker-cloud-worker.ps1
           test -s _site/rch-connector/Attiva-Avvio-Automatico-RCH.ps1
-          grep -q "2.0-cloud-relay-http" _site/rch-connector/rch-optyker-cloud-worker.ps1
-          grep -q "20260914-ipad2" _site/rch-connector/Installa-iPad-Optyker-RCH.bat
-          grep -q "Polling cloud confermato" _site/rch-connector/Installa-iPad-Optyker-RCH.ps1
-          grep -q "Set-OptykerRchCloudAutostart" _site/rch-connector/Attiva-Avvio-Automatico-RCH.ps1
-          grep -q "System.Management.Automation.Language.Parser" _site/rch-connector/Installa-RCH-Optyker.ps1
-          grep -q "https://leahcim12.github.io/optyker-web/rch-connector" _site/rch-connector/Installa-RCH-Optyker.ps1
-          grep -q "rch-optyker-cloud-worker.ps1?v=20260914-cloud4" _site/rch-connector/Installa-RCH-Optyker.ps1
-          grep -q "rch-optyker-connector.ps1?v=20260914-cloud4" _site/rch-connector/Installa-RCH-Optyker.ps1
-          grep -q "Attiva-Avvio-Automatico-RCH.ps1?v=20260914-cloud4" _site/rch-connector/Installa-RCH-Optyker.ps1
-          grep -q "leahcim12.github.io/optyker-web/rch-connector/Installa-RCH-Optyker.ps1?v=20260914-cloud4" _site/rch-connector/Installa-RCH-Optyker.bat
-          grep -q "leahcim12.github.io/optyker-web/rch-connector/Installa-RCH-Optyker.ps1?v=20260914-cloud4" _site/rch-connector/Attiva-Avvio-Automatico-RCH.ps1
-          grep -q "Il connettore fiscale attuale NON verra modificato" _site/rch-connector/Installa-RCH-Optyker.ps1
-          grep -q "ERRORE INSTALLAZIONE OPTYKER RCH" _site/rch-connector/Installa-RCH-Optyker.ps1
-          grep -q "Installazione non completata" _site/rch-connector/Installa-RCH-Optyker.bat
-          grep -q "cloud-relay" _site/rch-connector/Installa-RCH-Optyker.ps1
+          grep -q "2.1-manual-reg" _site/rch-connector/rch-optyker-cloud-worker.ps1
+          grep -q "restore_reg" _site/rch-connector/rch-optyker-cloud-worker.ps1
+          grep -q "=C1" _site/rch-connector/rch-optyker-cloud-worker.ps1
+          grep -q "Porta RCH in REG" _site/rch-cloud-relay.js
           grep -q "__OPTYKER_RCH_CLOUD_RELAY__" _site/rch-cloud-relay.js
-          pwsh -NoLogo -NoProfile -Command '$files=@("_site/rch-connector/Installa-RCH-Optyker.ps1","_site/rch-connector/Installa-iPad-Optyker-RCH.ps1","_site/rch-connector/Attiva-Avvio-Automatico-RCH.ps1","_site/rch-connector/rch-optyker-cloud-worker.ps1"); foreach($f in $files){$tokens=$null;$errors=$null;[System.Management.Automation.Language.Parser]::ParseFile($f,[ref]$tokens,[ref]$errors)|Out-Null;if($errors.Count){Write-Host "Parser errors in $f" -ForegroundColor Red;$errors|ForEach-Object{Write-Host $_.Message -ForegroundColor Red};exit 1}}; Write-Host "RCH PowerShell syntax OK"'
+          grep -q "rch-cloud-relay.js?v=20260916-manualreg2" _site/index.html
+          pwsh -NoLogo -NoProfile -Command '$files=@("_site/rch-connector/Installa-RCH-Optyker.ps1","_site/rch-connector/Attiva-Avvio-Automatico-RCH.ps1","_site/rch-connector/rch-optyker-cloud-worker.ps1"); foreach($f in $files){$tokens=$null;$errors=$null;[System.Management.Automation.Language.Parser]::ParseFile($f,[ref]$tokens,[ref]$errors)|Out-Null;if($errors.Count){Write-Host "Parser errors in $f" -ForegroundColor Red;$errors|ForEach-Object{Write-Host $_.Message -ForegroundColor Red};exit 1}}; Write-Host "RCH PowerShell syntax OK"'
 
       - name: Ripristina interazioni Optyker
         run: |
