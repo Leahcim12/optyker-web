@@ -3,7 +3,7 @@ import re
 import shutil
 
 ROOT=Path('_site')
-VERSION='20260915-invoice-print1'
+VERSION='20260916-invoice-edit2'
 SOURCE=Path('customer-invoice-print.js')
 TARGET=ROOT/'customer-invoice-print.js'
 HTMLS=[ROOT/'index.html',ROOT/'gestionale-v2/index.html',ROOT/'gestionale-v3/index.html']
@@ -45,9 +45,13 @@ if 'Visualizza / Stampa' not in main:
     raise SystemExit('Customer invoice print label missing')
 asset=SOURCE.read_text(encoding='utf-8')
 if 'fic_send' in asset:
-    raise SystemExit('Customer print asset must never send to SDI')
+    raise SystemExit('Customer invoice asset must never send to SDI')
 if 'optyker-customer-invoice-print-api' not in asset:
-    raise SystemExit('Customer print asset is not using the print-only API')
+    raise SystemExit('Customer invoice asset is not using the customer invoice API')
+if 'Modifica righe / note' not in asset or "invoice_update" not in asset or 'Note in fattura' not in asset:
+    raise SystemExit('Customer invoice editor missing')
+if '20260916-invoice-edit2' not in asset:
+    raise SystemExit('Customer invoice editor version missing')
 if (ROOT/'gestionale-v2/index.html').read_bytes()!=(ROOT/'index.html').read_bytes() or (ROOT/'gestionale-v3/index.html').read_bytes()!=(ROOT/'index.html').read_bytes():
-    raise SystemExit('Desktop aliases differ after customer invoice print patch')
-print('Customer invoice preview/print added; SDI remains separate:',VERSION)
+    raise SystemExit('Desktop aliases differ after customer invoice patch')
+print('Customer invoice preview/edit/print added; SDI remains separate:',VERSION)
