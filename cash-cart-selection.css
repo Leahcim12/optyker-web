@@ -5,3 +5,11 @@
 #optykerCashOverlay .optykerCashExcluded{background:#f2f5f9!important;border-color:#ccd5e1!important}
 #optykerCashOverlay .optykerCashExcluded .optykerCashSelectLine{color:#5b6573}
 #optykerCashOverlay .optykerCashExcluded .optykerCashCartItemPrice{color:#697789!important}
+#optykerCashOverlay .optykerCashOrderPriceEditor{min-width:185px!important;text-align:right!important}
+#optykerCashOverlay .optykerCashOrderPriceEditor>label{display:block;margin-bottom:5px;font-size:9px;font-weight:900;color:#315b79}
+#optykerCashOverlay .optykerCashOrderPriceEditor>div{display:flex;align-items:center;justify-content:flex-end;gap:5px}
+#optykerCashOverlay .optykerCashOrderPriceEditor>div>span{font-size:13px;font-weight:900;color:#315b79}
+#optykerCashOverlay .optykerCashOrderPriceEditor input[data-price]{width:92px;height:34px;box-sizing:border-box;border:1px solid #9bb9cf;border-radius:8px;background:#fff;padding:0 8px;text-align:right;font:900 14px/1 Segoe UI,Arial,sans-serif;color:#173e69}
+#optykerCashOverlay .optykerCashOrderPriceEditor input[data-price]:focus{outline:3px solid rgba(39,95,204,.12);border-color:#275fcc}
+#optykerCashOverlay .optykerCashOrderPriceEditor [data-price-reset]{width:34px;height:34px;border:1px solid #c1d0dc;border-radius:8px;background:#fff;color:#315b79;font-size:15px;cursor:pointer}
+#optykerCashOverlay .optykerCashOrderPriceEditor small{display:block;margin-top:4px;font-size:8px;font-weight:700;color:#748594}
