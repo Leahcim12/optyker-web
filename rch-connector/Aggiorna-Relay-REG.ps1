@@ -28,14 +28,14 @@ if(-not (Test-Path -LiteralPath $config -PathType Leaf)){throw 'Cloud Relay non 
 
 Write-Host ''
 Write-Host 'Optyker RCH - aggiornamento SOLO Cloud Relay' -ForegroundColor Cyan
-Write-Host 'Il connettore fiscale e la RCH non verranno modificati.' -ForegroundColor DarkGray
-Write-Host 'Download Cloud Relay 2.1-manual-reg...'
+Write-Host 'Il connettore fiscale e la RCH non verranno modificati durante l aggiornamento.' -ForegroundColor DarkGray
+Write-Host 'Download Cloud Relay 2.2-daily-closure...'
 
 Invoke-WebRequest -UseBasicParsing -Uri $source -OutFile $candidate -TimeoutSec 60
 $tokens=$null;$errors=$null
 [void][System.Management.Automation.Language.Parser]::ParseFile($candidate,[ref]$tokens,[ref]$errors)
 $text=Get-Content -Raw -LiteralPath $candidate
-if($errors.Count -gt 0 -or $text -notmatch "2\.1-manual-reg" -or $text -notmatch 'Restore-RegManual' -or $text -notmatch '<cmd>=C1</cmd>'){
+if($errors.Count -gt 0 -or $text -notmatch '2\.2-daily-closure' -or $text -notmatch 'Close-DailyManual' -or $text -notmatch "'=C10'" -or $text -notmatch 'Restore-RegManual'){
   Remove-Item -LiteralPath $candidate -Force -ErrorAction SilentlyContinue
   throw 'Cloud Relay scaricato non valido. Nessuna modifica applicata.'
 }
@@ -59,8 +59,9 @@ if($running.Count -lt 1){throw 'Il Cloud Relay aggiornato non risulta avviato. L
 
 Write-Host ''
 Write-Host 'AGGIORNAMENTO COMPLETATO.' -ForegroundColor Green
-Write-Host 'Cloud Relay: 2.1-manual-reg' -ForegroundColor Green
+Write-Host 'Cloud Relay: 2.2-daily-closure' -ForegroundColor Green
 Write-Host 'Il connettore fiscale NON e stato toccato.' -ForegroundColor Cyan
-Write-Host 'Il ritorno Z -> REG NON e automatico: avviene soltanto premendo Porta RCH in REG dentro Optyker.' -ForegroundColor Cyan
-Write-Host 'Nessuna chiusura fiscale e nessuno scontrino sono stati eseguiti.' -ForegroundColor DarkGray
+Write-Host 'Chiusura RCH: parte solo quando confermi Chiudi cassa in Optyker.' -ForegroundColor Cyan
+Write-Host 'Ritorno Z -> REG: resta manuale tramite Porta RCH in REG.' -ForegroundColor Cyan
+Write-Host 'Nessuna chiusura fiscale e nessuno scontrino sono stati eseguiti durante questo aggiornamento.' -ForegroundColor DarkGray
 if(-not $NoPause){$null=Read-Host 'Premi INVIO per terminare'}
