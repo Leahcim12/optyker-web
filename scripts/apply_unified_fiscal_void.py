@@ -21,8 +21,18 @@ def main():
     if 'id="optykerUnifiedVoidJs"' not in h:
         h=h.replace('\n</body>','\n<script id="optykerUnifiedVoidJs" defer src="/unified-fiscal-void.js?v='+VERSION+'"></script>\n</body>')
 
+    # Remove the legacy inline Cloud1 relay embedded in the historical base page.
+    # It sets __OPTYKER_RCH_CLOUD_RELAY__ before the current external relay loads,
+    # which would make the new manual-REG relay exit immediately.
+    h=re.sub(
+        r'<script\b[^>]*data-optyker-rch-cloud-relay=["\'][^"\']+["\'][^>]*>.*?</script>\s*',
+        '',
+        h,
+        flags=re.I|re.S,
+    )
+
     # On the custom domain optyker.it the site is served from /, not /optyker-web/.
-    # Remove every older relay loader and add one canonical manual-only loader at root.
+    # Remove every older external relay loader and add one canonical manual-only loader at root.
     h=re.sub(
         r'<script\b[^>]*\bsrc=["\'][^"\']*rch-cloud-relay\.js(?:\?[^"\']*)?["\'][^>]*>\s*</script>\s*',
         '',
