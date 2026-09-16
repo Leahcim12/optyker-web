@@ -36,9 +36,16 @@ jobs:
           grep -q 'optykerAdminCashClosureCss' _site/index.html
           grep -q 'optykerAdminCashTodayJs' _site/index.html
           grep -q 'optykerAdminCashTodayCss' _site/index.html
-          grep -q '20260916-admin-cash5' _site/admin-cash-version.json
+          grep -q '20260916-admin-cash6' _site/admin-cash-version.json
+          grep -q 'optykerAdminEntryJs' _site/index.html
+          grep -q 'optykerAdminEntryButton' _site/index.html
+          grep -q 'AMMINISTRAZIONE · OTTICA VISUAL CARE' _site/index.html
           grep -q 'Amministratore · Ottica Visual Care' _site/index.html
           grep -q 'value="__optyker_admin__"' _site/index.html
           grep -q 'Chiusure cassa' _site/admin-cash-closure.js
           grep -q 'Fatture emesse' _site/billing-admin.js
           grep -q 'Fatture in entrata' _site/billing-admin.js
+          if grep -q '/optyker-web/billing-admin.js' _site/index.html; then
+            echo 'Stale billing-admin repository subpath still present' >&2
+            exit 1
+          fi
