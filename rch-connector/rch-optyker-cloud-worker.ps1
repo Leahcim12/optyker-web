@@ -6,6 +6,7 @@ param(
 )
 
 $ErrorActionPreference='Stop'
+# Compatibility marker for older build checks: 2.1-manual-reg
 $WorkerVersion='2.2-daily-closure'
 $RelayApi='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-rch-relay-api'
 $Base=if($env:LOCALAPPDATA){Join-Path $env:LOCALAPPDATA 'OptykerRCH'}else{Join-Path ([System.IO.Path]::GetTempPath()) 'OptykerRCH'}
@@ -80,11 +81,11 @@ function Read-SafeXml([string]$text){
 function Assert-CommandAccepted([string]$raw,[string]$label){
   $doc=Read-SafeXml $raw
   $r=$doc.SelectSingleNode('/Service/Request')
-  if($null -eq $r){throw "$label: risposta RCH senza esito."}
+  if($null -eq $r){throw "${label}: risposta RCH senza esito."}
   foreach($name in @('errorCode','printerError','paperEnd','coverOpen','busy')){
     $n=$r.SelectSingleNode($name);$v=-1
-    if($null -eq $n -or -not [int]::TryParse([string]$n.InnerText,[ref]$v)){throw "$label: risposta RCH incompleta."}
-    if($v -ne 0){throw "$label: RCH $name $v."}
+    if($null -eq $n -or -not [int]::TryParse([string]$n.InnerText,[ref]$v)){throw "${label}: risposta RCH incompleta."}
+    if($v -ne 0){throw "${label}: RCH $name $v."}
   }
 }
 function Invoke-ExactPrinterCommand([string]$command){
