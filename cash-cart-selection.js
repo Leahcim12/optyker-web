@@ -1,7 +1,21 @@
 /* Injected last in the cash closure: OPTYKER_CART_SELECTION_20260916 */
-window.OPTYKER_CART_SELECTION='20260916-selection2';
+window.OPTYKER_CART_SELECTION='20260916-selection3';
 function payableCartRows(){return cartRows().filter(function(x){return x.selected!==false})}
+function cartManualPrice(v){var s=String(v==null?'':v).trim().replace(',','.');if(!s)return null;var n=Number(s);return isFinite(n)&&n>=0&&n<=1000000?Math.round(n*100)/100:null}
 cartTotal=function(){return Math.round(payableCartRows().reduce(function(n,x){return n+Number(x.unitPrice==null?x.item.price:x.unitPrice)*x.qty},0)*100)/100};
+
+function installOrderPriceEditor(row,x,id,locked){
+  if(String(id||'').indexOf('client_cart:')!==0)return;
+  var holder=row.querySelector('.optykerCashCartItemPrice');if(!holder)return;
+  var base=Math.round(Number(x.item&&x.item.price||0)*100)/100,unit=x.unitPrice==null?base:Number(x.unitPrice||0);
+  holder.classList.add('optykerCashOrderPriceEditor');
+  holder.innerHTML='<label>Prezzo finale</label><div><span>€</span><input type="text" inputmode="decimal" data-price="'+esc(id)+'" value="'+esc(unit.toFixed(2))+'" aria-label="Prezzo finale '+esc(x.item&&x.item.title||'ordine')+'"><button type="button" data-price-reset="'+esc(id)+'" title="Ripristina il prezzo della Busta">↺</button></div><small>Prezzo Busta: '+esc(euro(base))+(x.unitPrice!=null&&Math.abs(unit-base)>.004?' · manuale':'')+'</small>';
+  var input=holder.querySelector('[data-price]'),reset=holder.querySelector('[data-price-reset]');
+  input.disabled=locked;reset.disabled=locked||x.unitPrice==null;
+  input.oninput=function(){var n=cartManualPrice(this.value);if(n!=null){x.unitPrice=n;var total=E('optykerCashTotal');if(total)total.textContent=euro(cartTotal())}};
+  input.onchange=function(){if(locked)return;var raw=String(this.value||'').trim(),n=cartManualPrice(raw);if(!raw){x.unitPrice=null}else if(n==null){toast('Prezzo finale non valido.','error');this.value=Number(x.unitPrice==null?base:x.unitPrice).toFixed(2);return}else{x.unitPrice=n;this.value=n.toFixed(2)}renderCart();clientCartSchedule()};
+  reset.onclick=function(){if(locked)return;x.unitPrice=null;renderCart();clientCartSchedule()};
+}
 
 var selectionNativeRender=renderCart;
 renderCart=function(){
@@ -16,6 +30,7 @@ renderCart=function(){
     var text=document.createElement('span');text.textContent=x.selected===false?'Da pagare in seguito':'Da pagare ora';
     label.append(input,text);row.firstElementChild.prepend(label);
     input.onchange=function(){if(S.busy||S.clientCartLoading||S.clientCartError)return;x.selected=this.checked;renderCart();clientCartSchedule()};
+    installOrderPriceEditor(row,x,id,locked);
   });
   if(locked)box.querySelectorAll('button,input,select').forEach(function(b){b.disabled=true});
   var count=E('optykerCashCartCount');if(count&&all.length)count.textContent=selected.length+' voc'+(selected.length===1?'e':'i')+' da pagare · '+all.length+' nel carrello';
