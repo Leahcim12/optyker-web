@@ -4,12 +4,13 @@
   window.__optykerBillingAdminLoaded=true;
 
   var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-billing-admin';
+  var NOTES_API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-billing-invoice-notes';
   var TOKEN_KEY='optyker_billing_admin_token';
   var state={token:'',mode:'outgoing',section:'billing',rows:[],provider:null,restoring:false,pendingSettings:false};
   var months=['','Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
 
   function E(id){return document.getElementById(id)}
-  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]})}
   function call(action,payload,token){
     var body=payload||{};body.action=action;
     var headers={'Content-Type':'application/json'};
@@ -22,11 +23,28 @@
       })
     })
   }
+  function notesCall(action,payload){
+    var body=payload||{};body.action=action;
+    var headers={'Content-Type':'application/json'};
+    if(state.token)headers.Authorization='Bearer '+state.token;
+    return fetch(NOTES_API,{method:'POST',headers:headers,body:JSON.stringify(body)}).then(function(r){
+      return r.json().catch(function(){return {}}).then(function(x){
+        if(!r.ok||x&&x.ok===false){var er=new Error((x&&x.error)||('HTTP '+r.status));er.status=r.status;throw er}
+        return x
+      })
+    })
+  }
   function toast(msg,type){
     var t=E('optykerBillingToast');
     if(!t){t=document.createElement('div');t.id='optykerBillingToast';document.body.appendChild(t)}
     t.className=type||'';t.textContent=msg;t.style.display='block';
     clearTimeout(t.__hide);t.__hide=setTimeout(function(){t.style.display='none'},4200)
+  }
+  function ensureInvoiceNotesStyle(){
+    if(E('optykerBillingInvoiceNotesStyle'))return;
+    var s=document.createElement('style');s.id='optykerBillingInvoiceNotesStyle';
+    s.textContent='.optykerBillingAnnotations{margin-top:14px;border:1px solid #d8e4ec;border-radius:11px;background:#f8fbfd;padding:12px}.optykerBillingAnnotationsHead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}.optykerBillingAnnotationsTitle{font-size:12px;font-weight:950;color:#17334b}.optykerBillingAnnotationsSub{font-size:9px;color:#718493;margin-top:2px}.optykerBillingAnnotationsList{display:grid;gap:7px;margin:8px 0 10px}.optykerBillingAnnotationItem{border:1px solid #e0e8ee;border-radius:8px;background:#fff;padding:8px 9px}.optykerBillingAnnotationType{font-size:8px;font-weight:950;letter-spacing:.07em;text-transform:uppercase;color:#1769aa}.optykerBillingAnnotationBody{margin-top:3px;white-space:pre-wrap;word-break:break-word;font-size:11px;font-weight:750;color:#2b455d}.optykerBillingAnnotationMeta{margin-top:4px;font-size:8px;color:#8796a3}.optykerBillingAnnotationEmpty{padding:10px;border:1px dashed #cfdbe4;border-radius:8px;background:#fff;text-align:center;font-size:9px;color:#7c8d9a}.optykerBillingAnnotationForm{display:grid;grid-template-columns:150px 1fr auto;gap:7px;align-items:stretch}.optykerBillingAnnotationForm select,.optykerBillingAnnotationForm textarea{box-sizing:border-box;border:1px solid #cbd7e2;border-radius:8px;background:#fff;color:#223d55;font:700 10px/1.3 "Segoe UI",Arial,sans-serif;outline:none}.optykerBillingAnnotationForm select{height:38px;padding:0 8px}.optykerBillingAnnotationForm textarea{min-height:58px;resize:vertical;padding:8px 9px}.optykerBillingAnnotationForm select:focus,.optykerBillingAnnotationForm textarea:focus{border-color:#1769aa;box-shadow:0 0 0 2px rgba(23,105,170,.1)}.optykerBillingAnnotationForm button{align-self:stretch}.optykerBillingAnnotationHint{margin-top:7px;font-size:8px;color:#7b8d9c}.optykerBillingAnnotationError{padding:9px;border-radius:8px;background:#fff0f0;color:#a93636;font-size:9px;font-weight:750}@media(max-width:760px){.optykerBillingAnnotationForm{grid-template-columns:1fr}.optykerBillingAnnotationForm button{min-height:38px}}';
+    document.head.appendChild(s)
   }
   function ensureAdminAccess(){
     ['optykerAdminAccessBox','navAdministration'].forEach(function(id){var old=E(id);if(old)old.remove()});
@@ -259,6 +277,10 @@
     if(!v)return '—';var d=new Date(String(v).length===10?v+'T12:00:00':v);if(isNaN(d.getTime()))return String(v);
     return d.toLocaleDateString('it-IT')
   }
+  function fmtDateTime(v){
+    if(!v)return '';var d=new Date(v);if(isNaN(d.getTime()))return String(v);
+    return d.toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
+  }
   function fmtMoney(v,c){
     if(v==null||v==='')return '—';
     try{return new Intl.NumberFormat('it-IT',{style:'currency',currency:c||'EUR'}).format(Number(v))}catch(z){return String(v)+' '+(c||'EUR')}
@@ -305,17 +327,48 @@
     h+='</tbody></table>';w.innerHTML=h;
     var trs=w.querySelectorAll('[data-invoice-id]');for(var i=0;i<trs.length;i++)trs[i].onclick=function(){openDetail(this.getAttribute('data-invoice-id'))}
   }
+  function renderInvoiceNotes(id,rows){
+    var box=E('optykerBillingAnnotationsList');if(!box)return;
+    var modal=E('optykerBillingModal');if(!modal||modal.getAttribute('data-invoice-id')!==id)return;
+    rows=Array.isArray(rows)?rows:[];
+    if(!rows.length){box.innerHTML='<div class="optykerBillingAnnotationEmpty">Nessuna riga o nota aggiunta.</div>';return}
+    box.innerHTML=rows.map(function(n){
+      var label=n.kind==='line'?'Riga descrittiva':'Nota interna';
+      return '<div class="optykerBillingAnnotationItem"><div class="optykerBillingAnnotationType">'+esc(label)+'</div><div class="optykerBillingAnnotationBody">'+esc(n.body||'')+'</div><div class="optykerBillingAnnotationMeta">'+esc(n.created_by||'Ottica Visual Care')+(n.created_at?' · '+esc(fmtDateTime(n.created_at)):'')+'</div></div>'
+    }).join('')
+  }
+  function loadInvoiceNotes(id){
+    var box=E('optykerBillingAnnotationsList');if(box)box.innerHTML='<div class="optykerBillingAnnotationEmpty">Caricamento…</div>';
+    return notesCall('list',{invoice_id:id}).then(function(x){renderInvoiceNotes(id,x.data||[])}).catch(function(err){
+      if(box)box.innerHTML='<div class="optykerBillingAnnotationError">'+esc(err.message)+'</div>'
+    })
+  }
+  function addInvoiceNote(id){
+    var input=E('optykerBillingAnnotationText'),kind=E('optykerBillingAnnotationKind'),btn=E('optykerBillingAnnotationAdd');
+    if(!input||!btn)return;
+    var body=String(input.value||'').trim();if(!body){input.focus();return}
+    btn.disabled=true;btn.textContent='Aggiunta…';
+    notesCall('add',{invoice_id:id,kind:kind?kind.value:'note',body:body}).then(function(){
+      input.value='';toast('Riga / nota aggiunta alla fattura.');return loadInvoiceNotes(id)
+    }).catch(function(err){toast(err.message,'error')}).finally(function(){btn.disabled=false;btn.textContent='Aggiungi'})
+  }
   function openDetail(id){
     var r=null;for(var i=0;i<state.rows.length;i++)if(state.rows[i].id===id){r=state.rows[i];break}if(!r)return;
+    ensureInvoiceNotesStyle();
     var m=E('optykerBillingModal');if(!m){m=document.createElement('div');m.id='optykerBillingModal';m.className='optykerBillingModal';document.body.appendChild(m)}
+    m.setAttribute('data-invoice-id',id);
     m.innerHTML='<div class="optykerBillingModalCard"><div class="optykerBillingModalHead"><div><div class="optykerBillingEyebrow">DETTAGLIO FATTURA</div><div class="optykerBillingModalTitle">'+esc(r.invoice_number||'Fattura')+'</div></div><button id="optykerBillingModalClose" class="optykerBillingBtn" type="button">Chiudi</button></div><div class="optykerBillingDetailGrid">'+
       detail('Data',fmtDate(r.issue_date||r.received_at))+detail('Direzione',r.direction==='incoming'?'Fattura in entrata':'Fattura emessa')+
       detail('Intestatario',r.counterparty_name||'—')+detail('P.IVA / C.F.',r.counterparty_vat||r.counterparty_fiscal_code||'—')+
       detail('Totale',fmtMoney(r.total,r.currency))+detail('Stato SDI',r.sdi_status||'—')+
       detail('Protocollo SDI',r.sdi_protocol||'—')+detail('Stato provider',r.provider_status||'—')+
       detail('Intestazione',r.header||'—',true)+detail('Codice errore',r.sdi_error_code||'—')+
-      detail('Motivo errore',r.sdi_error_message||'—',true)+'</div></div>';
-    m.style.display='flex';E('optykerBillingModalClose').onclick=function(){m.style.display='none'};m.onclick=function(ev){if(ev.target===m)m.style.display='none'}
+      detail('Motivo errore',r.sdi_error_message||'—',true)+'</div>'+
+      '<div class="optykerBillingAnnotations"><div class="optykerBillingAnnotationsHead"><div><div class="optykerBillingAnnotationsTitle">Righe / note aggiunte</div><div class="optykerBillingAnnotationsSub">Puoi aggiungere annotazioni anche dopo la creazione della fattura.</div></div></div><div id="optykerBillingAnnotationsList" class="optykerBillingAnnotationsList"><div class="optykerBillingAnnotationEmpty">Caricamento…</div></div><div class="optykerBillingAnnotationForm"><select id="optykerBillingAnnotationKind"><option value="line">Riga descrittiva</option><option value="note">Nota interna</option></select><textarea id="optykerBillingAnnotationText" maxlength="2000" placeholder="Scrivi qui la riga o la nota da aggiungere…"></textarea><button id="optykerBillingAnnotationAdd" class="optykerBillingBtn primary" type="button">Aggiungi</button></div><div class="optykerBillingAnnotationHint">L’annotazione resta collegata alla fattura in Optyker e non modifica importo, XML o documento SDI già emesso.</div></div></div>';
+    m.style.display='flex';E('optykerBillingModalClose').onclick=function(){m.style.display='none'};m.onclick=function(ev){if(ev.target===m)m.style.display='none'};
+    E('optykerBillingAnnotationAdd').onclick=function(){addInvoiceNote(id)};
+    E('optykerBillingAnnotationText').onkeydown=function(ev){if((ev.ctrlKey||ev.metaKey)&&ev.key==='Enter'){ev.preventDefault();addInvoiceNote(id)}};
+    loadInvoiceNotes(id)
   }
   function detail(k,v,full){return '<div class="optykerBillingDetail'+(full?' full':'')+'"><b>'+esc(k)+'</b><span>'+esc(v)+'</span></div>'}
   function loadProvider(){
