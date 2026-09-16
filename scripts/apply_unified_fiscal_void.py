@@ -3,6 +3,7 @@ from pathlib import Path
 import json,os,re
 ROOT=Path(__file__).resolve().parent.parent
 VERSION='20260915-unified1'
+RCH_RELAY_VERSION='20260916-manualreg2'
 def main():
     site=ROOT/'_site'
     for name in ('fiscal-receipts.js','rch-cloud-relay.js','unified-fiscal-void.js'):
@@ -19,7 +20,21 @@ def main():
     h=(site/'index.html').read_text()
     if 'id="optykerUnifiedVoidJs"' not in h:
         h=h.replace('\n</body>','\n<script id="optykerUnifiedVoidJs" defer src="/unified-fiscal-void.js?v='+VERSION+'"></script>\n</body>')
-    pattern=r'(fiscal-receipts\.js|rch-cloud-relay\.js)(?:\?[^\s\"\'<>]*)?'
+
+    # On the custom domain optyker.it the site is served from /, not /optyker-web/.
+    # Remove every older relay loader and add one canonical manual-only loader at root.
+    h=re.sub(
+        r'<script\b[^>]*\bsrc=["\'][^"\']*rch-cloud-relay\.js(?:\?[^"\']*)?["\'][^>]*>\s*</script>\s*',
+        '',
+        h,
+        flags=re.I,
+    )
+    relay_tag='<script id="optykerRchCloudRelayManualJs" defer src="/rch-cloud-relay.js?v='+RCH_RELAY_VERSION+'"></script>'
+    h=h.replace('\n</body>','\n'+relay_tag+'\n</body>')
+
+    # Keep the unified cache version for fiscal-receipts only. The RCH relay has its
+    # own manual-REG version so later build steps cannot rewrite it to a stale path.
+    pattern=r'(fiscal-receipts\.js)(?:\?[^\s\"\'<>]*)?'
     h=re.sub(pattern,lambda m:m[1]+'?v='+VERSION,h)
     (site/'index.html').write_text(h)
     for js in site.glob('*.js'):
@@ -28,6 +43,6 @@ def main():
     for alias in ('gestionale-v2','gestionale-v3'):
         (site/alias/'index.html').write_text(h)
         for name in ('fiscal-receipts.js','rch-cloud-relay.js','unified-fiscal-void.js'):(site/alias/name).write_bytes((site/name).read_bytes())
-    (site/'unified-void-version.json').write_text(json.dumps({'version':VERSION,'commit':os.getenv('VERCEL_GIT_COMMIT_SHA') or os.getenv('GITHUB_SHA','')})+'\n')
-    print('Unified TS/RCH void published:',VERSION)
+    (site/'unified-void-version.json').write_text(json.dumps({'version':VERSION,'rchRelayVersion':RCH_RELAY_VERSION,'commit':os.getenv('VERCEL_GIT_COMMIT_SHA') or os.getenv('GITHUB_SHA','')})+'\n')
+    print('Unified TS/RCH void published:',VERSION,'manual REG relay:',RCH_RELAY_VERSION)
 if __name__=='__main__':main()
