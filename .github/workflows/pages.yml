@@ -158,6 +158,27 @@ jobs:
           node --check _site/rch-cloud-relay.js
           node --test tests/unified-fiscal-void.test.mjs
 
+      - name: Pubblica amministrazione completa
+        run: |
+          python scripts/apply_admin_cash_closure.py
+          node --check _site/billing-admin.js
+          node --check _site/admin-cash-closure.js
+          node --check _site/admin-cash-today-controls.js
+          test -s _site/billing-admin.js
+          test -s _site/admin-cash-closure.js
+          test -s _site/admin-cash-closure.css
+          test -s _site/admin-cash-today-controls.js
+          test -s _site/admin-cash-today-controls.css
+          grep -q "optykerAdminCashClosureJs" _site/index.html
+          grep -q "optykerAdminCashClosureCss" _site/index.html
+          grep -q "Amministratore · Ottica Visual Care" _site/index.html
+          grep -q 'value="__optyker_admin__"' _site/index.html
+          grep -q "Chiusure cassa" _site/admin-cash-closure.js
+          grep -q "Fatture emesse" _site/billing-admin.js
+          grep -q "Fatture in entrata" _site/billing-admin.js
+          grep -q "Sistema TS" _site/billing-admin.js
+          python scripts/check_desktop_html.py
+
       - name: Carica sito GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
