@@ -32,7 +32,7 @@ jobs:
           from pathlib import Path
           import hashlib
           p=Path('rch-connector/rch-optyker-connector.ps1')
-          old=p.read_bytes()
+          old=p.read_bytes().replace(b'\r\n',b'\n')
           bad='Numero annullo uguale all\u2019originale.'.encode()
           good=b'Numero annullo uguale al documento originale.'
           if old.count(bad)==1:
