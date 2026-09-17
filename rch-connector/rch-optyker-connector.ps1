@@ -493,7 +493,7 @@ function Get-ReceiptEvidence([string]$raw,$document,[bool]$identityOnly=$false) 
     $originalDate=[datetime]::ParseExact([string]$document.original.date,'yyyy-MM-dd',[Globalization.CultureInfo]::InvariantCulture)
     $printedOriginal=$originalDate.ToString('dd-MM-yyyy')
     if(-not $text.Contains([string]$document.original.number) -or (-not $text.Contains($printedOriginal) -and -not $text.Contains($printedOriginal.Replace('-','/')))){throw 'Riferimento originale non verificato nel documento di annullo.'}
-    if($evidence.number -ceq $document.original.number){throw 'Numero annullo uguale all’originale.'}
+    if($evidence.number -ceq $document.original.number){throw 'Numero annullo uguale al documento originale.'}
     $evidence.documentKind='void';$evidence.originalNumber=[string]$document.original.number;$evidence.originalDate=[string]$document.original.date
   }elseif($text -match '(?i)DOCUMENTO\s+(?:COMMERCIALE\s+)?(?:DI\s+)?(?:ANNULL|RESO)'){throw 'Il giornale non contiene una vendita.'}
   $totals=[regex]::Matches($text,'(?m)^\s*TOTALE COMPLESSIVO\s+(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})\s*(?:EUR|€)?\s*$')
