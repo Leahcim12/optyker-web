@@ -1,0 +1,87 @@
+name: RCH annulli - Windows PowerShell 5.1
+on:
+  push:
+    branches: ['repair/rch-annullo-quotes-20260917']
+    paths:
+      - 'rch-connector/**'
+      - 'tests/rch-annulli-offline-20260917.ps1'
+      - '.github/workflows/rch-annulli-offline-check.yml'
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: windows-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: repair/rch-annullo-quotes-20260917
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Show original parsing result without executing connector
+        shell: powershell
+        run: |
+          $tokens=$null;$errors=$null
+          [void][Management.Automation.Language.Parser]::ParseFile((Join-Path $pwd 'rch-connector/rch-optyker-connector.ps1'),[ref]$tokens,[ref]$errors)
+          Write-Host ('Original parse errors: '+$errors.Count)
+          $errors | Select-Object -First 6 | ForEach-Object {Write-Host ('Line '+$_.Extent.StartLineNumber+': '+$_.Message)}
+      - name: Repair only the invalid diagnostic string
+        shell: python
+        run: |
+          from pathlib import Path
+          import hashlib
+          p=Path('rch-connector/rch-optyker-connector.ps1')
+          old=p.read_bytes()
+          bad='Numero annullo uguale all\u2019originale.'.encode()
+          good=b'Numero annullo uguale al documento originale.'
+          if old.count(bad)==1:
+              fixed=old.replace(bad,good)
+          else:
+              assert old.count(bad)==0 and old.count(good)==1, 'Unrecognized source'
+              fixed=old
+          expected='e2c4402c6e7bcec433e33b8fb8cf6aca6bf6646b7b24291d9b0cecf43d88f2d7'
+          assert hashlib.sha256(fixed).hexdigest()==expected, 'Source changed: review required'
+          p.write_bytes(fixed)
+          Path('rch-connector/connector-verificato.txt').write_bytes(fixed)
+          print('Fixed source SHA256:',expected)
+      - name: Parse and run isolated Windows tests - no RCH or TS access
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          if($PSVersionTable.PSVersion.Major -ne 5){throw 'Windows PowerShell 5.1 required'}
+          & ./tests/rch-annulli-offline-20260917.ps1
+          if($LASTEXITCODE -and $LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+      - name: Package the exact tested sources
+        shell: python
+        run: |
+          from pathlib import Path
+          import zipfile,hashlib
+          folder=Path('rch-offline-package');folder.mkdir()
+          bat='''@echo off\nsetlocal\ntitle Optyker - Aggiornamento annulli verificato\necho.\necho Chiudi Optyker e non usare la cassa durante questo aggiornamento.\necho NON viene annullato nessuno scontrino. Nessuna chiusura o invio TS.\necho.\npause\npowershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0Aggiorna-Annulli-Verificato.ps1"\nset "RC=%ERRORLEVEL%"\necho.\npause\nexit /b %RC%\n'''
+          (folder/'AVVIA-AGGIORNAMENTO.bat').write_bytes(bat.replace('\n','\r\n').encode('ascii'))
+          for name in ['Aggiorna-Annulli-Verificato.ps1','connector-verificato.txt']:
+              (folder/name).write_bytes((Path('rch-connector')/name).read_bytes())
+          (folder/'LEGGIMI.txt').write_text('OPTYKER - AGGIORNAMENTO ANNULLI VERIFICATO\n\nEstrai tutti i file nella stessa cartella. Chiudi Optyker e avvia AVVIA-AGGIORNAMENTO.bat sul PC cassa.\nIl pacchetto non scarica programmi da Internet. Controlla integrita, sintassi, stato REG e assenza di scritture in corso.\nConserva trasporto, emissione, QR/POS, versione e registri gia presenti. Aggiorna solo i blocchi di lettura e verifica dei riferimenti di annullo.\nEsegue una sola lettura dello stato e verifiche locali di avvio, non annulla scontrini, non invia al TS e non esegue chiusure Z.\nSe un controllo fallisce, non procedere all annullo. Conserva la schermata.\nIl pacchetto e stato verificato su Windows PowerShell 5.1 con una RCH simulata. La verifica non sostituisce la conferma sulla stampante reale.\n\nAttendi la scritta AGGIORNAMENTO VERIFICATO - FUNZIONE ANNULLI DISPONIBILE e comunica l esito.\n',encoding='utf-8')
+          with zipfile.ZipFile('OPTYKER-ANNULLI-VERIFICATO.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for p in folder.iterdir():z.write(p,p.name)
+          print('Package SHA256:',hashlib.sha256(Path('OPTYKER-ANNULLI-VERIFICATO.zip').read_bytes()).hexdigest())
+      - name: Save the tested one-line source correction on the repair branch only
+        shell: powershell
+        run: |
+          git add rch-connector/rch-optyker-connector.ps1
+          git diff --cached --quiet
+          if($LASTEXITCODE -eq 1){
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'fix(rch): remove unescaped typographic apostrophe from void parser diagnostic'
+            if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+            git push origin HEAD:repair/rch-annullo-quotes-20260917
+            if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+          }
+          exit 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: optyker-annulli-windows-verified
+          path: OPTYKER-ANNULLI-VERIFICATO.zip
+          retention-days: 14
