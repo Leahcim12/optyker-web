@@ -13,15 +13,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 4
     steps:
-      - name: Verify public static assets only
+      - name: Verify public static assets and approved red palette
         run: |
           python - <<'PY'
           import urllib.request, time, hashlib
           host = 'https://www.optyker.it'
           targets = {
-              '/': ['optykerClientWorkspaceOriginalJs', 'optykerClientWorkspaceOriginalCss'],
+              '/': ['optykerClientWorkspaceOriginalJs', 'optykerClientWorkspaceOriginalCss', 'client-workspace-original.css?v=20260919-red1'],
+              '/gestionale-v2/': ['client-workspace-original.css?v=20260919-red1'],
+              '/gestionale-v3/': ['client-workspace-original.css?v=20260919-red1'],
               '/client-workspace-original.js': ['20260919-original1', 'OPTYKER_CLIENT_WORKSPACE_ORIGINAL'],
-              '/client-workspace-original.css': ['20260919-original1', 'optykerOriginalClients'],
+              '/client-workspace-original.css': ['20260919-red1', 'optykerOriginalClients', '--cwo-accent:#a50f24', 'background:#760d1c'],
           }
           for attempt in range(24):
               try:
@@ -34,9 +36,13 @@ jobs:
                           assert response.status == 200
                       for marker in markers:
                           assert marker in body, 'Missing ' + marker + ' in ' + path
+                      if path == '/client-workspace-original.css':
+                          assert '--cwo-teal' not in body
+                          assert '#173f3b' not in body and '#166b62' not in body
+                          assert hashlib.sha256(body.encode()).hexdigest() == 'e6ba5883ce8a617c764991303d01eae37a755ab67c105eb604458196245485e3'
                       results.append((path, len(body), hashlib.sha256(body.encode()).hexdigest()))
                   for result in results:
-                      print('LIVE VERIFIED', *result)
+                      print('LIVE VERIFIED RED PALETTE', *result)
                   break
               except Exception as exc:
                   print('Awaiting production release:', type(exc).__name__, str(exc))
