@@ -1,25 +1,28 @@
 from pathlib import Path
+import re
 
 ROOT=Path('_site')
 SRC=Path('sheet-reference-numbers.js')
 if not SRC.exists():
     raise SystemExit('sheet-reference-numbers.js mancante')
 js=SRC.read_text(encoding='utf-8')
-if 'OPTYKER_SHEET_REFERENCE_NUMBERS_20260916' not in js:
+if 'OPTYKER_SHEET_REFERENCE_NUMBERS_20260918' not in js:
     raise SystemExit('Marker numeri schede mancante')
+if '</script' in js.lower():
+    raise SystemExit('Il modulo numeri schede non può essere incorporato in sicurezza')
 
 for rel in ('index.html','gestionale-v2/index.html','gestionale-v3/index.html'):
     page=ROOT/rel
     if not page.exists():
         raise SystemExit(f'{rel} non trovato')
     text=page.read_text(encoding='utf-8')
-    tag='<script id="optykerSheetReferenceNumbersJs" src="/sheet-reference-numbers.js?v=20260916-sheetrefs1"></script>'
-    if tag not in text:
-        i=text.lower().rfind('</body>')
-        if i<0:
-            raise SystemExit(f'Chiusura body non trovata in {rel}')
-        text=text[:i]+tag+'\n'+text[i:]
-        page.write_text(text,encoding='utf-8')
+    text=re.sub(r'<script\b[^>]*\bid=["\']optykerSheetReferenceNumbersJs["\'][^>]*>[\s\S]*?</script>\s*','',text,flags=re.I)
+    tag='<script id="optykerSheetReferenceNumbersJs">\n'+js+'\n</script>'
+    i=text.lower().rfind('</body>')
+    if i<0:
+        raise SystemExit(f'Chiusura body non trovata in {rel}')
+    text=text[:i]+tag+'\n'+text[i:]
+    page.write_text(text,encoding='utf-8')
     target=page.parent/'sheet-reference-numbers.js'
     target.write_text(js,encoding='utf-8')
 
