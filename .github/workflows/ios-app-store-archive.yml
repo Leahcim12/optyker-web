@@ -1,0 +1,139 @@
+name: iOS App Store - archive awaiting Apple signature
+on:
+  push:
+    branches: ['build/ios-app-store-20260919']
+    paths:
+      - 'scripts/prepare_ios_store_20260919.py'
+      - '.github/workflows/ios-app-store-archive.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ios-app-store-20260919
+  cancel-in-progress: true
+jobs:
+  archive:
+    runs-on: macos-26
+    timeout-minutes: 40
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      NODE_ENV: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Retrieve already verified mobile sources, not Android signing keys
+        uses: actions/download-artifact@v4
+        with:
+          name: ovc-play-bundle-unsigned
+          run-id: 35290797664
+          github-token: ${{ github.token }}
+          path: source-artifact
+      - name: Prepare isolated iOS source package
+        run: |
+          mkdir -p ios-release dist
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+          out=Path('ios-release').resolve()
+          with zipfile.ZipFile('source-artifact/sorgenti-android.zip') as z:
+              for name in z.namelist():
+                  if not name.startswith('mobile-app/') or name.startswith('mobile-app/android/') or name.endswith('/'):
+                      continue
+                  p=(out/name).resolve()
+                  assert p.is_relative_to(out)
+                  assert p.suffix not in {'.jks','.keystore','.p12','.p8','.mobileprovision'}
+                  p.parent.mkdir(parents=True,exist_ok=True)
+                  p.write_bytes(z.read(name))
+          PY
+          python3 scripts/prepare_ios_store_20260919.py ios-release/mobile-app
+          xcodebuild -version | tee dist/xcode-version.txt
+          xcrun --sdk iphoneos --show-sdk-version | tee dist/sdk-version.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          assert int(Path('dist/sdk-version.txt').read_text().strip().split('.')[0])>=26, 'iOS SDK 26+ required'
+          PY
+      - name: Install locked dependencies and generate native iOS project
+        working-directory: ios-release/mobile-app
+        run: |
+          npm ci --include=dev
+          npx expo install --check
+          npx expo config --type public --json > ../../dist/expo-config.json
+          npx expo prebuild --platform ios --clean --no-install
+          cd ios
+          pod install > ../../../dist/pods-install.log 2>&1 || { tail -n 100 ../../../dist/pods-install.log; exit 1; }
+      - name: Compile Release archive for real iPhone devices - not signed, not uploaded
+        working-directory: ios-release/mobile-app
+        run: |
+          set -o pipefail
+          WORKSPACE=$(find ios -maxdepth 1 -name '*.xcworkspace' -print -quit)
+          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+          test -n "$WORKSPACE"
+          echo "$SCHEME" > ../../dist/xcode-scheme.txt
+          xcodebuild -workspace "$WORKSPACE" -scheme "$SCHEME" -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -archivePath "$GITHUB_WORKSPACE/dist/OPTYKER-APPLE-NON-FIRMATO.xcarchive" -derivedDataPath "$RUNNER_TEMP/ovc-derived" -jobs 3 CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' archive > ../../dist/xcode-archive.log 2>&1 || { tail -n 140 ../../dist/xcode-archive.log; exit 1; }
+          tail -n 8 ../../dist/xcode-archive.log
+      - name: Validate compiled app and package archive plus native sources
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,plistlib,subprocess,os
+          archive=Path('dist/OPTYKER-APPLE-NON-FIRMATO.xcarchive')
+          apps=list((archive/'Products/Applications').glob('*.app'))
+          assert len(apps)==1
+          app=apps[0]
+          info=plistlib.loads((app/'Info.plist').read_bytes())
+          assert info['CFBundleIdentifier']=='it.otticavisualcare.app'
+          assert info['CFBundleShortVersionString']=='13.0.1'
+          assert info['CFBundleVersion']=='14'
+          assert info['CFBundleSupportedPlatforms']==['iPhoneOS']
+          assert int(info['DTSDKName'].removeprefix('iphoneos').split('.')[0])>=26
+          assert not (app/'embedded.mobileprovision').exists()
+          assert not (app/'_CodeSignature').exists()
+          assert (app/info['CFBundleExecutable']).stat().st_size>10000
+          assert (app/'main.jsbundle').stat().st_size>10000
+          for key in ['NSCameraUsageDescription','NSMicrophoneUsageDescription','NSPhotoLibraryUsageDescription','NSPhotoLibraryAddUsageDescription']:
+              assert info.get(key)
+          assert info['NSAppTransportSecurity']['NSAllowsArbitraryLoads'] is False
+          privacy=[]
+          for p in app.rglob('PrivacyInfo.xcprivacy'):
+              plistlib.loads(p.read_bytes())
+              privacy.append(str(p.relative_to(app)))
+          assert privacy, 'Missing privacy manifests'
+          report={'app':'OTTICA VISUAL CARE','bundle_id':info['CFBundleIdentifier'],'version':info['CFBundleShortVersionString'],'build':info['CFBundleVersion'],'sdk':info['DTSDKName'],'minimum_ios':info['MinimumOSVersion'],'platform':info['CFBundleSupportedPlatforms'],'xcode':Path('dist/xcode-version.txt').read_text().strip(),'device_archive_compile':'passed','embedded_javascript':True,'privacy_manifests':privacy,'apple_distribution_signature':False,'upload_ready':False,'app_store_uploaded':False,'reason_not_upload_ready':'Apple Developer distribution certificate and App Store provisioning profile required','source_android_run':35290797664,'ios_run':os.environ['GITHUB_RUN_ID'],'source_commit':os.environ['GITHUB_SHA'],'tests_not_performed':['Physical iPhone execution','Authenticated appointments, orders and chat','App Store validation or review']}
+          Path('dist/verifica-apple.json').write_text(json.dumps(report,indent=2)+'\n')
+          Path('dist/LEGGIMI-ARCHIVIO-NON-FIRMATO.txt').write_text('ARCHIVIO XCODE NON FIRMATO - NON CARICARE SU APP STORE CONNECT.\nLa compilazione iPhone Release e completata; mancano la firma Apple Developer e il profilo di distribuzione.\nNon e un IPA pronto per il caricamento. Nessuna pubblicazione eseguita.\n')
+          print(json.dumps(report,indent=2))
+          PY
+          ditto -c -k --sequesterRsrc --keepParent dist/OPTYKER-APPLE-NON-FIRMATO.xcarchive dist/OPTYKER-APPLE-ARCHIVIO-NON-FIRMATO.zip
+          cd ios-release/mobile-app
+          zip -q -r ../../dist/OPTYKER-APPLE-PROGETTO-XCODE.zip ios App.js index.js app.json eas.json package.json package-lock.json assets -x 'ios/Pods/*' 'ios/build/*' 'ios/.xcode.env.local' 'ios/.DS_Store'
+      - name: Save unsigned archive and validation report
+        uses: actions/upload-artifact@v4
+        with:
+          name: optyker-ios-archive-awaiting-apple-signature
+          path: |
+            dist/OPTYKER-APPLE-ARCHIVIO-NON-FIRMATO.zip
+            dist/OPTYKER-APPLE-PROGETTO-XCODE.zip
+            dist/verifica-apple.json
+            dist/LEGGIMI-ARCHIVIO-NON-FIRMATO.txt
+            dist/xcode-version.txt
+            dist/sdk-version.txt
+            dist/xcode-scheme.txt
+          if-no-files-found: error
+          retention-days: 14
+      - name: Save build diagnostics without credentials
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: optyker-ios-build-diagnostics
+          path: |
+            dist/*.log
+            dist/*.json
+            dist/*.txt
+          if-no-files-found: warn
+          retention-days: 7
