@@ -1,0 +1,126 @@
+name: Android Play Bundle - OVC
+on:
+  push:
+    branches: ['build/android-play-20260918']
+    paths:
+      - 'mobile-app/**'
+      - 'scripts/*android_play*'
+      - '.github/workflows/android-play-bundle.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: android-play-bundle-20260918
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      NODE_ENV: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Prepare existing customer app, logo and Android 16 settings
+        run: |
+          python -m pip install Pillow==11.3.0
+          python scripts/prepare_android_play_20260918.py
+      - name: Install Expo SDK 57 compatible dependencies
+        working-directory: mobile-app
+        run: |
+          npm install --include=dev
+          npx expo install expo-build-properties react-native-safe-area-context --npm
+          npx expo install --fix --npm
+          npx expo install --check
+      - name: Generate native Android project and disable debug signing for release
+        working-directory: mobile-app
+        run: |
+          npx expo prebuild --platform android --clean --no-install
+          cat >> android/app/build.gradle <<'GRADLE'
+          // Play upload key is never available on this public build runner.
+          android {
+              buildTypes {
+                  release {
+                      signingConfig = null
+                      debuggable = false
+                  }
+              }
+          }
+          GRADLE
+          chmod +x android/gradlew
+      - name: Build release Android App Bundle
+        working-directory: mobile-app/android
+        run: ./gradlew :app:bundleRelease --no-daemon --max-workers=2 -Dorg.gradle.jvmargs='-Xmx5g -XX:MaxMetaspaceSize=1g' --stacktrace
+      - name: Validate actual bundle and collect reproducible sources
+        run: |
+          mkdir -p dist/android-play
+          cp mobile-app/android/app/build/outputs/bundle/release/app-release.aab dist/android-play/ovc-release-unsigned.aab
+          curl -fLsS --retry 2 --max-time 120 https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar -o dist/android-play/bundletool.jar
+          echo 'a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29  dist/android-play/bundletool.jar' | sha256sum -c -
+          java -jar dist/android-play/bundletool.jar validate --bundle=dist/android-play/ovc-release-unsigned.aab
+          java -jar dist/android-play/bundletool.jar dump manifest --bundle=dist/android-play/ovc-release-unsigned.aab --module=base > dist/android-play/manifest.xml
+          java -jar dist/android-play/bundletool.jar dump config --bundle=dist/android-play/ovc-release-unsigned.aab > dist/android-play/bundle-config.json
+          python scripts/verify_android_play_20260918.py
+          cp mobile-app/assets/play-icon.png dist/android-play/icon-1024.png
+      - name: Save validated unsigned bundle for private signing
+        uses: actions/upload-artifact@v4
+        with:
+          name: ovc-play-bundle-unsigned
+          path: dist/android-play/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Build temporary emulator APK with throwaway test key only
+        run: |
+          keytool -genkeypair -keystore "$RUNNER_TEMP/smoke.jks" -storepass android -keypass android -alias smoke -keyalg RSA -keysize 2048 -validity 2 -dname 'CN=Temporary emulator test only' -noprompt
+          java -jar dist/android-play/bundletool.jar build-apks --bundle=dist/android-play/ovc-release-unsigned.aab --output="$RUNNER_TEMP/smoke.apks" --mode=universal --ks="$RUNNER_TEMP/smoke.jks" --ks-key-alias=smoke --ks-pass=pass:android --key-pass=pass:android
+          unzip -p "$RUNNER_TEMP/smoke.apks" universal.apk > "$RUNNER_TEMP/smoke.apk"
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Smoke test installed release on Android 16
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
+          script: |
+            mkdir -p dist/smoke
+            adb install "$RUNNER_TEMP/smoke.apk"
+            adb logcat -c
+            adb shell am start -W -n it.otticavisualcare.app/.MainActivity
+            sleep 40
+            adb shell pidof it.otticavisualcare.app > dist/smoke/pid.txt
+            adb shell uiautomator dump /sdcard/window.xml
+            adb pull /sdcard/window.xml dist/smoke/window.xml
+            adb exec-out screencap -p > dist/smoke/launch.png
+            adb logcat -d -v brief > dist/smoke/logcat.txt
+            test -s dist/smoke/pid.txt
+            if grep -E 'FATAL EXCEPTION|Unable to load script|JavascriptException' dist/smoke/logcat.txt; then exit 1; fi
+            echo 'PASS release process alive; no native/JavaScript fatal exception in launch test' > dist/smoke/result.txt
+      - name: Save emulator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ovc-play-smoke-evidence
+          path: dist/smoke/
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Remove temporary emulator signing material
+        if: always()
+        run: rm -f "$RUNNER_TEMP/smoke.jks" "$RUNNER_TEMP/smoke.apks" "$RUNNER_TEMP/smoke.apk"
