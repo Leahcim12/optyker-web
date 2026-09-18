@@ -28,9 +28,10 @@ with zipfile.ZipFile(aab) as z:
     for name in z.namelist():
         if not name.endswith('.so'):continue
         data=z.read(name)
-        assert data[:4]==b'\x7fELF', name
+        assert data[:4]==b'\x7fELF' and data[4] in (1,2), name
         endian='<' if data[5]==1 else '>'
-        if data[4]==2:
+        bits=64 if data[4]==2 else 32
+        if bits==64:
             off=struct.unpack_from(endian+'Q',data,32)[0]
             size,count=struct.unpack_from(endian+'HH',data,54)
             alignoff,alignfmt=48,'Q'
@@ -43,11 +44,14 @@ with zipfile.ZipFile(aab) as z:
             pos=off+i*size
             if struct.unpack_from(endian+'I',data,pos)[0]==1:
                 aligns.append(struct.unpack_from(endian+alignfmt,data,pos+alignoff)[0])
-        assert aligns and min(aligns)>=16384, (name,aligns)
-        libs.append({'path':name,'minimum_load_alignment':min(aligns)})
-assert libs
+        # Android 16 KB runtime page sizes apply to arm64-v8a / x86_64.
+        # armeabi-v7a stays supported on 32-bit 4 KB systems.
+        required=16384 if bits==64 else 4096
+        assert aligns and min(aligns)>=required, (name,bits,aligns)
+        libs.append({'path':name,'bits':bits,'minimum_load_alignment':min(aligns),'required_alignment':required})
+assert libs and any(x['bits']==64 for x in libs)
 config=json.loads((out/'bundle-config.json').read_text())
-report={'app':'OTTICA VISUAL CARE','package':'it.otticavisualcare.app','version_name':'13.0.1','version_code':14,'target_sdk':int(sdk.attrib[ns+'targetSdkVersion']),'min_sdk':int(sdk.attrib[ns+'minSdkVersion']),'debuggable':False,'cleartext':False,'allow_backup':False,'permissions':permissions,'native_libraries':libs,'all_native_libraries_16kb_aligned':True,'signature':'unsigned - private upload signing performed separately','sha256_unsigned':hashlib.sha256(aab.read_bytes()).hexdigest(),'source_commit':os.environ.get('GITHUB_SHA'),'workflow_run':os.environ.get('GITHUB_RUN_ID'),'bundle_config':config}
+report={'app':'OTTICA VISUAL CARE','package':'it.otticavisualcare.app','version_name':'13.0.1','version_code':14,'target_sdk':int(sdk.attrib[ns+'targetSdkVersion']),'min_sdk':int(sdk.attrib[ns+'minSdkVersion']),'debuggable':False,'cleartext':False,'allow_backup':False,'permissions':permissions,'native_libraries':libs,'all_64bit_native_libraries_16kb_aligned':True,'signature':'unsigned - private upload signing performed separately','sha256_unsigned':hashlib.sha256(aab.read_bytes()).hexdigest(),'source_commit':os.environ.get('GITHUB_SHA'),'workflow_run':os.environ.get('GITHUB_RUN_ID'),'bundle_config':config}
 (out/'build-report.json').write_text(json.dumps(report,indent=2)+'\n')
 # Archive actual prepared sources and native generated project, not signing keys or build caches.
 with zipfile.ZipFile(out/'sorgenti-android.zip','w',zipfile.ZIP_DEFLATED) as z:
@@ -58,4 +62,4 @@ with zipfile.ZipFile(out/'sorgenti-android.zip','w',zipfile.ZIP_DEFLATED) as z:
         z.write(p,p.as_posix())
     for p in [Path('scripts/prepare_android_play_20260918.py'),Path('scripts/verify_android_play_20260918.py'),Path('.github/workflows/android-play-bundle.yml')]:
         z.write(p,p.as_posix())
-print('PASS manifest, release mode, permissions, embedded JS, ZIP integrity and',len(libs),'16KB-aligned native libraries.')
+print('PASS manifest, release mode, permissions, embedded JS, ZIP integrity;',len(libs),'native libraries checked, all 64-bit LOAD segments >=16KB.')
