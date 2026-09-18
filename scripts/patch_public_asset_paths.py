@@ -14,12 +14,27 @@ assets = sorted(p.name for p in site.iterdir() if p.is_file() and p.suffix in {'
 if not assets:
     raise SystemExit('Public paths: no assembled assets found')
 pattern = re.compile(r'(?P<quote>[\"\'])/(?P<asset>' + '|'.join(re.escape(a) for a in assets) + r')(?=[?\"\'])')
+# The source snapshot can already contain the GitHub Pages repository prefix.
+# Vercel serves the same artifact at the domain root, so those URLs must be
+# normalized before the ordinary base-path pass below.  Restrict the rewrite
+# to files that actually exist in the assembled artifact; absolute download
+# links to GitHub Pages must remain untouched.
+repo_prefixed_pattern = re.compile(
+    r'(?P<quote>[\"\'])/optyker-web/(?P<asset>'
+    + '|'.join(re.escape(a) for a in assets)
+    + r')(?=[?\"\'])'
+)
 entry_points = [site/'index.html'] + [site/a/'index.html' for a in ('gestionale-v2','gestionale-v3')]
 changed = 0
 for path in entry_points + [site/a for a in assets if a.endswith(('.js','.css'))]:
     if not path.is_file():
         continue
     source = path.read_text(encoding='utf-8')
+    if base == '/':
+        source, count = repo_prefixed_pattern.subn(
+            lambda m: m['quote'] + '/' + m['asset'], source
+        )
+        changed += count
     if base != '/':
         source, count = pattern.subn(lambda m: m['quote'] + base + m['asset'], source)
         changed += count
@@ -114,6 +129,8 @@ for path in entry_points:
     for name in ('optyker-aurora.css','optyker-vision.css','optyker-vision.js'):
         if '"'+base+name+'?' not in html:
             raise SystemExit('Public paths: missing correct asset URL in '+str(path)+': '+name)
+    if base == '/' and repo_prefixed_pattern.search(html):
+        raise SystemExit('Public paths: stale GitHub Pages asset URL in '+str(path))
 
 release = {'design':'20260910-vision1','asset_paths':'20260910-paths2','commit':os.environ.get('VERCEL_GIT_COMMIT_SHA') or os.environ.get('GITHUB_SHA',''),'base_path':base,
            'assets':{name:hashlib.sha256((site/name).read_bytes()).hexdigest() for name in ('optyker-aurora.css','optyker-vision.css','optyker-vision.js','optyker-vision-eye.webp')}}
