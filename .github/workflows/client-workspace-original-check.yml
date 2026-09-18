@@ -1,0 +1,40 @@
+name: Verifica anagrafica originale
+on:
+  push:
+    branches: [optyker/anagrafica-originale-20260919]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Archive source
+        run: |
+          mkdir -p /tmp/client-workspace
+          git archive --format=zip HEAD -o /tmp/client-workspace/source.zip
+          git rev-parse HEAD > /tmp/client-workspace/commit.txt
+      - name: Build without production deployment
+        run: |
+          bash scripts/vercel-build-v13.sh
+          if [ -f scripts/apply_client_workspace_original.py ]; then python scripts/apply_client_workspace_original.py; fi
+          python scripts/check_desktop_html.py
+          if [ -f client-workspace-original.js ]; then node --check client-workspace-original.js; fi
+          if [ -f tests/client-workspace-original.test.mjs ]; then node --test tests/client-workspace-original.test.mjs; fi
+          python - <<'PY'
+          import shutil
+          shutil.make_archive('/tmp/client-workspace/built', 'zip', '_site')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: client-workspace-original
+          path: /tmp/client-workspace/
+          retention-days: 2
