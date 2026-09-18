@@ -5,6 +5,7 @@ import re
 from apply_ts_connection import DocumentClosings
 
 VERSION = '20260919-original1'
+STYLE_VERSION = '20260919-red1'
 ASSETS = ('client-workspace-original.js', 'client-workspace-original.css')
 
 
@@ -20,7 +21,7 @@ def inject(text):
     if set(ends) != {'head', 'body'} or ends['head'] >= ends['body']:
         raise ValueError('Original client workspace: invalid document boundaries')
     tags = {
-        'head': f'<link rel="stylesheet" href="/client-workspace-original.css?v={VERSION}" id="optykerClientWorkspaceOriginalCss">\n',
+        'head': f'<link rel="stylesheet" href="/client-workspace-original.css?v={STYLE_VERSION}" id="optykerClientWorkspaceOriginalCss">\n',
         'body': f'<script src="/client-workspace-original.js?v={VERSION}" id="optykerClientWorkspaceOriginalJs"></script>\n',
     }
     for tag in sorted(ends, key=ends.get, reverse=True):
@@ -45,7 +46,7 @@ def main():
         (dest / 'index.html').write_text(updated, encoding='utf-8')
         for asset in ASSETS:
             copyfile(asset, dest / asset)
-    print('Original customer workspace applied:', VERSION, '(no data migration)')
+    print('Original customer workspace applied:', VERSION, 'palette:', STYLE_VERSION, '(no data migration)')
 
 
 if __name__ == '__main__':
