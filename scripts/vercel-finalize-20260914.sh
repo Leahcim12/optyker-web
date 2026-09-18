@@ -82,7 +82,8 @@ grep -q 'restoreManualFinalCurrent' _site/index.html
 node --check sheet-reference-numbers.js
 python scripts/patch_sheet_reference_numbers_20260916.py
 grep -q 'optykerSheetReferenceNumbersJs' _site/index.html
-grep -q 'OPTYKER_SHEET_REFERENCE_NUMBERS_20260916' _site/sheet-reference-numbers.js
+grep -q 'OPTYKER_SHEET_REFERENCE_NUMBERS_20260918' _site/sheet-reference-numbers.js
+grep -q '20260918-sheetrefs3-visible' _site/index.html
 python scripts/patch_rch_daily_closure_compat_20260916.py
 node --check _site/rch-cloud-relay.js
 grep -Fq '2\.2-daily-closure' _site/rch-cloud-relay.js
