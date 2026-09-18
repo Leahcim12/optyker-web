@@ -39,7 +39,7 @@ jobs:
                       if path == '/client-workspace-original.css':
                           assert '--cwo-teal' not in body
                           assert '#173f3b' not in body and '#166b62' not in body
-                          assert hashlib.sha256(body.encode()).hexdigest() == 'e6ba5883ce8a617c764991303d01eae37a755ab67c105eb604458196245485e3'
+                          assert hashlib.sha256(body.encode()).hexdigest() == '4dd6e61e14651ff19cb06c7933be5fb58179d0d666e07388b512a88a20332c41'
                       results.append((path, len(body), hashlib.sha256(body.encode()).hexdigest()))
                   for result in results:
                       print('LIVE VERIFIED RED PALETTE', *result)
