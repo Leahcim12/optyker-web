@@ -43,6 +43,8 @@ jobs:
           npx expo install expo-build-properties react-native-safe-area-context --npm
           npx expo install --fix --npm
           npx expo install --check
+          mkdir -p ../dist/android-play
+          npm audit --json > ../dist/android-play/dependency-audit.json || true
       - name: Generate native Android project and disable debug signing for release
         working-directory: mobile-app
         run: |
@@ -68,7 +70,7 @@ jobs:
           cp mobile-app/android/app/build/outputs/bundle/release/app-release.aab dist/android-play/ovc-release-unsigned.aab
           curl -fLsS --retry 2 --max-time 120 https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar -o dist/android-play/bundletool.jar
           echo 'a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29  dist/android-play/bundletool.jar' | sha256sum -c -
-          java -jar dist/android-play/bundletool.jar validate --bundle=dist/android-play/ovc-release-unsigned.aab
+          java -jar dist/android-play/bundletool.jar validate --bundle=dist/android-play/ovc-release-unsigned.aab > dist/android-play/bundle-validation.txt
           java -jar dist/android-play/bundletool.jar dump manifest --bundle=dist/android-play/ovc-release-unsigned.aab --module=base > dist/android-play/manifest.xml
           java -jar dist/android-play/bundletool.jar dump config --bundle=dist/android-play/ovc-release-unsigned.aab > dist/android-play/bundle-config.json
           python scripts/verify_android_play_20260918.py
@@ -121,6 +123,17 @@ jobs:
           path: dist/smoke/
           if-no-files-found: warn
           retention-days: 7
+      - name: Retain unsigned diagnostics if any validation or smoke test fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ovc-play-diagnostics-not-release
+          path: |
+            dist/android-play/
+            mobile-app/android/app/build/outputs/bundle/release/
+            mobile-app/android/app/src/main/AndroidManifest.xml
+          if-no-files-found: warn
+          retention-days: 3
       - name: Remove temporary emulator signing material
         if: always()
         run: rm -f "$RUNNER_TEMP/smoke.jks" "$RUNNER_TEMP/smoke.apks" "$RUNNER_TEMP/smoke.apk"
