@@ -270,3 +270,11 @@ node --test tests/lac-focus-history.test.cjs
 python scripts/apply_lac_focus_history.py
 python scripts/patch_public_asset_paths.py
 verify_desktop_aliases
+
+# Original customer dossier: scoped presentation, no data migration or API changes.
+node --check client-workspace-original.js
+node --test tests/client-workspace-original.test.mjs
+python scripts/apply_client_workspace_original.py
+python scripts/patch_public_asset_paths.py
+verify_desktop_aliases
+python scripts/check_desktop_html.py
