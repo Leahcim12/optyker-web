@@ -54,7 +54,7 @@ html body #mainApp #clientsPanel.optykerOriginalClients #clientAnagraficaSection
 html body #mainApp #clientsPanel.optykerOriginalClients #clientAnagraficaSection .clientProfileCardHead{margin:0 0 18px!important;gap:11px!important;align-items:center!important}
 html body #mainApp #clientsPanel.optykerOriginalClients #clientAnagraficaSection .clientProfileCardHead b{font-size:14px!important;font-weight:650!important;color:var(--cwo-ink)!important}
 html body #mainApp #clientsPanel.optykerOriginalClients #clientAnagraficaSection .clientProfileCardHead small{font-size:10px!important;color:#7b6770!important;line-height:1.6!important}
-html body #mainApp #clientsPanel.optykerOriginalClients #clientAnagraficaSection .clientProfileIcon{width:30px!important;height:30px!important;background:#fae7ec!important;color:#a12842!important;border:0!important;border-radius:8px!important;font-size:10px!important;box-shadow:none!important}
+html body #mainApp #clientsPanel.optykerOriginalClients #clientAnagraficaSection .clientProfileCard .clientProfileIcon{width:30px!important;height:30px!important;background:#fae7ec!important;color:#a12842!important;border:0!important;border-radius:8px!important;font-size:10px!important;box-shadow:none!important}
 html body #mainApp #clientsPanel.optykerOriginalClients #clientAnagraficaSection .clientProfileGrid{gap:14px!important}
 html body #mainApp #clientsPanel.optykerOriginalClients #clientAnagraficaSection .clientProfileField{min-width:0}
 html body #mainApp #clientsPanel.optykerOriginalClients #clientAnagraficaSection .clientProfileField>span{font-size:10px!important;font-weight:650!important;color:#8a3248!important;letter-spacing:.01em!important;text-transform:none!important;margin-bottom:6px!important}
