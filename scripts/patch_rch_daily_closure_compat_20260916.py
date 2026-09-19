@@ -1,4 +1,5 @@
 from pathlib import Path
+from patch_rch_reg_controls_20260919 import main as apply_reg_controls
 
 p=Path('_site/rch-cloud-relay.js')
 s=p.read_text(encoding='utf-8')
@@ -15,3 +16,4 @@ for alias in ('gestionale-v2','gestionale-v3'):
 if '2\\.2-daily-closure' not in s:
     raise SystemExit('daily closure worker compatibility missing')
 print('RCH daily closure worker compatibility applied')
+apply_reg_controls()
