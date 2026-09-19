@@ -33,12 +33,17 @@ def patch_html(h):
 def main():
     site=ROOT/'_site';page=site/'index.html';h=patch_html(page.read_text())
     assets=('cash-register.js','client-sheet-actions.js','client-sheet-edit.js')
+    # Cash has its own final release. Do not replace it with the older eyewear key.
+    cash_ref=re.search(r'cash-register\.js\?v=([A-Za-z0-9_.-]+)',h)
+    if not cash_ref:raise ValueError('Cash asset version missing before eyewear assembly')
+    cash_version=cash_ref[1]
+    def cache_ref(m):return m[1]+'?v='+(cash_version if m[1]=='cash-register.js' else VERSION)
     pattern=r'('+ '|'.join(re.escape(n) for n in assets)+r')(?:\?[^\s\"\'<>]*)?'
-    h=re.sub(pattern,lambda m:m[1]+'?v='+VERSION,h)
+    h=re.sub(pattern,cache_ref,h)
     page.write_text(h)
     for name in ('order-sheet-actions.js',): (site/name).write_bytes((ROOT/name).read_bytes())
     for js in site.glob('*.js'):
-        s=js.read_text();n=re.sub(pattern,lambda m:m[1]+'?v='+VERSION,s)
+        s=js.read_text();n=re.sub(pattern,cache_ref,s)
         if n!=s:js.write_text(n)
     for alias in ('gestionale-v2','gestionale-v3'):
         (site/alias/'index.html').write_text(h)
