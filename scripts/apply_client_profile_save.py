@@ -3,8 +3,9 @@ from pathlib import Path
 from shutil import copyfile
 import re
 from apply_ts_connection import DocumentClosings
+from fix_client_profile_render_loop import fix_profile
 
-VERSION = '20260915-profile-id'
+VERSION = '20260919-profile-loop1'
 root = Path('_site')
 page = root / 'index.html'
 text = page.read_text()
@@ -31,6 +32,11 @@ for tag in sorted(closings, key=closings.get, reverse=True):
     text = text[:pos] + asset + text[pos:]
 for name in ('client-profile-save.js', 'client-profile-save.css', 'client-birth-country.js', 'client-anagrafica-autofill.js'):
     copyfile(name, root / name)
+profile_path = root / 'client-profile-save.js'
+fixed = fix_profile(profile_path.read_text(encoding='utf-8'))
+if fix_profile(fixed) != fixed:
+    raise SystemExit('Profile render fix is not idempotent')
+profile_path.write_text(fixed, encoding='utf-8')
 page.write_text(text)
 for alias in ('gestionale-v2', 'gestionale-v3'):
     (root / alias / 'index.html').write_text(text)
