@@ -1,0 +1,14 @@
+/* OPTYKER_CASH_CLIENT_SEARCH_20260919 */
+#optykerCashClientResults{grid-column:1/-1;flex:1 0 100%;width:100%;min-width:0;margin-top:8px;border:1px solid #d2dde8;border-radius:10px;background:#fff;overflow:hidden}
+#optykerCashClientResults[hidden]{display:none!important}
+#optykerCashClientSearchStatus{padding:10px 12px;font:500 12px/1.5 system-ui;color:#334e68;background:#f4f7fb;overflow-wrap:anywhere}
+#optykerCashClientResults .cashClientSearchRows{max-height:190px;overflow:auto;overscroll-behavior:contain}
+#optykerCashClientResults .cashClientSearchResult{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;min-height:45px;border:0;border-bottom:1px solid #e3eaf0;border-radius:0;background:#fff;color:#16394d;text-align:left;padding:10px 12px;cursor:pointer;font:500 12px/1.4 system-ui;white-space:normal;overflow-wrap:anywhere}
+#optykerCashClientResults .cashClientSearchResult strong{font-size:13px}
+#optykerCashClientResults .cashClientSearchResult span{color:#526d80;font-size:11px}
+#optykerCashClientResults .cashClientSearchResult:hover:not(:disabled){background:#f2f6fc}
+#optykerCashClientResults .cashClientSearchResult:focus-visible{outline:2px solid #3868b6;outline-offset:-3px}
+#optykerCashClientResults .cashClientSearchResult:disabled{opacity:.65;cursor:not-allowed}
+#optykerCashClientResults .cashClientSearchActions{display:flex;flex-wrap:wrap;gap:8px;padding:0 12px}
+#optykerCashClientResults .cashClientSearchActions button{margin:8px 0;padding:8px 12px;border:1px solid #b5c6d8;border-radius:7px;background:#fff;color:#244f78;cursor:pointer;font:600 12px system-ui}
+@media(max-width:650px){#optykerCashClientResults .cashClientSearchRows{max-height:160px}}
