@@ -1,14 +1,23 @@
 name: Verifica apertura Cassa 19 settembre
 on:
   push:
-    branches: [fix/cash-opening-20260919]
+    branches: [fix/cash-opening-20260919, main]
+    paths:
+      - '.github/workflows/cash-opening-20260919.yml'
+      - 'cash-receipt-separation.js'
+      - 'scripts/apply_client_details.py'
+      - 'tests/cash-opening.browser.cjs'
+      - 'tests/cash-receipt-separation.test.cjs'
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: cash-opening-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 7
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
         with:
@@ -20,8 +29,12 @@ jobs:
         run: |
           mkdir -p /tmp/cash-opening
           git archive --format=zip HEAD -o /tmp/cash-opening/source.zip
+          node --check cash-receipt-separation.js
+          node --test tests/cash-receipt-separation.test.cjs
           bash scripts/vercel-build-v13.sh
           bash scripts/vercel-finalize-20260914.sh
+          python scripts/check_desktop_html.py
+          grep -q 'cash-receipt-separation.js?v=20260919-cash-open1' _site/index.html
           python - <<'PY'
           import shutil
           shutil.make_archive('/tmp/cash-opening/built','zip','_site')
@@ -34,6 +47,31 @@ jobs:
         run: |
           python -m http.server 8766 --directory _site >/tmp/cash-server.log 2>&1 &
           node tests/cash-opening.browser.cjs
+          LOGIN_OUTPUT=/tmp/cash-opening/login node tests/login-render-loop.browser.cjs
+      - name: Verify exact public release without financial operations
+        if: github.ref == 'refs/heads/main'
+        run: |
+          python - <<'PY'
+          import urllib.request, time, hashlib
+          from pathlib import Path
+          host='https://www.optyker.it'
+          expected=hashlib.sha256(Path('cash-receipt-separation.js').read_bytes()).hexdigest()
+          for n in range(30):
+              try:
+                  for path in ('/','/gestionale-v2/','/gestionale-v3/'):
+                      req=urllib.request.Request(host+path+'?cash-opening-verify='+str(int(time.time())),headers={'Cache-Control':'no-cache'})
+                      html=urllib.request.urlopen(req,timeout=15).read().decode()
+                      for marker in ('cash-receipt-separation.js?v=20260919-cash-open1','client-profile-save.js?v=20260919-profile-loop1','client-workspace-original.css?v=20260919-red1'):
+                          assert marker in html, path+' missing '+marker
+                  data=urllib.request.urlopen(host+'/cash-receipt-separation.js?v=20260919-cash-open1&verify='+str(int(time.time())),timeout=15).read()
+                  assert hashlib.sha256(data).hexdigest()==expected, 'Public script differs from tested source'
+                  print('LIVE CASH OPENING FIX VERIFIED', expected, 'three desktop entry points; login and red palette retained')
+                  break
+              except Exception as e:
+                  print('Waiting for deployment:',str(e))
+                  if n==29: raise
+                  time.sleep(4)
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
