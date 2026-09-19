@@ -1,0 +1,66 @@
+name: Verifica comandi RCH REG
+on:
+  push:
+    branches: [fix/rch-reg-controls-20260919, main]
+    paths:
+      - 'scripts/patch_rch_reg_controls_20260919.py'
+      - 'scripts/patch_rch_daily_closure_compat_20260916.py'
+      - 'tests/rch-reg-controls.browser.cjs'
+      - '.github/workflows/rch-reg-controls-20260919.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build exact production with unchanged fiscal code
+        run: |
+          bash scripts/vercel-build-v13.sh
+          bash scripts/vercel-finalize-20260914.sh
+          node --check _site/rch-cloud-relay.js
+          grep -q 'OPTYKER_RCH_REG_UI_20260919' _site/rch-cloud-relay.js
+          python scripts/patch_rch_reg_controls_20260919.py
+          python scripts/check_desktop_html.py
+      - name: Browser dependencies
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2
+          npx playwright install --with-deps chromium
+      - name: RCH and login tests without hardware or financial operations
+        run: |
+          python -m http.server 8766 --directory _site >/tmp/rch-ui-server.log 2>&1 &
+          node tests/rch-reg-controls.browser.cjs
+          node tests/login-render-loop.browser.cjs
+      - name: Verify public static release only
+        if: github.ref == 'refs/heads/main'
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import urllib.request,time,hashlib
+          expected=Path('_site/rch-cloud-relay.js').read_bytes()
+          for n in range(30):
+              try:
+                  for path in ('/','/gestionale-v2/','/gestionale-v3/'):
+                      text=urllib.request.urlopen('https://www.optyker.it'+path+'?regui-check='+str(int(time.time())),timeout=20).read().decode()
+                      assert '&regui=20260919-regui1' in text
+                  actual=urllib.request.urlopen('https://www.optyker.it/rch-cloud-relay.js?regui-check='+str(int(time.time())),timeout=20).read()
+                  assert actual==expected
+                  print('LIVE RCH REG UI VERIFIED',hashlib.sha256(actual).hexdigest())
+                  break
+              except Exception as e:
+                  if n==29: raise
+                  print('Awaiting static publication',str(e));time.sleep(4)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rch-reg-controls-check
+          path: /tmp/rch-reg-check/
+          retention-days: 2
