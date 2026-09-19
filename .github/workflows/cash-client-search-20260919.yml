@@ -1,0 +1,71 @@
+name: Verifica ricerca clienti Cassa
+on:
+  push:
+    branches: [fix/cash-client-search-20260919, main]
+    paths:
+      - 'cash-client-search.*'
+      - 'scripts/apply_cash_client_search.py'
+      - 'scripts/vercel-finalize-20260914.sh'
+      - 'tests/cash-client-search.browser.cjs'
+      - '.github/workflows/cash-client-search-20260919.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Exact production build
+        run: |
+          bash scripts/vercel-build-v13.sh
+          bash scripts/vercel-finalize-20260914.sh
+          grep -Fq 'OPTYKER_CASH_CLIENT_SEARCH_20260919' _site/cash-register.js
+          grep -Fq 'clientsearch=20260919-clientsearch1' _site/index.html
+          mkdir -p /tmp/client-search-check
+          cp _site/cash-client-search-version.json /tmp/client-search-check/version.json
+      - name: Browser dependencies
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Search and financial UI regression with all external calls mocked
+        run: |
+          python -m http.server 8766 --directory _site >/tmp/client-search-server.log 2>&1 &
+          node tests/cash-client-search.browser.cjs
+          CLIENT_TEST_OUTPUT=/tmp/client-search-check/unused node tests/login-render-loop.browser.cjs
+          QUOTE_TEST_OUTPUT=/tmp/client-search-check/quotation node tests/cash-quote-recovery.browser.cjs
+          CASH_TEST_OUTPUT=/tmp/client-search-check/cash node tests/cash-opening.browser.cjs
+      - name: Verify exact public release without customer or printer access
+        if: github.ref == 'refs/heads/main'
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import urllib.request,time,hashlib
+          expected=Path('_site/cash-register.js').read_bytes()
+          for n in range(30):
+              try:
+                  for path in ('/','/gestionale-v2/','/gestionale-v3/'):
+                      html=urllib.request.urlopen('https://www.optyker.it'+path+'?client-search-check='+str(int(time.time())),timeout=15).read().decode()
+                      assert 'clientsearch=20260919-clientsearch1' in html
+                  actual=urllib.request.urlopen('https://www.optyker.it/cash-register.js?client-search-check='+str(int(time.time())),timeout=15).read()
+                  assert actual==expected
+                  message='LIVE CUSTOMER SEARCH VERIFIED '+hashlib.sha256(actual).hexdigest()
+                  print(message)
+                  Path('/tmp/client-search-check/live-verification.txt').write_text(message+'\n')
+                  break
+              except Exception as e:
+                  if n==29:raise
+                  print('Awaiting publication',str(e));time.sleep(4)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cash-client-search-check
+          path: /tmp/client-search-check/
+          retention-days: 2
