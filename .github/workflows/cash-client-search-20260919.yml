@@ -4,9 +4,11 @@ on:
     branches: [fix/cash-client-search-20260919, main]
     paths:
       - 'cash-client-search.*'
+      - 'cash-fiscal-preflight.js'
       - 'scripts/apply_cash_client_search.py'
       - 'scripts/vercel-finalize-20260914.sh'
       - 'tests/cash-client-search.browser.cjs'
+      - 'tests/cash-fiscal-preflight.browser.cjs'
       - '.github/workflows/cash-client-search-20260919.yml'
   workflow_dispatch:
 permissions:
@@ -27,6 +29,7 @@ jobs:
           bash scripts/vercel-build-v13.sh
           bash scripts/vercel-finalize-20260914.sh
           grep -Fq 'OPTYKER_CASH_CLIENT_SEARCH_20260919' _site/cash-register.js
+          grep -Fq 'OPTYKER_CASH_FISCAL_PREFLIGHT_20260919' _site/cash-register.js
           grep -Fq 'clientsearch=20260919-clientsearch1' _site/index.html
           mkdir -p /tmp/client-search-check
           cp _site/cash-client-search-version.json /tmp/client-search-check/version.json
@@ -38,6 +41,7 @@ jobs:
         run: |
           python -m http.server 8766 --directory _site >/tmp/client-search-server.log 2>&1 &
           node tests/cash-client-search.browser.cjs
+          node tests/cash-fiscal-preflight.browser.cjs
           CLIENT_TEST_OUTPUT=/tmp/client-search-check/unused node tests/login-render-loop.browser.cjs
           QUOTE_TEST_OUTPUT=/tmp/client-search-check/quotation node tests/cash-quote-recovery.browser.cjs
           CASH_TEST_OUTPUT=/tmp/client-search-check/cash node tests/cash-opening.browser.cjs
@@ -55,7 +59,7 @@ jobs:
                       assert 'clientsearch=20260919-clientsearch1' in html
                   actual=urllib.request.urlopen('https://www.optyker.it/cash-register.js?client-search-check='+str(int(time.time())),timeout=15).read()
                   assert actual==expected
-                  message='LIVE CUSTOMER SEARCH VERIFIED '+hashlib.sha256(actual).hexdigest()
+                  message='LIVE CUSTOMER SEARCH AND FISCAL PREFLIGHT VERIFIED '+hashlib.sha256(actual).hexdigest()
                   print(message)
                   Path('/tmp/client-search-check/live-verification.txt').write_text(message+'\n')
                   break
