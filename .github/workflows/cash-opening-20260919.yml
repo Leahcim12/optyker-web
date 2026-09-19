@@ -1,0 +1,42 @@
+name: Verifica apertura Cassa 19 settembre
+on:
+  push:
+    branches: [fix/cash-opening-20260919]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build production without publishing
+        run: |
+          mkdir -p /tmp/cash-opening
+          git archive --format=zip HEAD -o /tmp/cash-opening/source.zip
+          bash scripts/vercel-build-v13.sh
+          bash scripts/vercel-finalize-20260914.sh
+          python - <<'PY'
+          import shutil
+          shutil.make_archive('/tmp/cash-opening/built','zip','_site')
+          PY
+      - name: Browser dependencies
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Cash opening with all external calls mocked
+        run: |
+          python -m http.server 8766 --directory _site >/tmp/cash-server.log 2>&1 &
+          node tests/cash-opening.browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cash-opening-check
+          path: /tmp/cash-opening/
+          retention-days: 2
