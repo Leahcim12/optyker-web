@@ -1,0 +1,98 @@
+name: Diagnosi blocco login 19 settembre
+on:
+  push:
+    branches: [fix/login-render-loop-20260919]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Snapshot public source only
+        run: |
+          mkdir -p /tmp/login-diag/live
+          git archive --format=zip HEAD -o /tmp/login-diag/source.zip
+          python - <<'PY'
+          from pathlib import Path
+          import urllib.request, urllib.parse, re, concurrent.futures, shutil
+          host='https://www.optyker.it'
+          root=Path('/tmp/login-diag/live')
+          def get(path):
+              try:
+                  u=urllib.parse.urljoin(host,path)
+                  data=urllib.request.urlopen(u,timeout=20).read()
+                  name=urllib.parse.urlparse(u).path.lstrip('/') or 'index.html'
+                  target=root/name
+                  target.parent.mkdir(parents=True,exist_ok=True)
+                  target.write_bytes(data)
+                  return path,len(data)
+              except Exception as e: return path,str(e)
+          get('/')
+          text=(root/'index.html').read_text()
+          paths=set(re.findall(r'(?:src|href)=[\"\']([^\"\']+\.(?:js|css|svg|webp|png)(?:\?[^\"\']*)?)[\"\']',text))
+          paths=[p for p in paths if not p.startswith(('data:', 'http:', 'https:', '//'))]
+          with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool: print(list(pool.map(get,paths)))
+          shutil.make_archive('/tmp/login-diag/live','zip',root)
+          PY
+      - name: Browser diagnostic dependencies
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Isolated public login diagnosis
+        run: |
+          cat > /tmp/login-diagnostic.cjs <<'JS'
+          const {chromium}=require(process.cwd()+'/node_modules/playwright');
+          const fs=require('fs');
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const page=await browser.newPage({viewport:{width:1440,height:1000}});
+            const errors=[],requests=[];
+            page.on('pageerror',e=>errors.push(String(e).slice(0,400)));
+            page.on('request',r=>{if(/logo|global.*search/i.test(r.url()))requests.push(r.url().slice(0,220))});
+            await page.route('**/*',r=> r.request().method()==='GET'||r.request().method()==='HEAD'?r.continue():r.abort());
+            await page.addInitScript(()=>{
+              const Native=window.MutationObserver;
+              window.__diagnosticObservers=[];
+              window.MutationObserver=class extends Native{
+                constructor(fn){
+                  const row={stack:new Error().stack,count:0,limited:false,targets:[]};
+                  super(function(ms,obs){
+                    row.count++;
+                    if(row.count>200){row.limited=true;obs.disconnect();return;}
+                    if(row.count<4||row.count>195)row.targets.push(ms.slice(0,6).map(m=>[m.type,m.target.id||m.target.nodeName,m.attributeName]));
+                    fn.call(obs,ms,obs);
+                  });
+                  window.__diagnosticObservers.push(row);
+                }
+              };
+              window.__diagTicks=0;setInterval(()=>window.__diagTicks++,100);
+            });
+            await page.goto('https://www.optyker.it/?login-diagnostic=20260919',{waitUntil:'domcontentloaded',timeout:35000}).catch(e=>errors.push(String(e).slice(0,300)));
+            await page.waitForTimeout(10000);
+            const report=await page.evaluate(()=>({ticks:window.__diagTicks,ready:document.readyState,observers:window.__diagnosticObservers.filter(x=>x.count>15),controls:Array.from(document.querySelectorAll('#optykerLoginScreen input,#optykerLoginScreen select,#optykerLoginScreen button')).map(x=>({id:x.id,type:x.type,disabled:x.disabled,display:getComputedStyle(x).display})),scripts:Array.from(document.scripts).map(s=>({id:s.id,src:s.src})).filter(x=>x.src||/login|guard/i.test(x.id))}));
+            report.errors=errors;report.logoRequests=requests.length;report.logoRequestExamples=requests.slice(0,8);
+            fs.writeFileSync('/tmp/login-diag/diagnosis.json',JSON.stringify(report,null,2));
+            console.log('DIAGNOSIS',JSON.stringify(report));
+            await page.screenshot({path:'/tmp/login-diag/login.png',timeout:10000}).catch(()=>{});
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node /tmp/login-diagnostic.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: login-render-diagnosis
+          path: |
+            /tmp/login-diag/source.zip
+            /tmp/login-diag/live.zip
+            /tmp/login-diag/diagnosis.json
+            /tmp/login-diag/login.png
+          retention-days: 2
