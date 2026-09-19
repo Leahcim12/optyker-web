@@ -177,7 +177,7 @@ jobs:
           grep -q "Chiusure cassa" _site/admin-cash-closure.js
           grep -q "Fatture emesse" _site/billing-admin.js
           grep -q "Fatture in entrata" _site/billing-admin.js
-          grep -q "Sistema TS" _site/admin-cash-closure.js
+          grep -q "Sistema TS" _site/billing-admin.js
           python scripts/check_desktop_html.py
 
       - name: Mantieni comandi REG nella versione finale
