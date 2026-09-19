@@ -16,14 +16,17 @@ const watchdog=setTimeout(()=>{console.error('Cash browser watchdog expired');pr
    if(req.method()==='POST'){
      let body={};try{body=req.postDataJSON()||{}}catch(_){}
      calls.push({endpoint:url.pathname,action:body.action||''});
-     if(url.pathname.endsWith('/optyker-staff-auth'))return route.fulfill({json:{ok:true,username:body.username||'MICHAEL',has_email:true,needs_password:false}});
+     if(url.pathname.endsWith('/optyker-staff-auth'))return route.fulfill({json:{ok:true,username:body.username||'Michael',has_email:true,needs_password:false}});
      return route.fulfill({json:{ok:true,data:[],clients:[],sheets:[],consents:[]}});
    }
    return route.abort();
  });
+ try{
  await page.goto('http://127.0.0.1:8766/',{waitUntil:'domcontentloaded',timeout:20000});
  await page.waitForTimeout(1800);
- await page.locator('#optykerLoginOperator').selectOption('MICHAEL');
+ const options=await page.locator('#optykerLoginOperator option').evaluateAll(a=>a.map(x=>x.value).filter(Boolean));
+ report.operatorOptions=options;
+ await page.locator('#optykerLoginOperator').selectOption(options.find(x=>/michael/i.test(x))||options[0]);
  await page.locator('#optykerAuthPassword').fill('LOCAL_FIXTURE_ONLY');
  await page.locator('.optykerLoginButton').click();
  await page.waitForTimeout(2500);
@@ -41,9 +44,10 @@ const watchdog=setTimeout(()=>{console.error('Cash browser watchdog expired');pr
  }
  report.afterTop=await page.evaluate(()=>{const e=document.getElementById('optykerCashOverlay');return e?{cls:e.className,style:e.style.cssText,display:getComputedStyle(e).display}:null});
  try{await page.locator('#optykerCashNote').fill('DIAGNOSI LOCALE');report.noteTyped=true}catch(e){report.noteTyped=String(e)}
+ }catch(e){report.failure=String(e);console.error(e)}
  report.errors=errors;report.calls=calls;
  fs.writeFileSync(OUT+'/report.json',JSON.stringify(report,null,2));
  console.log('CASH_DIAGNOSIS',JSON.stringify(report));
- await page.screenshot({path:OUT+'/after-top.png'});
+ await page.screenshot({path:OUT+'/after-top.png'}).catch(()=>{});
  await browser.close();clearTimeout(watchdog);
 })().catch(e=>{console.error(e);process.exit(1)});
