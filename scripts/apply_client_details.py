@@ -1,6 +1,7 @@
 """Add staff-only client details, Focus import and the separated RCH receipt route."""
 from pathlib import Path
 from shutil import copyfile
+import re
 from apply_ts_connection import DocumentClosings
 
 ROOT=Path('_site')
@@ -26,9 +27,14 @@ else:
 # Load the fetch router after all existing cash/fiscal modules.
 if 'id="optykerCashReceiptSeparationJs"' not in text:
     pos=DocumentClosings(text).closings['body']
-    asset='<script id="optykerCashReceiptSeparationJs" src="/cash-receipt-separation.js?v=20260914-rch-local1"></script>\n<!-- OPTYKER_CASH_RECEIPT_SEPARATION_V1_LOADER -->\n'
+    asset='<script id="optykerCashReceiptSeparationJs" src="/cash-receipt-separation.js?v=20260919-cash-open1"></script>\n<!-- OPTYKER_CASH_RECEIPT_SEPARATION_V1_LOADER -->\n'
     text=text[:pos]+asset+text[pos:]
 
+# Refresh the script URL even when rebuilding an artifact with an older loader.
+text = re.sub(r'(/cash-receipt-separation\.js)(?:\?[^"\']*)?(?=["\'])',
+              r'\1?v=20260919-cash-open1', text)
+if 'OPTYKER_CASH_OPEN_LOOP_FIXED_20260919' not in Path('cash-receipt-separation.js').read_text():
+    raise SystemExit('Cash opening: idempotent receipt help script missing')
 for name in ('client-details.js','client-details.css','focus-client-parser.js','client-import-chunked.js','cash-receipt-separation.js'):
     copyfile(name,ROOT/name)
 for ident in ('optykerClientDetailsCss','optykerFocusClientParserJs','optykerClientDetailsJs','optykerClientImportChunkedJs','optykerCashReceiptSeparationJs'):
@@ -37,4 +43,4 @@ for ident in ('optykerClientDetailsCss','optykerFocusClientParserJs','optykerCli
 PAGE.write_text(text)
 for alias in ('gestionale-v2','gestionale-v3'):
     (ROOT/alias/'index.html').write_text(text)
-print('Client tools and separated physical RCH receipt route installed')
+print('Client tools and separated physical RCH receipt route installed: 20260919-cash-open1')
