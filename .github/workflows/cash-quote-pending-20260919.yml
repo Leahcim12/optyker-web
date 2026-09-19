@@ -1,14 +1,19 @@
 name: Verifica ricalcolo Cassa
 on:
   push:
-    branches: [fix/cash-quote-pending-20260919]
+    branches: [fix/cash-quote-pending-20260919, main]
+    paths:
+      - 'cash-ovc-pricing.js'
+      - 'scripts/apply_cash_cart_selection.py'
+      - 'tests/cash-quote-recovery.browser.cjs'
+      - '.github/workflows/cash-quote-pending-20260919.yml'
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
         with:
@@ -20,6 +25,9 @@ jobs:
         run: |
           bash scripts/vercel-build-v13.sh
           bash scripts/vercel-finalize-20260914.sh
+          node --check _site/cash-register.js
+          grep -q "OPTYKER_CASH_QUOTE_VERSION='20260919-quote1'" _site/cash-register.js
+          grep -q 'cash-register.js?v=20260916-selection3-quote1' _site/index.html
           mkdir -p /tmp/quote-check
           git archive --format=zip HEAD -o /tmp/quote-check/source.zip
           python -c "import shutil;shutil.make_archive('/tmp/quote-check/built','zip','_site')"
@@ -27,44 +35,32 @@ jobs:
         run: |
           npm install --no-save --package-lock=false playwright@1.58.2
           npx playwright install --with-deps chromium
-      - name: Read-only mocked quotation diagnosis
+      - name: Quotation, login and cashier without physical printer
         run: |
           python -m http.server 8766 --directory _site >/tmp/quote-server.log 2>&1 &
-          cat > quote-diagnosis.cjs <<'JS'
-          const {chromium}=require('playwright'),fs=require('fs');
-          const customer={id:'00000000-0000-4000-8000-000000000099',name:'Cliente',surname:'Dimostrativo',reference_no:'99999C'};
-          const item={variant_id:'client_cart:00000000-0000-4000-8000-000000000077',title:'Ordine LAC dimostrativo',variant_title:'TEST',price:2400,list_price:2400,quantity:1,selected:true,department:null,unit_price_override:null,locked_price:true,fiscal_vat_code:'',source_work_order_id:'00000000-0000-4000-8000-000000000077',source_type:'lac_busta'};
-          setTimeout(()=>{console.error('Browser stalled');process.exit(1)},60000).unref();
-          (async()=>{
-          const browser=await chromium.launch({headless:true});
-          for(const failed of [false,true]){
-          const context=await browser.newContext({serviceWorkers:'block',viewport:{width:1440,height:1000}}),page=await context.newPage();page.setDefaultTimeout(7000);
-          page.on('pageerror',e=>console.log('PAGE_ERROR',String(e)));const calls=[];
-          await context.route('**/*',async route=>{
-          const r=route.request(),u=new URL(r.url());
-          if(u.origin==='http://127.0.0.1:8766'&&r.method()==='GET'){
-            if(u.pathname==='/cash-register.js')return route.fulfill({contentType:'text/javascript',body:fs.readFileSync('_site/cash-register.js','utf8').replace(/\}\)\(\);\s*$/,'window.__quoteFixtureState=S;})();')});
-            return route.continue();
-          }
-          if(r.method()==='POST'){
-           const b=r.postDataJSON()||{},a=b.action;calls.push({endpoint:u.pathname,action:a});
-           if(u.pathname.endsWith('/optyker-staff-auth'))return route.fulfill({json:{ok:true,username:b.username,has_email:true,needs_password:false}});
-           if(a==='quote_lines')return route.fulfill({status:failed?400:200,json:failed?{ok:false,error:'TEST: tariffa non disponibile'}:{ok:true,data:{ovc_version:'20260910-ovc2',card:null,lines:(b.payload.lines||[]).map(l=>({...item,...l,is_client_cart_order:true}))}}});
-           if(a==='client_cart_get'||a==='client_cart_save')return route.fulfill({json:{ok:true,data:{client_id:customer.id,items:b.payload?.items||[item],updated_at:'2026-09-19T00:00:00Z'}}});
-           if(a==='clients')return route.fulfill({json:{ok:true,data:[customer]}});
-           if(a==='status')return route.fulfill({json:{ok:true,data:{opened:true,closed:false,suggested_opening_cash:0}}});
-           return route.fulfill({json:{ok:true,data:[],clients:[],sheets:[],consents:[]}});
-          }return route.abort();
-          });
-          await page.goto('http://127.0.0.1:8766/',{waitUntil:'domcontentloaded'});await page.waitForTimeout(900);
-          const opts=await page.locator('#optykerLoginOperator option').evaluateAll(a=>a.map(x=>x.value).filter(Boolean));await page.locator('#optykerLoginOperator').selectOption(opts.find(x=>/michael/i.test(x))||opts[0]);await page.locator('#optykerAuthPassword').fill('LOCAL_FIXTURE_ONLY');await page.locator('.optykerLoginButton').click();await page.waitForFunction(()=>window.optykerAuthenticated===true);await page.waitForTimeout(1400);
-          await page.evaluate(c=>{window.OPTYKER_CLOUD.clients=[c];window.openOptykerCash(c.id)},customer);await page.waitForTimeout(5000);
-          const result=await page.evaluate(()=>{const s=window.__quoteFixtureState;return {pending:s.ovcPricePending,error:s.ovcPriceError,seq:s.ovcPriceSeq,key:s.ovcPriceKey,quote:s.ovcQuoteKey,busy:s.busy,cartLoading:s.clientCartLoading,cartError:s.clientCartError,total:document.getElementById('optykerCashTotal').textContent,checkoutDisabled:document.getElementById('optykerCashCheckoutBtn').disabled}});
-          console.log('QUOTE_DIAG',JSON.stringify({failed,...result,calls}));fs.writeFileSync('/tmp/quote-check/'+(failed?'error':'success')+'.json',JSON.stringify({failed,...result,calls},null,2));await page.screenshot({path:'/tmp/quote-check/'+(failed?'error':'success')+'.png'});await context.close();
-          }await browser.close();
-          })().catch(e=>{console.error(e);process.exit(1)});
-          JS
-          node quote-diagnosis.cjs
+          node tests/cash-quote-recovery.browser.cjs
+          node tests/login-render-loop.browser.cjs
+          node tests/cash-opening.browser.cjs
+      - name: Verify exact published static assets only
+        if: github.ref == 'refs/heads/main'
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import urllib.request,time,hashlib
+          expected=Path('_site/cash-register.js').read_bytes()
+          for n in range(30):
+              try:
+                  for path in ('/','/gestionale-v2/','/gestionale-v3/'):
+                      html=urllib.request.urlopen('https://www.optyker.it'+path+'?quote-check='+str(int(time.time())),timeout=15).read().decode()
+                      assert 'cash-register.js?v=20260916-selection3-quote1' in html
+                  actual=urllib.request.urlopen('https://www.optyker.it/cash-register.js?quote-check='+str(int(time.time())),timeout=15).read()
+                  assert actual==expected
+                  print('LIVE QUOTATION RECOVERY VERIFIED',hashlib.sha256(actual).hexdigest())
+                  break
+              except Exception as e:
+                  if n==29: raise
+                  print('Awaiting publication',str(e));time.sleep(4)
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
