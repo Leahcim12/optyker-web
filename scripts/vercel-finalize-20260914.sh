@@ -91,4 +91,9 @@ python scripts/patch_login_interaction_20260919.py
 grep -q 'OPTYKER_LOGIN_INTERACTION_20260919' _site/index.html
 grep -q '20260919-login-click1' _site/index.html
 python scripts/check_desktop_html.py
+# Read-only customer lookup, with unchanged payment and pending-receipt guards.
+node --check cash-client-search.js
+python scripts/apply_cash_client_search.py
+node --check _site/cash-register.js
+python scripts/check_desktop_html.py
 echo 'Optyker final production patches OK'
