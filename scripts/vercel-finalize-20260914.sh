@@ -87,5 +87,8 @@ grep -q '20260918-sheetrefs3-visible' _site/index.html
 python scripts/patch_rch_daily_closure_compat_20260916.py
 node --check _site/rch-cloud-relay.js
 grep -Fq '2\.2-daily-closure' _site/rch-cloud-relay.js
+python scripts/patch_login_interaction_20260919.py
+grep -q 'OPTYKER_LOGIN_INTERACTION_20260919' _site/index.html
+grep -q '20260919-login-click1' _site/index.html
 python scripts/check_desktop_html.py
 echo 'Optyker final production patches OK'
