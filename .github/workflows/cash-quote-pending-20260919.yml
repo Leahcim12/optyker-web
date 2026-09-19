@@ -5,6 +5,7 @@ on:
     paths:
       - 'cash-ovc-pricing.js'
       - 'scripts/apply_cash_cart_selection.py'
+      - 'scripts/apply_eyewear_order_parameters.py'
       - 'tests/cash-quote-recovery.browser.cjs'
       - '.github/workflows/cash-quote-pending-20260919.yml'
   workflow_dispatch:
@@ -23,14 +24,14 @@ jobs:
           node-version: '22'
       - name: Build exact production
         run: |
-          bash scripts/vercel-build-v13.sh
-          bash scripts/vercel-finalize-20260914.sh
-          node --check _site/cash-register.js
-          grep -q "OPTYKER_CASH_QUOTE_VERSION='20260919-quote1'" _site/cash-register.js
-          grep -q 'cash-register.js?v=20260916-selection3-quote1' _site/index.html
           mkdir -p /tmp/quote-check
           git archive --format=zip HEAD -o /tmp/quote-check/source.zip
+          bash scripts/vercel-build-v13.sh
+          bash scripts/vercel-finalize-20260914.sh
           python -c "import shutil;shutil.make_archive('/tmp/quote-check/built','zip','_site')"
+          node --check _site/cash-register.js
+          grep -F "OPTYKER_CASH_QUOTE_VERSION='20260919-quote1'" _site/cash-register.js
+          grep -F 'cash-register.js?v=20260916-selection3-quote1' _site/index.html
       - name: Browser dependencies
         run: |
           npm install --no-save --package-lock=false playwright@1.58.2
