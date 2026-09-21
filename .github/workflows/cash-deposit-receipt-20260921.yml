@@ -1,0 +1,31 @@
+name: Verifica saldo acconti e scontrini
+on:
+  push:
+    branches: [fix/cash-deposit-receipt-20260921]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Exact production build without publishing
+        run: |
+          mkdir -p /tmp/deposit-check
+          git archive --format=zip HEAD -o /tmp/deposit-check/source.zip
+          bash scripts/vercel-build-v13.sh
+          bash scripts/vercel-finalize-20260914.sh
+          python -c "import shutil;shutil.make_archive('/tmp/deposit-check/built','zip','_site')"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cash-deposit-receipt-check
+          path: /tmp/deposit-check/
+          retention-days: 2
