@@ -38,6 +38,8 @@ def main():
         if js==cash:continue
         s=js.read_text(encoding='utf-8');n=re.sub(pattern,versioned,s)
         if s!=n:js.write_text(n,encoding='utf-8')
+    from apply_cash_recorded_balances import main as apply_balances
+    apply_balances()
     (site/'cash-client-search-version.json').write_text(json.dumps({'version':VERSION,'fiscal_preflight':'20260919-preflight1','commit':os.environ.get('VERCEL_GIT_COMMIT_SHA') or os.environ.get('GITHUB_SHA',''),'cash_sha256':hashlib.sha256(cash.read_bytes()).hexdigest()},indent=2)+'\n')
     print('Customer lookup and fiscal preflight installed:',VERSION,'(existing payment routes unchanged)')
 if __name__=='__main__':main()

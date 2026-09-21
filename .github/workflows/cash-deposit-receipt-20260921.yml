@@ -1,7 +1,14 @@
 name: Verifica saldo acconti e scontrini
 on:
   push:
-    branches: [fix/cash-deposit-receipt-20260921]
+    branches: [fix/cash-deposit-receipt-20260921, main]
+    paths:
+      - 'cash-recorded-balances.js'
+      - 'supabase/functions/optyker-cash-balance-api/**'
+      - 'scripts/apply_cash_recorded_balances.py'
+      - 'scripts/apply_cash_client_search.py'
+      - 'tests/cash-recorded-balances*'
+      - '.github/workflows/cash-deposit-receipt-20260921.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -16,13 +23,45 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Exact production build without publishing
+      - name: Exact production build without financial operations
         run: |
           mkdir -p /tmp/deposit-check
           git archive --format=zip HEAD -o /tmp/deposit-check/source.zip
           bash scripts/vercel-build-v13.sh
           bash scripts/vercel-finalize-20260914.sh
+          node --check _site/cash-register.js
+          node --test tests/cash-recorded-balances.test.mjs
+          grep -Fq 'balances=20260921-balance1' _site/index.html
           python -c "import shutil;shutil.make_archive('/tmp/deposit-check/built','zip','_site')"
+      - name: Browser dependencies
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Synthetic balances and receipt blockers
+        run: |
+          python -m http.server 8766 --directory _site >/tmp/deposit-server.log 2>&1 &
+          node tests/cash-recorded-balances.browser.cjs
+          node tests/login-render-loop.browser.cjs
+      - name: Verify public release without credentials or printer commands
+        if: github.ref == 'refs/heads/main'
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import urllib.request,time,hashlib
+          expected=Path('_site/cash-register.js').read_bytes()
+          for n in range(30):
+              try:
+                  for path in ('/','/gestionale-v2/','/gestionale-v3/'):
+                      html=urllib.request.urlopen('https://www.optyker.it'+path+'?balance-check='+str(int(time.time())),timeout=15).read().decode()
+                      assert 'balances=20260921-balance1' in html
+                  actual=urllib.request.urlopen('https://www.optyker.it/cash-register.js?balance-check='+str(int(time.time())),timeout=15).read()
+                  assert actual==expected
+                  print('LIVE DEPOSIT BALANCE VERIFIED',hashlib.sha256(actual).hexdigest())
+                  break
+              except Exception as e:
+                  if n==29:raise
+                  print('Awaiting publication',str(e));time.sleep(4)
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
