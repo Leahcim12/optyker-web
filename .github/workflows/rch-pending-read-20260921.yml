@@ -1,20 +1,20 @@
 name: Verifica diagnostica scontrino sospeso
 on:
   push:
-    branches: [diagnostic/rch-pending-read-20260921]
+    branches: ['diagnostic/rch-pending-read-20260921']
 permissions:
   contents: read
 jobs:
-  offline:
+  check:
     runs-on: windows-latest
     timeout-minutes: 5
-    strategy:
-      matrix:
-        shell: [powershell, pwsh]
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Parse and run synthetic read-only diagnostic
-        shell: ${{ matrix.shell }}
+      - name: Windows PowerShell 5 compatibility and read-only safety
+        shell: powershell
+        run: ./tests/rch-pending-read.ps1
+      - name: PowerShell 7 compatibility
+        shell: pwsh
         run: ./tests/rch-pending-read.ps1
