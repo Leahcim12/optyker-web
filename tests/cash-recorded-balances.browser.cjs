@@ -5,7 +5,7 @@ const A={id:'00000000-0000-4000-8000-000000000099',name:'Cliente',surname:'Dimos
 const I={variant_id:'client_cart:00000000-0000-4000-8000-000000000077',title:'Occhiale dimostrativo',price:450,list_price:450,quantity:1,selected:true,department:1,locked_price:true,fiscal_vat_code:'04',fiscal_item_type:'goods'};
 const sid='00000000-0000-4000-8000-000000000011',pid='00000000-0000-4000-8000-000000000022';
 setTimeout(()=>process.exit(1),150000).unref();
-(async()=>{const browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_EXECUTABLE?{executablePath:process.env.CHROMIUM_EXECUTABLE,args:['--no-sandbox']}: {})}),results=[];
+(async()=>{const browser=await chromium.launch({headless:true}),results=[];
 for(const mode of ['deposit','new-deposit','fully-paid','uncertain-receipt','mixed','timeout','mobile','search']){
  const context=await browser.newContext({serviceWorkers:'block',viewport:mode==='mobile'?{width:390,height:844}:{width:1440,height:1000}}),page=await context.newPage();page.setDefaultTimeout(8000);page.on('dialog',d=>d.accept());
  let paid=mode==='new-deposit'?0:mode==='fully-paid'?450:200,hasSale=mode!=='new-deposit';const calls=[],errors=[],paycalls=[];
@@ -16,7 +16,7 @@ for(const mode of ['deposit','new-deposit','fully-paid','uncertain-receipt','mix
  await context.route('**/*',async route=>{const r=route.request(),u=new URL(r.url());if(u.origin===origin&&['GET','HEAD'].includes(r.method()))return route.continue();
  if(r.method()!=='POST')return route.abort();let b={};try{b=r.postDataJSON()||{}}catch(_){}const a=b.action,p=b.payload||{};calls.push(a||u.pathname);
  if(u.pathname.endsWith('/optyker-staff-auth'))return route.fulfill({json:{ok:true,username:b.username,has_email:true,needs_password:false}});
- if(a==='snapshot'){if(mode==='timeout')return;return route.fulfill({json:{ok:true,data:snapshot(p.client_id)}})}
+ if(a==='balance_snapshot'){assert.ok(u.pathname.endsWith('/optyker-cash-register-api-v2'));if(mode==='timeout')return;return route.fulfill({json:{ok:true,data:snapshot(p.client_id)}})}
  if(a==='quote_lines')return route.fulfill({json:{ok:true,data:{ovc_version:'20260910-ovc2',card:null,lines:(p.lines||[]).map(l=>({...cart.find(x=>x.variant_id===l.variant_id),...l}))}}});
  if(a==='clients')return route.fulfill({json:{ok:true,data:p.search?[B]:[A,B]}});
  if(a==='client_cart_get'||a==='client_cart_save')return route.fulfill({json:{ok:true,data:{client_id:p.client_id,items:p.items||cart,updated_at:'stamp'}}});

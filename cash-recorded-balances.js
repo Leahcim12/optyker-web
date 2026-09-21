@@ -7,7 +7,7 @@ function balanceLine(id){var d=balanceData(),found=null;(d&&d.groups||[]).some(f
 function balanceFetch(id){
  var c=creds(),ctl=new AbortController();if(recordedBalance.controller)recordedBalance.controller.abort();recordedBalance.controller=ctl;
  var timer,limit=new Promise(function(_,reject){timer=setTimeout(function(){ctl.abort();reject(new Error('Verifica acconti non completata entro 12 secondi.'));},12000)});
- var task=fetch('https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-cash-balance-api',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',signal:ctl.signal,body:JSON.stringify({action:'snapshot',username:c.username,password:c.password,payload:{client_id:id}})}).then(function(r){return r.json().then(function(x){if(!r.ok||!x||x.ok!==true)throw new Error(x&&x.error||'Verifica acconti non disponibile');return x.data})});
+ var task=fetch('https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-cash-register-api-v2',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',signal:ctl.signal,body:JSON.stringify({action:'balance_snapshot',username:c.username,password:c.password,payload:{client_id:id}})}).then(function(r){return r.json().then(function(x){if(!r.ok||!x||x.ok!==true)throw new Error(x&&x.error||'Verifica acconti non disponibile');return x.data})});
  return Promise.race([task,limit]).finally(function(){clearTimeout(timer);if(recordedBalance.controller===ctl)recordedBalance.controller=null});
 }
 function balanceLoad(){
@@ -21,7 +21,6 @@ function balanceLoad(){
  }).catch(function(e){if(seq===recordedBalance.seq&&key===balanceKey()&&S.cashOpen){recordedBalance.loading=false;recordedBalance.error=String(e.message||e);renderCart()}return null});
 }
 function balanceQueue(){var key=balanceKey();if(S.cashOpen&&key!==recordedBalance.requested){recordedBalance.requested=key;recordedBalance.loading=true;clearTimeout(recordedBalance.timer);recordedBalance.timer=setTimeout(balanceLoad,100)}}
-var balanceGrossTotal=cartTotal;
 cartTotal=function(){return Math.round(payableCartRows().reduce(function(n,r){var a=balanceLine(r.item.variant_id);return n+(a?a.line.due_cents/100:Number(r.unitPrice==null?r.item.price:r.unitPrice)*r.qty)},0)*100)/100};
 function balanceBlock(){var d=balanceData();return d&&d.blockers&&d.blockers[0]}
 function balanceChosen(){var linked=[],fresh=[];payableCartRows().forEach(function(r){var a=balanceLine(r.item.variant_id);if(a)linked.push(a);else fresh.push(r)});return {linked:linked,fresh:fresh}}
@@ -83,5 +82,9 @@ checkout=async function(){
 };
 var balanceNativeSettle=settleExisting;
 settleExisting=function(){var args=arguments;if(S.busy||recordedBalance.checking)return;recordedBalance.checking=true;balancePaint();return balanceLoad().then(function(d){recordedBalance.checking=false;if(!d)return;if(d.blockers.length&&!S.invoice){toast('Verifica prima lo scontrino con esito incerto. Nessun saldo registrato.','error');balancePaint();return}return balanceNativeSettle.apply(null,args)})};
+var balanceNativeOpen=openCash;
+openCash=function(){recordedBalance.requested='';recordedBalance.key='';recordedBalance.data=null;recordedBalance.error='';var r=balanceNativeOpen.apply(this,arguments);balanceQueue();return r};
+var balanceNativeClose=closeCash;
+closeCash=function(){var r=balanceNativeClose.apply(this,arguments);if(!S.cashOpen){++recordedBalance.seq;clearTimeout(recordedBalance.timer);if(recordedBalance.controller)recordedBalance.controller.abort();recordedBalance.key='';recordedBalance.requested='';recordedBalance.data=null;recordedBalance.loading=false;recordedBalance.checking=false}return r};
 window.addEventListener('focus',function(){if(S.cashOpen&&!S.busy&&!recordedBalance.loading)balanceLoad()});
 (function(){var s=document.createElement('style');s.id='optykerRecordedBalanceCss';s.textContent='#optykerCashRecordedBalance{font-size:13px;line-height:1.5;margin-top:12px}#optykerCashRecordedBalance button{padding:8px 11px;border:1px solid #c9d3df;border-radius:7px;background:white;color:#183652;cursor:pointer}#optykerCashRecordedBalance button:disabled{opacity:.55}.recordedBalanceGroup{display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:12px;margin:7px 0;background:#f2f6fb;border:1px solid #d9e2ed;border-radius:9px}.recordedBalanceGroup strong{font-size:18px}.balanceFiscalAlert{padding:12px;border:1px solid #db9893;background:#fff3f1;border-radius:9px;color:#86291f}.recordedLineBalance{display:grid;gap:5px;min-width:130px;text-align:right}.recordedLineBalance span{font-size:12px;color:#536170}.recordedLineBalance strong{font-size:25px;color:#183652}.recordedLineBalance small{font-size:12px}#optykerFiscalModal.open{z-index:2147483601!important;pointer-events:auto!important}';document.head.appendChild(s)})();

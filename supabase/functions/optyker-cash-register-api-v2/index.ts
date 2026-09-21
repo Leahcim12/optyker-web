@@ -1,3 +1,4 @@
+import {readRecordedBalances} from '../optyker-cash-balance-api/snapshot.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {auth,cleanLottery,db,CORS,missingStock,norm,out,productsV2,proxy,RELEASE} from './base.ts';
 import {checkoutStatusV2,createOrderRequest,customCheckout,deliveries,markDelivery,postZeroSale} from './actions.ts';
@@ -12,6 +13,7 @@ Deno.serve(async req=>{
  if(req.method!=="POST")return out({ok:false,error:"METHOD_NOT_ALLOWED"},405);
  try{
   const body=await req.json().catch(()=>({})),action=norm(body.action),p=body.payload||{};
+  if(action==='balance_snapshot'){await auth(body);return out({ok:true,data:await readRecordedBalances(p.client_id)})}
   if(action==="products")return out({ok:true,...await productsV2(body)});
   if(action==="quote_lines"){
    await auth(body);

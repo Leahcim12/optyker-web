@@ -5,9 +5,11 @@ on:
     paths:
       - 'cash-recorded-balances.js'
       - 'supabase/functions/optyker-cash-balance-api/**'
+      - 'supabase/functions/optyker-cash-register-api-v2/index.ts'
       - 'scripts/apply_cash_recorded_balances.py'
       - 'scripts/apply_cash_client_search.py'
       - 'tests/cash-recorded-balances*'
+      - 'tests/cash-balance-handler*'
       - '.github/workflows/cash-deposit-receipt-20260921.yml'
   workflow_dispatch:
 permissions:
@@ -30,7 +32,7 @@ jobs:
           bash scripts/vercel-build-v13.sh
           bash scripts/vercel-finalize-20260914.sh
           node --check _site/cash-register.js
-          node --test tests/cash-recorded-balances.test.mjs
+          node --test tests/cash-recorded-balances.test.mjs tests/cash-balance-handler-integrity.test.mjs
           grep -Fq 'balances=20260921-balance1' _site/index.html
           python -c "import shutil;shutil.make_archive('/tmp/deposit-check/built','zip','_site')"
       - name: Browser dependencies
@@ -47,7 +49,7 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          import urllib.request,time,hashlib
+          import urllib.request,urllib.error,json,time,hashlib
           expected=Path('_site/cash-register.js').read_bytes()
           for n in range(30):
               try:
@@ -61,6 +63,14 @@ jobs:
               except Exception as e:
                   if n==29:raise
                   print('Awaiting publication',str(e));time.sleep(4)
+          request=urllib.request.Request('https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-cash-register-api-v2',data=json.dumps({'action':'balance_snapshot','payload':{'client_id':''}}).encode(),headers={'Content-Type':'application/json','Origin':'https://www.optyker.it'})
+          try:
+              urllib.request.urlopen(request,timeout=15)
+              raise AssertionError('Unauthenticated balance request must be denied')
+          except urllib.error.HTTPError as e:
+              assert e.code==401
+              assert json.loads(e.read())['error']=='AUTH_REQUIRED'
+              print('LIVE BALANCE AUTHENTICATION VERIFIED: anonymous read denied')
           PY
       - uses: actions/upload-artifact@v4
         if: always()
