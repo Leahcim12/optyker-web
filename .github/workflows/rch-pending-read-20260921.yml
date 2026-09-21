@@ -1,45 +1,29 @@
 name: Verifica diagnostica scontrino sospeso
 on:
   push:
-    branches: ['diagnostic/rch-pending-read-20260921']
+    branches: [diagnostic/rch-pending-read-20260921]
 permissions:
   contents: read
 jobs:
-  check:
+  offline:
     runs-on: windows-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Assemble exact standalone diagnostic without post-submit HTTP mutation
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import hashlib
-          p=Path('rch-connector/Verifica-Scontrino-Sospeso.ps1')
-          s=p.read_text()
-          old="function Read-LimitedHttp($request){\n  $request.Proxy=$null;$request.AllowAutoRedirect=$false;$request.KeepAlive=$false\n  $request.Timeout=10000;$request.ReadWriteTimeout=10000;$request.ServicePoint.Expect100Continue=$false\n"
-          assert s.count(old)==1
-          s=s.replace(old,"function Read-LimitedHttp($request){\n")
-          old="  $req=[Net.HttpWebRequest]::Create('http://127.0.0.1:8765/health');$req.Method='GET'\n"
-          new=old+"  $req.Proxy=$null;$req.AllowAutoRedirect=$false;$req.KeepAlive=$false\n  $req.Timeout=10000;$req.ReadWriteTimeout=10000;$req.ServicePoint.Expect100Continue=$false\n"
-          assert s.count(old)==1
-          s=s.replace(old,new)
-          p.write_bytes(s.encode('utf-8'))
-          h=hashlib.sha256(p.read_bytes()).hexdigest()
-          assert h=='3f46ca9b75a06f0e39b9d74c94a11f85ba5c2cde1a41d3189a0cca19c616f510'
-          print('EXACT STANDALONE DIAGNOSTIC SHA256',h)
-          PY
-      - name: Windows PowerShell 5 compatibility and read-only safety
+      - name: Build bounded daily read diagnostic
+        run: python scripts/build_rch_pending_v2.py
+      - name: Windows PowerShell 5 read-only fixtures
         shell: powershell
-        run: ./tests/rch-pending-read.ps1
-      - name: PowerShell 7 compatibility
+        run: |
+          ./tests/rch-pending-read.ps1
+          ./tests/rch-pending-v2.ps1
+      - name: PowerShell 7 read-only fixtures
         shell: pwsh
-        run: ./tests/rch-pending-read.ps1
+        run: ./tests/rch-pending-v2.ps1
       - uses: actions/upload-artifact@v4
         with:
-          name: verified-read-only-diagnostic
-          path: rch-connector/Verifica-Scontrino-Sospeso.ps1
-          retention-days: 2
+          name: rch-diagnostic-day-v2
+          path: rch-pending-v2-check/
+          retention-days: 3
