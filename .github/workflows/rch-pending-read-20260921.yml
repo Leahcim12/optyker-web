@@ -12,18 +12,19 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Build bounded daily read diagnostic
-        run: python scripts/build_rch_pending_v2.py
-      - name: Windows PowerShell 5 read-only fixtures
-        shell: powershell
+      - name: Build diagnostic HTTP fix with unchanged fiscal allowlist
         run: |
-          ./tests/rch-pending-read.ps1
-          ./tests/rch-pending-v2.ps1
-      - name: PowerShell 7 read-only fixtures
+          python scripts/build_rch_pending_v2.py
+          python scripts/build_rch_pending_v3.py
+      - name: Windows PowerShell 5 real loopback HTTP regression
+        shell: powershell
+        run: ./tests/rch-pending-http-v3.ps1
+      - name: PowerShell 7 real loopback HTTP regression
         shell: pwsh
-        run: ./tests/rch-pending-v2.ps1
+        run: ./tests/rch-pending-http-v3.ps1
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: rch-diagnostic-day-v2
-          path: rch-pending-v2-check/
+          name: rch-diagnostic-http-v3
+          path: rch-pending-v3-check/
           retention-days: 3
