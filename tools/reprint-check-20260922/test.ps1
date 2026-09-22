@@ -14,15 +14,15 @@ $scriptfile=Join-Path $temp 'connector.ps1';[IO.File]::WriteAllText($scriptfile,
 $JournalRoot=Join-Path $temp 'receipts';[void](New-Item -ItemType Directory -Path $JournalRoot)
 $script:job=[pscustomobject]@{id='12345678-1234-4234-8234-123456789abc';state='completed';operation='sale';total=100;serial='72IV6003831';document_number='1168-0009';document_date='2026-09-19'}
 function Get-ReprintJob($r){return $script:job}
-$ack='<Request><errorCode>0</errorCode><printerError>0</printerError><paperEnd>0</paperEnd><coverOpen>0</coverOpen><lastCmd>1</lastCmd><busy>0</busy></Request>'
+$script:replyXml='<Request><errorCode>0</errorCode><printerError>0</printerError><paperEnd>0</paperEnd><coverOpen>0</coverOpen><lastCmd>1</lastCmd><busy>0</busy></Request>'
 function Send-RchCommand([string]$cmd){
  $script:commands.Add($cmd)
  if($cmd -ceq '=C3'){$script:mode='Z'}
  if($cmd -ceq '=C1'){$script:mode='REG'}
- if($cmd -ceq '<</?m'){return '<Service>'+$ack+'<Enq><name>m</name><value>72IV6003831</value></Enq></Service>'}
- if($cmd -like '=C452/$0*'){if($script:readFail){throw 'Synthetic read failure'};return '<Service>'+$ack+'<EJ>'+[Security.SecurityElement]::Escape($script:text)+'</EJ></Service>'}
+ if($cmd -ceq '<</?m'){return '<Service>'+$script:replyXml+'<Enq><name>m</name><value>72IV6003831</value></Enq></Service>'}
+ if($cmd -like '=C452/$0*'){if($script:readFail){throw 'Synthetic read failure'};return '<Service>'+$script:replyXml+'<EJ>'+[Security.SecurityElement]::Escape($script:text)+'</EJ></Service>'}
  if($cmd -like '=C452/$1*' -and $script:printFail){throw 'Synthetic print timeout'}
- return '<Service>'+$ack+'<ECRStatus><mode>'+$script:mode+'</mode><idleState>0</idleState></ECRStatus></Service>'
+ return '<Service>'+$script:replyXml+'<ECRStatus><mode>'+$script:mode+'</mode><idleState>0</idleState></ECRStatus></Service>'
 }
 $good="DOCUMENTO COMMERCIALE`nTOTALE COMPLESSIVO 100,00`n19-09-2026 22:32`nDOCUMENTO N. 1168-0009`n*** 72IV6003831 ***"
 $cases=@('normal','CRLF','CR-only','spaces','number-label','report-dates','wrong-number','wrong-date','wrong-total','wrong-serial','duplicate-number','ambiguous-date','missing-total','return','read-failure','print-failure','uncertain')
