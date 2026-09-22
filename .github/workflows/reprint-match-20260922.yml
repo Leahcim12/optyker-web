@@ -1,0 +1,31 @@
+name: Verifica corrispondenza ristampa RCH
+on:
+  push:
+    branches: [fix/reprint-match-20260922]
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build self-contained updater
+        run: python tools/reprint-check-20260922/build.py
+      - name: Windows PowerShell 5 selection and installation tests
+        shell: powershell
+        run: |
+          ./tools/reprint-check-20260922/test.ps1
+          ./tools/reprint-check-20260922/test-install.ps1
+      - name: PowerShell 7 selection and installation tests
+        shell: pwsh
+        run: |
+          ./tools/reprint-check-20260922/test.ps1
+          ./tools/reprint-check-20260922/test-install.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reprint-match-verified
+          path: reprint-match-output/
+          retention-days: 3
