@@ -1,0 +1,42 @@
+\set ON_ERROR_STOP on
+begin;
+do $$
+declare d date:=(now() at time zone 'Europe/Rome')::date;m jsonb;r jsonb;p jsonb;op uuid;op2 uuid;saved jsonb;cmd uuid;old_snapshot jsonb;stale text;
+begin
+ insert into fixture_day_flows values(d,100,40,60,2);
+ m:=optyker_cash_session_state(d);op:=gen_random_uuid();p:='{"opening_cash":70,"opening_checks":0,"notes":"fixture"}';
+ r:=optyker_cash_session_change(op,d,'open','TEST',m#>>'{session,token}',p);assert r->>'state'='completed';assert (r#>>'{data,opened}')::boolean;
+ r:=optyker_cash_session_change(op,d,'open','TEST','old',p);assert r->>'state'='completed','open retries idempotent';
+ m:=optyker_cash_session_state(d);assert (m#>>'{session,cash_expected}')::numeric=110;
+ p:='{"cash_counted":110,"checks_counted":0,"bank_deposit_cash":0,"bank_deposit_checks":0,"safe_deposit_cash":40,"safe_deposit_checks":0,"notes":"first","fiscal":false}';op:=gen_random_uuid();
+ r:=optyker_cash_session_change(op,d,'close','TEST',m#>>'{session,token}',p);assert r->>'state'='completed';select snapshot into saved from optyker_cash_session_operations where id=op;
+ m:=optyker_cash_session_state(d);assert (m->>'closed')::boolean;assert (m#>>'{session,closures_count}')::int=1;assert (m#>>'{session,totals,total_collected}')::numeric=0;assert (m#>>'{session,cash_expected}')::numeric=70;
+ p:=jsonb_set(jsonb_set(p,'{cash_counted}','70'),'{safe_deposit_cash}','0');op2:=gen_random_uuid();stale:=m#>>'{session,token}';
+ r:=optyker_cash_session_change(op2,d,'close','TEST',stale,p);assert r->>'state'='completed';
+ assert (select total_collected from optyker_cash_closures where business_date=d)=100,'daily totals must not double';assert (select snapshot from optyker_cash_session_operations where id=op)=saved,'previous closure must be unchanged';
+ r:=optyker_cash_session_change(op2,d,'close','TEST',stale,p);assert r->>'state'='completed';assert (select count(*) from optyker_cash_session_operations where kind='close')=2,'duplicate click created duplicate closure';
+ begin perform optyker_cash_session_change(gen_random_uuid(),d,'close','TEST',stale,p);raise exception 'STALE_NOT_BLOCKED';exception when others then assert sqlerrm<>'STALE_NOT_BLOCKED';end;
+ m:=optyker_cash_session_state(d);assert (m#>>'{session,closures_count}')::int=2;
+ r:=optyker_cash_session_change(gen_random_uuid(),d,'open','TEST',m#>>'{session,token}','{"opening_cash":70,"opening_checks":0,"notes":"reopen"}');assert (r#>>'{data,closed}')::boolean=false;
+ update fixture_day_flows set total=120,cash=60,n=3 where day=d;m:=optyker_cash_session_state(d);assert (m#>>'{session,totals,total_collected}')::numeric=20;assert (m#>>'{session,cash_expected}')::numeric=90,'previous cash counted twice';
+ p:=jsonb_set(jsonb_set(p,'{cash_counted}','90'),'{safe_deposit_cash}','40');r:=optyker_cash_session_change(gen_random_uuid(),d,'close','TEST',m#>>'{session,token}',p);assert r->>'state'='completed';
+ assert (select total_collected from optyker_cash_closures where business_date=d)=120;assert (select next_opening_cash from optyker_cash_closures where business_date=d)=50;assert (select safe_deposit_cash from optyker_cash_closures where business_date=d)=80;
+ assert (optyker_cash_session_state(d+1)->>'suggested_opening_cash')::numeric=50;assert (optyker_cash_session_month(extract(year from d)::int,extract(month from d)::int)->>'paid_total')::numeric=120;
+ assert (select count(*) from optyker_rch_remote_commands)=0,'management close must never contact printer';
+ raise notice 'PASS same-day reopen, immediate second close, exact deltas, history, funds, stale state and retries';
+ insert into fixture_day_flows values(d-1,30,30,0,1);insert into optyker_cash_openings(business_date,opening_cash,updated_at) values(d-1,10,clock_timestamp()-interval '2 minutes');old_snapshot:=optyker_cash_day_metrics(d-1)-'closure'-'opening';
+ insert into optyker_cash_closures(business_date,opening_cash,next_opening_cash,total_collected,snapshot) values(d-1,10,10,30,old_snapshot);m:=optyker_cash_session_state(d-1);p:=jsonb_set(jsonb_set(p,'{cash_counted}','10'),'{safe_deposit_cash}','0');
+ r:=optyker_cash_session_change(gen_random_uuid(),d-1,'close','TEST',m#>>'{session,token}',p);assert r->>'state'='completed';assert (select snapshot#>'{closure,snapshot}' from optyker_cash_session_operations where business_date=d-1 and kind='legacy_close')=old_snapshot;
+ insert into optyker_rch_connectors(active,serial,last_seen_at,last_status,connector_version) values(true,'72IV6003831',clock_timestamp(),'{"ok":true,"mode":"Z","idleState":"0","busy":0,"paperEnd":0,"coverOpen":0,"errorCode":0,"printerError":0}','2.2-daily-closure');
+ m:=optyker_cash_session_state(d);p:=jsonb_set(jsonb_set(p,'{cash_counted}','50'),'{fiscal}','true');op:=gen_random_uuid();r:=optyker_cash_session_change(op,d,'close','ADMIN TEST',m#>>'{session,token}',p);assert r->>'state'='pending';select command_id into cmd from optyker_cash_session_operations where id=op;assert (select kind from optyker_rch_remote_commands where id=cmd)='restore_reg';
+ r:=optyker_cash_session_change(op,d,'close','ADMIN TEST',m#>>'{session,token}',p);assert (select count(*) from optyker_rch_remote_commands)=1;
+ update optyker_rch_remote_commands set state='completed',result='{"ok":true,"state":"completed","mode":"REG"}' where id=cmd;r:=optyker_cash_session_finish(op);assert r->>'state'='pending';assert (select count(*) from optyker_rch_remote_commands)=2;
+ r:=optyker_cash_session_finish(op);assert (select count(*) from optyker_rch_remote_commands)=2,'poll must not duplicate Z';select command_id into cmd from optyker_cash_session_operations where id=op;update optyker_rch_remote_commands set state='completed',result='{"ok":true,"state":"completed","dailyClosureExecuted":true}' where id=cmd;
+ r:=optyker_cash_session_finish(op);assert r->>'state'='completed';assert (select total_collected from optyker_cash_closures where business_date=d)=120;r:=optyker_cash_session_finish(op);assert r->>'state'='completed';assert (select count(*) from optyker_rch_remote_commands)=2;
+ update optyker_rch_connectors set last_status=jsonb_set(last_status,'{mode}','"REG"'),last_seen_at=clock_timestamp();m:=optyker_cash_session_state(d);op:=gen_random_uuid();r:=optyker_cash_session_change(op,d,'close','ADMIN TEST',m#>>'{session,token}',p);assert r->>'state'='pending';assert (select count(*) from optyker_rch_remote_commands)=3;
+ select command_id into cmd from optyker_cash_session_operations where id=op;update optyker_rch_remote_commands set state='completed',result='{"ok":false,"state":"uncertain"}' where id=cmd;r:=optyker_cash_session_finish(op);assert r->>'state'='attention';
+ begin m:=optyker_cash_session_state(d);perform optyker_cash_session_change(gen_random_uuid(),d,'close','ADMIN TEST',m#>>'{session,token}',p);raise exception 'UNCERTAIN_NOT_BLOCKED';exception when others then assert sqlerrm<>'UNCERTAIN_NOT_BLOCKED';end;
+ assert not has_function_privilege('anon','public.optyker_cash_session_change(uuid,date,text,text,text,jsonb)','EXECUTE');assert not has_table_privilege('authenticated','public.optyker_cash_session_operations','SELECT');assert (select relrowsecurity from pg_class where oid='public.optyker_cash_session_operations'::regclass);
+ raise notice 'PASS legacy preservation, new fiscal confirmation, Z restoration sequence, replay prevention, uncertain guard and privileges';
+end;$$;
+rollback;

@@ -1,6 +1,6 @@
+import {sessionAction} from '../optyker-cash-sessions/actions.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-
 const U=Deno.env.get("SUPABASE_URL")||"";
 const S=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
 const db=createClient(U,S,{auth:{autoRefreshToken:false,persistSession:false}});
@@ -31,23 +31,24 @@ async function requireExistingCashClosure(date:string){const {data,error}=await 
 function closePayload(b:any){const x={business_date:day(b.business_date),cash_counted:money(b.cash_counted),checks_counted:money(b.checks_counted),bank_deposit_cash:money(b.bank_deposit_cash),bank_deposit_checks:money(b.bank_deposit_checks),safe_deposit_cash:money(b.safe_deposit_cash),safe_deposit_checks:money(b.safe_deposit_checks),notes:String(b.notes||"").slice(0,2000)};if(x.bank_deposit_cash+x.safe_deposit_cash>x.cash_counted+0.005)throw new Error("I prelievi di contanti superano il contante contato");if(x.bank_deposit_checks+x.safe_deposit_checks>x.checks_counted+0.005)throw new Error("I prelievi di assegni superano gli assegni contati");return x}
 async function preflightClose(x:any){const m=await rpc("optyker_cash_day_metrics",{p_business_date:x.business_date});if(m?.closed)throw new Error("La cassa di questa giornata è già stata chiusa");if(!m?.opened)throw new Error("Prima di chiudere devi registrare l'apertura giornaliera");return m}
 Deno.serve(async(req:Request)=>{
-  if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors(req)});
-  if(req.method!=="POST")return out(req,{ok:false,error:"METHOD_NOT_ALLOWED"},405);
-  try{
-    const session=await verifyToken(req);if(!session)return out(req,{ok:false,error:"Sessione amministrativa non valida o scaduta"},401);
-    const b=await req.json().catch(()=>({}));const action=String(b.action||"");
-    if(action==="overview"){const now=new Date(),year=Math.trunc(Number(b.year||now.getUTCFullYear())),month=Math.trunc(Number(b.month||now.getUTCMonth()+1));if(year<2020||year>2100||month<1||month>12)throw new Error("Mese non valido");return out(req,{ok:true,data:await rpc("optyker_cash_month_overview",{p_year:year,p_month:month})})}
-    if(action==="day")return out(req,{ok:true,data:await rpc("optyker_cash_day_metrics",{p_business_date:day(b.business_date)})});
-    if(action==="open_day")return out(req,{ok:true,data:await rpc("optyker_cash_admin_open_day",{p_business_date:day(b.business_date),p_operator:"Ottica Visual Care",p_opening_cash:money(b.opening_cash),p_opening_checks:money(b.opening_checks),p_notes:String(b.notes||"").slice(0,2000)})});
-    if(action==="complete_rch_closure"){
-      const date=day(b.business_date);await requireExistingCashClosure(date);const rch=await ensureRchDailyClosure(date);
-      return out(req,{ok:true,data:{business_date:date,rch_closure:{confirmed:true,command_id:rch.row?.id||null,reused:!!rch.reused}}});
-    }
-    if(action==="close_day"){
-      const x=closePayload(b);await preflightClose(x);const rch=await ensureRchDailyClosure(x.business_date);
-      const data=await rpc("optyker_cash_admin_close_day",{p_business_date:x.business_date,p_operator:"Ottica Visual Care",p_cash_counted:x.cash_counted,p_checks_counted:x.checks_counted,p_bank_deposit_cash:x.bank_deposit_cash,p_bank_deposit_checks:x.bank_deposit_checks,p_safe_deposit_cash:x.safe_deposit_cash,p_safe_deposit_checks:x.safe_deposit_checks,p_notes:x.notes});
-      return out(req,{ok:true,data:{...data,rch_closure:{confirmed:true,command_id:rch.row?.id||null,reused:!!rch.reused}}});
-    }
-    return out(req,{ok:false,error:"Azione non riconosciuta"},400)
-  }catch(e){return out(req,{ok:false,error:e instanceof Error?e.message:String(e)},400)}
+ if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors(req)});
+ if(req.method!=="POST")return out(req,{ok:false,error:"METHOD_NOT_ALLOWED"},405);
+ try{
+  const session=await verifyToken(req);if(!session)return out(req,{ok:false,error:"Sessione amministrativa non valida o scaduta"},401);
+  const b=await req.json().catch(()=>({}));const action=String(b.action||"");
+  if(action.startsWith('session_'))return out(req,{ok:true,data:await sessionAction(db,action,b,'Ottica Visual Care',true)});
+  if(action==="overview"){const now=new Date(),year=Math.trunc(Number(b.year||now.getUTCFullYear())),month=Math.trunc(Number(b.month||now.getUTCMonth()+1));if(year<2020||year>2100||month<1||month>12)throw new Error("Mese non valido");return out(req,{ok:true,data:await rpc("optyker_cash_session_month",{p_year:year,p_month:month})})}
+  if(action==="day")return out(req,{ok:true,data:await rpc("optyker_cash_session_state",{p_business_date:day(b.business_date)})});
+  if(action==="open_day")return out(req,{ok:true,data:await rpc("optyker_cash_admin_open_day",{p_business_date:day(b.business_date),p_operator:"Ottica Visual Care",p_opening_cash:money(b.opening_cash),p_opening_checks:money(b.opening_checks),p_notes:String(b.notes||"").slice(0,2000)})});
+  if(action==="complete_rch_closure"){
+   const date=day(b.business_date);await requireExistingCashClosure(date);const rch=await ensureRchDailyClosure(date);
+   return out(req,{ok:true,data:{business_date:date,rch_closure:{confirmed:true,command_id:rch.row?.id||null,reused:!!rch.reused}}});
+  }
+  if(action==="close_day"){
+   const x=closePayload(b);await preflightClose(x);const rch=await ensureRchDailyClosure(x.business_date);
+   const data=await rpc("optyker_cash_admin_close_day",{p_business_date:x.business_date,p_operator:"Ottica Visual Care",p_cash_counted:x.cash_counted,p_checks_counted:x.checks_counted,p_bank_deposit_cash:x.bank_deposit_cash,p_bank_deposit_checks:x.bank_deposit_checks,p_safe_deposit_cash:x.safe_deposit_cash,p_safe_deposit_checks:x.safe_deposit_checks,p_notes:x.notes});
+   return out(req,{ok:true,data:{...data,rch_closure:{confirmed:true,command_id:rch.row?.id||null,reused:!!rch.reused}}});
+  }
+  return out(req,{ok:false,error:"Azione non riconosciuta"},400)
+ }catch(e){return out(req,{ok:false,error:e instanceof Error?e.message:String(e)},400)}
 });

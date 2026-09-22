@@ -1,0 +1,98 @@
+name: Verifica riaperture e chiusure ripetute
+on:
+  push:
+    branches: [fix/cash-sessions-20260922, main]
+    paths:
+      - 'cash-sessions.js'
+      - 'scripts/apply_cash_sessions.py'
+      - 'scripts/vercel-finalize-20260914.sh'
+      - 'supabase/migrations/20260922213*.sql'
+      - 'supabase/functions/optyker-cash-sessions/**'
+      - 'supabase/functions/optyker-cash-day-api/**'
+      - 'supabase/functions/optyker-admin-cash-api/**'
+      - 'tests/cash-sessions/**'
+      - '.github/workflows/cash-sessions-20260922.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: fixture_only
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: fixture_only
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: PostgreSQL session accounting on synthetic data only
+        run: |
+          sed -i 's/returns jsonb language sql stable as/returns jsonb language sql stable set search_path=public as/' tests/cash-sessions/schema.sql
+          psql -v ON_ERROR_STOP=1 -f tests/cash-sessions/schema.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20260922213000_cash_repeat_sessions.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20260922213100_cash_repeat_guards.sql
+          psql -v ON_ERROR_STOP=1 -f tests/cash-sessions/regression.sql
+      - name: Exact production artifact without deployment
+        run: |
+          mkdir -p /tmp/cash-sessions
+          bash scripts/vercel-build-v13.sh
+          bash scripts/vercel-finalize-20260914.sh
+          python - <<'PY'
+          from pathlib import Path
+          import shutil
+          assert (Path('_site/index.html').read_bytes()==Path('_site/gestionale-v2/index.html').read_bytes()==Path('_site/gestionale-v3/index.html').read_bytes())
+          shutil.make_archive('/tmp/cash-sessions/built','zip','_site')
+          PY
+      - name: Browser regression dependencies
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Native browser repeat-close, reopen, double click and recovery tests
+        run: |
+          python -m http.server 8766 --directory _site >/tmp/session-web.log 2>&1 &
+          node tests/cash-sessions/browser.cjs
+          node tests/login-render-loop.browser.cjs
+      - name: Verify public deployment without printing or authenticating
+        if: github.ref == 'refs/heads/main'
+        run: |
+          python - <<'PY'
+          import urllib.request,urllib.error,json,time
+          from pathlib import Path
+          for n in range(35):
+              try:
+                  for path in ('/','/gestionale-v2/','/gestionale-v3/'):
+                      text=urllib.request.urlopen('https://www.optyker.it'+path+'?sessions-verify='+str(int(time.time())),timeout=15).read().decode()
+                      assert 'optykerCashSessionsJs' in text
+                  for name in ('cash-sessions.js','cash-day-control.js','admin-cash-closure.js','admin-cash-today-controls.js'):
+                      data=urllib.request.urlopen('https://www.optyker.it/'+name+'?sessions-verify='+str(int(time.time())),timeout=15).read()
+                      assert data==Path('_site',name).read_bytes(),name
+                  print('LIVE REPEAT-CLOSURE ASSETS VERIFIED')
+                  break
+              except Exception as e:
+                  if n==34:raise
+                  print('Waiting for publish',str(e));time.sleep(4)
+          for endpoint in ('optyker-cash-day-api','optyker-admin-cash-api'):
+              req=urllib.request.Request('https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/'+endpoint,data=json.dumps({'action':'session_status','date':'2026-09-22','payload':{'date':'2026-09-22'}}).encode(),headers={'Content-Type':'application/json'})
+              try:urllib.request.urlopen(req,timeout=15);raise AssertionError('Anonymous access allowed')
+              except urllib.error.HTTPError as e:assert e.code==401;print('LIVE AUTHENTICATION VERIFIED',endpoint)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cash-sessions-verified
+          path: /tmp/cash-sessions/
+          retention-days: 2
