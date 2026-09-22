@@ -9,7 +9,7 @@ $bat=[IO.File]::ReadAllText((Join-Path $root 'reprint-match-output/Optyker-Aggio
 $mark='# OPTYKER_REPRINT_SCRIPT';$extracted=$bat.Substring($bat.LastIndexOf($mark)+$mark.Length).Trim()
 $tok=$null;$err=$null;[void][Management.Automation.Language.Parser]::ParseInput($extracted,[ref]$tok,[ref]$err);Assert ($err.Count -eq 0) 'User BAT payload does not parse'
 $temp=Join-Path ([IO.Path]::GetTempPath()) ('reprint-check-'+[guid]::NewGuid());[void](New-Item -ItemType Directory -Path $temp)
-$scriptfile=Join-Path $temp 'connector.ps1';[IO.File]::WriteAllText($scriptfile,$patched)
+$scriptfile=Join-Path $temp 'connector.ps1';[IO.File]::WriteAllText($scriptfile,$patched,(New-Object Text.UTF8Encoding($true)))
 . $scriptfile -LibraryOnly
 $JournalRoot=Join-Path $temp 'receipts';[void](New-Item -ItemType Directory -Path $JournalRoot)
 $script:job=[pscustomobject]@{id='12345678-1234-4234-8234-123456789abc';state='completed';operation='sale';total=100;serial='72IV6003831';document_number='1168-0009';document_date='2026-09-19'}
