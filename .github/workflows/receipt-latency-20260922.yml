@@ -1,0 +1,82 @@
+name: Verifica attese stampa RCH
+on:
+  push:
+    branches: [fix/receipt-latency-20260922, main]
+    paths:
+      - 'scripts/apply_receipt_latency.py'
+      - 'scripts/receipt_latency_fragments.json'
+      - 'scripts/apply_cash_recorded_balances.py'
+      - 'supabase/functions/optyker-cash-balance-api/snapshot*'
+      - 'tests/receipt-latency*'
+      - 'tests/snapshot-latency*'
+      - '.github/workflows/receipt-latency-20260922.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Preserve printer and financial handlers
+        run: |
+          git diff --exit-code 39b4ee3fbd1a2280ffa6137e41d4b16fdd17d8fd HEAD -- rch-connector supabase/functions/optyker-fiscal-api supabase/functions/optyker-cash-register-api supabase/functions/optyker-cash-register-api-v2/index.ts supabase/functions/optyker-cash-local-api cash-recorded-balances.js
+      - name: Exact production build and safety regression
+        run: |
+          mkdir -p /tmp/receipt-latency
+          bash scripts/vercel-build-v13.sh
+          bash scripts/vercel-finalize-20260914.sh
+          node --test tests/receipt-latency.test.cjs tests/snapshot-latency.test.mjs tests/cash-recorded-balances.test.mjs tests/cash-balance-handler-integrity.test.mjs | tee /tmp/receipt-latency/unit-tests.txt
+          grep -q 'latency=20260922-latency1' _site/index.html
+          cp _site/receipt-latency-version.json /tmp/receipt-latency/
+          python -c "import shutil;shutil.make_archive('/tmp/receipt-latency/built','zip','_site')"
+      - name: Browser dependencies
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Synthetic checkout and login tests without real printing
+        run: |
+          python -m http.server 8766 --directory _site >/tmp/receipt-latency-server.log 2>&1 &
+          BALANCE_TEST_OUTPUT=/tmp/receipt-latency/browser node tests/cash-recorded-balances.browser.cjs
+          LOGIN_OUTPUT=/tmp/receipt-latency/login node tests/login-render-loop.browser.cjs
+      - name: Verify production assets and anonymous access denial
+        if: github.ref == 'refs/heads/main'
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import urllib.request,urllib.error,time,json,hashlib
+          expected=Path('_site/rch-cloud-relay.js').read_bytes()
+          for n in range(30):
+              try:
+                  for path in ('/','/gestionale-v2/','/gestionale-v3/'):
+                      html=urllib.request.urlopen('https://www.optyker.it'+path+'?latency-check='+str(int(time.time())),timeout=15).read().decode()
+                      assert 'latency=20260922-latency1' in html
+                  actual=urllib.request.urlopen('https://www.optyker.it/rch-cloud-relay.js?latency-check='+str(int(time.time())),timeout=15).read()
+                  assert actual==expected
+                  print('LIVE RECEIPT LATENCY VERIFIED',hashlib.sha256(actual).hexdigest())
+                  break
+              except Exception as e:
+                  if n==29:raise
+                  print('Awaiting publication',str(e));time.sleep(4)
+          req=urllib.request.Request('https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-cash-register-api-v2',data=json.dumps({'action':'balance_snapshot','payload':{'client_id':''}}).encode(),headers={'Content-Type':'application/json'})
+          try:
+              urllib.request.urlopen(req,timeout=15)
+              raise AssertionError('Anonymous balance request must be denied')
+          except urllib.error.HTTPError as e:
+              assert e.code==401
+              assert json.loads(e.read())['error']=='AUTH_REQUIRED'
+              print('LIVE BALANCE AUTH VERIFIED: anonymous access denied')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: receipt-latency-verified
+          path: /tmp/receipt-latency/
+          retention-days: 3

@@ -21,5 +21,7 @@ def main():
    old=p.read_text();new=re.sub(pattern,versioned,old)
    if new!=old:p.write_text(new)
  (site/'cash-balance-version.json').write_text(json.dumps({'version':VERSION,'cash_sha256':hashlib.sha256(cash.read_bytes()).hexdigest()})+'\n')
+ from apply_receipt_latency import main as apply_latency
+ apply_latency()
  print('Recorded balance UI installed:',VERSION)
 if __name__=='__main__':main()
