@@ -95,7 +95,8 @@ function Clear-ExactFailedAttempt([string]$base) {
     }
     # Compare again immediately before the atomic replacement. All legacy states stay intact on failure.
     if ((Get-BytesHash ([IO.File]::ReadAllBytes($path))) -cne (Get-BytesHash $bytes)) { throw 'Registro cambiato durante il controllo: nessuna sostituzione eseguita.' }
-    [IO.File]::Replace($tmp,$path,$null)
+    $atomicBackup = Join-Path $backupDir ($TargetJobId+'.atomic-'+[guid]::NewGuid().ToString('N')+'.json')
+    [IO.File]::Replace($tmp,$path,$atomicBackup)
     $tmp = $null
     $done = [IO.File]::ReadAllText($path) | ConvertFrom-Json
     if ([string]$done.state -cne 'cancelled' -or [string]$done.operationalArchive.archiveId -cne $ArchiveId) { throw 'Verifica finale locale non riuscita.' }
