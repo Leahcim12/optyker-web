@@ -26,7 +26,7 @@ def patch(site):
  s=change(s,"act=closed?'<button class=\"optykerAdminCashMini\" data-view=\"'+esc(r.date)+'\">Vedi</button>'", "act=closed?'<button class=\"optykerAdminCashMini\" data-open=\"'+esc(r.date)+'\">Riapri</button><button class=\"optykerAdminCashMini primary\" data-close=\"'+esc(r.date)+'\">Nuova chiusura</button><button class=\"optykerAdminCashMini\" data-view=\"'+esc(r.date)+'\">Storico</button>'")
  s=change(s,'  function ensure(){',"  window.addEventListener('optyker:cash-session-changed',function(){S.busy=false;loadOverview()});\n  function ensure(){")
  p.write_text(s)
- shutil.copyfile(ROOT/'cash-sessions.js',site/'cash-sessions.js')
+ (site/'cash-sessions.js').write_text((ROOT/'cash-sessions.js').read_text()+'\n'+(ROOT/'cash-closure-entrypoints.js').read_text())
  p=site/'index.html';s=p.read_text()
  for name in ('cash-day-control.js','admin-cash-closure.js','admin-cash-today-controls.js'):
   s=re.sub(re.escape(name)+r'(?:\?[^\s\"\'<>]*)?',lambda m:re.sub(r'&sessions=[^&\s\"\'<>]*','',m[0])+('&' if '?' in m[0] else '?')+'sessions='+VERSION,s)
@@ -40,5 +40,5 @@ def patch(site):
  for alias in ('gestionale-v2','gestionale-v3'):
   d=site/alias;d.mkdir(exist_ok=True);(d/'index.html').write_bytes(p.read_bytes())
   for name in ('cash-day-control.js','admin-cash-closure.js','admin-cash-today-controls.js','cash-sessions.js'):shutil.copyfile(site/name,d/name)
- (site/'cash-sessions-version.json').write_text(json.dumps({'version':VERSION,'features':['reopen_same_day','repeat_close','immutable_history','idempotent_confirmation','staff_unified_rch_close','fiscal_default_on','confirmed_fiscal_outcome']})+'\n')
+ (site/'cash-sessions-version.json').write_text(json.dumps({'version':VERSION,'features':['reopen_same_day','repeat_close','immutable_history','idempotent_confirmation','staff_unified_rch_close','fiscal_default_on','confirmed_fiscal_outcome','unified_header_footer_buttons']})+'\n')
 if __name__=='__main__':patch(ROOT/'_site')

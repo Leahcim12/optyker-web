@@ -4,6 +4,7 @@ on:
     branches: [fix/cash-sessions-20260922, fix/unified-cash-close-20260922, main]
     paths:
       - 'cash-sessions.js'
+      - 'cash-closure-entrypoints.js'
       - 'scripts/apply_cash_sessions.py'
       - 'scripts/vercel-finalize-20260914.sh'
       - 'supabase/migrations/20260922213*.sql'
@@ -40,8 +41,7 @@ jobs:
         with:
           node-version: '22'
       - name: Staff fiscal capability and confirmed-result tests (mock database)
-        run: |
-          node --experimental-strip-types --test tests/cash-sessions/staff-fiscal-actions.test.mjs
+        run: node --experimental-strip-types --test tests/cash-sessions/staff-fiscal-actions.test.mjs
       - name: PostgreSQL session accounting on synthetic data only
         run: |
           sed -i 's/returns jsonb language sql stable as/returns jsonb language sql stable set search_path=public as/' tests/cash-sessions/schema.sql
@@ -59,6 +59,7 @@ jobs:
           import shutil
           assert Path('_site/index.html').read_bytes()==Path('_site/gestionale-v2/index.html').read_bytes()==Path('_site/gestionale-v3/index.html').read_bytes()
           assert 'cash-sessions.js?v=20260922-unified-rch1' in Path('_site/index.html').read_text()
+          assert '__OPTYKER_UNIFIED_CASH_BUTTONS__' in Path('_site/cash-sessions.js').read_text()
           shutil.make_archive('/tmp/cash-sessions/built','zip','_site')
           PY
       - name: Browser regression dependencies
@@ -69,6 +70,7 @@ jobs:
         run: |
           python -m http.server 8766 --directory _site >/tmp/session-web.log 2>&1 &
           node tests/cash-sessions/browser.cjs
+          node tests/cash-sessions/entrypoints.browser.cjs
           node tests/login-render-loop.browser.cjs
       - name: Verify public deployment without printing or authenticating
         if: github.ref == 'refs/heads/main'
