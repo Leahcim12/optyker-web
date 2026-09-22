@@ -32,6 +32,7 @@ grep -q 'OPTYKER_AGENDA_AUTO_STUDIO_20260915' _site/index.html
 grep -q "autoStudio" _site/index.html
 grep -q 'OPTYKER_AGENDA_STAFF_RULES_20260915' _site/index.html
 grep -q 'oaPrivateNotes' _site/index.html
+grep -q 'oaV10ForceOccupied' _site/index.html
 grep -q 'Fiera / trasferta' _site/index.html
 grep -q 'almeno email oppure telefono' _site/index.html
 grep -q '__OPTYKER_CLIENT_CART_PERSISTENCE_V1__' _site/cash-register.js
@@ -47,6 +48,7 @@ fi
 grep -Fq "selectFrame(Number(this.getAttribute('data-ey-frame')))" _site/index.html
 grep -Fq "OPTYKER_EYEWEAR_ORDER_BUTTON_VISIBLE_20260915" _site/optyker-operations.js
 grep -Fq "b.className='eyBtn primary'" _site/optyker-operations.js
+grep -Fq "b.onclick=()=>sendOrder()" _site/optyker-operations.js
 grep -Fq "?'Invia ordine':'Ordina lenti'" _site/optyker-operations.js
 grep -Fq "function tick(){ensureOrderButton();if(!logged()){" _site/optyker-operations.js
 if grep -Fq "b.hidden=!job" _site/optyker-operations.js; then
@@ -89,12 +91,13 @@ python scripts/patch_login_interaction_20260919.py
 grep -q 'OPTYKER_LOGIN_INTERACTION_20260919' _site/index.html
 grep -q '20260919-login-click1' _site/index.html
 python scripts/check_desktop_html.py
+# Read-only customer lookup, with unchanged payment and pending-receipt guards.
 node --check cash-client-search.js
 python scripts/apply_cash_client_search.py
 node --check _site/cash-register.js
 python scripts/check_desktop_html.py
 echo 'Optyker final production patches OK'
-# Same-day sessions: no printer commands during build/deployment.
+# Same-day cash sessions; no printer commands during build or deployment.
 python scripts/apply_cash_sessions.py
 node --check _site/cash-sessions.js
 node --check _site/cash-day-control.js
