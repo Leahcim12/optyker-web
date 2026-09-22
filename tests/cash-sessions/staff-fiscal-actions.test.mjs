@@ -1,0 +1,22 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {sessionAction} from '../../supabase/functions/optyker-cash-sessions/actions.ts';
+const ID='00000000-0000-4000-8000-000000000001';
+const payload={date:'2026-09-22',request_id:ID,expected_token:'fixture',cash_counted:70,checks_counted:0,bank_deposit_cash:0,bank_deposit_checks:0,safe_deposit_cash:0,safe_deposit_checks:0,fiscal:true};
+function fixture({state='pending',fiscal=true,proof=true}={}){
+ const calls=[];
+ const op={id:ID,kind:'close',state,input:{fiscal},snapshot:{closure:{fiscal_closure:proof&&fiscal}},command_id:proof&&fiscal?'simulated-command':null};
+ const db={rpc:async(n,a)=>{calls.push({n,a});if(n==='optyker_cash_session_state')return {data:{session:{}},error:null};return {data:{state,operation_id:ID},error:null}},from:(table)=>{assert.equal(table,'optyker_cash_session_operations');const b={select:()=>b,eq:()=>b,maybeSingle:async()=>({data:op,error:null})};return b}};
+ return {db,calls};
+}
+test('authenticated cashier can request fiscal close without a billing token',async()=>{const f=fixture();const r=await sessionAction(f.db,'session_close',payload,'CASHIER',true);assert.equal(r.state,'pending');assert.equal(f.calls.length,1);assert.equal(f.calls[0].a.p_input.fiscal,true);assert.equal(f.calls[0].a.p_operator,'CASHIER');assert.equal(f.calls[0].n,'optyker_cash_session_change')});
+test('read-only status and history entry do not queue a closure',async()=>{const f=fixture();const r=await sessionAction(f.db,'session_status',{date:payload.date},'CASHIER',true);assert.equal(r.cash_session_capabilities.fiscal_closure,true);assert.deepEqual(f.calls.map(c=>c.n),['optyker_cash_session_state'])});
+test('non-permitted caller cannot close or resume a fiscal operation',async()=>{const f=fixture();await assert.rejects(()=>sessionAction(f.db,'session_close',payload,'READONLY',false),/non abilitato/);await assert.rejects(()=>sessionAction(f.db,'session_result',{request_id:ID},'READONLY',false),/non abilitato/);assert.equal(f.calls.length,0)});
+test('cashier resumes the existing pending fiscal request, never creates a second one',async()=>{const f=fixture();await sessionAction(f.db,'session_result',{request_id:ID},'CASHIER',true);assert.deepEqual(f.calls.map(c=>c.n),['optyker_cash_session_finish']);assert.equal(f.calls[0].a.p_request_id,ID)});
+test('only positively saved fiscal proof produces fiscal success',async()=>{const f=fixture({state:'completed'});const r=await sessionAction(f.db,'session_result',{request_id:ID},'CASHIER',true);assert.equal(r.fiscal_requested,true);assert.equal(r.fiscal_confirmed,true);assert.ok(r.closure)});
+test('missing fiscal confirmation cannot be reported as successful',async()=>{const f=fixture({state:'completed',proof:false});await assert.rejects(()=>sessionAction(f.db,'session_result',{request_id:ID},'CASHIER',true),/non confermata/)});
+test('explicit managerial-only closure does not claim fiscal success',async()=>{const f=fixture({state:'completed',fiscal:false});const r=await sessionAction(f.db,'session_close',{...payload,fiscal:false},'CASHIER',true);assert.equal(f.calls[0].a.p_input.fiscal,false);assert.equal(r.fiscal_confirmed,false);assert.equal(r.fiscal_requested,false)});
+test('uncertain and failed outcomes are preserved without optimistic completion',async()=>{for(const state of ['attention','failed']){const f=fixture({state});const r=await sessionAction(f.db,'session_result',{request_id:ID},'CASHIER',true);assert.equal(r.state,state);assert.notEqual(r.fiscal_confirmed,true)}});
+test('invalid request is rejected before any write',async()=>{const f=fixture();await assert.rejects(()=>sessionAction(f.db,'session_close',{...payload,request_id:'not-a-uuid'},'CASHIER',true),/Aggiorna/);await assert.rejects(()=>sessionAction(f.db,'session_close',{...payload,cash_counted:-1},'CASHIER',true),/Importo/);assert.equal(f.calls.length,0)});
+test('staff entrypoint authenticates before granting this single cashier capability',()=>{const s=readFileSync(new URL('../../supabase/functions/optyker-cash-day-api/index.ts',import.meta.url),'utf8');const auth=s.indexOf("db.rpc('optyker_staff_login_internal'");const gate=s.indexOf('data?.ok!==true');const call=s.indexOf('await sessionAction');assert.ok(auth>0&&gate>auth&&call>gate);assert.match(s,/String\(data.username\|\|username\),true\)/);assert.doesNotMatch(s,/billing_admin_token|signingKey|billing_admin/)});

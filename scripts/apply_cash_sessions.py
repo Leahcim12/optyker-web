@@ -1,7 +1,7 @@
 from pathlib import Path
 import re,shutil,json
 from apply_ts_connection import DocumentClosings
-VERSION='20260922-sessions1'
+VERSION='20260922-unified-rch1'
 ROOT=Path(__file__).resolve().parent.parent
 
 def change(s,a,b):
@@ -33,11 +33,12 @@ def patch(site):
  tag='<script id="optykerCashSessionsJs" src="/cash-sessions.js?v='+VERSION+'"></script>\n'
  if 'id="optykerCashSessionsJs"' not in s:
   pos=DocumentClosings(s).closings['body'];s=s[:pos]+tag+s[pos:]
+ else:s=re.sub(r'<script\b[^>]*id="optykerCashSessionsJs"[^>]*>\s*</script>',tag.strip(),s)
  if 'id="optykerCashDaySessionsJs"' not in s and 'cash-day-control.js' not in s:
   pos=DocumentClosings(s).closings['body'];s=s[:pos]+'<script id="optykerCashDaySessionsJs" src="/cash-day-control.js?sessions='+VERSION+'"></script>\n'+s[pos:]
  p.write_text(s)
  for alias in ('gestionale-v2','gestionale-v3'):
   d=site/alias;d.mkdir(exist_ok=True);(d/'index.html').write_bytes(p.read_bytes())
   for name in ('cash-day-control.js','admin-cash-closure.js','admin-cash-today-controls.js','cash-sessions.js'):shutil.copyfile(site/name,d/name)
- (site/'cash-sessions-version.json').write_text(json.dumps({'version':VERSION,'features':['reopen_same_day','repeat_close','immutable_history','idempotent_confirmation','separate_fiscal_close']})+'\n')
+ (site/'cash-sessions-version.json').write_text(json.dumps({'version':VERSION,'features':['reopen_same_day','repeat_close','immutable_history','idempotent_confirmation','staff_unified_rch_close','fiscal_default_on','confirmed_fiscal_outcome']})+'\n')
 if __name__=='__main__':patch(ROOT/'_site')

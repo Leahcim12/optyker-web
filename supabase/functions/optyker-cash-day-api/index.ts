@@ -13,7 +13,8 @@ Deno.serve(async(req:Request)=>{
   if(a.startsWith('session_')||a==='status'||a==='preview'){
    const username=String(b.username||'').trim(),password=String(b.password||'');if(!username||password.length<8)return out({ok:false,error:'Sessione operatore non disponibile'},401);
    const {data,error}=await db.rpc('optyker_staff_login_internal',{p_username:username,p_password:password});if(error||data?.ok!==true)return out({ok:false,error:'Sessione operatore non valida'},401);
-   return out({ok:true,data:await sessionAction(db,a==='status'||a==='preview'?'session_status':a,b.payload||{},String(data.username||username),false)});
+   // Authenticated cashier may explicitly close the RCH from Cassa; no billing token is granted.
+   return out({ok:true,data:await sessionAction(db,a==='status'||a==='preview'?'session_status':a,b.payload||{},String(data.username||username),true)});
   }
   const response=await fetch(U+'/functions/v1/optyker-cash-closure-api',{method:'POST',headers:{'Content-Type':'application/json'},body:raw});
   return new Response(await response.text(),{status:response.status,headers:{...CORS,'Content-Type':'application/json'}});
