@@ -1,0 +1,29 @@
+name: Verifica rimozione blocco 55 Focus
+on:
+  push:
+    branches: [fix/archive55-focus-20260922]
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build self-contained fix
+        run: python tools/resolve55/build.py
+      - name: Windows PowerShell 5 exact-file tests
+        shell: powershell
+        run: ./tools/resolve55/tests/archive55.ps1
+      - name: PowerShell 7 exact-file tests
+        shell: pwsh
+        run: ./tools/resolve55/tests/archive55.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: archive55-focus-verified
+          path: |
+            tools/resolve55/Optyker-Rimuovi-Blocco-55.bat
+            tools/resolve55/manifest.json
+          retention-days: 3
