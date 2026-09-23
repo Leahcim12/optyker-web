@@ -1,0 +1,14 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';
+import {planForSale,choosePreparation} from '../supabase/functions/optyker-fiscal-api-v2/reissue-domain.mjs';
+const uid=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
+const s={id:uid(1),client_id:uid(2),status:'completed',total:450,paid_amount:450,due_amount:0,delivered_at:'2026-09-22',data:{fiscal_reissue:{payments:[{reference_pending:true}]}}};
+const p=[250,200].map((amount,i)=>({id:uid(10+i),sale_id:s.id,amount}));
+const roots=p.map((p,i)=>({id:uid(20+i),sale_id:s.id,payment_id:p.id,operation:'sale',state:'completed',serial:'FIXTURE',document_number:'1111-000'+(i+1),document_date:'2026-09-20',document:{totalCents:p.amount*100}}));
+const voids=roots.map((j,i)=>({...j,id:uid(30+i),operation:'void',original_job_id:j.id,document_number:'1112-000'+(i+1),document_date:'2026-09-23'}));
+const jobs=[...roots,...voids];
+test('already delivered and fully paid sale is eligible after confirmed voids; stale metadata ignored',()=>{const r=planForSale(s,p,jobs);assert.equal(r.remaining_cents,45000);assert.equal(r.payments[0].state,'ready');assert.equal(r.due_cents,0);assert.equal(r.payments[0].void_number,'1112-0001')});
+test('missing void reference cannot be prepared',()=>{const r=planForSale(s,p,[...roots,{...voids[0],state:'awaiting_reference',document_number:null},voids[1]]);assert.equal(r.payments[0].state,'void_reference');assert.throws(()=>choosePreparation(r,{...r.payments[0],confirm_not_already_reissued:true}))});
+test('already emitted replacement must not become a new issuance',()=>{for(const state of ['sending','uncertain','awaiting_reference','completed']){const child={...roots[0],id:uid(40),state,reissue_of_job_id:roots[0].id,document_number:state==='completed'?'1112-0003':null};const r=planForSale(s,p,[...jobs,child]);assert.equal(r.payments[0].state,state);assert.equal(r.remaining_cents,state==='completed'?20000:45000)}});
+test('all replacements confirmed gives completion without changing money',()=>{const before=JSON.stringify([s,p,jobs]);const children=roots.map((j,i)=>({...j,id:uid(40+i),reissue_of_job_id:j.id,document_number:'1112-000'+(3+i)}));const r=planForSale(s,p,[...jobs,...children]);assert.equal(r.complete,true);assert.equal(r.remaining_cents,0);assert.equal(JSON.stringify([s,p,jobs]),before)});
+test('duplicate roots, changed amounts and wrong sale links are refused',()=>{assert.throws(()=>planForSale(s,p,[...jobs,{...roots[0],id:uid(88)}]));assert.throws(()=>planForSale(s,[{...p[0],amount:249},p[1]],jobs));assert.throws(()=>planForSale(s,p,[...roots,{...voids[0],sale_id:uid(99)},voids[1]]))});
+test('explicit no-Focus-reissue confirmation is required',()=>{const r=planForSale(s,p,jobs);assert.throws(()=>choosePreparation(r,r.payments[0]));assert.equal(choosePreparation(r,{...r.payments[0],confirm_not_already_reissued:true}).payment_id,p[0].id)});

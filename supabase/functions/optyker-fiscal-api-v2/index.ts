@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import {markAutomaticDocument} from '../optyker-fiscal-api/domain.mjs';
+import {handleReceiptReissue} from './reissue.ts';
 
 const U=Deno.env.get("SUPABASE_URL")||"";
 const KEY=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
@@ -51,9 +52,12 @@ Deno.serve(async req=>{
   if(origin&&!origins.has(origin))return respond({ok:false,error:"Origin non consentita"},403);if(req.method==="OPTIONS")return new Response(null,{status:204,headers});if(req.method!=="POST")return respond({ok:false,error:"METHOD_NOT_ALLOWED"},405);
   try{
     const body=await req.json().catch(()=>({})),a=body.action,p=body.payload||{};
+    if(['reissue_status','reissue_prepare','reissue_finish'].includes(a))return respond(await handleReceiptReissue(body));
     if(a==="sale")return respond({...await saleViewV2(body),release:RELEASE});
     if(a==="prepare"){
       const operator=await login(body),zero=await prepareZero(p,operator);if(zero)return respond({ok:true,data:zero,release:RELEASE});
+      const replacements=await one(db.from('optyker_fiscal_jobs').select('*').eq('payment_id',id(p.payment_id)).eq('operation','sale').not('reissue_of_job_id','is',null).order('created_at',{ascending:false}).limit(1));
+      if(replacements.length)return respond({ok:true,data:{job:publicJob(replacements[0]),reissue:true},release:RELEASE});
       return respond({...await proxy(body),release:RELEASE});
     }
     return respond({...await proxy(body),release:RELEASE});

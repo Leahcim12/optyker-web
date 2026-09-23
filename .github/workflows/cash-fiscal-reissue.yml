@@ -1,0 +1,63 @@
+name: Verifica riemissione scontrini gia pagati
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cash-fiscal-reissue.js'
+      - 'scripts/apply_cash_fiscal_reissue.py'
+      - 'scripts/apply_cash_recorded_balances.py'
+      - 'supabase/functions/optyker-fiscal-api-v2/**'
+      - 'tests/cash-fiscal-reissue*'
+      - '.github/workflows/cash-fiscal-reissue.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test isolati senza database, credenziali o stampanti reali
+        run: |
+          node --check cash-fiscal-reissue.js
+          node --test tests/cash-fiscal-reissue-*.test.mjs
+          python -m py_compile scripts/apply_cash_fiscal_reissue.py
+      - name: Verifica commit e codice effettivamente pubblicati
+        env:
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: |
+          python - <<'PY'
+          import json,os,time,urllib.request,urllib.error,hashlib
+          base='https://www.optyker.it'
+          def get(path):
+              req=urllib.request.Request(base+path+('?' if '?' not in path else '&')+'reissue-verify='+str(time.time_ns()),headers={'Cache-Control':'no-cache'})
+              return urllib.request.urlopen(req,timeout=15).read()
+          for n in range(30):
+              try:
+                  v=json.loads(get('/cash-reissue-version.json'))
+                  assert v['version']=='20260923-reissue2' and v['commit']==os.environ['EXPECTED_COMMIT']
+                  cash=get('/cash-register.js')
+                  assert b'OPTYKER_FISCAL_REISSUE_20260923' in cash
+                  assert b'function runReceiptReissue(' in cash
+                  assert hashlib.sha256(cash).hexdigest()==v['cash_sha256']
+                  for path in ('/','/gestionale-v2/','/gestionale-v3/'):
+                      assert b'reissue=20260923-reissue2' in get(path)
+                  print('LIVE_REISSUE_VERIFIED',v['commit'],v['cash_sha256'])
+                  break
+              except Exception as e:
+                  if n==29: raise
+                  print('Attesa pubblicazione Pages',str(e));time.sleep(6)
+          req=urllib.request.Request('https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-fiscal-api-v2',data=json.dumps({'action':'reissue_status','payload':{}}).encode(),headers={'Content-Type':'application/json','Origin':base})
+          try:
+              urllib.request.urlopen(req,timeout=20)
+              raise AssertionError('Accesso anonimo non deve essere consentito')
+          except urllib.error.HTTPError as e:
+              assert e.code==401 and json.loads(e.read())['error']=='AUTH_REQUIRED'
+              print('REISSUE_ANONYMOUS_ACCESS_DENIED')
+          PY

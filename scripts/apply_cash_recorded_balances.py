@@ -23,5 +23,7 @@ def main():
  (site/'cash-balance-version.json').write_text(json.dumps({'version':VERSION,'cash_sha256':hashlib.sha256(cash.read_bytes()).hexdigest()})+'\n')
  from apply_receipt_latency import main as apply_latency
  apply_latency()
+ from apply_cash_fiscal_reissue import main as apply_reissue
+ apply_reissue()
  print('Recorded balance UI installed:',VERSION)
 if __name__=='__main__':main()
