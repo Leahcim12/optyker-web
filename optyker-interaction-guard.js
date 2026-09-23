@@ -31,17 +31,24 @@ function fullScreen(el){
   var s=getComputedStyle(el),r=el.getBoundingClientRect();
   return s.position==='fixed'&&r.width>=innerWidth*.9&&r.height>=innerHeight*.9;
 }
+function setPointerNone(el){
+  if(!el||!el.style)return;
+  if(el.style.getPropertyValue('pointer-events')!=='none'||el.style.getPropertyPriority('pointer-events')!=='important')el.style.setProperty('pointer-events','none','important');
+}
 function neutralizeInvisibleBlockers(){
   try{
-    document.documentElement.style.removeProperty('pointer-events');
-    if(document.body){document.body.style.removeProperty('pointer-events');document.body.removeAttribute('inert')}
+    if(document.documentElement.style.getPropertyValue('pointer-events'))document.documentElement.style.removeProperty('pointer-events');
+    if(document.body){
+      if(document.body.style.getPropertyValue('pointer-events'))document.body.style.removeProperty('pointer-events');
+      if(document.body.hasAttribute('inert'))document.body.removeAttribute('inert');
+    }
     document.querySelectorAll('.optykerCashModal:not(.open),.optykerCashOverlay:not(.open),[aria-hidden="true"]').forEach(function(el){
-      if(fullScreen(el))el.style.setProperty('pointer-events','none','important');
+      if(fullScreen(el))setPointerNone(el);
     });
     Array.prototype.forEach.call(document.body?document.body.children:[],function(el){
       if(!fullScreen(el))return;
       var s=getComputedStyle(el),opacity=Number(s.opacity||1);
-      if((s.visibility==='hidden'||opacity<=0.01)&&s.display!=='none')el.style.setProperty('pointer-events','none','important');
+      if((s.visibility==='hidden'||opacity<=0.01)&&s.display!=='none')setPointerNone(el);
     });
   }catch(e){}
 }
@@ -138,13 +145,79 @@ function scheduleAgendaOverlapLayout(){
   if(agendaLayoutQueued)return;agendaLayoutQueued=true;
   requestAnimationFrame(function(){agendaLayoutQueued=false;layoutAgendaOverlaps()});
 }
-function boot(){installCashChannelSeparation();neutralizeInvisibleBlockers();closeStartupStaleOverlays();addEmergencyButton();scheduleAgendaOverlapLayout()}
+
+function isEditable(el){
+  if(!el)return false;
+  var t=String(el.tagName||'').toUpperCase();
+  if(t==='TEXTAREA'||el.isContentEditable)return true;
+  if(t!=='INPUT')return false;
+  return ['button','submit','reset','checkbox','radio','file','image','range','color','hidden'].indexOf(String(el.type||'text').toLowerCase())<0;
+}
+function repairEditableAncestors(el){
+  if(!isEditable(el)||el.disabled||el.readOnly)return;
+  for(var n=el;n&&n.nodeType===1;n=n.parentElement){
+    if(n.hasAttribute&&n.hasAttribute('inert'))n.removeAttribute('inert');
+    if(n.getAttribute&&n.getAttribute('aria-hidden')==='true'&&n.contains(el))n.removeAttribute('aria-hidden');
+  }
+}
+function hideLaboratoryPanels(){
+  ['optykerLaboratoryPanel','labOrdersPanel'].forEach(function(id){var p=document.getElementById(id);if(p)p.style.display='none'});
+  var n=document.getElementById('navLaboratory');if(n)n.classList.remove('active');
+}
+function revealClientsPanel(){
+  hideLaboratoryPanels();
+  var p=document.getElementById('clientsPanel');if(p){p.hidden=false;p.style.display='block'}
+}
+function ensureLaboratorySearch(){
+  ['optykerLaboratoryPanel','labOrdersPanel'].forEach(function(id){
+    var p=document.getElementById(id);if(!p)return;
+    var input=p.querySelector('#optykerLabSearch,#labSearch,input[type="search"]');if(!input)return;
+    input.placeholder='Cerca riferimento / codice busta, cliente o prodotto…';
+    input.setAttribute('aria-label','Cerca riferimento o codice della busta');
+    input.setAttribute('autocomplete','off');
+    if(!input.previousElementSibling||!input.previousElementSibling.classList||!input.previousElementSibling.classList.contains('optykerLabSearchLabel')){
+      var l=document.createElement('label');l.className='optykerLabSearchLabel';l.textContent='Cerca riferimento / codice busta';
+      if(!input.id)input.id='optykerLabReferenceSearch';l.htmlFor=input.id;input.parentNode.insertBefore(l,input);
+    }
+  });
+}
+function wrapNavigation(name,kind){
+  var old=window[name];if(typeof old!=='function'||old.__optykerStableNavFix)return;
+  var w=function(){
+    if(kind==='clients')hideLaboratoryPanels();
+    var r=old.apply(this,arguments);
+    if(kind==='clients')setTimeout(revealClientsPanel,0);
+    if(kind==='lab')setTimeout(ensureLaboratorySearch,0);
+    return r;
+  };
+  w.__optykerStableNavFix=true;w.__optykerStableNavOriginal=old;window[name]=w;
+}
+function installStableNavigation(){
+  wrapNavigation('showModule','clients-aware');
+  var sm=window.showModule;
+  if(typeof sm==='function'&&!sm.__optykerClientAware){
+    var base=sm;
+    var w=function(which){if(String(which||'')==='clients')hideLaboratoryPanels();var r=base.apply(this,arguments);if(String(which||'')==='clients')setTimeout(revealClientsPanel,0);return r};
+    w.__optykerClientAware=true;w.__optykerStableNavFix=true;window.showModule=w;
+  }
+  wrapNavigation('optykerClientOpenPage','clients');
+  wrapNavigation('clientSelect','clients');
+  wrapNavigation('openLaboratory','lab');
+  ensureLaboratorySearch();
+}
+
+function boot(){installCashChannelSeparation();neutralizeInvisibleBlockers();closeStartupStaleOverlays();addEmergencyButton();installStableNavigation();scheduleAgendaOverlapLayout()}
 installCashChannelSeparation();
 window.optykerLayoutAgendaOverlaps=layoutAgendaOverlaps;
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 window.addEventListener('pageshow',function(){bootAt=Date.now();setTimeout(boot,0)});
 window.addEventListener('resize',scheduleAgendaOverlapLayout,{passive:true});
 document.addEventListener('keydown',function(e){if(e.key==='Escape')unlockAllKnown()},true);
-new MutationObserver(function(){neutralizeInvisibleBlockers();scheduleAgendaOverlapLayout()}).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style','aria-hidden','inert']});
+document.addEventListener('focusin',function(e){repairEditableAncestors(e.target)},true);
+document.addEventListener('click',function(e){
+  var t=e.target&&e.target.closest?e.target.closest('#navClients,[data-client-page="anagrafica"],#clientPageNav [data-client-page]'):null;
+  if(t)setTimeout(revealClientsPanel,0);
+},false);
+new MutationObserver(function(){neutralizeInvisibleBlockers();scheduleAgendaOverlapLayout()}).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class','aria-hidden','inert']});
 setTimeout(boot,100);setTimeout(boot,600);setTimeout(boot,1800);
 })();

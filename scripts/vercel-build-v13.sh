@@ -210,12 +210,12 @@ cp optyker-interaction-guard.js _site/gestionale-v3/optyker-interaction-guard.js
 python - <<'INTERACTION_GUARD'
 from pathlib import Path
 
-tag='<script src="optyker-interaction-guard.js?v=20260914-unlock2"></script>'
+tag='<script src="optyker-interaction-guard.js?v=20260923-unlock3"></script>'
 for rel in ('index.html','gestionale-v2/index.html','gestionale-v3/index.html'):
     p=Path('_site')/rel
     text=p.read_text(encoding='utf-8')
     # Remove the previous emergency tag if this build was layered on an older live artifact.
-    text=text.replace('<script src="optyker-interaction-guard.js?v=20260914-unlock1"></script>','')
+    text=text.replace('<script src="optyker-interaction-guard.js?v=20260914-unlock1"></script>','').replace('<script src="optyker-interaction-guard.js?v=20260914-unlock2"></script>','')
     if tag not in text:
         i=text.lower().rfind('</body>')
         if i < 0:
@@ -223,7 +223,7 @@ for rel in ('index.html','gestionale-v2/index.html','gestionale-v3/index.html'):
         text=text[:i]+tag+'\n'+text[i:]
     p.write_text(text,encoding='utf-8')
 INTERACTION_GUARD
-grep -q 'optyker-interaction-guard.js?v=20260914-unlock2' _site/index.html
+grep -q 'optyker-interaction-guard.js?v=20260923-unlock3' _site/index.html
 grep -q '__OPTYKER_INTERACTION_GUARD__' _site/optyker-interaction-guard.js
 
 # Publish the RCH/iPad package in Vercel too, because optyker.it is served by Vercel.
