@@ -22,7 +22,7 @@ function balanceLoad(){
 }
 function balanceQueue(){var key=balanceKey();if(S.cashOpen&&key!==recordedBalance.requested){recordedBalance.requested=key;recordedBalance.loading=true;clearTimeout(recordedBalance.timer);recordedBalance.timer=setTimeout(balanceLoad,100)}}
 cartTotal=function(){return Math.round(payableCartRows().reduce(function(n,r){var a=balanceLine(r.item.variant_id);return n+(a?a.line.due_cents/100:Number(r.unitPrice==null?r.item.price:r.unitPrice)*r.qty)},0)*100)/100};
-function balanceBlock(){var d=balanceData();return d&&d.blockers&&d.blockers[0]}
+function balanceBlock(){var d=balanceData(),c=balanceChosen(),saleIds=new Set(c.linked.map(function(x){return String(x.group.sale_id||'')}));return d&&d.blockers&&d.blockers.find(function(x){return saleIds.has(String(x.sale_id||''))})}
 function balanceChosen(){var linked=[],fresh=[];payableCartRows().forEach(function(r){var a=balanceLine(r.item.variant_id);if(a)linked.push(a);else fresh.push(r)});return {linked:linked,fresh:fresh}}
 function balanceOpenReceipt(saleId){if(S.busy)return;var f=window.OPTYKER_FISCAL;if(f&&f.openSale)return f.openSale(saleId);toast('Modulo RCH non disponibile. Apri Ultime vendite.','error')}
 function balancePaint(){
@@ -33,7 +33,7 @@ function balancePaint(){
  if(recordedBalance.loading||!d&&!recordedBalance.error)html='<p>Verifica acconti già registrati…</p>';
  if(recordedBalance.error)html='<p>Saldo non verificato: '+esc(recordedBalance.error)+'</p><button type="button" data-balance-refresh>Riprova verifica acconti</button>';
  if(d){
-  if(blocked)html+='<div class="balanceFiscalAlert" role="alert"><b>Stampa sospesa: esito RCH da verificare'+(blocked.amount_cents!=null?' · '+esc(euro(blocked.amount_cents/100)):'')+'</b><p>La modalità REG non risolve un’emissione con esito incerto. Verifica il documento già registrato prima di un nuovo incasso.</p><button type="button" data-balance-receipt="'+esc(blocked.sale_id)+'">Apri esito scontrino</button> <button type="button" data-balance-refresh>Aggiorna esito</button></div>';
+  if(blocked)html+='<div class="balanceFiscalAlert" role="alert"><b>Stampa sospesa per questa vendita: esito RCH da verificare'+(blocked.amount_cents!=null?' · '+esc(euro(blocked.amount_cents/100)):'')+'</b><p>La modalità REG non risolve un’emissione con esito incerto. Verifica il documento già registrato prima di un nuovo incasso.</p><button type="button" data-balance-receipt="'+esc(blocked.sale_id)+'">Apri esito scontrino</button> <button type="button" data-balance-refresh>Aggiorna esito</button></div>';
   (d.conflicts||[]).forEach(function(c){html+='<p class="balanceFiscalAlert">'+esc(c.message)+' · usa Acconti aperti / Ultime vendite senza creare un nuovo incasso.</p>'});
   groups.forEach(function(g){
    html+='<div class="recordedBalanceGroup"><span>Prezzo '+esc(euro(g.total_cents/100))+' − già versato '+esc(euro(g.paid_cents/100))+'</span><strong>'+(g.due_cents?'Saldo residuo '+esc(euro(g.due_cents/100)):'Saldato · da consegnare')+'</strong>';
@@ -81,7 +81,7 @@ checkout=async function(){
  return balanceNativeCheckout.apply(this,arguments);
 };
 var balanceNativeSettle=settleExisting;
-settleExisting=function(){var args=arguments;if(S.busy||recordedBalance.checking)return;recordedBalance.checking=true;balancePaint();return balanceLoad().then(function(d){recordedBalance.checking=false;if(!d)return;if(d.blockers.length&&!S.invoice){toast('Verifica prima lo scontrino con esito incerto. Nessun saldo registrato.','error');balancePaint();return}return balanceNativeSettle.apply(null,args)})};
+settleExisting=function(){var args=arguments;if(S.busy||recordedBalance.checking)return;recordedBalance.checking=true;balancePaint();return balanceLoad().then(function(d){recordedBalance.checking=false;if(!d)return;if(balanceBlock()&&!S.invoice){toast('Verifica prima lo scontrino incerto collegato a questa vendita. Nessun saldo registrato.','error');balancePaint();return}return balanceNativeSettle.apply(null,args)})};
 var balanceNativeOpen=openCash;
 openCash=function(){recordedBalance.requested='';recordedBalance.key='';recordedBalance.data=null;recordedBalance.error='';var r=balanceNativeOpen.apply(this,arguments);balanceQueue();return r};
 var balanceNativeClose=closeCash;
