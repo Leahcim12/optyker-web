@@ -1,7 +1,7 @@
 /* Client LAC product workspace: trial lenses and final lenses, same saved sheet, no duplication. */
 (function(root){
 'use strict';
-const VERSION='20260923-lac-products1';
+const VERSION='20260923-lac-products2';
 const $=id=>document.getElementById(id);
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const euro=v=>v==null||v===''?'—':new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(Number(v)||0);
@@ -43,12 +43,21 @@ function rows(){
 }
 function signature(list){return JSON.stringify(list.map(r=>[r.id,r.updated_at,stage(r),ref(r),productTitle(r),r?.laboratory_order?.status||'']))}
 function host(){
- return $('clientLacPageExtras')||$('clientAnagraficaSection');
+ return $('clientLacPageExtras');
+}
+function keepLacButtonVisible(){
+ const nav=$('clientPageNav'),b=nav&&nav.querySelector('[data-client-page="lac"]');
+ if(!b)return;
+ b.classList.remove('clientPageHidden');
+ b.hidden=false;
+ b.style.removeProperty('display');
 }
 function ensure(){
+ keepLacButtonVisible();
  const h=host();if(!h)return null;
  let p=$('optykerClientLacProducts');
- if(!p){p=document.createElement('section');p.id='optykerClientLacProducts';p.className='clpWorkspace';h.prepend(p);}
+ if(!p){p=document.createElement('section');p.id='optykerClientLacProducts';p.className='clpWorkspace';}
+ if(p.parentElement!==h)h.prepend(p);
  return p;
 }
 function status(textValue,bad){
@@ -114,7 +123,7 @@ async function move(id,next){
 function boot(){
  render(true);
  ['optyker:sheet-edited','optyker:sheet-removed','optyker:sheet-order-created','optyker:client-saved'].forEach(n=>root.addEventListener(n,()=>{lastSignature='';render(true)}));
- setInterval(()=>{const cid=current();if(cid!==lastClient){lastSignature='';render(true)}else render(false)},1200);
+ setInterval(()=>{keepLacButtonVisible();const cid=current();if(cid!==lastClient){lastSignature='';render(true)}else render(false)},700);
 }
 root.OPTYKER_CLIENT_LAC_PRODUCTS={version:VERSION,stage,automaticStage,productTitle,render};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
