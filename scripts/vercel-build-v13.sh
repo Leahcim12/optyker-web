@@ -278,28 +278,3 @@ python scripts/apply_client_workspace_original.py
 python scripts/patch_public_asset_paths.py
 verify_desktop_aliases
 python scripts/check_desktop_html.py
-
-# iPad editing, Laboratory → client navigation and reference/code search.
-node --check optyker-ipad-nav-lab-fix.js
-node --test tests/optyker-ipad-nav-lab-fix.test.cjs
-cp optyker-ipad-nav-lab-fix.js _site/optyker-ipad-nav-lab-fix.js
-cp optyker-ipad-nav-lab-fix.js _site/gestionale-v2/optyker-ipad-nav-lab-fix.js
-cp optyker-ipad-nav-lab-fix.js _site/gestionale-v3/optyker-ipad-nav-lab-fix.js
-python - <<'IPAD_NAV_LAB_FIX'
-from pathlib import Path
-version='20260923-ipadnavlab1'
-tag='<script id="optykerIpadNavLabFixJs" src="/optyker-ipad-nav-lab-fix.js?v='+version+'" defer></script>'
-for rel in ('index.html','gestionale-v2/index.html','gestionale-v3/index.html'):
-    p=Path('_site')/rel
-    text=p.read_text(encoding='utf-8')
-    if 'id="optykerIpadNavLabFixJs"' not in text:
-        i=text.lower().rfind('</body>')
-        if i<0: raise SystemExit('Closing body missing: '+rel)
-        text=text[:i]+tag+'\n'+text[i:]
-    p.write_text(text,encoding='utf-8')
-IPAD_NAV_LAB_FIX
-verify_desktop_aliases
-grep -q 'optykerIpadNavLabFixJs' _site/index.html
-grep -q '__OPTYKER_IPAD_NAV_LAB_FIX__' _site/optyker-ipad-nav-lab-fix.js
-python scripts/check_desktop_html.py
-echo "Optyker iPad + client navigation + laboratory search fix OK"

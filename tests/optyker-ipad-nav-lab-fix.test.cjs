@@ -1,5 +1,0 @@
-const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');
-const fix=require('../optyker-ipad-nav-lab-fix.js');
-test('reference search ignores separators and accents',()=>{assert.equal(fix.normalizeSearch(' BU-OC-2026 / 000022 '),'buoc2026000022');assert.equal(fix.searchMatch('Busta BU-OC-2026-000022','bu oc 2026 000022'),true);assert.equal(fix.searchMatch('12B26','12-b-26'),true)});
-test('only editable controls are treated as text entry',()=>{assert.equal(fix.isTextEntry({tagName:'INPUT',type:'text'}),true);assert.equal(fix.isTextEntry({tagName:'INPUT',type:'search'}),true);assert.equal(fix.isTextEntry({tagName:'TEXTAREA'}),true);assert.equal(fix.isTextEntry({tagName:'INPUT',type:'checkbox'}),false)});
-test('runtime source contains both laboratory panels and client navigation guards',()=>{const s=fs.readFileSync(require.resolve('../optyker-ipad-nav-lab-fix.js'),'utf8');for(const token of ['optykerLaboratoryPanel','labOrdersPanel','clientSelect','optykerClientOpenPage','Cerca riferimento / codice busta','touchend'])assert.ok(s.includes(token),token)});
