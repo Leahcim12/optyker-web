@@ -5,7 +5,7 @@ import json, os
 
 ROOT=Path(__file__).resolve().parent.parent
 SITE=ROOT/'_site'
-VERSION='20260923-lac-products1'
+VERSION='20260923-lac-products2'
 CSS='<link id="optykerClientLacProductsCss" rel="stylesheet" href="/client-lac-products.css?v='+VERSION+'">'
 JS='<script id="optykerClientLacProductsJs" defer src="/client-lac-products.js?v='+VERSION+'"></script>'
 
