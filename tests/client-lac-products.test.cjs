@@ -1,5 +1,5 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const src=fs.readFileSync(new URL('../client-lac-products.js',import.meta.url),'utf8');
+const path=require('node:path');const src=fs.readFileSync(path.join(__dirname,'..','client-lac-products.js'),'utf8');
 function helpers(){
  const ctx={globalThis:{},Intl,Date,JSON,console,setTimeout,clearTimeout,setInterval:()=>0,CustomEvent:function(){},document:{readyState:'loading',addEventListener(){},getElementById(){return null}}};
  ctx.globalThis=ctx;vm.createContext(ctx);vm.runInContext(src,ctx);return ctx.OPTYKER_CLIENT_LAC_PRODUCTS;
