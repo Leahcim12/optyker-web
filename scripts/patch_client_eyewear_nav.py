@@ -9,8 +9,8 @@ if MARK in s:
 css=r'''
 <style id="optykerClientEyewearNavCss">
 /* OPTYKER_CLIENT_EYEWEAR_NAV_V1 */
-#clientPageNav [data-client-page="lac"].clientPageHidden,
 #clientPageNav [data-client-page="occhiali"].clientPageHidden{display:none!important}
+#clientPageNav [data-client-page="lac"]{display:block!important}
 #clientEyewearPage{
   display:none;margin:0 0 16px;padding:14px 15px;border:1px solid #dce5ec;border-radius:12px;background:#f8fbfd
 }
@@ -81,9 +81,8 @@ js=r'''
     var nav=E('clientPageNav');if(!nav)return;
     var lac=nav.querySelector('[data-client-page="lac"]'),eye=nav.querySelector('[data-client-page="occhiali"]');
     var lc=lacRows().length,ec=eyewearRows().length;
-    if(lac){lac.classList.toggle('clientPageHidden',lc===0);var a=E('clientPageCountLac');if(a){a.textContent=lc||'';a.style.display=lc?'inline-flex':'none'}}
+    if(lac){lac.classList.remove('clientPageHidden');lac.hidden=false;lac.style.removeProperty('display');var a=E('clientPageCountLac');if(a){a.textContent=lc||'';a.style.display=lc?'inline-flex':'none'}}
     if(eye){eye.classList.toggle('clientPageHidden',ec===0);var b=E('clientPageCountEyewear');if(b){b.textContent=ec||'';b.style.display=ec?'inline-flex':'none'}}
-    if(currentPage==='lac'&&lc===0&&window.optykerClientOpenPage){currentPage='anagrafica';window.optykerClientOpenPage('anagrafica')}
     if(currentPage==='occhiali'&&ec===0&&window.optykerClientOpenPage){currentPage='anagrafica';window.optykerClientOpenPage('anagrafica')}
   }
   function renderEyewear(){
