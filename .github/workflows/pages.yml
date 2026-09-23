@@ -188,6 +188,17 @@ jobs:
           grep -q "regui=20260919-regui1" _site/index.html
           python scripts/check_desktop_html.py
 
+      - name: Cassa verificata e dettaglio errori persistente
+        run: |
+          python scripts/apply_cash_client_search.py
+          node --check _site/cash-register.js
+          node --check _site/cash-print-error-details.js
+          node --test tests/cash-recorded-balances.test.mjs tests/cash-balance-handler-integrity.test.mjs
+          python scripts/check_desktop_html.py
+          grep -q 'OPTYKER_RECORDED_BALANCES_20260921' _site/cash-register.js
+          grep -q 'printfix=20260923-printdiag1' _site/index.html
+          grep -q 'optykerCashErrorDetailsJs' _site/index.html
+
       - name: Carica sito GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:

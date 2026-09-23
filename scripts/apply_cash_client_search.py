@@ -41,5 +41,7 @@ def main():
     from apply_cash_recorded_balances import main as apply_balances
     apply_balances()
     (site/'cash-client-search-version.json').write_text(json.dumps({'version':VERSION,'fiscal_preflight':'20260919-preflight1','commit':os.environ.get('VERCEL_GIT_COMMIT_SHA') or os.environ.get('GITHUB_SHA',''),'cash_sha256':hashlib.sha256(cash.read_bytes()).hexdigest()},indent=2)+'\n')
+    from apply_cash_print_recovery_ui import main as apply_error_details
+    apply_error_details()
     print('Customer lookup and fiscal preflight installed:',VERSION,'(existing payment routes unchanged)')
 if __name__=='__main__':main()
