@@ -15,10 +15,12 @@ async function prepare(p,operator){
  const existing=e.job_id?x.jobs.find(j=>j.id===e.job_id):null;
  if(existing&&!['prepared','not_started'].includes(existing.state))return {job:publicJob(existing)};
  const original=x.jobs.find(j=>j.id===e.original_job_id),payment=x.payments.find(q=>q.id===e.payment_id),old=original.document;
+ const client=await read(db.from('optyker_clients').select('id,fiscal').eq('id',x.sale.client_id).single()),clientFiscal=String(client?.fiscal||'').trim().toUpperCase();
+ if(old.talkingReceipt===true&&!clientFiscal)throw new Error('Codice fiscale cliente mancante per la riemissione');
  const input={not_already_issued:true,ts_requested:old.tsRequested===true,talking_receipt:old.talkingReceipt===true,opposition:old.opposition===true,lines:old.lines.map(l=>({department:l.department,quantity:l.quantity,unit_price:l.unitPriceCents/100,description:l.description,expense_code:l.expenseCode||'none'}))};
  const jobId=existing?.id||crypto.randomUUID(),cap=crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-','');
  const hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(cap)))].map(v=>v.toString(16).padStart(2,'0')).join('');
- const document={...markAutomaticDocument(makeDocument(payment,input,old.fiscalCode||''),jobId),reissueOfJobId:original.id,reissueVoid:{jobId:e.void_job_id,number:e.void_number,date:e.void_date},cashUnchanged:true};
+ const document={...markAutomaticDocument(makeDocument(payment,input,clientFiscal),jobId),reissueOfJobId:original.id,reissueVoid:{jobId:e.void_job_id,number:e.void_number,date:e.void_date},cashUnchanged:true};
  if(document.serial!==original.serial)throw new Error('Registratore del documento originale non corrispondente');
  const patch={state:'prepared',document,claim_hash:hash,claim_expires_at:new Date(Date.now()+600000).toISOString(),operator_username:operator,updated_at:new Date().toISOString()};
  const job=existing?await read(db.from('optyker_fiscal_jobs').update(patch).eq('id',existing.id).eq('updated_at',existing.updated_at).in('state',['prepared','not_started']).select(fields).maybeSingle()):await read(db.from('optyker_fiscal_jobs').insert({...patch,id:jobId,payment_id:payment.id,sale_id:x.sale.id,serial:original.serial,operation:'sale',original_job_id:null,reissue_of_job_id:original.id}).select(fields).single());
