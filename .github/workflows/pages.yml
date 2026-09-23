@@ -199,6 +199,18 @@ jobs:
           grep -q 'printfix=20260923-printdiag1' _site/index.html
           grep -q 'optykerCashErrorDetailsJs' _site/index.html
 
+      - name: Organizza LAC cliente · prova e finali
+        run: |
+          node --check client-lac-products.js
+          node --test tests/client-lac-products.test.cjs
+          python scripts/apply_client_lac_products.py
+          node --check _site/client-lac-products.js
+          python scripts/check_desktop_html.py
+          grep -q "optykerClientLacProductsJs" _site/index.html
+          grep -q "Lenti di prova" _site/client-lac-products.js
+          grep -q "Lenti finali" _site/client-lac-products.js
+          test -s _site/client-lac-products-version.json
+
       - name: Carica sito GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:

@@ -278,31 +278,3 @@ python scripts/apply_client_workspace_original.py
 python scripts/patch_public_asset_paths.py
 verify_desktop_aliases
 python scripts/check_desktop_html.py
-
-# Client LAC products: separate trial lenses from final lenses in the customer record.
-node --check client-lac-products.js
-node --test tests/client-lac-products.test.cjs
-cp client-lac-products.js _site/client-lac-products.js
-cp client-lac-products.css _site/client-lac-products.css
-cp client-lac-products.js _site/gestionale-v2/client-lac-products.js
-cp client-lac-products.css _site/gestionale-v2/client-lac-products.css
-cp client-lac-products.js _site/gestionale-v3/client-lac-products.js
-cp client-lac-products.css _site/gestionale-v3/client-lac-products.css
-python - <<'CLIENT_LAC_PRODUCTS'
-from pathlib import Path
-version='20260923-lac-products1'
-css='<link id="optykerClientLacProductsCss" rel="stylesheet" href="/client-lac-products.css?v='+version+'">'
-js='<script id="optykerClientLacProductsJs" defer src="/client-lac-products.js?v='+version+'"></script>'
-for rel in ('index.html','gestionale-v2/index.html','gestionale-v3/index.html'):
-    p=Path('_site')/rel
-    text=p.read_text(encoding='utf-8')
-    if 'id="optykerClientLacProductsCss"' not in text:
-        i=text.lower().rfind('</head>'); text=text[:i]+css+'\n'+text[i:]
-    if 'id="optykerClientLacProductsJs"' not in text:
-        i=text.lower().rfind('</body>'); text=text[:i]+js+'\n'+text[i:]
-    p.write_text(text,encoding='utf-8')
-CLIENT_LAC_PRODUCTS
-verify_desktop_aliases
-grep -q 'optykerClientLacProductsJs' _site/index.html
-grep -q 'Prodotto LAC' client-lac-products.js
-echo "Optyker client LAC products build OK"
