@@ -16,14 +16,27 @@ export function allocate(weights,paid){
   for(const x of [...a].sort((x,y)=>x.r===y.r?x.i-y.i:x.r>y.r?-1:1)){if(left--<=0)break;x.n++;}
   return a.map(x=>x.n);
 }
+// Legacy order deposits predate client_cart_selection. Never infer from name/SKU.
+function legacyOrderSale(s){
+  if(s.data?.client_cart_selection!==undefined&&s.data?.client_cart_selection!==null)return false;
+  if(!['optyker_pos_local','optyker_pos_v2'].includes(s.data?.source))return false;
+  const lines=s.data?.lines;
+  return Array.isArray(lines)&&lines.length>0&&lines.every(l=>{
+    const id=String(l.source_work_order_id||'');
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)&&key(l)==='client_cart:'+id&&l.is_client_cart_order===true;
+  });
+}
 export function balances(clientId,cart,sales,payments,jobs){
   const present=new Map(cart.map(x=>[key(x),x])),groups=[],conflicts=[],owners=new Map();
   for(const s of sales){
-    if(s.client_id!==clientId||s.delivered_at||s.data?.client_cart_consumed===true||s.data?.client_cart_selection!==true)continue;
+    if(s.client_id!==clientId||s.delivered_at||s.data?.client_cart_consumed===true)continue;
+    const legacy=legacyOrderSale(s);
+    if(s.data?.client_cart_selection!==true&&!legacy)continue;
     const lines=Array.isArray(s.data?.lines)?s.data.lines:[];
     const related=lines.filter(x=>present.has(key(x)));if(!related.length)continue;
     const ids=[...new Set(related.map(key))];
     try{
+      if(legacy&&related.some(l=>String(present.get(key(l)).source_work_order_id||'')!==String(l.source_work_order_id)))throw new Error('Collegamento ordine del vecchio acconto da verificare');
       if(!['completed','open_balance'].includes(s.status))throw new Error('Vendita precedente da riconciliare');
       if(lines.length!==related.length||new Set(lines.map(key)).size!==lines.length)throw new Error('Articoli della vendita non interamente presenti nel carrello');
       for(const l of lines){const q=Number(l.quantity),c=present.get(key(l));if(!Number.isInteger(q)||q<1||q!==Number(c.quantity))throw new Error('Quantità diversa dalla vendita già registrata');}

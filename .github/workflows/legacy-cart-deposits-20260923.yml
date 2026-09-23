@@ -1,0 +1,37 @@
+name: Verifica acconti precedenti nel carrello
+on:
+  push:
+    branches: [main, fix/legacy-cart-deposits-20260923]
+    paths:
+      - 'supabase/functions/optyker-cash-balance-api/**'
+      - 'tests/cash-legacy-order-deposits.test.mjs'
+      - '.github/workflows/legacy-cart-deposits-20260923.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Recorded amounts, legacy order identity, receipts and duplicate protection
+        run: node --test tests/cash-recorded-balances.test.mjs tests/cash-legacy-order-deposits.test.mjs
+      - name: Verify unchanged payment and fiscal entrypoints against installed release
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import urllib.request
+          root='https://raw.githubusercontent.com/Leahcim12/optyker-web/f63755c5dbb106da6dbbc3ea87c6743fea9e694f/'
+          for folder in ('optyker-cash-register-api-v2','optyker-fiscal-api'):
+              for p in Path('supabase/functions',folder).iterdir():
+                  if p.is_file() and p.suffix in ('.ts','.mjs'):
+                      expected=urllib.request.urlopen(root+p.as_posix(),timeout=20).read()
+                      assert p.read_bytes()==expected,p.as_posix()
+          print('Payment and fiscal handlers unchanged; no real receipts or payments requested')
+          PY
