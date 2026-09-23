@@ -102,3 +102,15 @@ python scripts/apply_cash_sessions.py
 node --check _site/cash-sessions.js
 node --check _site/cash-day-control.js
 python scripts/check_desktop_html.py
+
+# Client LAC product workspace for production domain: trial vs final lenses.
+node --check client-lac-products.js
+node --test tests/client-lac-products.test.cjs
+python scripts/apply_client_lac_products.py
+node --check _site/client-lac-products.js
+python scripts/check_desktop_html.py
+grep -q 'optykerClientLacProductsJs' _site/index.html
+grep -q 'Lenti di prova' _site/client-lac-products.js
+grep -q 'Lenti finali' _site/client-lac-products.js
+test -s _site/client-lac-products-version.json
+echo 'Client LAC product workspace installed on production build'

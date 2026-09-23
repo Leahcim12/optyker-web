@@ -44,7 +44,13 @@ for path in FILES:
         if end<0:
             raise SystemExit(f'Agenda event loop end not found in {path}')
         text=text[:start]+replacement+text[end+3:]
-    text=text.replace('optyker-interaction-guard.js?v=20260914-unlock2','optyker-interaction-guard.js?v=20260914-overlap2')
+    for old_guard in (
+        'optyker-interaction-guard.js?v=20260914-unlock1',
+        'optyker-interaction-guard.js?v=20260914-unlock2',
+        'optyker-interaction-guard.js?v=20260923-unlock3',
+        'optyker-interaction-guard.js?v=20260914-overlap2',
+    ):
+        text=text.replace(old_guard,'optyker-interaction-guard.js?v=20260923-unlock3-overlap2')
     path.write_text(text,encoding='utf-8')
 
 main=FILES[0].read_text(encoding='utf-8')
@@ -52,7 +58,7 @@ if main.count(MARK)!=1:
     raise SystemExit('Native overlap patch must exist exactly once')
 if 'data-native-overlap-cols' not in main or 'left:calc('+"'" not in main:
     raise SystemExit('Native overlap renderer incomplete')
-if 'optyker-interaction-guard.js?v=20260914-overlap2' not in main:
+if 'optyker-interaction-guard.js?v=20260923-unlock3-overlap2' not in main:
     raise SystemExit('Interaction guard cache-buster not updated')
 if FILES[1].read_bytes()!=FILES[0].read_bytes() or FILES[2].read_bytes()!=FILES[0].read_bytes():
     raise SystemExit('Desktop aliases differ after agenda overlap patch')
