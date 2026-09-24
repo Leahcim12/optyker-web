@@ -1,0 +1,27 @@
+name: Verifica accesso chiusura cassa dopo mezzanotte
+on:
+  push:
+    paths:
+      - 'cash-closure-entrypoints.js'
+      - 'scripts/apply_cash_sessions.py'
+      - 'tests/cash-sessions/closure-access.test.cjs'
+      - '.github/workflows/cash-closure-access-20260925.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Synthetic UI tests only - no credentials, no printer
+        run: |
+          node --check cash-closure-entrypoints.js
+          node --test tests/cash-sessions/closure-access.test.cjs
+          python -m py_compile scripts/apply_cash_sessions.py
