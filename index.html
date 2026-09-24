@@ -207,13 +207,25 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
     var tools=document.createElement('div');tools.id='optykerGlobalTools';tools.className='optykerGlobalTools';tools.innerHTML='<div class="optykerGlobalSearchWrap"><span class="optykerSearchIcon">⌕</span><input id="optykerGlobalSearch" type="search" autocomplete="off" placeholder="Cerca qualsiasi cosa: cliente, scheda, ordine, funzione…"><button id="optykerSearchClear" class="optykerSearchClear" type="button" title="Cancella">×</button><div id="optykerGlobalResults"></div></div><button id="optykerQuickNewClient" type="button">+ Nuovo cliente</button><div id="optykerActiveUserBadge" class="optykerActiveUserBadge"></div>';
     right.insertBefore(tools,right.firstChild);
     var input=E('optykerGlobalSearch'),clear=E('optykerSearchClear'),newb=E('optykerQuickNewClient'),box=E('optykerGlobalResults');
-    input.oninput=render;input.onfocus=function(){if(input.value)render()};input.onkeydown=function(ev){if(ev.key==='Escape'){box.style.display='none';input.blur()}else if(ev.key==='Enter'){var first=box.querySelector('[data-optyker-result]');if(first){ev.preventDefault();first.click()}}};
+    var renderTimer=0;
+    input.oninput=function(){clearTimeout(renderTimer);renderTimer=setTimeout(render,120)};
+    input.onfocus=function(){if(input.value)render()};input.onkeydown=function(ev){if(ev.key==='Escape'){box.style.display='none';input.blur()}else if(ev.key==='Enter'){var first=box.querySelector('[data-optyker-result]');if(first){ev.preventDefault();first.click()}}};
     clear.onclick=function(){input.value='';render();input.focus()};
     newb.onclick=function(){if(window.dashboardNewClient)dashboardNewClient();else if(window.showModule)showModule('clients')};
     document.addEventListener('click',function(ev){if(!tools.contains(ev.target))box.style.display='none'});
   }
+  function maintain(){
+    installUserLogin();
+    if(window.optykerAuthenticated)syncActiveOperator();
+    var wc=E('winWindowControls');if(wc&&wc.parentNode)wc.parentNode.removeChild(wc);
+    if(window.optykerAuthenticated&&!E('optykerGlobalTools'))install();
+  }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
-  setInterval(function(){installUserLogin();if(window.optykerAuthenticated)syncActiveOperator();var wc=E('winWindowControls');if(wc&&wc.parentNode)wc.parentNode.removeChild(wc);if(window.optykerAuthenticated&&!E('optykerGlobalTools'))install()},700);
+  setTimeout(maintain,150);
+  setTimeout(maintain,900);
+  setTimeout(maintain,2500);
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)maintain()});
+  window.addEventListener('focus',maintain);
 })();
 </scr`+`ipt>`;
 
@@ -304,33 +316,46 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
     }
   }
 
-  function walkRoot(root){
+  function scan(root){
     if(!root)return;
     try{
+      if(root.nodeType===1&&root.tagName==='BUTTON')fixButton(root);
       var buttons=root.querySelectorAll?root.querySelectorAll('button'):[];
       for(var i=0;i<buttons.length;i++)fixButton(buttons[i]);
-
-      var all=root.querySelectorAll?root.querySelectorAll('*'):[];
-      for(var j=0;j<all.length;j++){
-        var el=all[j];
-        if(el.shadowRoot)walkRoot(el.shadowRoot);
-        if(el.tagName==='IFRAME'){
-          try{
-            var d=el.contentDocument;
-            if(d)walkRoot(d);
-          }catch(e){}
-        }
+      if(root.shadowRoot)scan(root.shadowRoot);
+      var frames=root.querySelectorAll?root.querySelectorAll('iframe'):[];
+      for(var j=0;j<frames.length;j++){
+        try{var d=frames[j].contentDocument;if(d)scan(d)}catch(e){}
       }
     }catch(e){}
   }
 
+  function scanExistingShadowRoots(){
+    try{
+      var all=document.querySelectorAll('*');
+      for(var i=0;i<all.length;i++)if(all[i].shadowRoot)scan(all[i].shadowRoot);
+    }catch(e){}
+  }
+
   function apply(){
-    walkRoot(document);
+    scan(document);
+    scanExistingShadowRoots();
   }
 
   function observe(root){
     try{
-      var mo=new MutationObserver(function(){apply()});
+      var mo=new MutationObserver(function(records){
+        for(var i=0;i<records.length;i++){
+          var rec=records[i];
+          if(rec.type==='characterData'){
+            var b=rec.target&&rec.target.parentElement;
+            while(b&&b.tagName!=='BUTTON')b=b.parentElement;
+            if(b)fixButton(b);
+          }
+          var added=rec.addedNodes||[];
+          for(var j=0;j<added.length;j++)scan(added[j]);
+        }
+      });
       mo.observe(root,{subtree:true,childList:true,characterData:true});
     }catch(e){}
   }
@@ -341,11 +366,9 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
     apply();observe(document.documentElement);
   }
 
-  setTimeout(apply,50);
-  setTimeout(apply,250);
-  setTimeout(apply,700);
+  setTimeout(apply,80);
+  setTimeout(apply,500);
   setTimeout(apply,1500);
-  setInterval(apply,600);
 })();
 </scr`+`ipt>`;
 
@@ -548,12 +571,30 @@ html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;backgro
   var oldOnline=window.openOnlineOrders;if(typeof oldOnline==='function')window.openOnlineOrders=function(){hideLaboratory();return oldOnline.apply(this,arguments)};
   var oldLac=window.openLacDevice;if(typeof oldLac==='function')window.openLacDevice=function(){hideLaboratory();return oldLac.apply(this,arguments)};
 
+  function hookClientSelection(){
+    if(typeof window.clientSelect==='function'&&!window.clientSelect.__labClientHook){
+      var old=window.clientSelect;
+      var wrapped=function(){
+        var r=old.apply(this,arguments);
+        setTimeout(refreshClientReference,0);
+        return r;
+      };
+      wrapped.__labClientHook=true;
+      window.clientSelect=wrapped;
+    }
+  }
+
   function install(){
-    installNav();ensurePanel();hookLac();refreshClientReference();
+    installNav();ensurePanel();hookLac();hookClientSelection();refreshClientReference();
     var ref=referenceInput();if(ref){ref.readOnly=true;if(!ref.placeholder)ref.placeholder='Generato automaticamente'}
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
-  setInterval(install,900);
+  var bootTries=0;
+  var bootTimer=setInterval(function(){
+    install();
+    bootTries++;
+    if(bootTries>=12)clearInterval(bootTimer);
+  },500);
 })();
 </scr`+`ipt>`;
 
