@@ -10,3 +10,5 @@ test('ordinary LAC sheet defaults to trial',()=>{const h=helpers();assert.equal(
 test('product title reads brand and both eyes',()=>{const h=helpers();assert.match(h.productTitle({data:{lacState:{brand:'Esoform',odProductName:'RGP',osProductName:'SCL'}}}),/Esoform/);assert.match(h.productTitle({data:{lacState:{brand:'Esoform',odProductName:'RGP',osProductName:'SCL'}}}),/RGP/);});
 
 test('workspace mounts only in the dedicated client LAC tab and never falls back to Anagrafica',()=>{const s=fs.readFileSync(path.join(__dirname,'..','client-lac-products.js'),'utf8');assert.ok(s.includes("return $('clientLacPageExtras');"));assert.equal(s.includes("||$('clientAnagraficaSection')"),false);assert.ok(s.includes("data-client-page=\"lac\"")||s.includes("data-client-page='lac'"));});
+
+test('saved LAC cards expose direct in-place editing',()=>{const s=fs.readFileSync(path.join(__dirname,'..','client-lac-products.js'),'utf8');assert.ok(s.includes('data-clp-edit'));assert.ok(s.includes('optykerEditClientSheet'));assert.ok(s.includes('Modifica scheda'));});

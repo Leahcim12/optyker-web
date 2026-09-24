@@ -1,7 +1,7 @@
 /* Client LAC product workspace: trial lenses and final lenses, same saved sheet, no duplication. */
 (function(root){
 'use strict';
-const VERSION='20260923-lac-products2';
+const VERSION='20260924-lac-products4';
 const $=id=>document.getElementById(id);
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const euro=v=>v==null||v===''?'—':new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(Number(v)||0);
@@ -69,7 +69,7 @@ function card(row){
   '<div class="clpCardHead"><div><span class="clpRef">'+esc(ref(row))+'</span><h4>'+esc(productTitle(row))+'</h4><p>'+esc(dateLabel(row.updated_at||row.created_at))+(linked?' · Laboratorio':'')+'</p></div><span class="clpStage '+(final?'final':'trial')+'">'+(final?'FINALE':'PROVA')+'</span></div>'+
   '<div class="clpEyes">'+eyes.map(x=>'<div class="clpEye"><b>'+esc(x.eye)+'</b><span>'+esc(x.product)+'</span><strong>'+esc(x.price==null?'':euro(x.price))+'</strong></div>').join('')+'</div>'+
   ((st.notes||row?.data?.notes)?'<p class="clpNotes">'+esc(st.notes||row.data.notes)+'</p>':'')+
-  '<div class="clpActions"><button type="button" data-clp-open="'+esc(row.id)+'">Apri scheda</button>'+
+  '<div class="clpActions"><button type="button" data-clp-open="'+esc(row.id)+'">Apri scheda</button><button type="button" data-clp-edit="'+esc(row.id)+'">Modifica scheda</button>'+
   '<button type="button" data-clp-stage="'+(final?'trial':'final')+'" data-clp-id="'+esc(row.id)+'" '+(busyId===text(row.id)?'disabled':'')+'>'+(final?'Sposta in lenti di prova':'Segna come lente finale')+'</button></div>'+
  '</article>';
 }
@@ -97,6 +97,7 @@ function bind(p,all){
    if(root.clientOpenVisitInEditor)return root.clientOpenVisitInEditor(id);
    if(row&&root.clientRestoreSingleSheet)return root.clientRestoreSingleSheet(row.data||{});
  });
+ p.querySelectorAll('[data-clp-edit]').forEach(b=>b.onclick=()=>{const id=b.dataset.clpEdit;if(typeof root.optykerEditClientSheet==='function')return root.optykerEditClientSheet(id);if(root.OPTYKER_CLIENT_SHEETS?.open){root.OPTYKER_CLIENT_SHEETS.open('all',id);setTimeout(()=>document.querySelector('[data-cs-edit-existing]')?.click(),120);return}if(root.clientOpenVisitInEditor)return root.clientOpenVisitInEditor(id)});
  p.querySelectorAll('[data-clp-stage]').forEach(b=>b.onclick=()=>move(b.dataset.clpId,b.dataset.clpStage));
  const n=$('clpNewLac');if(n)n.onclick=()=>{
    if(typeof root.clientCreateNewLacSheet==='function')return root.clientCreateNewLacSheet();
