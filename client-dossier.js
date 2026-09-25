@@ -2,7 +2,7 @@
    write remains in the existing, authenticated sheet/editor workflow. */
 (function(root){
 'use strict';
-const VERSION='20260925-dossier1';
+const VERSION='20260925-dossier2';
 const text=v=>String(v==null?'':v);
 const esc=v=>text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const kind=r=>text(r?.sheet_type||r?.data?.sheetType||r?.kind||'visit');
@@ -23,6 +23,7 @@ if(typeof module!=='undefined'&&module.exports)module.exports=helpers;
 if(!root?.document||root.OPTYKER_CLIENT_DOSSIER)return;
 const doc=root.document,$=id=>doc.getElementById(id),cid=()=>text(root.clientCurrentId),logged=()=>!!(root.optykerAuthenticated&&root.OPTYKER_CLOUD?.username&&root.OPTYKER_CLOUD?.password);
 let current='',user='',page='schede',active='',filter='all',selected='',signature='',box=null,pending=false,error='',returnContext=null;
+let nativePageDepth=0;
 const labels={lacDate:'Data scheda',lacOdSf:'OD · Sfera',lacOsSf:'OS · Sfera',lacState:'Prodotto LAC',elements:'Dati e parametri',visualExamData:'Esame visivo completo',ophthalImages:'Immagini fondo oculare',hearingAttachmentImage:'Allegato udito',frame:'Montatura',lens:'Lenti oftalmiche',pricing:'Prezzi e sconti',order_parameters:'Parametri d’ordine',ophthalmic:'Prescrizione oculistica',brand:'Marca',document:'Documento',odProductName:'Lente destra',osProductName:'Lente sinistra',odCost:'Prezzo lente destra (€)',osCost:'Prezzo lente sinistra (€)',notes:'Note',examDate:'Data esame',savedAt:'Salvata il',updated_at:'Ultima modifica',specialist:'Operatore',documentReference:'Riferimento',documentType:'Tipo documento',product:'Prodotto',color:'Colore',model:'Modello',description:'Descrizione',price:'Prezzo (€)',total:'Totale (€)',discount_percent:'Sconto (%)',manual_final_price:'Prezzo finale (€)',unit_price:'Prezzo unitario (€)',lens_name:'Nome lente',lens_od:'Lente destra',lens_os:'Lente sinistra',refractive_index:'Indice',material:'Materiale',treatments:'Trattamenti',geometry:'Geometria',mounting:'Montaggio',warranty:'Garanzia',symptoms:'Sintomi',outcome:'Esito',recommendations:'Indicazioni',anamnesis:'Anamnesi',reason:'Motivo',visualAcuity:'Acuità visiva',refraction:'Refrazione',binocularVision:'Visione binoculare',accommodation:'Accomodazione',motility:'Motilità',odFindings:'Fondo destro',osFindings:'Fondo sinistro',parentNotes:'Note del genitore',inStoreOrderRef:'Riferimento ordine in negozio',lacProductStage:'Fase LAC'};
 function label(k){
  if(labels[k])return labels[k];const el=$(k);let s=el?.labels?.[0]?.textContent||el?.closest('label')?.textContent||el?.getAttribute('aria-label');
@@ -103,7 +104,52 @@ function render(){
  }
  box.innerHTML=h;bind();
 }
-function switchPage(next){if(!ready())return;page=next;error='';signature='';if(next!=='schede')root.optykerClientOpenPage?.(next);render();}
+// One page controller for both current tabs and legacy entry points. Never replace
+// form nodes, write a client record, or dispatch fiscal/commerce actions here.
+function nativePage(next){
+ nativePageDepth++;
+ try{return root.optykerClientOpenPage?.(next);}finally{nativePageDepth--;}
+}
+function activateClients(){
+ if(!logged()||root.OPTYKER_BILLING_ADMIN)return false;
+ for(const d of doc.querySelectorAll('dialog[data-optyker-context][open]')){
+  if(typeof d._canClose==='function'&&!d._canClose())return false;
+ }
+ if(!leaveOldEditor())return false;
+ for(const d of doc.querySelectorAll('dialog[data-optyker-context][open]'))d.close();
+ if(typeof root.optykerShowOnlyRootPanel==='function')root.optykerShowOnlyRootPanel('clientsPanel');
+ else root.showModule?.('clients');
+ root.dashboardSetWorkAreaVisible?.(true);
+ // Do not reselect the client or reload the profile: preserve unsaved input.
+ nativePageDepth++;
+ try{root.clientShowView?.(cid()?'edit':'archive');}finally{nativePageDepth--;}
+ doc.querySelectorAll('#moduleNav .moduleBtn').forEach(b=>b.classList.toggle('active',b.id==='navClients'));
+ doc.body.classList.toggle('cdClientOpen',!!cid());
+ render();return true;
+}
+function legacyPage(next,id){
+ if(!activateClients()||!ready())return;
+ const section=text(next||'anagrafica');
+ const mapped={onlineorders:'ordini',consents:'documenti',documents:'documenti',occhiali:'eyewear',usage:'indications',visual_anomalies:'analysis'}[section]||section;
+ if(['anagrafica','schede','ordini','documenti','chat'].includes(mapped))switchPage(mapped);
+ else {switchPage('schede');chooseType(mapped);if(id)chooseDate(text(id),false);}
+}
+function installNavigation(){
+ const hook=(name,action)=>{
+  const fn=root[name];if(typeof fn!=='function'||fn.__cdNavigation)return;
+  const wrapped=function(...args){
+   if(nativePageDepth||!logged()||!cid()||root.OPTYKER_BILLING_ADMIN)return fn.apply(this,args);
+   return action(...args);
+  };
+  // Preserve flags used by the existing bounded installers; avoid wrapper loops.
+  Object.assign(wrapped,fn);wrapped.__cdNavigation=true;root[name]=wrapped;
+ };
+ hook('optykerClientOpenPage',(next)=>legacyPage(next));
+ hook('clientSidebarOpenSection',(type)=>legacyPage(type));
+ hook('clientSidebarOpenDate',(type,id)=>legacyPage(type,id));
+ hook('clientSidebarOpenOnlineOrders',()=>legacyPage('ordini'));
+}
+function switchPage(next){if(!ready())return;page=next;error='';signature='';if(next!=='schede')nativePage(next);render();}
 function chooseType(k){if(!ready())return;active=k;selected='';filter='all';error='';signature='';render();}
 function chooseDate(id,focus){if(!ready())return;const row=visibleRows(allRows()).find(r=>text(r.id)===id);if(!row)return;selected=id;signature='';render();if(focus)box.querySelector('[role="tab"][aria-selected="true"]')?.focus();}
 async function refresh(){
@@ -131,7 +177,7 @@ function edit(){
   root.optykerEditClientSheet(row.id);addReturnBar();return;
  }
  const clinical=Array.from(doc.querySelectorAll('[data-tools-card]')).find(n=>n.dataset.toolsCard===text(row.id));
- if(clinical){page='anagrafica';root.optykerClientOpenPage?.('anagrafica');$('clientsPanel').classList.add('cdClinicalEditing');signature='';render();clinical.classList.add('open');clinical.scrollIntoView({block:'center'});return;}
+ if(clinical){page='anagrafica';nativePage('anagrafica');$('clientsPanel').classList.add('cdClinicalEditing');signature='';render();clinical.classList.add('open');clinical.scrollIntoView({block:'center'});return;}
  if(typeof root.clientOpenVisitInEditor==='function'){root.clientOpenVisitInEditor(row.id);addReturnBar();}else notice('Editor della scheda non disponibile.');
 }
 function create(){
@@ -141,8 +187,8 @@ function create(){
  if(k==='eyewear'&&typeof root.openEyewearSheet==='function'){root.openEyewearSheet('quote',cid());addReturnBar();return;}
  if(['analysis','prescription','visualexam','indications','hearing'].includes(k)&&typeof root.clientCreateNewSheet==='function'){root.clientCreateNewSheet(k);addReturnBar();return;}
  const native=Array.from(doc.querySelectorAll('[data-tools-new]')).find(b=>b.dataset.toolsNew===k);
- if(native){page='anagrafica';$('clientsPanel').classList.add('cdClinicalEditing');root.optykerClientOpenPage?.('anagrafica');signature='';render();native.click();return;}
- if(k==='visit'){page='anagrafica';root.optykerClientOpenPage?.('anagrafica');signature='';render();root.clientToggleNewSheetMenu?.();$('clientsPanel').classList.add('cdClinicalEditing');return;}
+ if(native){page='anagrafica';$('clientsPanel').classList.add('cdClinicalEditing');nativePage('anagrafica');signature='';render();native.click();return;}
+ if(k==='visit'){page='anagrafica';nativePage('anagrafica');signature='';render();root.clientToggleNewSheetMenu?.();$('clientsPanel').classList.add('cdClinicalEditing');return;}
  notice('Per questa scheda il comando di creazione non è ancora caricato. Premi Aggiorna o riapri Clienti.');
 }
 function bind(){
@@ -157,18 +203,38 @@ function bind(){
 }
 const CSS=`
 #clientDossier{font-family:inherit;color:#27272a;margin:14px 0 22px;min-width:0;grid-column:1/-1}#clientDossier *{box-sizing:border-box}#clientDossier button{font-family:inherit;cursor:pointer;min-height:42px;border:1px solid #dddde2;background:#fff;color:#41414a;border-radius:10px;padding:9px 13px;font-size:12px;font-weight:700;line-height:1.35}#clientDossier button:hover{border-color:#b62037;background:#fff7f8}#clientDossier button:focus-visible{outline:3px solid #e393a1;outline-offset:3px}#clientDossier button:disabled{opacity:.6;cursor:wait}#clientDossier button.active,#clientDossier .cdPrimary{background:#aa1730;color:#fff;border-color:#aa1730}#clientDossier h2,#clientDossier h3,#clientDossier h4,#clientDossier p{margin:0}#clientDossier h2{font-size:21px;line-height:1.25;font-weight:800}#clientDossier p{font-size:12px;line-height:1.6;color:#71717c;margin-top:5px}.cdNav{display:flex;gap:7px;flex-wrap:wrap;padding-bottom:15px;border-bottom:1px solid #e5e5e9}.cdHeading,.cdBinderHead,.cdDocumentHead{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:18px 0}.cdTypes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:16px 0 22px}.cdTypes button{display:flex;align-items:center;justify-content:space-between;text-align:left;gap:8px}.cdTypes small{display:flex;align-items:center;justify-content:center;min-width:24px;height:24px;background:#f2f2f5;border-radius:7px;font-size:11px;color:#71717c}.cdTypes .active small{background:#ffffff24;color:#fff}.cdBinder{border:1px solid #e1dde0;background:#fff;border-radius:15px;padding:18px}.cdBinderHead{margin:0 0 18px}.cdBinderHead small{font-size:9px;letter-spacing:.13em;color:#9b5864;display:block;margin-bottom:6px}.cdStages{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}.cdDates{display:flex;gap:5px;overflow-x:auto;scrollbar-width:thin;border-bottom:2px solid #aa1730;padding-top:4px}.cdDates button{flex:0 0 auto;min-width:133px;max-width:220px;border-radius:10px 10px 0 0!important;border-bottom:0!important;text-align:left;padding:12px 15px!important}.cdDates b,.cdDates span{display:block}.cdDates b{font-size:13px}.cdDates span{font-size:10px;font-weight:500;margin-top:4px;white-space:normal;overflow-wrap:anywhere}.cdDocument{padding:5px 0 0}.cdDocumentHead{margin:20px 0}.cdDocumentHead h3{font-size:18px}.cdActions{display:flex;gap:7px;flex-wrap:wrap}.cdSection{border-top:1px solid #ededf0;padding:18px 0}.cdSection h3{font-size:14px;color:#8f2436;margin-bottom:13px!important}.cdFields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px;margin:0}.cdFields>div{padding:10px 0;border-bottom:1px solid #f0f0f2;min-width:0}.cdFields dt{font-size:11px;color:#75757e;margin:0 0 5px}.cdFields dd{font-size:13px;line-height:1.55;color:#24242a;margin:0;white-space:pre-wrap;overflow-wrap:anywhere}.cdNested{margin:12px 0 0;padding:12px;background:#fafafa;border-radius:10px}.cdNested h4{font-size:12px;margin-bottom:8px!important}.cdEmpty{padding:30px 20px;background:#faf9fa;border:1px dashed #ddd5d8;border-radius:12px;font-size:13px;line-height:1.65;color:#6b6268}.cdError{padding:12px;background:#fff0f1;color:#9b142c!important;border-radius:8px;margin:10px 0!important}.cdImage{max-width:100%;max-height:400px;object-fit:contain}.cdEditorReturn{margin:0 0 14px;padding:12px 16px;border:1px solid #aa1730;border-radius:9px;background:#fff;color:#aa1730;font:700 12px inherit;cursor:pointer}
-#clientsPanel.clientDossierReady #cwoSummary,#clientsPanel.clientDossierReady #clientPageNav,#clientsPanel.clientDossierReady #clientPageIntro,#clientsPanel.clientDossierReady #clientRecordNavWrap,#clientsPanel.clientDossierReady #clientMainSheetDates,#clientsPanel.clientDossierReady .clientNewSheetDock{display:none!important}
-#clientsPanel.clientDossierReady[data-cd-page="schede"] #clientEditView .clientWorkspaceGrid,#clientsPanel.clientDossierReady[data-cd-page="schede"] #clientEyewearPage,#clientsPanel.clientDossierReady[data-cd-page="schede"] #optykerClientQuotesSection,#clientsPanel.clientDossierReady[data-cd-page="schede"] #optykerClientClinicalTools,#clientsPanel.clientDossierReady[data-cd-page="schede"] #optykerClientReferenceTools,#clientsPanel.clientDossierReady[data-cd-page="schede"] #optykerClientAnomalyTools,#clientsPanel.clientDossierReady[data-cd-page="schede"] #optykerClientPaymentTools{display:none!important}
-#clientsPanel.clientDossierReady:not(.cdClinicalEditing) #optykerClientClinicalTools,#clientsPanel.clientDossierReady:not(.cdClinicalEditing) #optykerClientAnomalyTools{display:none!important}
-#clientsPanel.clientDossierReady.cdClinicalEditing .clientNewSheetDock{display:block!important}
-body.optykerDossierNavigation #moduleNav .moduleSheetGroup,body.optykerDossierNavigation #navSheets,body.optykerDossierNavigation #moduleNav .sheetsSubmenu{display:none!important}
+html body #mainApp #clientsPanel.clientDossierReady #cwoSummary,html body #mainApp #clientsPanel.clientDossierReady #clientPageNav,html body #mainApp #clientsPanel.clientDossierReady #clientPageIntro,html body #mainApp #clientsPanel.clientDossierReady #clientRecordNavWrap,html body #mainApp #clientsPanel.clientDossierReady #clientMainSheetDates,html body #mainApp #clientsPanel.clientDossierReady .clientNewSheetDock{display:none!important}
+html body #mainApp #clientsPanel.clientDossierReady[data-cd-page="schede"] #clientEditView .clientWorkspaceGrid,html body #mainApp #clientsPanel.clientDossierReady[data-cd-page="schede"] #clientEyewearPage,html body #mainApp #clientsPanel.clientDossierReady[data-cd-page="schede"] #optykerClientQuotesSection,html body #mainApp #clientsPanel.clientDossierReady[data-cd-page="schede"] #optykerClientClinicalTools,html body #mainApp #clientsPanel.clientDossierReady[data-cd-page="schede"] #optykerClientReferenceTools,html body #mainApp #clientsPanel.clientDossierReady[data-cd-page="schede"] #optykerClientAnomalyTools,html body #mainApp #clientsPanel.clientDossierReady[data-cd-page="schede"] #optykerClientPaymentTools{display:none!important}
+html body #mainApp #clientsPanel.clientDossierReady:not(.cdClinicalEditing) #optykerClientClinicalTools,html body #mainApp #clientsPanel.clientDossierReady:not(.cdClinicalEditing) #optykerClientAnomalyTools{display:none!important}
+html body #mainApp #clientsPanel.clientDossierReady.cdClinicalEditing .clientNewSheetDock{display:block!important}
+html body.optykerDossierNavigation #mainApp #moduleNav #clientSidebarSubmenu,
+html body.optykerDossierNavigation #mainApp #moduleNav #moduleSheetGroup,
+html body.optykerDossierNavigation #mainApp #moduleNav #sheetsSubmenu,
+html body.optykerDossierNavigation #mainApp #moduleNav #navSheets,
+html body.optykerDossierNavigation #mainApp #moduleNav #navClients .optykerNavChevron{display:none!important}
+html body.cdClientOpen #mainApp #reportSectionTop{display:none!important}
+#clientDossier[hidden]{display:none!important}
 @media(max-width:1000px){.cdTypes{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:680px){.cdTypes{grid-template-columns:repeat(2,minmax(0,1fr))}.cdBinder{padding:12px}.cdHeading,.cdBinderHead,.cdDocumentHead{align-items:flex-start;flex-wrap:wrap}.cdFields{grid-template-columns:1fr}.cdNav{gap:5px}#clientDossier .cdNav button{padding:8px 10px;font-size:11px}.cdActions{width:100%}}
 @media print{.cdNav,.cdHeading,.cdTypes,.cdStages,.cdDates,.cdActions,.cdEditorReturn,.cdBinderHead button{display:none!important}.cdBinder{border:0;padding:0}.cdFields>div{break-inside:avoid}}
 `;
-function boot(){const s=doc.createElement('style');s.id='optykerClientDossierCss';s.textContent=CSS;doc.head.append(s);render();
+function boot(){const s=doc.createElement('style');s.id='optykerClientDossierCss';s.textContent=CSS;doc.head.append(s);installNavigation();render();
+ // Capture before the legacy document handlers. Only Clienti is intercepted;
+ // Dashboard, Orders, Cassa and all save/print buttons retain their own handlers.
+ root.addEventListener('click',e=>{
+  const b=e.target?.closest?.('#navClients');
+  if(!b||!logged()||root.OPTYKER_BILLING_ADMIN)return;
+  e.preventDefault();e.stopImmediatePropagation();activateClients();
+ },true);
+ root.addEventListener('pageshow',()=>{installNavigation();render();});
  ['optyker:sheet-edited','optyker:sheet-removed','optyker:sheet-order-created','optyker:client-saved'].forEach(n=>root.addEventListener(n,()=>{signature='';render();}));
- setInterval(()=>{if(!logged()){render();doc.body.classList.remove('optykerDossierNavigation');return;}if(doc.hidden)return;const panel=$('clientsPanel');if(panel&&root.getComputedStyle(panel).display!=='none'){render();doc.body.classList.add('optykerDossierNavigation');}},700);
+ setInterval(()=>{
+  if(!logged()){render();doc.body.classList.remove('optykerDossierNavigation','cdClientOpen');return;}
+  if(doc.hidden||root.OPTYKER_BILLING_ADMIN)return;
+  installNavigation();doc.body.classList.add('optykerDossierNavigation');
+  const panel=$('clientsPanel'),shown=!!panel&&root.getComputedStyle(panel).display!=='none';
+  doc.body.classList.toggle('cdClientOpen',shown&&!!cid());if(shown)render();
+ },700);
 }
-root.OPTYKER_CLIENT_DOSSIER={version:VERSION,render,chooseType,switchPage,...helpers};
+root.OPTYKER_CLIENT_DOSSIER={version:VERSION,render,chooseType,chooseDate,switchPage,legacyPage,...helpers};
 if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })(typeof window==='undefined'?globalThis:window);
