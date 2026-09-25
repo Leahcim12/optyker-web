@@ -40,10 +40,10 @@ jobs:
                       tags=re.findall(r'<script\b[^>]*\bid="optykerClientDossierJs"[^>]*>',html)
                       if len(tags)!=1: raise RuntimeError('Dossier not yet present exactly once: '+path)
                       src=re.search(r'\bsrc="([^"]+)"',tags[0]).group(1)
-                      if '20260925-dossier1' not in src: raise RuntimeError('Dossier version mismatch')
+                      if '20260925-dossier2' not in src: raise RuntimeError('Dossier version mismatch')
                       asset=read(urljoin(base+path,src))
                       if asset!=expected: raise RuntimeError('Dossier asset differs from checked source')
-                      checks.append({'path':path or '/', 'version':'20260925-dossier1','sha256':hashlib.sha256(asset).hexdigest()})
+                      checks.append({'path':path or '/', 'version':'20260925-dossier2','sha256':hashlib.sha256(asset).hexdigest()})
                   print(json.dumps({'result':'PRODUCTION VERIFIED','checks':checks}))
                   break
               except Exception as exc:
