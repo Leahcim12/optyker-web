@@ -1,0 +1,53 @@
+name: Verifica raccoglitore clienti pubblicato
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'client-dossier.js'
+      - 'scripts/apply_client_workspace_original.py'
+      - '.github/workflows/verify-client-dossier-live.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-public-assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify deployed HTML and byte-identical JavaScript - no authentication
+        run: |
+          python - <<'PY'
+          import hashlib, json, re, time
+          from pathlib import Path
+          from urllib.request import Request, urlopen
+          from urllib.parse import urljoin
+          base='https://www.optyker.it/'
+          expected=Path('client-dossier.js').read_bytes()
+          def read(url):
+              req=Request(url,headers={'Cache-Control':'no-cache','User-Agent':'Optyker-Deployment-Verification/1.0'})
+              with urlopen(req,timeout=20) as r:
+                  if r.status != 200: raise RuntimeError('HTTP '+str(r.status))
+                  return r.read()
+          for attempt in range(12):
+              try:
+                  checks=[]
+                  for path in ('','gestionale-v2/','gestionale-v3/'):
+                      url=base+path+'?dossier_check='+str(time.time_ns())
+                      html=read(url).decode('utf-8')
+                      tags=re.findall(r'<script\b[^>]*\bid="optykerClientDossierJs"[^>]*>',html)
+                      if len(tags)!=1: raise RuntimeError('Dossier not yet present exactly once: '+path)
+                      src=re.search(r'\bsrc="([^"]+)"',tags[0]).group(1)
+                      if '20260925-dossier1' not in src: raise RuntimeError('Dossier version mismatch')
+                      asset=read(urljoin(base+path,src))
+                      if asset!=expected: raise RuntimeError('Dossier asset differs from checked source')
+                      checks.append({'path':path or '/', 'version':'20260925-dossier1','sha256':hashlib.sha256(asset).hexdigest()})
+                  print(json.dumps({'result':'PRODUCTION VERIFIED','checks':checks}))
+                  break
+              except Exception as exc:
+                  print('Publication check',attempt+1,':',str(exc),flush=True)
+                  if attempt==11: raise
+                  time.sleep(10)
+          PY
