@@ -6,7 +6,7 @@ from apply_ts_connection import DocumentClosings
 
 VERSION = '20260919-original1'
 STYLE_VERSION = '20260919-red1'
-DOSSIER_VERSION = '20260925-dossier1'
+DOSSIER_VERSION = '20260925-dossier2'
 ASSETS = ('client-workspace-original.js', 'client-workspace-original.css', 'client-dossier.js')
 
 
