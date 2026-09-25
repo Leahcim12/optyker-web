@@ -1,0 +1,87 @@
+name: Verifica fluidita account Diego e ricerche
+on:
+  push:
+    branches: [main, optyker/diego-responsiveness-20260925]
+    paths:
+      - 'scripts/apply_operator_responsiveness.py'
+      - 'scripts/apply_client_workspace_original.py'
+      - 'tests/operator-responsiveness*'
+      - '.github/workflows/operator-responsiveness-20260925.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build and validate all desktop entry points
+        run: |
+          mkdir -p /tmp/operator-responsiveness
+          git rev-parse HEAD > /tmp/operator-responsiveness/commit.txt
+          git archive --format=zip HEAD -o /tmp/operator-responsiveness/source.zip
+          bash scripts/vercel-build-v13.sh
+          bash scripts/vercel-finalize-20260914.sh
+          python scripts/check_desktop_html.py
+          node --test tests/client-dossier.test.cjs
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0,'scripts')
+          from apply_operator_responsiveness import patch,MARK,LOAD_CLIENTS,SELECT_CLIENT,SEARCH_LOADS
+          html=Path('_site/index.html').read_text()
+          assert MARK in html and LOAD_CLIENTS.strip() in html and SELECT_CLIENT.strip() in html and SEARCH_LOADS.strip() in html
+          assert patch(html)==html
+          PY
+      - name: Install pinned browser test dependencies
+        run: |
+          python -m pip install playwright==1.57.0 beautifulsoup4==4.13.5
+          python -m playwright install --with-deps chromium
+      - name: Typing during slow archive loads for all operators
+        run: timeout 180s python tests/operator-responsiveness.browser.py
+      - name: Existing client dossier navigation regression
+        run: timeout 120s python tests/client-dossier-navigation.browser.py
+      - name: Verify publication on the real domain
+        if: github.ref == 'refs/heads/main'
+        run: |
+          python - <<'PY'
+          import hashlib,json,sys,time
+          from pathlib import Path
+          from urllib.request import Request,urlopen
+          sys.path.insert(0,'scripts')
+          from apply_operator_responsiveness import VERSION,MARK,LOAD_CLIENTS,SELECT_CLIENT,SEARCH_LOADS
+          def get(path):
+              req=Request('https://www.optyker.it/'+path+'?responsive_verify='+str(time.time_ns()),headers={'Cache-Control':'no-cache'})
+              return urlopen(req,timeout=20).read().decode()
+          for attempt in range(18):
+              try:
+                  version=json.loads(get('operator-responsiveness-version.json'))
+                  assert version['version']==VERSION
+                  assert version['patch_sha256']==hashlib.sha256(Path('scripts/apply_operator_responsiveness.py').read_bytes()).hexdigest()
+                  for path in ('','gestionale-v2/','gestionale-v3/'):
+                      html=get(path)
+                      assert MARK in html and LOAD_CLIENTS.strip() in html and SELECT_CLIENT.strip() in html and SEARCH_LOADS.strip() in html
+                  print('OPERATOR_RESPONSIVENESS_PRODUCTION_VERIFIED',VERSION)
+                  break
+              except Exception as exc:
+                  print('Publication check',attempt+1,str(exc),flush=True)
+                  if attempt==17: raise
+                  time.sleep(8)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: operator-responsiveness-verified
+          path: |
+            /tmp/operator-responsiveness/
+            /tmp/client-dossier-navigation/results.json
+          retention-days: 2

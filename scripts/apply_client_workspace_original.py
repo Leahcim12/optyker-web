@@ -50,6 +50,9 @@ def main():
         for asset in ASSETS:
             copyfile(asset, dest / asset)
     print('Original customer workspace applied:', VERSION, 'palette:', STYLE_VERSION, 'dossier:', DOSSIER_VERSION, '(no data migration)')
+    # Bound archive/search work before legacy wrappers execute in both deployments.
+    from apply_operator_responsiveness import main as apply_responsiveness
+    apply_responsiveness(root)
 
 
 if __name__ == '__main__':
