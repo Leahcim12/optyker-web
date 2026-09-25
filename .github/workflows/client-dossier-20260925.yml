@@ -1,0 +1,65 @@
+name: Verifica raccoglitore clienti per data
+on:
+  push:
+    branches: [main, optyker/clienti-raccoglitore-20260925]
+    paths:
+      - 'client-dossier.js'
+      - 'scripts/apply_client_workspace_original.py'
+      - 'tests/client-dossier*'
+      - '.github/workflows/client-dossier-20260925.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Syntax and client/date isolation tests
+        run: |
+          mkdir -p /tmp/client-dossier-check
+          node --check client-dossier.js
+          node --test tests/client-dossier.test.cjs
+          git rev-parse HEAD > /tmp/client-dossier-check/commit.txt
+          git archive --format=zip HEAD -o /tmp/client-dossier-check/source.zip
+      - name: Full build without production writes
+        run: |
+          bash scripts/vercel-build-v13.sh
+          bash scripts/vercel-finalize-20260914.sh
+          python scripts/check_desktop_html.py
+          python - <<'PY'
+          from pathlib import Path
+          import re, shutil
+          from urllib.parse import urlsplit
+          root=Path('_site')
+          for rel in ('index.html','gestionale-v2/index.html','gestionale-v3/index.html'):
+              html=(root/rel).read_text()
+              assert html.count('id="optykerClientDossierJs"') == 1, rel
+              assert '20260925-dossier1' in html, rel
+          assert (root/'client-dossier.js').read_bytes()==Path('client-dossier.js').read_bytes()
+          assert (root/'index.html').read_bytes()==(root/'gestionale-v2/index.html').read_bytes()
+          assert (root/'index.html').read_bytes()==(root/'gestionale-v3/index.html').read_bytes()
+          shutil.make_archive('/tmp/client-dossier-check/built', 'zip', root)
+          print('Dossier included in all final desktop entry points')
+          PY
+      - name: Install pinned browser test runner
+        run: |
+          python -m pip install playwright==1.57.0
+          python -m playwright install --with-deps chromium
+      - name: Synthetic browser navigation - no network or patient data
+        run: python tests/client-dossier-browser.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: client-dossier-verified
+          path: /tmp/client-dossier-check/
+          retention-days: 2
