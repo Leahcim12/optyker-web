@@ -1,0 +1,8 @@
+const {test}=require('node:test');const assert=require('node:assert/strict');
+const h=require('../client-dossier.js');
+test('Italian and ISO dates validated strictly',()=>{assert.equal(h.dateValue('25/09/2026').getDate(),25);assert.equal(h.dateValue('2026-09-25T00:30:00Z').getMonth(),8);assert.equal(h.dateValue('31/02/2026'),null);assert.equal(h.dateValue('bad'),null);});
+test('Exam date remains stable after edits',()=>{assert.equal(h.rowDate({data:{elements:{lacDate:{value:'20/08/2026'}}},updated_at:'2026-09-25'}).getMonth(),7);});
+test('Only selected client; duplicates removed by id, never date',()=>{const map={a:[{id:'1',client_id:'a'},{id:'2',client_id:'b'},{id:'1'},{id:'3',client_id:'a'}]};assert.deepEqual(h.scopedRows(map,'a').map(r=>r.id),['1','3']);assert.equal(h.scopedRows(map,'b'),null);assert.equal(h.scopedRows(map,''),null);});
+test('Multiple sheets on same date remain distinct',()=>{const rows=[{id:'1',created_at:'2026-09-25'},{id:'2',created_at:'2026-09-25'},{id:'3',created_at:'2025-12-31'}];assert.equal(h.ordered(rows).length,3);assert.equal(h.ordered(rows).at(-1).id,'3');assert.equal(rows[0].id,'1');});
+test('Trial and final classification respects explicit choice',()=>{assert.equal(h.stage({data:{lacState:{document:'Busta'},lacProductStage:'trial'}}),'trial');assert.equal(h.stage({data:{lacState:{document:'Busta'}}}),'final');assert.equal(h.stage({data:{}}),'trial');});
+test('Legacy categories and escaping',()=>{assert.equal(h.category({sheet_type:'lac_specialist'}),'lac');assert.equal(h.category({sheet_type:'eyewear_quote'}),'eyewear');assert.equal(h.category({sheet_type:'usage'}),'indications');assert.equal(h.esc('<img onerror="x">'),'&lt;img onerror=&quot;x&quot;&gt;');});
