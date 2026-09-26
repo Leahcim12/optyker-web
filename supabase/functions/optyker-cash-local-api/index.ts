@@ -11,6 +11,11 @@ const CORS={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'co
 const out=(x:any,s=200)=>new Response(JSON.stringify(x),{status:s,headers:{...CORS,'Content-Type':'application/json; charset=utf-8'}});
 const norm=(v:any)=>String(v??'').trim();
 const money=(v:any)=>{const n=Number(v);return Number.isFinite(n)?Math.round(n*100)/100:0};
+function mixedBreakdown(value:any,total:number){
+ const valid=(v:any)=>typeof v==='number'&&Number.isFinite(v)&&v>0&&Number.isSafeInteger(Math.round(v*100))&&Math.abs(v*100-Math.round(v*100))<1e-7;
+ if(!value||typeof value!=='object'||!valid(value.cash)||!valid(value.card)||Math.round(value.cash*100)+Math.round(value.card*100)!==Math.round(total*100))throw new Error('Contanti e carta devono coprire esattamente l’importo da incassare.');
+ return {cash:money(value.cash),card:money(value.card)};
+}
 const keyOf=(v:any)=>norm(v?.variant_id||v?.shopify_variant_id||v?.catalog_id||v?.id);
 
 async function auth(body:any){
@@ -119,7 +124,7 @@ async function checkout(body:any,operator:string){
  if(p.expected_total!=null&&Math.abs(money(p.expected_total)-total)>0.01)throw new Error('Il totale del carrello è cambiato: ricarica i prodotti prima di incassare.');
  const client=await clientById(norm(p.client_id));if(p.client_id&&!client)throw new Error('Cliente non trovato');
  let stage=['deposit','balance','delivery_balance'].includes(norm(p.payment_stage))?norm(p.payment_stage):'balance';
- let method=['cash','card','bank','other','pending'].includes(norm(p.payment_method))?norm(p.payment_method):'card';
+ let method=['cash','card','mixed','bank','other','pending'].includes(norm(p.payment_method))?norm(p.payment_method):'card';
  const invoiceRequested=!!p.invoice_requested,ts=!!p.ts_requested,stockOnly=total===0,tsCode=norm(p.ts_expense_code)==='AA'?'AA':'AD',opposition=!!p.ts_opposition;
  let autoReceipt=p.auto_receipt===true&&total>0;if(stockOnly){stage='balance';method='other';autoReceipt=false}
  if(invoiceRequested&&!client)throw new Error('Per creare la fattura seleziona un cliente.');
@@ -127,20 +132,23 @@ async function checkout(body:any,operator:string){
  if(stockOnly&&ts)throw new Error('Uno scarico magazzino a 0,00 € non genera una spesa Sistema TS.');
  if(ts&&invoiceRequested)throw new Error('Per una spesa Sistema TS non usare la fattura elettronica.');
  if(autoReceipt&&invoiceRequested)throw new Error('La fattura elettronica e lo scontrino RCH sono flussi separati.');
- if(autoReceipt&&!['cash','card'].includes(method))throw new Error('Per lo scontrino RCH seleziona Contanti o Carta.');
+ if(autoReceipt&&!['cash','card','mixed'].includes(method))throw new Error('Per lo scontrino RCH seleziona Contanti o Carta.');
  let paidNow=0;if(!stockOnly&&method!=='pending'){if(stage==='deposit'){paidNow=money(p.deposit_amount);if(!(paidNow>0&&paidNow<total))throw new Error("L'acconto deve essere maggiore di 0 e inferiore al totale.")}else paidNow=total}
+ if(method==='mixed'&&(!autoReceipt||invoiceRequested||ts))throw new Error('Il pagamento misto richiede uno scontrino RCH senza fattura né invio TS.');
+ if(method!=='mixed'&&p.payment_breakdown!=null)throw new Error('Ripartizione ammessa solo per Contanti + carta.');
+ const breakdown=method==='mixed'?mixedBreakdown(p.payment_breakdown,paidNow):null;
  if(invoiceRequested&&paidNow<=0)throw new Error('Non è possibile fatturare un pagamento di 0,00 €.');if(ts&&paidNow<=0)throw new Error('Per preparare il Sistema TS deve esserci un pagamento.');
  const due=stockOnly?0:money(Math.max(0,total-paidNow)),paymentStatus=stockOnly?'paid':due>0?(paidNow>0?'partially_paid':'pending'):'paid',identity=stockOnly?null:purchaseIdentity(client,p.fiscal_code,ts);
- let lines:any[]=priced,snapshot:any=null;if(autoReceipt){lines=fiscalLines(priced,choices);snapshot=paymentDocument(lines,method,paidNow,0,identity,{ts,code:tsCode,opposition})}
+ let lines:any[]=priced,snapshot:any=null;if(autoReceipt){lines=fiscalLines(priced,choices);snapshot=paymentDocument(lines,method==='mixed'?'card':method,paidNow,0,identity,{ts,code:tsCode,opposition});if(breakdown)snapshot.input.payment_breakdown=breakdown}
  const requestHash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(p))))].map(v=>v.toString(16).padStart(2,'0')).join('');
  const channel=stockOnly?'physical_stock_only':autoReceipt?'physical_rch_receipt':invoiceRequested?'physical_invoice':'physical_pos_pending';
- const salePayload:any={client_id:client?.id||null,operator_username:operator,payment_stage:stage,payment_method:method,payment_status:paymentStatus,status:due>0?'open_balance':'completed',subtotal:total,discount_total:money(q.discount_total),total,paid_amount:paidNow,due_amount:due,currency:'EUR',shopify_draft_order_id:null,shopify_order_id:null,shopify_order_name:null,note:norm(p.note).slice(0,1000),invoice_requested:invoiceRequested,completed_at:due>0?null:new Date().toISOString(),delivered_at:stage==='delivery_balance'&&due===0?new Date().toISOString():null,data:{source:'optyker_pos_local',channel,shopify_order_created:false,stock_only:stockOnly,checkout_request_id:requestId,checkout_request_hash:requestHash,client_cart_selection:true,pricing,client_snapshot:client||null,fiscal_identity:identity,lines,payment_stage:stage,paid_now:paidNow,due_amount:due}};
+ const salePayload:any={client_id:client?.id||null,operator_username:operator,payment_stage:stage,payment_method:method,payment_status:paymentStatus,status:due>0?'open_balance':'completed',subtotal:total,discount_total:money(q.discount_total),total,paid_amount:paidNow,due_amount:due,currency:'EUR',shopify_draft_order_id:null,shopify_order_id:null,shopify_order_name:null,note:norm(p.note).slice(0,1000),invoice_requested:invoiceRequested,completed_at:due>0?null:new Date().toISOString(),delivered_at:stage==='delivery_balance'&&due===0?new Date().toISOString():null,data:{source:'optyker_pos_local',channel,shopify_order_created:false,stock_only:stockOnly,checkout_request_id:requestId,checkout_request_hash:requestHash,client_cart_selection:true,pricing,client_snapshot:client||null,fiscal_identity:identity,lines,payment_stage:stage,paid_now:paidNow,due_amount:due,...(breakdown?{payment_breakdown:breakdown}:{})}};
  const {data:sale,error:se}=await db.from('optyker_pos_sales').insert(salePayload).select('*').single();if(se)throw se;
  let inventoryDone=false,saleDone=false;
  try{
    const items=lines.map((x:any)=>({sale_id:sale.id,shopify_product_id:x.product_id||null,shopify_variant_id:x.catalog_id?'':(x.shopify_variant_id||x.variant_id||''),title:String(x.title||'Prodotto'),variant_title:String(x.variant_title||''),sku:String(x.sku||''),barcode:String(x.barcode||''),quantity:Number(x.quantity||1),unit_price:money(x.price),total:money(x.total??Number(x.price||0)*Number(x.quantity||1)),data:{image:x.image||'',vendor:x.vendor||'',product_type:x.product_type||'',catalog_id:x.catalog_id||null,inventory_item_id:x.inventory_item_id||null,fiscal_department:x.fiscal_department||null,fiscal_vat_code:x.fiscal_vat_code||'',fiscal_item_type:x.fiscal_item_type||'',quoted_unit_price:money(x.quoted_unit_price??x.price),manual_price_override:x.manual_price_override===true,shopify_order_created:false}}));
    const {error:ie}=await db.from('optyker_pos_sale_items').insert(items);if(ie)throw ie;
-   let payment:any=null;if(paidNow>0){const {data,error:pe}=await db.from('optyker_pos_payments').insert({sale_id:sale.id,client_id:client?.id||null,operator_username:operator,payment_stage:stage,payment_method:method,amount:paidNow,currency:'EUR',invoice_requested:invoiceRequested,note:norm(p.note).slice(0,1000),data:{source:'optyker_pos_local',channel,shopify_order_id:'',shopify_order_name:'',shopify_order_created:false,fiscal_snapshot:snapshot}}).select('*').single();if(pe)throw pe;payment=data}
+   let payment:any=null;if(paidNow>0){const {data,error:pe}=await db.from('optyker_pos_payments').insert({sale_id:sale.id,client_id:client?.id||null,operator_username:operator,payment_stage:stage,payment_method:method,amount:paidNow,currency:'EUR',invoice_requested:invoiceRequested,note:norm(p.note).slice(0,1000),data:{source:'optyker_pos_local',channel,shopify_order_id:'',shopify_order_name:'',shopify_order_created:false,fiscal_snapshot:snapshot,...(breakdown?{payment_breakdown:breakdown}:{})}}).select('*').single();if(pe)throw pe;payment=data}
    const inventory=await applyInventory(body,sale,lines,operator);inventoryDone=true;
    let invoice:any=null,invoiceWarning='';if(invoiceRequested&&payment){try{invoice=await invoiceDraft(sale,payment,client,operator,stage,method,paidNow)}catch(e){invoiceWarning=e instanceof Error?e.message:String(e)}}
    saleDone=true;const client_cart=await completeCart(sale,operator);
@@ -148,4 +156,3 @@ async function checkout(body:any,operator:string){
  }catch(e){if(saleDone)throw e;if(!inventoryDone)await db.from('optyker_pos_sales').delete().eq('id',sale.id);else await db.from('optyker_pos_sales').update({status:'error',updated_at:new Date().toISOString()}).eq('id',sale.id);throw e}
 }
 Deno.serve(async(req:Request)=>{if(req.method==='OPTIONS')return new Response(null,{status:204,headers:CORS});if(req.method!=='POST')return out({ok:false,error:'METHOD_NOT_ALLOWED'},405);try{const body=await req.json().catch(()=>({})),operator=await auth(body);if(norm(body.action)!=='checkout')return out({ok:false,error:'Azione non riconosciuta'},400);return out({ok:true,data:await checkout(body,operator)})}catch(e){const m=e instanceof Error?e.message:String(e);return out({ok:false,error:m},/AUTH_REQUIRED|Credenziali/.test(m)?401:400)}});
-

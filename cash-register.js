@@ -187,8 +187,9 @@ function ensureUI(){
       '</div>'+
       '<div id="optykerCashDepositWrap" class="optykerCashDepositWrap" style="display:none"><div><label>Importo acconto</label><input id="optykerCashDeposit" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00"></div><div class="optykerCashDuePreview"><span>Resterà da saldare</span><b id="optykerCashDue">€ 0,00</b></div></div>'+
       '<div class="optykerCashPayLabel optykerCashPayLabelSpaced">Metodo di pagamento</div><div class="optykerCashPayModes">'+
-        '<button class="optykerCashPayMode" data-pay="cash" type="button">Contanti</button><button class="optykerCashPayMode active" data-pay="card" type="button">Carta</button><button class="optykerCashPayMode" data-pay="bank" type="button">Bonifico</button><button class="optykerCashPayMode" data-pay="pending" type="button" title="Pagamento dilazionato" aria-label="RATE - pagamento dilazionato">RATE</button>'+
+        '<button class="optykerCashPayMode" data-pay="cash" type="button">Contanti</button><button class="optykerCashPayMode active" data-pay="card" type="button">Carta</button><button class="optykerCashPayMode" data-pay="mixed" type="button">Contanti + carta</button><button class="optykerCashPayMode" data-pay="bank" type="button">Bonifico</button><button class="optykerCashPayMode" data-pay="pending" type="button" title="Pagamento dilazionato" aria-label="RATE - pagamento dilazionato">RATE</button>'+
       '</div>'+
+      '<div id="optykerCashMixed" class="optykerCashMixed" hidden><label for="optykerCashMixedCash">Contanti <input id="optykerCashMixedCash" type="number" min="0.01" step="0.01" inputmode="decimal"></label><div>Carta <b id="optykerCashMixedCard">€ 0,00</b></div><small>La carta copre il resto. Verrà stampato un solo scontrino.</small><a href="/rch-connector/Aggiorna-RCH-POS.bat?v=20260926-mixed1" download>Aggiorna connettore RCH per pagamento misto</a></div>'+
       '<label id="optykerCashTsBox" class="optykerCashTsBox"><input id="optykerCashTs" type="checkbox"><span class="optykerCashTsCheck">✓</span><span><b>Scontrino parlante · detrazione</b><small id="optykerCashTsHint">Inserisci il codice fiscale anche per un cliente occasionale.</small></span></label>'+
       '<div id="optykerCashTsOptions" class="optykerCashTsOptions" style="display:none"><div><label for="optykerCashFiscalCode">Codice fiscale per questa vendita</label><input id="optykerCashFiscalCode" maxlength="16" autocomplete="off" spellcheck="false" autocapitalize="characters" placeholder="Codice fiscale del cliente"></div><div><label for="optykerCashTsCode">Codice spesa</label><select id="optykerCashTsCode"><option value="AD">AD · Dispositivo medico</option><option value="AA">AA · Prestazione sanitaria</option></select></div><label class="optykerCashTsOpposition"><input id="optykerCashTsOpposition" type="checkbox"> Opposizione del cliente all\'uso dei dati nella precompilata</label></div>'+
       '<label id="optykerCashInvoiceBox" class="optykerCashInvoiceBox"><input id="optykerCashInvoice" type="checkbox"><span class="optykerCashInvoiceCheck">✓</span><span><b>Prepara fattura Fatture in Cloud</b><small id="optykerCashInvoiceHint">La fattura verrà preparata con i dati del cliente.</small></span></label>'+
@@ -203,6 +204,7 @@ function ensureUI(){
   E('optykerCashSearch').oninput=function(){clearTimeout(S.searchTimer);S.searchTimer=setTimeout(function(){loadProducts(false)},280)};
   E('optykerCashClient').onchange=function(){S.clientId=this.value||'';updateInvoiceAvailability();updateTsAvailability()};E('optykerCashClientSearch').oninput=function(){var q=this.value||'';clearTimeout(S.clientSearchTimer);S.clientSearchTimer=setTimeout(function(){searchCashClients(q)},220)};
   var ps=d.querySelectorAll('[data-pay]');for(var i=0;i<ps.length;i++)ps[i].onclick=function(){S.payment=this.getAttribute('data-pay')||'card';renderPay();renderCart();updateTsAvailability()};
+  E('optykerCashMixedCash').oninput=function(){this.dataset.edited='1';renderCart()};
   var ss=d.querySelectorAll('[data-stage]');for(i=0;i<ss.length;i++)ss[i].onclick=function(){S.stage=this.getAttribute('data-stage')||'balance';renderStage();renderCart()};
   E('optykerCashDeposit').oninput=renderCart;
   E('optykerCashTs').onchange=function(){
@@ -323,15 +325,27 @@ function depositAmount(){
   var x=E('optykerCashDeposit'),n=Number(x&&x.value||0);return isFinite(n)?Math.round(n*100)/100:0
 }
 function stageLabel(s){return s==='deposit'?'Acconto':(s==='delivery_balance'?'Saldo consegna':'Saldo')}
+function mixedAmounts(amount){
+  var total=Math.round(amount*100),field=E('optykerCashMixedCash');
+  if(!field)return null;
+  if(field.dataset.edited!=='1'){field.value=(Math.floor(total/2)/100).toFixed(2)}
+  var raw=String(field.value).replace(',','.');
+  var cash=/^\d+(?:\.\d{1,2})?$/.test(raw)?Math.round(Number(raw)*100):NaN;
+  var card=total-cash,cardLabel=E('optykerCashMixedCard');
+  if(cardLabel)cardLabel.textContent=Number.isInteger(card)?euro(card/100):'—';
+  return Number.isInteger(cash)&&cash>0&&card>0?{cash:cash/100,card:card/100}:null
+}
 function renderCart(){
   var box=E('optykerCashCartItems');if(!box)return;var rows=cartRows(),total=cartTotal(),count=0;rows.forEach(function(x){count+=x.qty});
   E('optykerCashCartCount').textContent=count+' articol'+(count===1?'o':'i');E('optykerCashTotal').textContent=euro(total);
   var dep=depositAmount(),validDep=S.stage!=='deposit'||(dep>0&&dep<total);
   var due=S.stage==='deposit'?Math.max(0,total-dep):0;if(E('optykerCashDue'))E('optykerCashDue').textContent=euro(due);
-  document.querySelectorAll('#optykerCashOverlay [data-pay],#optykerCashOverlay [data-stage],#optykerCashTs,#optykerCashTsCode,#optykerCashTsOpposition,#optykerCashFiscalCode,#optykerCashDeposit,#optykerCashNote').forEach(function(control){control.disabled=S.busy});
+  document.querySelectorAll('#optykerCashOverlay [data-pay],#optykerCashOverlay [data-stage],#optykerCashTs,#optykerCashTsCode,#optykerCashTsOpposition,#optykerCashFiscalCode,#optykerCashDeposit,#optykerCashMixedCash,#optykerCashNote').forEach(function(control){control.disabled=S.busy});
+  var mixedBox=E('optykerCashMixed');if(mixedBox)mixedBox.hidden=S.payment!=='mixed';
+  var payAmount=S.stage==='deposit'?dep:total,mixed=S.payment==='mixed'?mixedAmounts(payAmount):null;
   var invoice=E('optykerCashInvoice');if(invoice)invoice.disabled=S.busy||!S.clientId;
   var recover=E('optykerCashRecover');if(recover){var pending=false;try{pending=!!sessionStorage.getItem('optykerCashPendingRequest')}catch(ignore){}recover.hidden=!pending;recover.disabled=S.busy}
-  var cb=E('optykerCashCheckoutBtn');cb.disabled=!rows.length||S.busy||!validDep;
+  var cb=E('optykerCashCheckoutBtn');cb.disabled=!rows.length||S.busy||!validDep||(S.payment==='mixed'&&!mixed);
   var payNow=S.payment==='pending'?0:(S.stage==='deposit'?dep:total);
   cb.textContent=S.busy?'Operazione in corso…':rows.length?((S.invoice?'Prepara fattura':S.payment==='pending'?'Registra da pagare':'Incassa e stampa')+' · '+euro(payNow)):'Incassa e stampa';
   if(!rows.length){box.innerHTML='<div class="optykerCashCartEmpty">Il carrello è vuoto.<br>Seleziona un prodotto per iniziare.</div>';return}
@@ -409,17 +423,22 @@ function checkout(){
   if(ts&&!/^[A-Z0-9]{16}$/.test(cashFiscalCode())){toast('Inserisci il codice fiscale di 16 caratteri per questa vendita.','error');E('optykerCashFiscalCode').focus();return}
   if(ts&&inv){toast('Per una spesa Sistema TS non usare la fattura elettronica.','error');return}
   if(ts&&S.payment==='pending'){toast('Per preparare il Sistema TS registra prima un pagamento.','error');return}
+  if(ts&&S.payment==='mixed'){toast('Per la detrazione con pagamento misto serve una ripartizione sanitaria separata. Disattiva lo scontrino parlante per questo incasso.','error');return}
+  if(inv&&S.payment==='mixed'){toast('Per la fattura usa il pagamento singolo.','error');return}
   if(ts&&tsCode==='AA'&&S.payment==='cash'){toast('Le spese AA richiedono un pagamento tracciabile.','error');return}
   var autoReceipt=!inv&&S.payment!=='pending';
   var lines=rows.map(function(x){return {variant_id:x.item.variant_id,quantity:x.qty,department:Number(x.department||({'04':1,'22':2,'ART10':3}[x.item.fiscal_vat_code||x.item.vat_code])||0)}});
   if(autoReceipt&&lines.some(function(l){return !l.department})){toast('Seleziona l’IVA degli articoli nel carrello.','error');return}
-  if(autoReceipt&&!['cash','card'].includes(S.payment)){toast('Il pagamento selezionato non è configurato sulla RCH. Seleziona il metodo effettivamente usato oppure prepara la fattura.','error');return}
+  if(autoReceipt&&!['cash','card','mixed'].includes(S.payment)){toast('Il pagamento selezionato non è configurato sulla RCH. Seleziona il metodo effettivamente usato oppure prepara la fattura.','error');return}
+  var split=S.payment==='mixed'?mixedAmounts(S.stage==='deposit'?dep:total):null;
+  if(S.payment==='mixed'&&!split){toast('Inserisci una quota contanti maggiore di zero e inferiore all’importo da incassare.','error');return}
   var payload={client_id:S.clientId,payment_method:S.payment,payment_stage:S.stage,deposit_amount:dep,expected_total:total,
+    ...(split?{payment_breakdown:split}:{}),
     invoice_requested:inv,ts_requested:ts,ts_expense_code:tsCode,ts_opposition:tsOpp,fiscal_code:ts?cashFiscalCode():'',auto_receipt:autoReceipt,
     note:String(E('optykerCashNote').value||''),lines:lines};
   S.busy=true;renderCart();var saleSent=false;
   Promise.resolve().then(function(){
-    if(autoReceipt){if(!window.OPTYKER_FISCAL)throw new Error('Modulo stampa in caricamento: riprova tra pochi istanti.');return window.OPTYKER_FISCAL.checkReady()}
+    if(autoReceipt){if(!window.OPTYKER_FISCAL)throw new Error('Modulo stampa in caricamento: riprova tra pochi istanti.');return window.OPTYKER_FISCAL.checkReady().then(function(){if(S.payment==='mixed')return rchRequest('/health').then(function(h){if(h.capabilities&&h.capabilities.mixedReceipt===true&&h.actualVersion==='2.0-mixed')return;throw new Error('Aggiorna il connettore RCH dal collegamento sotto Contanti + carta, poi riprova.')})})}
   }).then(function(){
     var stored;try{stored=JSON.parse(sessionStorage.getItem('optykerCashPendingRequest')||'null')}catch(ignore){}
     // Only the request identifier is persisted. The fingerprint stays in memory (contains CF).
@@ -459,7 +478,7 @@ function openDeposits(){
 }
 function settleExisting(saleId,stage,modal){
   if(S.busy)return;
-  if(S.payment==='pending'){toast('Per saldare seleziona Contanti, Carta o Bonifico.','error');return}
+  if(S.payment==='pending'||S.payment==='mixed'){toast('Per saldare questa vendita usa Contanti o Carta. La ripartizione mista è disponibile nella nuova vendita.','error');return}
   var inv=!!(E('optykerCashInvoice')&&E('optykerCashInvoice').checked);
   var ts=!!(E('optykerCashTs')&&E('optykerCashTs').checked);
   var tsCode=E('optykerCashTsCode')&&E('optykerCashTsCode').value==='AA'?'AA':'AD';
@@ -501,7 +520,7 @@ function recentSales(clientId){
   loadHistory()
 }
 function receiptDate(v){try{return new Date(v).toLocaleString('it-IT')}catch(e){return ''}}
-function paymentLabel(v){return {cash:'Contanti',card:'Carta',bank:'Bonifico',pending:'Rate',other:'Altro'}[v]||v||''}
+function paymentLabel(v){return {cash:'Contanti',card:'Carta',mixed:'Contanti + carta',bank:'Bonifico',pending:'Rate',other:'Altro'}[v]||v||''}
 function loadHistory(){
   var request=++H.request,clientId=H.clientId,offset=H.offset;
   var box=E('optykerCashSaleList');if(!box)return;

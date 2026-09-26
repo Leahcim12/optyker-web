@@ -114,3 +114,4 @@ grep -q 'Lenti di prova' _site/client-lac-products.js
 grep -q 'Lenti finali' _site/client-lac-products.js
 test -s _site/client-lac-products-version.json
 echo 'Client LAC product workspace installed on production build'
+python scripts/apply_cash_mixed_release.py

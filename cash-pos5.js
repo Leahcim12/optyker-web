@@ -4,6 +4,7 @@
 if(window.__optykerPos5Loaded)return;window.__optykerPos5Loaded=true;
 var CASH_OLD='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-cash-register-api';
 var CASH_V2='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-cash-register-api-v2';
+var CASH_LOCAL='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-cash-local-api';
 var FISCAL_OLD='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-fiscal-api';
 var FISCAL_V2='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-fiscal-api-v2';
 var VERSION='20260914-pos5',nativeFetch=window.fetch.bind(window),zeroPayments=new Set(),patchedFiscal=false;
@@ -31,7 +32,7 @@ function sameUrl(input,target){var u=typeof input==='string'?input:(input&&input
 function newResponse(x,r){var h=new Headers(r.headers);h.set('Content-Type','application/json; charset=utf-8');return new Response(JSON.stringify(x),{status:r.status,statusText:r.statusText,headers:h})}
 window.fetch=function(input,init){
  var raw=typeof input==='string'?input:(input&&input.url)||'';
- if(raw==='http://127.0.0.1:8765/health'){return nativeFetch(input,init).then(function(r){return r.text().then(function(t){var x;try{x=JSON.parse(t)}catch(e){return new Response(t,{status:r.status,statusText:r.statusText,headers:r.headers})}if(x&&x.version==='1.9-pos'){x.actualVersion=x.version;x.version='1.8-auto-receipt';x.capabilities=x.capabilities||{};x.capabilities.automaticReference=true}return newResponse(x,r)})})}
+ if(raw==='http://127.0.0.1:8765/health'){return nativeFetch(input,init).then(function(r){return r.text().then(function(t){var x;try{x=JSON.parse(t)}catch(e){return new Response(t,{status:r.status,statusText:r.statusText,headers:r.headers})}if(x&&['1.9-pos','2.0-mixed'].includes(x.version)){x.actualVersion=x.version;x.version='1.8-auto-receipt';x.capabilities=x.capabilities||{};x.capabilities.automaticReference=true}return newResponse(x,r)})})}
  var isCash=sameUrl(input,CASH_OLD),isFiscal=sameUrl(input,FISCAL_OLD);if(!isCash&&!isFiscal)return nativeFetch(input,init);
  var body=parseApiBody(init),lot='';
  if(isCash&&body&&body.action==='checkout'){
@@ -39,7 +40,7 @@ window.fetch=function(input,init){
    if(lot)body.payload.auto_receipt=false;
    init=cloneInit(init,body);
  }
- var url=isCash?CASH_V2:FISCAL_V2;
+ var url=isCash?(body&&body.action==='checkout'&&body.payload?.payment_method==='mixed'?CASH_LOCAL:CASH_V2):FISCAL_V2;
  return nativeFetch(url,init).then(function(r){
    if(!isCash||!body||!['checkout','checkout_status'].includes(body.action))return r;
    return r.text().then(async function(text){

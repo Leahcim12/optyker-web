@@ -252,8 +252,15 @@ function Assert-FiscalDocument($document,[string]$operation='sale') {
     if([string]$document.receiptMarker -cnotmatch '^OPTYKER [A-F0-9]{32}$'){throw 'Riferimento automatico non valido.'}
     $expected.Add(('="/?A/('+$document.receiptMarker+')'))
   }
-  if([string]$document.paymentCode -notmatch '^[134]$'){throw 'Pagamento non autorizzato.'}
-  $expected.Add(('=T'+$document.paymentCode))
+  if([string]$document.paymentMethod -ceq 'mixed'){
+    $parts=$document.paymentBreakdownCents
+    if([string]$parts.cash -notmatch '^[1-9][0-9]{0,8}$' -or [string]$parts.card -notmatch '^[1-9][0-9]{0,8}$' -or ([long]$parts.cash+[long]$parts.card) -ne $total -or $document.tsRequested -eq $true){throw 'Ripartizione mista non valida.'}
+    $expected.Add(('=T1/$'+$parts.cash+'/(CONTANTI)'))
+    $expected.Add(('=T4/$'+$parts.card+'/(CARTA)'))
+  } else {
+    if([string]$document.paymentCode -notmatch '^[134]$'){throw 'Pagamento non autorizzato.'}
+    $expected.Add(('=T'+$document.paymentCode))
+  }
   if($commands.Count -ne $expected.Count){throw 'Sequenza fiscale non valida.'}
   for($i=0;$i -lt $commands.Count;$i++){if($commands[$i] -cne $expected[$i]){throw 'Comando non autorizzato.'}}
 }

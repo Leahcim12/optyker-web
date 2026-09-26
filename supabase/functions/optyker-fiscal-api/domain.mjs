@@ -24,9 +24,19 @@ export function description(value) {
 }
 export function makeDocument(payment,input,clientFiscal='') {
   if(payment.invoice_requested||payment.billing_invoice_id)throw new Error('Questo pagamento segue il flusso fattura');
-  const paymentCode={cash:1,card:4,cheque:3}[payment.payment_method];
-  if(!paymentCode)throw new Error('Metodo di pagamento RCH non mappato: usare il flusso manuale del registratore');
+  const mixed=payment.payment_method==='mixed';
+  const paymentCode=mixed?null:{cash:1,card:4,cheque:3}[payment.payment_method];
+  if(!mixed&&!paymentCode)throw new Error('Metodo di pagamento RCH non mappato: usare il flusso manuale del registratore');
   const amount=cents(payment.amount);if(amount<=0)throw new Error('Nessun importo da emettere');
+  let breakdown=null;
+  if(mixed){
+    if(input.ts_requested===true||payment.invoice_requested)throw new Error('Pagamento misto con Sistema TS o fattura non disponibile');
+    const stored=payment.data?.payment_breakdown,supplied=input.payment_breakdown;
+    if(!stored||!supplied)throw new Error('Ripartizione del pagamento misto mancante');
+    const cash=cents(stored.cash),card=cents(stored.card);
+    if(cash<=0||card<=0||cash+card!==amount||cents(supplied.cash)!==cash||cents(supplied.card)!==card)throw new Error('Ripartizione del pagamento misto non corrispondente alla vendita');
+    breakdown={cash,card};
+  }else if(input.payment_breakdown!=null)throw new Error('Ripartizione non prevista per questo pagamento');
   if(input.not_already_issued!==true)throw new Error('Conferma che il pagamento non ha già un documento fiscale');
   if(!Array.isArray(input.lines)||!input.lines.length||input.lines.length>100)throw new Error('Da 1 a 100 righe richieste');
   let total=0;
@@ -48,8 +58,9 @@ export function makeDocument(payment,input,clientFiscal='') {
   const cf=talking?fiscalCode(clientFiscal):'';
   const commands=lines.map(l=>'=R'+l.department+'/$'+l.unitPriceCents+'/*'+l.quantity+'/('+l.description+')');
   if(cf)commands.push('="/?C/('+cf+')');
-  commands.push('=T'+paymentCode);
-  return {version:RELEASE,operation:'sale',serial:SERIAL,paymentCode,paymentMethod:payment.payment_method,totalCents:total,lines,talkingReceipt:talking,fiscalCode:cf,tsRequested,opposition,commands};
+  if(mixed)commands.push('=T1/$'+breakdown.cash+'/(CONTANTI)','=T4/$'+breakdown.card+'/(CARTA)');
+  else commands.push('=T'+paymentCode);
+  return {version:RELEASE,operation:'sale',serial:SERIAL,paymentCode,paymentMethod:payment.payment_method,...(breakdown?{paymentBreakdownCents:breakdown}:{}),totalCents:total,lines,talkingReceipt:talking,fiscalCode:cf,tsRequested,opposition,commands};
 }
 // RCH protocol v14 p.24: complete void of a CLOSED commercial document.
 // =a / bare =k are not substitutes for this date + closure + document command.

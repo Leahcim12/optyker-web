@@ -19,7 +19,7 @@ if($activeWrite){Fail 'C’è una emissione RCH in corso. Attendi o verifica l�
 $src=Get-Content -LiteralPath $Target -Raw
 if(-not $src.Contains('function Assert-FiscalDocument')){Fail 'Il connettore RCH non è una versione Optyker riconosciuta.'}
 Copy-Item -LiteralPath $Target -Destination $Backup -Force
-$src=[regex]::Replace($src,'\$ConnectorVersion\s*=\s*''[^'']+''','$ConnectorVersion = ''1.9-pos''',1)
+$src=[regex]::Replace($src,'\$ConnectorVersion\s*=\s*''[^'']+''','$ConnectorVersion = ''2.0-mixed''',1)
 
 $newAssert=@'
 function Assert-FiscalDocument($document,[string]$operation='sale') {
@@ -64,8 +64,15 @@ function Assert-FiscalDocument($document,[string]$operation='sale') {
     if([string]$document.receiptMarker -cnotmatch '^OPTYKER [A-F0-9]{32}$'){throw 'Riferimento automatico non valido.'}
     $expected.Add(('="/?A/('+$document.receiptMarker+')'))
   }
-  if([string]$document.paymentCode -notmatch '^[134]$'){throw 'Pagamento non autorizzato.'}
-  $expected.Add(('=T'+$document.paymentCode))
+  if([string]$document.paymentMethod -ceq 'mixed'){
+    $parts=$document.paymentBreakdownCents
+    if([string]$parts.cash -notmatch '^[1-9][0-9]{0,8}$' -or [string]$parts.card -notmatch '^[1-9][0-9]{0,8}$' -or ([long]$parts.cash+[long]$parts.card) -ne $gross -or $document.tsRequested -eq $true){throw 'Ripartizione mista non valida.'}
+    $expected.Add(('=T1/$'+$parts.cash+'/(CONTANTI)'))
+    $expected.Add(('=T4/$'+$parts.card+'/(CARTA)'))
+  } else {
+    if([string]$document.paymentCode -notmatch '^[134]$'){throw 'Pagamento non autorizzato.'}
+    $expected.Add(('=T'+$document.paymentCode))
+  }
   if($commands.Count -ne $expected.Count){throw 'Sequenza fiscale non valida.'}
   for($i=0;$i -lt $commands.Count;$i++){if($commands[$i] -cne $expected[$i]){throw 'Comando non autorizzato.'}}
 }
@@ -82,6 +89,10 @@ $capNew='automaticReference=$false;manualReference=$true;regSafeReceipt=$true;re
 if($src.Contains($capSafe)){$src=$src.Replace($capSafe,$capNew)}
 elseif($src.Contains($capOld)){$src=$src.Replace($capOld,$capNew)}
 elseif(-not $src.Contains('zeroReceipt=$true')){Fail 'Capacità del connettore non riconosciute: nessuna modifica applicata.'}
+if(-not $src.Contains('mixedReceipt=$true')){
+  $src=$src.Replace('zeroReceipt=$true','zeroReceipt=$true;mixedReceipt=$true')
+  if(-not $src.Contains('mixedReceipt=$true')){Fail 'Impossibile abilitare il pagamento misto: nessuna modifica applicata.'}
+}
 if($src -match "Send-RchCommand '=C10'" -or $src -match 'Send-RchCommand "=C10"'){Fail 'Comando di chiusura fiscale non consentito.'}
 
 $tmp=$Target+'.pos19.tmp'
@@ -100,8 +111,8 @@ for($i=0;$i -lt 20;$i++){
   Start-Sleep -Milliseconds 350
   try{$health=Invoke-RestMethod -Uri "http://127.0.0.1:$Port/health" -Headers @{Origin='https://optyker.it'} -TimeoutSec 2;if($health.ok -eq $true){break}}catch{}
 }
-if($null -eq $health -or $health.version -ne '1.9-pos' -or $health.capabilities.zeroReceipt -ne $true -or $health.capabilities.regSafeReceipt -ne $true){Fail 'File aggiornato, ma il nuovo connettore non risponde ancora. Riavvia il PC oppure riapri Optyker RCH.'}
+if($null -eq $health -or $health.version -ne '2.0-mixed' -or $health.capabilities.mixedReceipt -ne $true -or $health.capabilities.regSafeReceipt -ne $true){Fail 'File aggiornato, ma il nuovo connettore non risponde ancora. Riavvia il PC oppure riapri Optyker RCH.'}
 Write-Host ''
 Write-Host 'Optyker RCH aggiornato.' -ForegroundColor Green
-Write-Host 'Versione 1.9-pos: scontrino a zero, QR e modalità REG stabile abilitati.' -ForegroundColor Green
+Write-Host 'Versione 2.0-mixed: pagamento misto contanti e carta abilitato.' -ForegroundColor Green
 Write-Host 'Nessuna chiusura fiscale è stata eseguita e nessun esito incerto è stato cancellato.'

@@ -16,6 +16,17 @@ test('canonical cents, departments and payment commands; no names used for VAT',
  assert.throws(()=>makeDocument(payment,{...input,lines:[{...input.lines[0],unit_price:10}]}),/esattamente/);
  assert.throws(()=>cents('1.001'));assert.throws(()=>cents('1e3'));assert.throws(()=>cents(-1));
 });
+test('one mixed receipt closes with separate cash and card amounts only when stored split matches',()=>{
+ const split={cash:6.25,card:6.25};
+ const pay={amount:12.50,payment_method:'mixed',invoice_requested:false,data:{payment_breakdown:split}};
+ const x=makeDocument(pay,{...input,payment_breakdown:split});
+ assert.equal(x.totalCents,1250);
+ assert.deepEqual(x.commands,['=R1/$1250/*1/(OCCHIALI)','=T1/$625/(CONTANTI)','=T4/$625/(CARTA)']);
+ for(const breakdown of [{cash:6.24,card:6.26},{cash:0,card:12.5},{cash:6.25,card:6.24}]){
+  assert.throws(()=>makeDocument({...pay,data:{payment_breakdown:breakdown}},{...input,payment_breakdown:split}));
+ }
+ assert.throws(()=>makeDocument(pay,{...input,payment_breakdown:split,ts_requested:true}));
+});
 test('protect invoice, duplicate-issued and unsupported payment boundaries',()=>{
  assert.throws(()=>makeDocument({...payment,invoice_requested:true},input),/fattura/);
  assert.throws(()=>makeDocument({...payment,billing_invoice_id:'id'},input),/fattura/);

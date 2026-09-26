@@ -211,6 +211,12 @@ jobs:
           grep -q "Lenti finali" _site/client-lac-products.js
           test -s _site/client-lac-products-version.json
 
+      - name: Aggiorna la cassa con pagamento misto
+        run: |
+          python scripts/apply_cash_mixed_release.py
+          node --check _site/cash-register.js
+          node --check _site/cash-pos5.js
+
       - name: Carica sito GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
