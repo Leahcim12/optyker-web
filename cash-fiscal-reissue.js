@@ -31,6 +31,7 @@ balancePaint=function(){
 };
 function receiptReissueMessage(message){receiptReissue.message=message;receiptReissue.clientId=String(S.clientId||'');balancePaint()}
 async function receiptReissueWait(jobId,commandId){var end=Date.now()+150000;while(Date.now()<end){var data=await receiptReissueCall(receiptReissueBase+'optyker-fiscal-api-v2','job',{job_id:jobId}),j=data&&data.job;if(j&&['completed','awaiting_reference','uncertain','not_started'].indexOf(j.state)>=0)return j;var c=await receiptReissueCall(receiptReissueBase+'optyker-rch-relay-api','command_status',{command_id:commandId});if(c&&['failed','expired'].indexOf(c.state)>=0)throw new Error(c.error||'Il PC cassa non ha avviato la stampa');await new Promise(function(resolve){setTimeout(resolve,1000)})}throw new Error('Attesa terminata. Aggiorna esito riemissione prima di riprovare; nessun secondo pagamento è stato creato.')}
+async function receiptReissueReady(){var end=Date.now()+15000;do{var connection=await receiptReissueCall(receiptReissueBase+'optyker-rch-relay-api','status',{}),st=connection.status||{};if(connection.online&&st.ok===true&&/^REG(?:\s*\(OP\s*\d+\))?$/.test(String(st.mode||''))&&String(st.idleState)==='0'&&['busy','errorCode','printerError','paperEnd','coverOpen'].every(function(k){return Number(st[k])===0}))return;if(Date.now()>=end)break;await new Promise(function(resolve){setTimeout(resolve,1000)})}while(true);throw new Error('La RCH non è pronta in REG. Nessun comando fiscale inviato.')}
 async function runReceiptReissue(saleId){
  if(S.busy||receiptReissue.busy||S.clientCartLoading)return;
  var cid=String(S.clientId||'');if(!cid)return;
@@ -43,12 +44,17 @@ async function runReceiptReissue(saleId){
    var blocked=g.payments.find(function(p){return ['ready','prepared','not_started','completed'].indexOf(p.state)<0});if(blocked)throw new Error(receiptReissueLabel(blocked.state)+'. Usa Verifica riferimenti; non ripetere l’emissione.');
    var todo=g.payments.filter(function(p){return p.state!=='completed'});
    if(!confirm('Riemettere '+todo.length+' scontrino/i per '+euro(g.remaining_cents/100)+' già incassati, dopo i relativi annulli?\n\nNessun nuovo pagamento e nessun nuovo scarico magazzino.\nConferma soltanto se questi documenti NON sono già stati riemessi con Focus o con un altro programma.'))return;
-   var connection=await receiptReissueCall(receiptReissueBase+'optyker-rch-relay-api','status',{}),st=connection.status||{};
-   if(!connection.online||st.ok!==true||!/^REG(?:\s*\(OP\s*\d+\))?$/.test(String(st.mode||''))||String(st.idleState)!=='0'||['busy','errorCode','printerError','paperEnd','coverOpen'].some(function(k){return Number(st[k])!==0}))throw new Error('Il PC cassa deve risultare online e la RCH pronta in REG');
+   await receiptReissueReady();
    for(var p of todo){
     receiptReissueMessage('Riemissione di '+euro(p.amount_cents/100)+' sul pagamento originale…');
-    var prepared=await receiptReissueApi('prepare',{client_id:cid,sale_id:saleId,payment_id:p.payment_id,original_job_id:p.original_job_id,void_job_id:p.void_job_id,confirm_not_already_reissued:true}),job=prepared.job;
-    if(prepared.claim_token){var q=await receiptReissueCall(receiptReissueBase+'optyker-rch-relay-api','queue_fiscal',{job_id:job.id,token:prepared.claim_token,operation:'sale'});job=await receiptReissueWait(job.id,q.id)}
+    var job;
+    for(var attempt=0;attempt<2;attempt++){
+     await receiptReissueReady();
+     var prepared=await receiptReissueApi('prepare',{client_id:cid,sale_id:saleId,payment_id:p.payment_id,original_job_id:p.original_job_id,void_job_id:p.void_job_id,confirm_not_already_reissued:true});job=prepared.job;
+     if(prepared.claim_token){var q=await receiptReissueCall(receiptReissueBase+'optyker-rch-relay-api','queue_fiscal',{job_id:job.id,token:prepared.claim_token,operation:'sale'});job=await receiptReissueWait(job.id,q.id)}
+     if(job.state!=='not_started')break;
+     if(attempt===0)receiptReissueMessage('La RCH non era pronta; attendo REG e riprovo una sola volta senza nuovo incasso…');
+    }
     if(job.state!=='completed')throw new Error(receiptReissueLabel(job.state)+' per '+euro(p.amount_cents/100)+'. Non ripetere: usa Verifica riferimenti.');
    }
   }
