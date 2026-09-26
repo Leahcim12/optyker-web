@@ -81,7 +81,8 @@ $pattern='(?s)function Assert-FiscalDocument\(\$document,\[string\]\$operation='
 if(-not [regex]::IsMatch($src,$pattern)){Fail 'Blocco di sicurezza fiscale non riconosciuto: nessuna modifica applicata.'}
 $src=[regex]::Replace($src,$pattern,$newAssert+"`r`n# RCH Web Service V5",1)
 
-$readback='(?s)\s*if\(\$claimed\.document\.automaticReference -eq \$true -and \$operation -eq ''sale''\)\{.*?\r?\n\s*\}'
+$readback='(?s)\r?\n\s*if\(\$claimed\.document\.automaticReference -eq \$true -and \$operation -eq ''sale''\)\{.*?\r?\n\s*\}(?=\r?\n\s*\} catch \{)'
+if(([regex]::Matches($src,$readback)).Count -ne 1){Fail 'Blocco lettura automatica non riconosciuto: nessuna modifica applicata.'}
 $src=[regex]::Replace($src,$readback,"`r`n      # POS 1.9: nessuna lettura EJ automatica. La RCH resta in REG; il riferimento si conferma dalla stampa.",1)
 $capOld='automaticReference=$true;manualReference=$true'
 $capSafe='automaticReference=$true;manualReference=$true;regSafeReceipt=$true'
