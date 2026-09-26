@@ -81,9 +81,9 @@ $pattern='(?s)function Assert-FiscalDocument\(\$document,\[string\]\$operation='
 if(-not [regex]::IsMatch($src,$pattern)){Fail 'Blocco di sicurezza fiscale non riconosciuto: nessuna modifica applicata.'}
 $src=[regex]::Replace($src,$pattern,$newAssert+"`r`n# RCH Web Service V5",1)
 
-$readback='(?s)\r?\n\s*if\(\$claimed\.document\.automaticReference -eq \$true -and \$operation -eq ''sale''\)\{.*?\r?\n\s*\}(?=\r?\n\s*\} catch \{)'
-if(([regex]::Matches($src,$readback)).Count -ne 1){Fail 'Blocco lettura automatica non riconosciuto: nessuna modifica applicata.'}
-$src=[regex]::Replace($src,$readback,"`r`n      # POS 1.9: nessuna lettura EJ automatica. La RCH resta in REG; il riferimento si conferma dalla stampa.",1)
+# Il server non richiede il vecchio riferimento automatico. Le versioni installate
+# del connettore hanno corpi di lettura diversi: non riscriverli per abilitare il
+# pagamento misto, poiche' una sostituzione parziale romperebbe PowerShell.
 $capOld='automaticReference=$true;manualReference=$true'
 $capSafe='automaticReference=$true;manualReference=$true;regSafeReceipt=$true'
 $capNew='automaticReference=$false;manualReference=$true;regSafeReceipt=$true;reviewQr=$true;zeroReceipt=$true'
