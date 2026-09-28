@@ -20,8 +20,13 @@ def patch_customer(text):
  if(!token&&(!c.username||!c.password))return Promise.reject(new Error('Sessione non disponibile. Esci e accedi nuovamente.'));
  var headers={'Content-Type':'application/json'},body={action:action,payload:payload||{}};
  if(token)headers.Authorization='Bearer '+token;else {body.username=c.username;body.password=c.password}
- return fetch(API,{method:'POST',headers:headers,body:JSON.stringify(body)}).then(function(r){return r.json().catch(function(){return {}}).then(function(x){if(!r.ok||!x||x.ok!==true)throw new Error(x&&x.error||('HTTP '+r.status));return x.data||{}})
- }
+ return fetch(API,{method:'POST',headers:headers,body:JSON.stringify(body)}).then(function(r){
+   return r.json().catch(function(){return {}}).then(function(x){
+     if(!r.ok||!x||x.ok!==true)throw new Error(x&&x.error||('HTTP '+r.status));
+     return x.data||{};
+   });
+ });
+}
 '''+text[end:]
     text=replace_one(text,'var current=null;',"var current=null,editing=false,saving=false;\nwindow.addEventListener('beforeunload',function(ev){if(editing||saving){ev.preventDefault();ev.returnValue=''}});")
     text=replace_one(text,"b.onclick=function(){m.classList.remove('open')}","b.onclick=function(){if(saving)return;if(editing&&!window.confirm('Uscire senza salvare le modifiche alla fattura?'))return;editing=false;m.classList.remove('open')}")
