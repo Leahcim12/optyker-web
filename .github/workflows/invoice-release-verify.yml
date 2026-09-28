@@ -1,0 +1,40 @@
+name: Verifica pubblicazione editor fatture
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/invoice-release-verify.yml'
+      - 'vercel.json'
+      - 'scripts/apply_invoice_edit_access.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verifica dominio pubblico senza autenticarsi
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import vm from 'node:vm';
+          import {createHash} from 'node:crypto';
+          const base='https://www.optyker.it';
+          async function read(path){const r=await fetch(base+path,{headers:{'Cache-Control':'no-cache'},signal:AbortSignal.timeout(15000)});assert.equal(r.status,200,path);return r.text()}
+          let error;
+          for(let attempt=0;attempt<24;attempt++){
+            try{
+              const v=JSON.parse(await read('/invoice-edit-version.json?verify=20260928'));
+              assert.equal(v.version,'20260928-invoice-edit3');
+              const js=await read('/customer-invoice-print.js?v='+v.version);
+              new vm.Script(js);assert.match(js,/expected_updated_at/);assert.match(js,/optyker_billing_admin_token/);assert.match(js,/openEditorById/);assert.match(js,/Rimuovi riga/);
+              assert.equal(createHash('sha256').update(js).digest('hex'),v.customer_js_sha256);
+              const admin=await read('/billing-admin.js?v=20260928-admin-invoice-edit3');new vm.Script(admin);assert.match(admin,/OPTYKER_INVOICE_EDIT_ACCESS_20260928/);assert.match(admin,/Modifica fattura/);
+              const html=await read('/?invoiceverify=20260928');assert.match(html,/customer-invoice-print\.js\?v=20260928-invoice-edit3/);assert.match(html,/20260928-admin-invoice-edit3/);
+              console.log('PASS: release '+v.version+' live at '+base+'; public JS hashes, syntax, administrator access, row editing and cache versions verified.');error=null;break;
+            }catch(e){error=e;console.log('Release not ready: '+e.message);await new Promise(r=>setTimeout(r,5000))}
+          }
+          if(error)throw error;
+          const api=await fetch('https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-customer-invoice-print-api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'invoice_print',payload:{}}),signal:AbortSignal.timeout(15000)});
+          assert.equal(api.status,401);const response=await api.json();assert.equal(response.ok,false);console.log('PASS: API rejects unauthenticated invoice access. No invoice data changed.');
+          JS
