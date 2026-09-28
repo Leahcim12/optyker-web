@@ -1,0 +1,37 @@
+name: Verifica modifica fatture
+on:
+  push:
+    paths:
+      - 'scripts/apply_invoice_edit_access.py'
+      - 'supabase/functions/optyker-invoice-edit-20260928/**'
+      - 'tests/invoice-edit*'
+      - '.github/workflows/invoice-edit-20260928.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - name: Controlla API senza modificare dati reali
+        run: node --test tests/invoice-edit.test.cjs
+      - name: Applica e verifica interfaccia
+        run: |
+          mkdir -p _invoice_fixture
+          cp billing-admin.js _invoice_fixture/billing-admin.js
+          printf '<!doctype html><html><head></head><body></body></html>' > _invoice_fixture/index.html
+          python scripts/apply_invoice_edit_access.py _invoice_fixture
+          node --check _invoice_fixture/customer-invoice-print.js
+          node --check _invoice_fixture/billing-admin.js
+          python scripts/apply_invoice_edit_access.py _invoice_fixture
+          node --check _invoice_fixture/customer-invoice-print.js
+          grep -q 'Modifica fattura' _invoice_fixture/billing-admin.js
+          grep -q 'optyker_billing_admin_token' _invoice_fixture/customer-invoice-print.js
+      - name: Verifica pulsanti e salvataggio con dati simulati
+        run: |
+          npm install --prefix /tmp/invoice-test-deps --no-audit --no-fund jsdom@26.1.0
+          NODE_PATH=/tmp/invoice-test-deps/node_modules node --test tests/invoice-edit-ui.test.cjs
