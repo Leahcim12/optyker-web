@@ -1,12 +1,13 @@
 /* Customer-scoped sheet actions. Every read/write is authorized by the server RPC. */
 (function(){
 'use strict';if(window.OPTYKER_CLIENT_SHEETS)return;
-const VERSION='20260915-eyewear-send-order',$=id=>document.getElementById(id);
+const VERSION='20261001-quote-edit',$=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const currency=v=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(Number(v));
 const date=v=>v?new Date(v).toLocaleDateString('it-IT'):'—';
 const type=s=>String(s.sheet_type||s.data?.sheetType||'');
 const isEye=s=>type(s).startsWith('eyewear_');
+const isEditable=s=>isEye(s)||/^lac(?:_|$)/.test(type(s));
 const isQuote=s=>s.is_quote===true||/eyewear_quote/.test(type(s))||String(s.document_type||s.data?.documentType||s.data?.lacState?.document||'').toLowerCase()==='preventivo';
 const labels={prescription:'Prescrizione',analysis:'Analisi visiva',visualexam:'Esame visivo',indications:'Indicazioni d’uso',hearing:'Udito',lac:'LAC'};
 const kind=s=>isEye(s)?'Occhiali':labels[type(s)]||s.data?.sheetLabel||'Scheda';
@@ -92,7 +93,16 @@ function detail(v,s){
  const box=v.d.querySelector('[data-cs-body]');box.innerHTML='<div class="csDocument '+(isQuote(s)?'csQuote':'')+'"><h2>'+esc((isQuote(s)?'Preventivo ':s.document_type==='Busta'?'Busta ':'')+kind(s))+'</h2>'+sheetBody(s)+'</div><div class="csActions csBottom"><button type="button" data-cs-back>Torna all’elenco</button><button type="button" data-cs-print>Stampa</button>'+(!isEye(s)?'<button type="button" data-cs-editor>Apri nella scheda</button>':'')+(isQuote(s)?'<button type="button" data-cs-convert class="csPrimary">'+(s.converted_order?'Apri ordine':'Trasforma in ordine')+'</button>':'')+orderButton(s)+(!isEye(s)&&s.laboratory_order?'<button type="button" data-cs-lab>Apri Laboratorio</button>':'')+'<button type="button" class="csDanger" data-cs-delete '+(s.delete_blocked?'disabled':'')+'>Elimina scheda</button></div>';
  box.querySelector('[data-cs-back]').onclick=()=>render(v);box.querySelector('[data-cs-print]').onclick=()=>print(v,s);box.querySelector('[data-cs-delete]').onclick=()=>remove(v,s);const cv=box.querySelector('[data-cs-convert]');if(cv)cv.onclick=()=>convert(v,s);
  bindOrderButtons(v,s,box);
- const edit=box.querySelector('[data-cs-editor]');if(edit)edit.onclick=()=>{cache(v.rows,v.cid);close();window.clientOpenVisitInEditor(s.id);};
+ const legacyEdit=box.querySelector('[data-cs-editor]');
+ if(isEditable(s)){
+  if(legacyEdit)legacyEdit.remove();
+  const edit=document.createElement('button');edit.type='button';edit.className='csPrimary';edit.setAttribute('data-cs-edit-existing','');
+  edit.textContent=isQuote(s)?'Modifica preventivo':'Modifica scheda';
+  edit.disabled=!!(isQuote(s)&&s.converted_order);
+  edit.title=edit.disabled?'Preventivo già trasformato: modifica la Busta collegata':'Modifica questo documento senza crearne uno nuovo';
+  edit.onclick=()=>{if(view!==v||v.busy||current()!==v.cid)return;if(typeof window.optykerEditClientSheet!=='function'){feedback('Editor in caricamento. Riprova tra un momento.');return;}cache(v.rows,v.cid);window.optykerEditClientSheet(s.id);};
+  box.querySelector('.csActions.csBottom').prepend(edit);
+ }else if(legacyEdit)legacyEdit.onclick=()=>{cache(v.rows,v.cid);close();window.clientOpenVisitInEditor(s.id);};
  feedback(s.converted_order?'Ordine collegato: '+s.converted_order.reference:s.laboratory_order?'In Laboratorio: '+statusName(s.laboratory_order.status):'Dati del documento salvato.');
 }
 function print(v,s){
