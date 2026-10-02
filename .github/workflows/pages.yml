@@ -229,6 +229,7 @@ jobs:
         run: |
           python scripts/apply_client_search_agenda.py
           python scripts/apply_agenda_force_duration.py
+          python scripts/apply_agenda_edit_simple.py
           python scripts/check_desktop_html.py
 
       - name: Carica sito GitHub Pages
