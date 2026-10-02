@@ -13,7 +13,12 @@ assert(!matches(clients[0],'Bianchi'));assert(!matches(clients[0],'12349999'));
  const page=await context.newPage(),writes=[],errors=[];page.on('pageerror',e=>errors.push(String(e)));page.on('dialog',d=>d.dismiss());
  const service={id:'service-test',name:'Controllo TEST',duration_minutes:30,requires_studio:true,active:true};
  const studio={id:'studio-test',name:'Studio TEST',active:true};
- let forceDelay=0;
+ let forceDelay=0,manageDelay=0;
+ const edits=[],durations=[];
+ let appointment={id:'synthetic-edit',service_id:service.id,studio_id:studio.id,studio_name:studio.name,
+   operator_username:'Michael Mologni',first_name:'Anna',last_name:'Bianchi',email:'test@example.invalid',phone:'',
+   starts_at:'2030-03-04T02:00:00.000Z',ends_at:'2030-03-04T02:30:00.000Z',status:'confirmed',source:'web',
+   service_name:service.name,updated_at:'2026-10-02T09:00:00.000Z',created_at:'2026-10-02T09:00:00.000Z'};
  await context.route('**/*',async route=>{
    const req=route.request(),url=new URL(req.url());let b={};try{b=req.postDataJSON()||{}}catch{}
    if(req.method()!=='GET'||url.pathname.includes('/rest/v1/')||url.pathname.includes('/functions/v1/')){
@@ -29,6 +34,15 @@ assert(!matches(clients[0],'Bianchi'));assert(!matches(clients[0],'12349999'));
        if(b.p_action==='appointment_create'){writes.push(b.p_payload);data={ok:true,data:{id:'synthetic-appointment'}}}
      }
      if(url.pathname.endsWith('/optyker_appointment_slots'))data={ok:true,data:[]};
+     if(url.pathname.endsWith('/optyker-appointments-staff')){
+       if(b.action==='get')data={ok:true,data:appointment};
+       if(b.action==='force_overlap_slots'){
+         if(manageDelay)await new Promise(r=>setTimeout(r,manageDelay));
+         data={ok:true,data:[{studio_id:studio.id,studio_name:studio.name,operator_username:null,starts_at:b.payload.starts_at,forced_overlap:true}]};
+       }
+       if(b.action==='reschedule'){edits.push(b.payload);appointment={...appointment,...b.payload,staff_forced_overlap:b.payload.force_overlap};data={ok:true,data:appointment}}
+       if(b.action==='duration'){durations.push(b.payload);appointment={...appointment,ends_at:new Date(new Date(appointment.starts_at).getTime()+b.payload.duration_minutes*60000).toISOString()};data={ok:true,data:appointment}}
+     }
      if(url.pathname.includes('/rest/v1/')&&!url.pathname.includes('/rpc/'))data=[];
      return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(data)});
    }
@@ -47,7 +61,7 @@ assert(!matches(clients[0],'Bianchi'));assert(!matches(clients[0],'12349999'));
      await page.fill('#optykerGlobalSearchInput',q);
      await page.waitForFunction(()=>document.getElementById('optykerGlobalSearchResults').textContent.includes('D’Angelo Rossi'));
      const texts=await page.evaluate(q=>{document.getElementById('clientArchiveSearch').value=q;clientRefreshList();document.getElementById('dashboardClientSearch').value=q;dashboardRenderClients();return ['clientArchiveList','dashboardClientResults'].map(id=>document.getElementById(id).textContent)},q);
-     texts.forEach(t=>assert(t.includes('D’Angelo Rossi'),q));
+     texts.forEach(t=>assert(t.includes('D’Angelo Rossi'),q+': '+JSON.stringify(texts)));
    }
    await page.fill('#optykerGlobalSearchInput','');
    await page.evaluate(()=>optykerOpenAppointments());await page.click('#oaNew');await page.waitForSelector('#oaNewModal.open');
@@ -68,7 +82,24 @@ assert(!matches(clients[0],'Bianchi'));assert(!matches(clients[0],'12349999'));
    forceDelay=300;await page.check('#oaForceClosed');await page.uncheck('#oaForceClosed');await page.waitForTimeout(600);
    assert(await page.locator('#oaCreate').isDisabled(),'late forced response must not enable ordinary booking');
    assert.equal(writes.length,1);assert.deepEqual(errors,[]);
+   await page.click('[data-oac="new"]');
+   await page.evaluate(()=>optykerOpenAppointmentById('synthetic-edit'));await page.waitForSelector('#oaManageModal.open');
+   await page.check('#oaV10ForceOccupied');
+   await page.waitForFunction(()=>document.getElementById('oaV10ForceChoice').value==='0');
+   assert((await page.locator('#oaV10ForceChoice').textContent()).includes('Non assegnato'));
+   await page.click('#oaV10Save');await page.waitForFunction(()=>!document.getElementById('oaManageModal').classList.contains('open'));
+   assert.equal(edits.length,1);assert.equal(edits[0].operator_username,null);assert.equal(edits[0].force_overlap,true);
+   await page.evaluate(()=>optykerOpenAppointmentById('synthetic-edit'));await page.waitForSelector('#oaManageModal.open');
+   await page.click('#oaV10Duration');await page.fill('#optykerDurationMinutes','75');
+   assert((await page.locator('#optykerDurationDialog [data-end]').textContent()).includes('04:15'));
+   await page.click('#optykerDurationDialog [type=submit]');await page.waitForSelector('#optykerDurationDialog',{state:'detached'});
+   assert.equal(durations.length,1);assert.equal(durations[0].duration_minutes,75);
+   assert((await page.locator('#oaV10Details').textContent()).includes('75 minuti'));
+   manageDelay=300;await page.fill('#oaV10ForceTime','04:00');await page.locator('#oaV10ForceTime').dispatchEvent('change');
+   await page.uncheck('#oaV10ForceOccupied');await page.waitForTimeout(600);
+   assert(!(await page.locator('#oaV10Status').textContent()).includes('Forzatura pronta'),'late reply must not restore a forced selection');
+   assert.deepEqual(errors,[]);
    await page.screenshot({path:process.env.AGENDA_TEST_SCREENSHOT||'/tmp/agenda-search-verified.png'});
-   console.log(JSON.stringify({ok:true,checks:['name/surname/either order/accent/phone search on all three native surfaces','agenda search with keyboard selection and field reset','forced appointment submitted without operator','ordinary booking and late-response guard preserved'],synthetic_writes:writes.length,page_errors:errors}));
+   console.log(JSON.stringify({ok:true,checks:['name/surname/either order/accent/phone search on all three native surfaces','agenda search with keyboard selection and field reset','forced appointment submitted without operator','forced rescheduling without operator','duration saved with new end time','ordinary booking and late-response guards preserved'],synthetic_writes:writes.length+edits.length+durations.length,page_errors:errors}));
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

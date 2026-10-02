@@ -25,6 +25,7 @@ Deno.serve(async(req:Request)=>{
     if(!username)return out({ok:false,error:'Operatore mancante'},400);
     const allowed=await rpc('optyker_staff_allowed',{p_username:username,p_password:password});
     if(allowed!==true)return out({ok:false,error:'Operatore non autorizzato'},403);
+    if(action==='duration')return out(await rpc('optyker_appointment_set_duration',{p_username:username,p_appointment_id:p.id,p_minutes:p.duration_minutes,p_expected_updated_at:p.expected_updated_at||null}));
     if(action==='get')return out({ok:true,data:await getAppointment(String(p.id||''))});
     if(action==='search')return out(await rpc('optyker_appointment_search_staff',{p_username:username,p_password:password,p_query:String(p.query||''),p_limit:Number(p.limit||30)}));
     if(action==='slots')return out(await rpc('optyker_appointment_slots',{

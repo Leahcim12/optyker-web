@@ -116,4 +116,5 @@ test -s _site/client-lac-products-version.json
 echo 'Client LAC product workspace installed on production build'
 python scripts/apply_cash_mixed_release.py
 python scripts/apply_client_search_agenda.py
+python scripts/apply_agenda_force_duration.py
 python scripts/check_desktop_html.py

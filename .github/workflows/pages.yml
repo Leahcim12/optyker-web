@@ -45,11 +45,6 @@ jobs:
           grep -q "Fiera / trasferta" _site/index.html
           grep -q "almeno email oppure telefono" _site/index.html
 
-      - name: Ricerca clienti e operatore facoltativo in agenda
-        run: |
-          python scripts/apply_client_search_agenda.py
-          python scripts/check_desktop_html.py
-
       - name: Carrello cliente e ordini Laboratorio
         run: |
           python scripts/apply_cash_pos5.py
@@ -229,6 +224,12 @@ jobs:
           node --check _site/billing-admin.js
           python scripts/check_desktop_html.py
           test -s _site/invoice-edit-version.json
+
+      - name: Ricerca clienti, forzatura e durata appuntamenti
+        run: |
+          python scripts/apply_client_search_agenda.py
+          python scripts/apply_agenda_force_duration.py
+          python scripts/check_desktop_html.py
 
       - name: Carica sito GitHub Pages
         uses: actions/upload-pages-artifact@v3
