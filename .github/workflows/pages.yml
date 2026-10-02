@@ -45,6 +45,11 @@ jobs:
           grep -q "Fiera / trasferta" _site/index.html
           grep -q "almeno email oppure telefono" _site/index.html
 
+      - name: Ricerca clienti e operatore facoltativo in agenda
+        run: |
+          python scripts/apply_client_search_agenda.py
+          python scripts/check_desktop_html.py
+
       - name: Carrello cliente e ordini Laboratorio
         run: |
           python scripts/apply_cash_pos5.py
