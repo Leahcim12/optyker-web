@@ -7,10 +7,24 @@
     protocol_ovc:{title:'Protocollo VC',fields:['examDate','reason','anamnesis','visualAcuity','refraction','binocularVision','accommodation','motility','outcome','notes']},
     protocol_ovc_bambini:{title:'Protocollo VC Bambini',fields:['examDate','reason','parentNotes','visualAcuity','coverTest','motility','accommodation','stereopsis','colorVision','outcome','notes']},
     analisi_visiva_integrata:{title:'Analisi Visiva Integrata',fields:['examDate','reason','anamnesis','visualAcuity','refraction','binocularVision','accommodation','motility','outcome','recommendations','notes']},
-    fondo_oculare:{title:'Fondo Oculare',fields:['examDate','odFindings','osFindings','outcome','recommendations','notes']},
+    fondo_oculare:{title:'Fondo Oculare',fields:[]},
     visual_anomalies:{title:'Anomalie visive',fields:['examDate','anomaly','tests','findings','outcome','recommendations','notes']}
   };
   var labels={examDate:'Data esame',reason:'Motivo',anamnesis:'Anamnesi',visualAcuity:'Acuità visiva',refraction:'Refrazione',binocularVision:'Visione binoculare',accommodation:'Accomodazione',motility:'Motilità',outcome:'Esito',recommendations:'Indicazioni / raccomandazioni',notes:'Note',parentNotes:'Note genitore',coverTest:'Cover test',stereopsis:'Stereopsi',colorVision:'Visione dei colori',anomaly:'Anomalia visiva',tests:'Test eseguiti',findings:'Risultati',odFindings:'Fondo OD',osFindings:'Fondo OS',instructions:"Indicazioni d’uso",products:'Prodotti',maintenance:'Manutenzione'};
+  // Fondo oculare: modulo "Oftalmoscopio" (valori separati OD / OS).
+  var FUNDUS_ROWS=[
+    {k:'fo_escavazione',label:'Tipo di escavazione (Elschnig)',type:'choice',opts:['I','II','III','IV','V']},
+    {k:'fo_cd',label:'Rapporto diametro coppa / papilla',type:'num',suffix:'/10',min:0,max:10},
+    {k:'fo_focus',label:'Focalizzazione papilla / profondità escavazione',type:'num',suffix:'D'},
+    {k:'fo_av',label:'Rapporto arteria-vena',type:'choice',opts:['4/5','3/4','2/3','1/2']},
+    {k:'fo_reflex',label:'Rapporto arteria / suo riflesso',type:'choice',opts:['<1/3','=1/3','>1/3']},
+    {k:'fo_macula',label:'Macula',type:'choice',opts:['con riflesso','senza riflesso']}
+  ];
+  var FUNDUS_TEXT=[{k:'fo_media',label:'Trasparenza mezzi'},{k:'notes',label:'Note'}];
+  var FUNDUS_KEYS=['examDate'];
+  FUNDUS_ROWS.forEach(function(r){['od','os'].forEach(function(e){var key=r.k+'_'+e;FUNDUS_KEYS.push(key);labels[key]=r.label+(r.suffix?' ('+r.suffix+')':'')+' · '+e.toUpperCase()})});
+  FUNDUS_TEXT.forEach(function(t){FUNDUS_KEYS.push(t.k);if(!labels[t.k])labels[t.k]=t.label});
+  defs.fondo_oculare.fields=FUNDUS_KEYS.slice();
   function E(id){return document.getElementById(id)}
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]})}
   function op(){return String(window.OPTYKER_ACTIVE_USER||(window.OPTYKER_CLOUD&&OPTYKER_CLOUD.username)||'').trim()}
@@ -33,8 +47,27 @@
     else h+='<div class="optykerEmptySmall">Nessuna fornitura LAC collegata.</div>';
     b.innerHTML=h;
   }
-  function clinicalGroups(){var rows=state.data&&state.data.clinical_sheets||[],kinds=['usage','protocol_ovc','protocol_ovc_bambini','analisi_visiva_integrata','fondo_oculare'];return kinds.map(function(k){var a=rows.filter(function(x){return x.kind===k}),d=defs[k];return '<div class="optykerClinicalGroup"><div class="optykerClinicalGroupHead"><div class="optykerClinicalGroupTitle">'+esc(d.title)+'</div><button class="optykerClientToolsBtn" data-tools-new="'+k+'" type="button">+ Crea scheda</button></div>'+(a.length?a.map(cardHtml).join(''):'<div class="optykerEmptySmall">Nessuna scheda.</div>')+'</div>'}).join('')}
-  function cardHtml(s){var out=getVal(s,'outcome');return '<div class="optykerClinicalCard" data-tools-card="'+esc(s.id)+'"><div class="optykerClinicalSummary"><strong>'+esc((defs[s.kind]&&defs[s.kind].title)||s.title||'Scheda')+' <em>'+esc(sheetDisplay(s))+'</em></strong><span>'+esc(dt(s.updated_at||s.created_at))+' · MODIFICA ▾</span></div>'+(s.kind==='visual_anomalies'&&out?'<div class="optykerAnomalyOutcome"><b>Esito:</b> '+esc(out)+'</div>':'')+'<div class="optykerClinicalEditor"><div class="optykerClinicalFields">'+fieldsFor(s).map(function(k){return fieldHtml(s,k)}).join('')+'</div><div class="optykerClinicalSaveRow"><button class="optykerClientToolsBtn primary" data-tools-save="'+esc(s.id)+'" type="button">SALVA SCHEDA</button></div></div></div>'}
+  function clinicalGroups(){var rows=state.data&&state.data.clinical_sheets||[],kinds=['usage','protocol_ovc','protocol_ovc_bambini','analisi_visiva_integrata','fondo_oculare'];return kinds.map(function(k){var a=rows.filter(function(x){return x.kind===k}),d=defs[k];return '<div class="optykerClinicalGroup" data-tools-group="'+k+'"><div class="optykerClinicalGroupHead"><div class="optykerClinicalGroupTitle">'+esc(d.title)+'</div><button class="optykerClientToolsBtn" data-tools-new="'+k+'" type="button">+ Crea scheda</button></div>'+(a.length?a.map(cardHtml).join(''):'<div class="optykerEmptySmall">Nessuna scheda.</div>')+'</div>'}).join('')}
+  function todayIt(){var d=new Date();return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear()}
+  function hasValues(s){var els=s&&s.data&&s.data.elements||{};return Object.keys(els).some(function(k){return ['clientName','clientSurname','specialistName'].indexOf(k)<0&&getVal(s,k)!==''})}
+  function fundusInput(s,r,key,eye){
+    var v=getVal(s,key),aria=esc(r.label+' '+eye);
+    if(r.type==='choice')return '<div class="optykerChoice" role="group" aria-label="'+aria+'"><input type="hidden" data-tools-key="'+key+'" value="'+esc(v)+'">'+r.opts.map(function(o){var on=o===v;return '<button type="button" data-choice-val="'+esc(o)+'" aria-pressed="'+on+'" class="'+(on?'on':'')+'">'+esc(o)+'</button>'}).join('')+'<button type="button" class="optykerChoiceClear" data-choice-clear title="Togli la selezione" aria-label="Togli la selezione"'+(v?'':' hidden')+'>×</button></div>';
+    return '<label class="optykerFundusNum"><input data-tools-key="'+key+'" inputmode="decimal" autocomplete="off" aria-label="'+aria+'" value="'+esc(v)+'"'+(r.min!=null?' data-num-min="'+r.min+'"':'')+(r.max!=null?' data-num-max="'+r.max+'"':'')+' data-num-label="'+aria+'"><span>'+esc(r.suffix||'')+'</span></label>';
+  }
+  function fundusHtml(s){
+    var date=getVal(s,'examDate');if(!date&&!hasValues(s))date=todayIt();
+    var h='<div class="optykerFundus"><div class="optykerClinicalFields"><div class="optykerClinicalField"><label>Data esame</label><input data-tools-key="examDate" placeholder="gg/mm/aaaa" value="'+esc(date)+'"></div></div>';
+    h+='<div class="optykerFundusTable"><div class="optykerFundusHead"><span>Oftalmoscopio</span><b>OD</b><b>OS</b></div><div class="optykerFundusHint">Tutte le voci sono facoltative: lascia vuoto o premi × per togliere una scelta. In stampa compaiono solo le voci compilate.</div>';
+    FUNDUS_ROWS.forEach(function(r){h+='<div class="optykerFundusRow"><div class="optykerFundusLabel">'+esc(r.label)+'</div>'+['od','os'].map(function(e){return '<div class="optykerFundusCell" data-eye="'+e.toUpperCase()+'">'+fundusInput(s,r,r.k+'_'+e,e.toUpperCase())+'</div>'}).join('')+'</div>'});
+    h+='</div><div class="optykerClinicalFields">'+FUNDUS_TEXT.map(function(t){return '<div class="optykerClinicalField wide"><label>'+esc(t.label)+'</label><textarea data-tools-key="'+t.k+'">'+esc(getVal(s,t.k))+'</textarea></div>'}).join('')+'</div>';
+    var legacy=fieldsFor(s).filter(function(k){return FUNDUS_KEYS.indexOf(k)<0&&getVal(s,k)!==''});
+    if(legacy.length)h+='<div class="optykerFundusLegacy"><div class="optykerFundusLegacyTitle">Dati registrati con la scheda precedente</div><div class="optykerClinicalFields">'+legacy.map(function(k){return fieldHtml(s,k)}).join('')+'</div></div>';
+    return h+'</div>';
+  }
+  function syncChoices(root){Array.prototype.forEach.call((root||document).querySelectorAll('.optykerChoice'),function(g){var inp=g.querySelector('[data-tools-key]'),v=inp?inp.value:'';Array.prototype.forEach.call(g.querySelectorAll('[data-choice-val]'),function(b){var on=b.getAttribute('data-choice-val')===v;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on))});var c=g.querySelector('[data-choice-clear]');if(c)c.hidden=!v})}
+  function validateCard(card){var bad='';Array.prototype.forEach.call(card.querySelectorAll('[data-num-label]'),function(x){x.classList.remove('invalid');var raw=String(x.value||'').trim();if(!raw||bad)return;var n=Number(raw.replace(',','.'));var lo=x.getAttribute('data-num-min'),hi=x.getAttribute('data-num-max');if(!isFinite(n)||(lo!=null&&n<Number(lo))||(hi!=null&&n>Number(hi))){x.classList.add('invalid');bad=x.getAttribute('data-num-label')+': valore non valido'+(lo!=null&&hi!=null?' (da '+lo+' a '+hi+')':'')+'.'}});return bad}
+  function cardHtml(s){var out=getVal(s,'outcome');return '<div class="optykerClinicalCard" data-tools-card="'+esc(s.id)+'"><div class="optykerClinicalSummary"><strong>'+esc((defs[s.kind]&&defs[s.kind].title)||s.title||'Scheda')+' <em>'+esc(sheetDisplay(s))+'</em></strong><span class="optykerCardMeta">'+esc(dt(s.updated_at||s.created_at))+'</span><span class="optykerCardActions"><button type="button" class="optykerCardBtn" data-tools-edit="'+esc(s.id)+'">Modifica</button><button type="button" class="optykerCardBtn" data-tools-print="'+esc(s.id)+'">Stampa</button><button type="button" class="optykerCardBtn danger" data-tools-delete="'+esc(s.id)+'">Elimina</button></span></div>'+(s.kind==='visual_anomalies'&&out?'<div class="optykerAnomalyOutcome"><b>Esito:</b> '+esc(out)+'</div>':'')+'<div class="optykerClinicalEditor">'+(s.kind==='fondo_oculare'?fundusHtml(s):'<div class="optykerClinicalFields">'+fieldsFor(s).map(function(k){return fieldHtml(s,k)}).join('')+'</div>')+'<div class="optykerClinicalSaveRow"><button class="optykerClientToolsBtn primary" data-tools-save="'+esc(s.id)+'" type="button">SALVA SCHEDA</button></div></div></div>'}
   function renderClinical(){
     var a=rootAnchor(),b=ensureBlock('optykerClientClinicalTools',a);if(!b)return;
     b.innerHTML='<div class="optykerClientToolsHead"><div><h3>Schede cliniche</h3><div class="optykerClientToolsSub">Crea e modifica le schede direttamente dall’anagrafica cliente.</div></div></div><div class="optykerClientToolsGrid">'+clinicalGroups()+'</div>';
@@ -53,13 +86,18 @@
     b.innerHTML=h;
   }
   function captureCards(){Array.prototype.forEach.call(document.querySelectorAll('.optykerClinicalCard[data-tools-card]'),function(c){var id=c.getAttribute('data-tools-card');if(c.classList.contains('open'))state.open[id]=true;else delete state.open[id];var d={};Array.prototype.forEach.call(c.querySelectorAll('[data-tools-key]'),function(x){d[x.getAttribute('data-tools-key')]=x.value});if(c.classList.contains('open'))state.drafts[id]=d})}
-  function restoreCards(){Array.prototype.forEach.call(document.querySelectorAll('.optykerClinicalCard[data-tools-card]'),function(c){var id=c.getAttribute('data-tools-card');if(state.open[id])c.classList.add('open');var d=state.drafts[id];if(d)Array.prototype.forEach.call(c.querySelectorAll('[data-tools-key]'),function(x){var k=x.getAttribute('data-tools-key');if(Object.prototype.hasOwnProperty.call(d,k))x.value=d[k]})})}
+  function restoreCards(){Array.prototype.forEach.call(document.querySelectorAll('.optykerClinicalCard[data-tools-card]'),function(c){var id=c.getAttribute('data-tools-card');if(state.open[id])c.classList.add('open');var d=state.drafts[id];if(d)Array.prototype.forEach.call(c.querySelectorAll('[data-tools-key]'),function(x){var k=x.getAttribute('data-tools-key');if(Object.prototype.hasOwnProperty.call(d,k))x.value=d[k]})});syncChoices(document)}
   function blocksMissing(){return ['optykerClientReferenceTools','optykerClientClinicalTools','optykerClientAnomalyTools','optykerClientPaymentTools'].some(function(id){return !E(id)})}
   function renderAll(){if(String(window.clientCurrentId||'')!==state.clientId)return;captureCards();renderReferences();renderClinical();renderAnomalies();renderPayments();restoreCards()}
   function openCard(id){var c=null;Array.prototype.forEach.call(document.querySelectorAll('.optykerClinicalCard[data-tools-card]'),function(x){if(x.getAttribute('data-tools-card')===String(id))c=x});if(!c)return false;state.open[String(id)]=true;c.classList.add('open');c.scrollIntoView({behavior:'smooth',block:'center'});var f=c.querySelector('[data-tools-key]');if(f)try{f.focus({preventScroll:true})}catch(z){}return true}
   function bind(root){
     Array.prototype.forEach.call(root.querySelectorAll('.optykerClinicalSummary'),function(x){x.onclick=function(){var c=this.closest('.optykerClinicalCard'),id=c.getAttribute('data-tools-card');c.classList.toggle('open');if(c.classList.contains('open'))state.open[id]=true;else{delete state.open[id];delete state.drafts[id]}}});
     Array.prototype.forEach.call(root.querySelectorAll('[data-tools-new]'),function(x){x.onclick=function(){createSheet(this.getAttribute('data-tools-new'))}});
+    Array.prototype.forEach.call(root.querySelectorAll('[data-tools-edit]'),function(b){b.onclick=function(ev){ev.stopPropagation();openCard(this.getAttribute('data-tools-edit'))}});
+    Array.prototype.forEach.call(root.querySelectorAll('[data-tools-print]'),function(b){b.onclick=function(ev){ev.stopPropagation();var id=this.getAttribute('data-tools-print'),row=rowById(id);if(!row)return;try{printRow(row)}catch(e){alert(e.message||String(e))}}});
+    Array.prototype.forEach.call(root.querySelectorAll('[data-tools-delete]'),function(b){b.onclick=function(ev){ev.stopPropagation();var row=rowById(this.getAttribute('data-tools-delete'));if(row)deleteFromCard(row,this)}});
+    Array.prototype.forEach.call(root.querySelectorAll('[data-choice-clear]'),function(b){b.onclick=function(){var g=this.closest('.optykerChoice'),inp=g&&g.querySelector('[data-tools-key]');if(inp){inp.value='';syncChoices(g.parentNode)}}});
+    Array.prototype.forEach.call(root.querySelectorAll('[data-choice-val]'),function(b){b.onclick=function(){var g=this.closest('.optykerChoice'),inp=g&&g.querySelector('[data-tools-key]'),v=this.getAttribute('data-choice-val');if(!inp)return;inp.value=inp.value===v?'':v;syncChoices(g.parentNode)}});
     Array.prototype.forEach.call(root.querySelectorAll('[data-tools-save]'),function(x){x.onclick=function(){saveSheet(this.getAttribute('data-tools-save'),this.closest('.optykerClinicalCard'))}});
   }
   function load(force){
@@ -69,7 +107,91 @@
     return call('list',{client_id:cid}).then(function(x){if(cid===String(window.clientCurrentId||'')){state.data=x.data||{};state.last=Date.now();renderAll()}}).catch(function(e){console.warn('Optyker client tools:',e)}).finally(function(){state.loading=false})
   }
   function createSheet(k){var cid=String(window.clientCurrentId||'');if(!cid||state.creating)return;state.creating=true;var newId='';call('create',{client_id:cid,kind:k}).then(function(x){if(x.data){cloudReplace(x.data);newId=String(x.data.id||'')}if(newId)state.open[newId]=true;state.loading=false;return load(true)}).then(function(){setTimeout(function(){if(newId&&openCard(newId))return;var g=document.querySelector('[data-tools-new="'+k+'"]'),c=g&&g.closest('.optykerClinicalGroup,.optykerClientToolsBlock'),first=c&&c.querySelector('.optykerClinicalCard[data-tools-card]');if(first)openCard(first.getAttribute('data-tools-card'))},60)}).catch(function(e){alert('Impossibile creare la scheda: '+e.message)}).finally(function(){state.creating=false})}
-  function saveSheet(id,card){var cid=String(window.clientCurrentId||'');if(!cid||!id||!card)return;var values={};Array.prototype.forEach.call(card.querySelectorAll('[data-tools-key]'),function(x){values[x.getAttribute('data-tools-key')]=x.value});var b=card.querySelector('[data-tools-save]');if(b){b.disabled=true;b.textContent='Salvataggio…'}call('update',{client_id:cid,id:id,values:values}).then(function(x){if(x.data)cloudReplace(x.data);delete state.drafts[id];return load(true)}).then(function(){alert('Scheda aggiornata')}).catch(function(e){alert('Impossibile salvare: '+e.message)}).finally(function(){if(b){b.disabled=false;b.textContent='SALVA SCHEDA'}})}
+  function saveSheet(id,card){var cid=String(window.clientCurrentId||'');if(!cid||!id||!card)return;var invalid=validateCard(card);if(invalid){alert(invalid);return}var values={};Array.prototype.forEach.call(card.querySelectorAll('[data-tools-key]'),function(x){values[x.getAttribute('data-tools-key')]=x.value});var b=card.querySelector('[data-tools-save]');if(b){b.disabled=true;b.textContent='Salvataggio…'}call('update',{client_id:cid,id:id,values:values}).then(function(x){if(x.data)cloudReplace(x.data);delete state.drafts[id];return load(true)}).then(function(){alert('Scheda aggiornata')}).catch(function(e){alert('Impossibile salvare: '+e.message)}).finally(function(){if(b){b.disabled=false;b.textContent='SALVA SCHEDA'}})}
+  // ---------- Stampa e cancellazione delle schede ----------
+  var TOOL_KIND={indications:'usage',analysis:'visual_anomalies',usage:'usage',visual_anomalies:'visual_anomalies',protocol_ovc:'protocol_ovc',protocol_ovc_bambini:'protocol_ovc_bambini',analisi_visiva_integrata:'analisi_visiva_integrata',fondo_oculare:'fondo_oculare'};
+  function rowById(id){var rows=state.data&&state.data.clinical_sheets||[];for(var i=0;i<rows.length;i++)if(String(rows[i].id)===String(id))return rows[i];return null}
+  function cardFor(id){var c=null;Array.prototype.forEach.call(document.querySelectorAll('.optykerClinicalCard[data-tools-card]'),function(x){if(x.getAttribute('data-tools-card')===String(id))c=x});return c}
+  function valuesFor(row){var out={},card=cardFor(row.id);if(card){Array.prototype.forEach.call(card.querySelectorAll('[data-tools-key]'),function(x){out[x.getAttribute('data-tools-key')]=String(x.value||'').trim()});return out}var els=row&&row.data&&row.data.elements||{};Object.keys(els).forEach(function(k){out[k]=getVal(row,k).trim()});return out}
+  function clientName(){var n=E('clientWorkspaceName');return n?String(n.textContent||'').replace(/\s+/g,' ').trim():''}
+  function nl2br(v){return esc(v).replace(/\n/g,'<br>')}
+  function clinicalBody(row,kind){
+    var v=valuesFor(row),h='';
+    if(kind==='fondo_oculare'){
+      var filled=FUNDUS_ROWS.filter(function(r){return v[r.k+'_od']||v[r.k+'_os']});
+      if(filled.length)h+='<table class="otkTable"><thead><tr><th>Oftalmoscopio</th><th>OD</th><th>OS</th></tr></thead><tbody>'+filled.map(function(r){var f=function(x){return x?esc(x)+(r.suffix?(r.suffix.charAt(0)==='/'?'':' ')+esc(r.suffix):''):''};return '<tr><td>'+esc(r.label)+'</td><td>'+f(v[r.k+'_od'])+'</td><td>'+f(v[r.k+'_os'])+'</td></tr>'}).join('')+'</tbody></table>';
+      FUNDUS_TEXT.forEach(function(t){if(v[t.k])h+='<div class="otkText"><b>'+esc(t.label)+'</b><p>'+nl2br(v[t.k])+'</p></div>'});
+      var legacy=Object.keys(v).filter(function(k){return FUNDUS_KEYS.indexOf(k)<0&&v[k]&&['clientName','clientSurname','specialistName'].indexOf(k)<0});
+      if(legacy.length)h+='<dl class="otkList">'+legacy.map(function(k){return '<div><dt>'+esc(labels[k]||k)+'</dt><dd>'+nl2br(v[k])+'</dd></div>'}).join('')+'</dl>';
+      return h;
+    }
+    var keys=(defs[kind]&&defs[kind].fields||[]).slice();Object.keys(v).forEach(function(k){if(keys.indexOf(k)<0)keys.push(k)});
+    var list=keys.filter(function(k){return k!=='examDate'&&v[k]&&['clientName','clientSurname','specialistName'].indexOf(k)<0});
+    return list.length?'<dl class="otkList">'+list.map(function(k){return '<div><dt>'+esc(labels[k]||String(k).replace(/_/g,' ').replace(/([a-z])([A-Z])/g,'$1 $2'))+'</dt><dd>'+nl2br(v[k])+'</dd></div>'}).join('')+'</dl>':'<p class="otkEmpty">Nessun dato compilato.</p>';
+  }
+  // Intestazione e piè di pagina presi dalla stampa della Prescrizione.
+  function prescriptionFrame(){
+    var out={head:'',foot:'',css:''};
+    try{
+      if(typeof window.prescriptionPrintHtml!=='function')return out;
+      var rx=new DOMParser().parseFromString(window.prescriptionPrintHtml(),'text/html');
+      out.css=Array.prototype.map.call(rx.querySelectorAll('style'),function(x){return x.textContent}).join('\n');
+      var head=rx.querySelector('.head');if(head)out.head=head.outerHTML;
+      var leaf=null;Array.prototype.forEach.call(rx.body.querySelectorAll('*'),function(e){if(/OTTICO OPTOMETRISTA/i.test(e.textContent||'')&&!Array.prototype.some.call(e.children,function(c){return /OTTICO OPTOMETRISTA/i.test(c.textContent||'')}))leaf=e});
+      if(leaf){var foot=leaf;while(foot.parentElement&&foot.parentElement!==rx.body&&!foot.parentElement.classList.contains('onePage')&&(foot.parentElement.textContent||'').trim().length<=(foot.textContent||'').trim().length+80)foot=foot.parentElement;out.foot=foot.outerHTML}
+    }catch(e){console.warn('Optyker: intestazione prescrizione non leggibile',e)}
+    return out;
+  }
+  function printDocument(title,meta,bodyHtml){
+    var f=prescriptionFrame();
+    var head=f.head||'<div class="otkHeadFallback"><b>Ottica Visual Care</b><br>Via primo maggio 4 · 24040 Lallio (BG)<br>Registrazione Ministero della Salute n.419926</div>';
+    var foot=f.foot||'<div class="otkFootFallback">OTTICO OPTOMETRISTA CONTATTOLOGO SPECIALISTA — '+esc(op())+'</div>';
+    var css=f.css+'\n@page{size:A4 portrait;margin:0}html,body{margin:0;padding:0;background:#fff}.onePage.otkPage{position:relative;box-sizing:border-box;width:210mm;min-height:296mm;height:auto!important;overflow:visible!important;padding:8mm 10mm 22mm;font-family:Segoe UI,Arial,sans-serif;color:#172b4d}'
+      +'.otkTitle{margin:10px 0 6px;font-size:18px;font-weight:900;letter-spacing:.02em;color:#172b4d;text-transform:uppercase;text-align:center}.otkMeta{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:12px;margin:0 0 14px;padding:6px 0;border-top:1px solid #9aa6b2;border-bottom:1px solid #9aa6b2}'
+      +'.otkTable{width:100%;border-collapse:collapse;font-size:12px;margin:6px 0 12px}.otkTable th,.otkTable td{border:1px solid #9aa6b2;padding:6px 8px;text-align:center}.otkTable th:first-child,.otkTable td:first-child{text-align:left;width:46%}.otkTable thead th{background:#eef3f7;font-weight:900}'
+      +'.otkText{margin:0 0 10px;font-size:12px}.otkText b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.03em;margin-bottom:3px}.otkText p{margin:0;white-space:normal;border-bottom:1px dotted #9aa6b2;padding-bottom:4px}'
+      +'.otkList{margin:0;font-size:12px}.otkList>div{display:flex;gap:14px;border-bottom:1px solid #dde3e8;padding:6px 0}.otkList dt{min-width:190px;font-weight:800}.otkList dd{margin:0}.otkEmpty{font-size:12px;color:#5d7486}'
+      +'.otkBody h3{font-size:12px;margin:14px 0 4px;text-transform:uppercase;letter-spacing:.03em}.otkBody dl{margin:0;font-size:12px}.otkBody dl>div{display:flex;gap:14px;border-bottom:1px solid #dde3e8;padding:5px 0}.otkBody dt{min-width:190px;font-weight:800}.otkBody dd{margin:0;white-space:pre-wrap}.otkBody img{max-width:100%;max-height:90mm}.otkBody h4{font-size:11px;margin:10px 0 4px}'+'.otkHeadFallback{font-size:12px}.otkFootFallback{position:absolute;left:10mm;right:10mm;bottom:8mm;border-top:1px solid #9aa6b2;padding-top:4px;font-size:10px;font-weight:800}';
+    var html='<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>'+css+'</style></head><body><div class="onePage otkPage">'+head+'<div class="otkTitle">'+esc(title)+'</div>'+(meta?'<div class="otkMeta">'+meta+'</div>':'')+'<div class="otkBody">'+bodyHtml+'</div>'+foot+'</div></body></html>';
+    var w=window.open('','_blank');if(!w)throw new Error('Il browser ha bloccato la finestra di stampa: consenti i popup per Optyker e riprova.');
+    w.document.open();w.document.write(html);w.document.close();
+    if(window.optykerQuotePrint&&typeof window.optykerQuotePrint.finish==='function')window.optykerQuotePrint.finish(w);else setTimeout(function(){try{w.focus();w.print()}catch(e){}},250);
+  }
+  function printRow(row,kindHint){
+    var kind=TOOL_KIND[kindHint]||TOOL_KIND[row&&row.kind]||row&&row.kind||'';
+    var v=valuesFor(row),title=(defs[kind]&&defs[kind].title)||row.title||'Scheda';
+    var meta='<span><b>Cliente:</b> '+esc(clientName()||'—')+'</span><span><b>Data esame:</b> '+esc(v.examDate||dt(row.updated_at||row.created_at).split(',')[0])+'</span><span><b>'+esc(sheetDisplay(row))+'</b></span>';
+    printDocument(title,meta,clinicalBody(row,kind));
+  }
+  function sheetRpc(action,payload){
+    var c=window.OPTYKER_CLOUD||{};
+    if(!(window.optykerAuthenticated&&c.username&&c.password&&c.root&&c.key))return Promise.reject(new Error('Accedi con un operatore autorizzato per eliminare la scheda.'));
+    return fetch(c.root+'/rest/v1/rpc/optyker_client_sheet_actions',{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json',apikey:c.key,Authorization:'Bearer '+c.key},body:JSON.stringify({p_username:c.username,p_password:c.password,p_action:action,p_payload:payload})}).then(function(r){return r.json().catch(function(){return {}}).then(function(x){if(!r.ok||!x||!x.ok)throw new Error(x&&x.error||('HTTP '+r.status));return x})});
+  }
+  // Elimina tramite l'azione sicura del gestionale (copia di recupero, ordini protetti).
+  function deleteRow(row,clientId){
+    var cid=String(clientId||window.clientCurrentId||''),id=String(row&&row.id||'');
+    if(!cid||!id)return Promise.reject(new Error('Scheda non selezionata.'));
+    return sheetRpc('get',{client_id:cid,sheet_id:id}).then(function(g){
+      var cur=g.data||{};return sheetRpc('delete',{client_id:cid,sheet_id:id,expected_updated_at:cur.updated_at,confirm:true});
+    },function(e){
+      if(!/non disponibile/i.test(e.message||''))throw e;
+      return call('delete',{client_id:cid,id:id}).catch(function(){throw e});
+    }).then(function(result){
+      var arr=window.OPTYKER_CLOUD&&OPTYKER_CLOUD.sheets&&OPTYKER_CLOUD.sheets[cid];if(Array.isArray(arr))OPTYKER_CLOUD.sheets[cid]=arr.filter(function(x){return String(x&&x.id)!==id});
+      delete state.open[id];delete state.drafts[id];
+      window.dispatchEvent(new CustomEvent('optyker:sheet-removed',{detail:{client_id:cid,sheet_id:id,archived_sheet_ids:(result&&result.archived_sheet_ids)||[id]}}));window.dispatchEvent(new CustomEvent('optyker:client-cart-updated',{detail:{client_id:cid}}));
+      return result;
+    });
+  }
+  function deleteFromCard(row,btn){
+    var title=(defs[row.kind]&&defs[row.kind].title)||'Scheda';
+    if(!confirm('Eliminare la scheda '+title+' ('+sheetDisplay(row)+')'+(clientName()?' di '+clientName():'')+'?\n\nVerrà conservata una copia di recupero. Il cliente non viene eliminato.'))return;
+    if(btn){btn.disabled=true;btn.textContent='Eliminazione…'}
+    deleteRow(row).then(function(){return load(true)}).catch(function(e){alert('Impossibile eliminare la scheda: '+(e.message||e));if(btn&&btn.isConnected){btn.disabled=false;btn.textContent='Elimina'}});
+  }
+  window.OPTYKER_CLIENT_TOOLS={version:'20261003-actions1',toolKind:function(k){return TOOL_KIND[k]||''},printRow:printRow,printDocument:printDocument,deleteRow:deleteRow};
+  window.addEventListener('optyker:sheet-removed',function(e){var d=e&&e.detail||{};if(String(d.client_id||'')===state.clientId)load(true)});
   function hook(){
     if(typeof window.clientSelect==='function'&&!window.clientSelect.__clientToolsHook){var old=window.clientSelect,w=function(){var r=old.apply(this,arguments);setTimeout(function(){load(true)},120);return r};w.__clientToolsHook=true;window.clientSelect=w}
   }
