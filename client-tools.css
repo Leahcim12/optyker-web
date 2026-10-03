@@ -12,3 +12,32 @@
 .optykerRefLine{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;border:1px solid #e1e8ed;border-radius:10px;background:#fff;margin-top:7px}
 .optykerRefLine b{font-size:9px;color:#26485f}.optykerRefLine span{font-size:9px;font-weight:900;color:#1769aa}
 .optykerRefList{display:grid;gap:7px}.optykerClinicalSummary em{font-style:normal;font-size:8px;color:#1769aa;font-weight:900;margin-left:6px}
+/* Fondo oculare · modulo Oftalmoscopio (OD / OS) */
+.optykerClinicalGroup[data-tools-group="fondo_oculare"]{grid-column:1/-1}
+.optykerFundus{display:grid;gap:9px}
+.optykerFundusTable{border:1px solid #dce7f0;border-radius:11px;overflow:hidden;background:#fff}
+.optykerFundusHead,.optykerFundusRow{display:grid;grid-template-columns:minmax(150px,1.1fr) minmax(0,1fr) minmax(0,1fr);align-items:center;gap:8px;padding:7px 10px}
+.optykerFundusHead{background:#f1f6fa;border-bottom:1px solid #dce7f0}.optykerFundusHead span{font-size:9px;font-weight:900;color:#173e69;text-transform:uppercase;letter-spacing:.04em}.optykerFundusHead b{font-size:10px;color:#173e69;text-align:center}
+.optykerFundusRow+.optykerFundusRow{border-top:1px solid #edf2f5}
+.optykerFundusLabel{font-size:9px;font-weight:800;color:#26485f;line-height:1.3}
+.optykerFundusCell{display:flex;justify-content:center;min-width:0}
+.optykerChoice{display:flex;flex-wrap:wrap;justify-content:center;gap:4px}
+.optykerChoice button{border:1px solid #c9d8e4;background:#fff;color:#26485f;border-radius:7px;padding:5px 8px;min-width:30px;font:800 9px/1.1 "Segoe UI",Arial,sans-serif;cursor:pointer}
+.optykerChoice button:hover{border-color:#1769aa}.optykerChoice button.on{background:#1769aa;border-color:#1769aa;color:#fff}
+.optykerChoice button:focus-visible{outline:2px solid #1769aa;outline-offset:1px}
+.optykerFundusNum{display:inline-flex;align-items:center;gap:5px}
+.optykerFundusNum input{width:64px;box-sizing:border-box;border:1px solid #d0dbe4;border-radius:8px;background:#fff;padding:6px 8px;text-align:center;font:600 10px/1.3 "Segoe UI",Arial,sans-serif;color:#17324a}
+.optykerFundusNum input.invalid{border-color:#c0392b;background:#fff5f4}
+.optykerFundusNum span{font-size:9px;font-weight:900;color:#5d7486}
+.optykerFundusLegacy{border:1px dashed #ccd9e2;border-radius:10px;padding:9px;background:#fbfdff}.optykerFundusLegacyTitle{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;color:#738594;margin-bottom:6px}
+@media (max-width:720px){.optykerFundusHead,.optykerFundusRow{grid-template-columns:minmax(0,1fr) minmax(0,1fr);}.optykerFundusHead span,.optykerFundusLabel{grid-column:1/-1}.optykerFundusCell{justify-content:flex-start}.optykerFundusCell::before{content:attr(data-eye);font-size:8px;font-weight:900;color:#5d7486;margin-right:6px;align-self:center}.optykerFundusHead b{display:none}}
+/* Azioni per ogni scheda: Modifica · Stampa · Elimina */
+.optykerClinicalSummary{flex-wrap:wrap}.optykerClinicalSummary strong{flex:1 1 auto;min-width:0}
+.optykerCardMeta{font-size:8px;color:#7b8d99;white-space:nowrap}
+.optykerCardActions{display:inline-flex;gap:4px;flex-wrap:wrap}
+.optykerCardBtn{border:1px solid #bfd1df;background:#fff;color:#1769aa;border-radius:7px;padding:4px 8px;font:800 8.5px/1.2 "Segoe UI",Arial,sans-serif;cursor:pointer}
+.optykerCardBtn:hover{border-color:#1769aa}.optykerCardBtn.danger{border-color:#e2b8b8;color:#a52a2a}.optykerCardBtn.danger:hover{border-color:#a52a2a}.optykerCardBtn:disabled{opacity:.55;cursor:wait}
+.optykerCardBtn:focus-visible{outline:2px solid #1769aa;outline-offset:1px}
+.optykerChoiceClear{border:1px solid transparent!important;background:transparent!important;color:#8a9aa6!important;min-width:22px!important;padding:5px 6px!important;font-size:12px!important;line-height:1!important}
+.optykerChoiceClear:hover{color:#a52a2a!important}.optykerChoiceClear[hidden]{display:none}
+.optykerFundusHint{padding:6px 10px;font-size:8.5px;color:#5d7486;background:#fbfdff;border-bottom:1px solid #edf2f5}
