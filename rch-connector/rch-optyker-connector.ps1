@@ -391,16 +391,33 @@ function Get-ReprintJob($request) {
   } catch {throw 'Documento non accessibile. Verifica accesso Optyker e connessione Internet.'}
 }
 function Assert-ReprintJournal([string]$raw,$job) {
+  # OPTYKER_REPRINT_JOURNAL_V2: a closed-day EJ may append its management closure.
   $status=Parse-Rch $raw
   if(-not $status.ok -or $status.lastCmd -ne 1){throw 'Lettura documento RCH non confermata.'}
   $xml=Read-SafeXml $raw;$nodes=$xml.SelectNodes('/Service/EJ')
   if($nodes.Count -ne 1){throw 'Documento non trovato nel giornale RCH.'}
   $text=$nodes[0].InnerText.Replace("`r",'')
   $numbers=[regex]::Matches($text,'(?m)^\s*DOCUMENTO(?:\s+COMMERCIALE)?\s+N[.°]?\s*(\d{4}-\d{4})\s*$')
+  if($numbers.Count -ne 1 -or $numbers[0].Groups[1].Value -cne $job.document_number){throw 'Il documento nel giornale non corrisponde allo scontrino selezionato.'}
+  $management=[regex]::Matches($text,'(?m)^[ \t]*DOCUMENTO GESTIONALE[ \t]*$')
+  if($management.Count){
+    if($management.Count -ne 1 -or $management[0].Index -le $numbers[0].Index){throw 'Il giornale contiene altri documenti non verificati.'}
+    $tail=$text.Substring($management[0].Index)
+    $closure=[regex]::Matches($tail,'(?m)^[ \t]*CHIUSURA GIORNALIERA N\.[ \t]+(\d{1,4})[ \t]*$')
+    if($tail -cnotmatch '\A[ \t]*DOCUMENTO GESTIONALE[ \t]*\n[ \t]*di chiusura giornaliera[ \t]*\n' -or $closure.Count -ne 1 -or [int]$closure[0].Groups[1].Value -ne [int]([string]$job.document_number).Split('-')[0]){throw 'Il riepilogo allegato non corrisponde alla chiusura dello scontrino.'}
+    # Check date and serial on the receipt itself; never borrow evidence from the tail.
+    $text=$text.Substring(0,$management[0].Index)
+  }
   $dates=[regex]::Matches($text,'(?m)^\s*(\d{2}[-/]\d{2}[-/]\d{4})\s+\d{2}:\d{2}(?::\d{2})?\s*$')
   if($numbers.Count -ne 1 -or $numbers[0].Groups[1].Value -cne $job.document_number -or $dates.Count -ne 1){throw 'Il documento nel giornale non corrisponde allo scontrino selezionato.'}
   $date=[datetime]::ParseExact($dates[0].Groups[1].Value.Replace('/','-'),'dd-MM-yyyy',[Globalization.CultureInfo]::InvariantCulture)
   if($date.ToString('yyyy-MM-dd') -cne $job.document_date -or -not [regex]::IsMatch($text,'(?<![A-Z0-9])'+[regex]::Escape([string]$job.serial)+'(?![A-Z0-9])')){throw 'Data o matricola del documento non corrispondente.'}
+  if($null -ne $job.total){
+    $totals=[regex]::Matches($text,'(?m)^[ \t]*TOTALE COMPLESSIVO[ \t]+(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})[ \t]*(?:EUR|\u20ac)?[ \t]*$')
+    if($totals.Count -ne 1){throw 'Importo dello scontrino non univoco.'}
+    $amount=[decimal]::Parse($totals[0].Groups[1].Value.Replace('.','').Replace(',','.'),[Globalization.CultureInfo]::InvariantCulture)
+    if($amount -ne [decimal]$job.total){throw 'Importo dello scontrino non corrispondente.'}
+  }
 }
 function Sync-VerifiedReprintJournal($job) {
   # Called only under the exclusive printer lock, after live REG/idle and serial checks.
