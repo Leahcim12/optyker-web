@@ -1,7 +1,7 @@
 (function(){
   if(window.__optykerClientToolsPatch)return;window.__optykerClientToolsPatch=true;
   var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-client-tools-api';
-  var state={clientId:'',data:null,loading:false,last:0};
+  var state={clientId:'',data:null,loading:false,last:0,open:{},drafts:{}};
   var defs={
     usage:{title:"Indicazioni d’uso",fields:['examDate','instructions','products','maintenance','notes']},
     protocol_ovc:{title:'Protocollo VC',fields:['examDate','reason','anamnesis','visualAcuity','refraction','binocularVision','accommodation','motility','outcome','notes']},
@@ -52,24 +52,28 @@
     else{h+='<div class="optykerDueTop"><b>TOTALE ANCORA DA PAGARE</b><strong>'+esc(money(p.total_due,p.currency||'EUR'))+'</strong></div>';h+=pos.map(function(x){return '<div class="optykerDueRow"><div><div class="optykerDueRowTitle">'+esc(x.shopify_order_name||x.note||'Vendita Optyker')+'</div><div class="optykerDueRowMeta">'+esc(dt(x.created_at))+' · '+esc(x.payment_stage||x.payment_status||x.status||'Pagamento aperto')+'</div></div><div class="optykerDueRowAmount">'+esc(money(x.due_amount,x.currency||'EUR'))+'</div></div>'}).join('');h+=online.map(function(o){return '<div class="optykerDueRow"><div><div class="optykerDueRowTitle">'+esc(o.order_name||'Ordine online')+'</div><div class="optykerDueRowMeta">Ordine online · '+esc(o.financial_status||'Da pagare')+'</div></div><div class="optykerDueRowAmount">'+esc(money(o.total,o.currency||'EUR'))+'</div></div>'}).join('')}
     b.innerHTML=h;
   }
-  function renderAll(){if(String(window.clientCurrentId||'')!==state.clientId)return;renderReferences();renderClinical();renderAnomalies();renderPayments()}
+  function captureCards(){Array.prototype.forEach.call(document.querySelectorAll('.optykerClinicalCard[data-tools-card]'),function(c){var id=c.getAttribute('data-tools-card');if(c.classList.contains('open'))state.open[id]=true;else delete state.open[id];var d={};Array.prototype.forEach.call(c.querySelectorAll('[data-tools-key]'),function(x){d[x.getAttribute('data-tools-key')]=x.value});if(c.classList.contains('open'))state.drafts[id]=d})}
+  function restoreCards(){Array.prototype.forEach.call(document.querySelectorAll('.optykerClinicalCard[data-tools-card]'),function(c){var id=c.getAttribute('data-tools-card');if(state.open[id])c.classList.add('open');var d=state.drafts[id];if(d)Array.prototype.forEach.call(c.querySelectorAll('[data-tools-key]'),function(x){var k=x.getAttribute('data-tools-key');if(Object.prototype.hasOwnProperty.call(d,k))x.value=d[k]})})}
+  function blocksMissing(){return ['optykerClientReferenceTools','optykerClientClinicalTools','optykerClientAnomalyTools','optykerClientPaymentTools'].some(function(id){return !E(id)})}
+  function renderAll(){if(String(window.clientCurrentId||'')!==state.clientId)return;captureCards();renderReferences();renderClinical();renderAnomalies();renderPayments();restoreCards()}
+  function openCard(id){var c=null;Array.prototype.forEach.call(document.querySelectorAll('.optykerClinicalCard[data-tools-card]'),function(x){if(x.getAttribute('data-tools-card')===String(id))c=x});if(!c)return false;state.open[String(id)]=true;c.classList.add('open');c.scrollIntoView({behavior:'smooth',block:'center'});var f=c.querySelector('[data-tools-key]');if(f)try{f.focus({preventScroll:true})}catch(z){}return true}
   function bind(root){
-    Array.prototype.forEach.call(root.querySelectorAll('.optykerClinicalSummary'),function(x){x.onclick=function(){this.closest('.optykerClinicalCard').classList.toggle('open')}});
+    Array.prototype.forEach.call(root.querySelectorAll('.optykerClinicalSummary'),function(x){x.onclick=function(){var c=this.closest('.optykerClinicalCard'),id=c.getAttribute('data-tools-card');c.classList.toggle('open');if(c.classList.contains('open'))state.open[id]=true;else{delete state.open[id];delete state.drafts[id]}}});
     Array.prototype.forEach.call(root.querySelectorAll('[data-tools-new]'),function(x){x.onclick=function(){createSheet(this.getAttribute('data-tools-new'))}});
     Array.prototype.forEach.call(root.querySelectorAll('[data-tools-save]'),function(x){x.onclick=function(){saveSheet(this.getAttribute('data-tools-save'),this.closest('.optykerClinicalCard'))}});
   }
   function load(force){
     var cid=String(window.clientCurrentId||'');if(!cid){state.clientId='';state.data=null;['optykerClientReferenceTools','optykerClientClinicalTools','optykerClientAnomalyTools','optykerClientPaymentTools'].forEach(function(id){var x=E(id);if(x)x.remove()});return Promise.resolve()}
     if(state.loading)return Promise.resolve();if(!force&&cid===state.clientId&&Date.now()-state.last<10000){renderAll();return Promise.resolve()}
-    state.clientId=cid;state.loading=true;
+    if(cid!==state.clientId){state.open={};state.drafts={}}state.clientId=cid;state.loading=true;
     return call('list',{client_id:cid}).then(function(x){if(cid===String(window.clientCurrentId||'')){state.data=x.data||{};state.last=Date.now();renderAll()}}).catch(function(e){console.warn('Optyker client tools:',e)}).finally(function(){state.loading=false})
   }
-  function createSheet(k){var cid=String(window.clientCurrentId||'');if(!cid)return;call('create',{client_id:cid,kind:k}).then(function(x){if(x.data)cloudReplace(x.data);return load(true)}).then(function(){setTimeout(function(){var cards=document.querySelectorAll('.optykerClinicalCard');if(cards.length){cards[0].classList.add('open');cards[0].scrollIntoView({behavior:'smooth',block:'center'})}},60)}).catch(function(e){alert('Impossibile creare la scheda: '+e.message)})}
-  function saveSheet(id,card){var cid=String(window.clientCurrentId||'');if(!cid||!id||!card)return;var values={};Array.prototype.forEach.call(card.querySelectorAll('[data-tools-key]'),function(x){values[x.getAttribute('data-tools-key')]=x.value});var b=card.querySelector('[data-tools-save]');if(b){b.disabled=true;b.textContent='Salvataggio…'}call('update',{client_id:cid,id:id,values:values}).then(function(x){if(x.data)cloudReplace(x.data);return load(true)}).then(function(){alert('Scheda aggiornata')}).catch(function(e){alert('Impossibile salvare: '+e.message)}).finally(function(){if(b){b.disabled=false;b.textContent='SALVA SCHEDA'}})}
+  function createSheet(k){var cid=String(window.clientCurrentId||'');if(!cid||state.creating)return;state.creating=true;var newId='';call('create',{client_id:cid,kind:k}).then(function(x){if(x.data){cloudReplace(x.data);newId=String(x.data.id||'')}if(newId)state.open[newId]=true;state.loading=false;return load(true)}).then(function(){setTimeout(function(){if(newId&&openCard(newId))return;var g=document.querySelector('[data-tools-new="'+k+'"]'),c=g&&g.closest('.optykerClinicalGroup,.optykerClientToolsBlock'),first=c&&c.querySelector('.optykerClinicalCard[data-tools-card]');if(first)openCard(first.getAttribute('data-tools-card'))},60)}).catch(function(e){alert('Impossibile creare la scheda: '+e.message)}).finally(function(){state.creating=false})}
+  function saveSheet(id,card){var cid=String(window.clientCurrentId||'');if(!cid||!id||!card)return;var values={};Array.prototype.forEach.call(card.querySelectorAll('[data-tools-key]'),function(x){values[x.getAttribute('data-tools-key')]=x.value});var b=card.querySelector('[data-tools-save]');if(b){b.disabled=true;b.textContent='Salvataggio…'}call('update',{client_id:cid,id:id,values:values}).then(function(x){if(x.data)cloudReplace(x.data);delete state.drafts[id];return load(true)}).then(function(){alert('Scheda aggiornata')}).catch(function(e){alert('Impossibile salvare: '+e.message)}).finally(function(){if(b){b.disabled=false;b.textContent='SALVA SCHEDA'}})}
   function hook(){
     if(typeof window.clientSelect==='function'&&!window.clientSelect.__clientToolsHook){var old=window.clientSelect,w=function(){var r=old.apply(this,arguments);setTimeout(function(){load(true)},120);return r};w.__clientToolsHook=true;window.clientSelect=w}
   }
-  function install(){hook();var cid=String(window.clientCurrentId||'');if(cid&&cid!==state.clientId)load(true);else if(cid&&state.data)renderAll()}
+  function install(){hook();var cid=String(window.clientCurrentId||'');if(cid&&cid!==state.clientId)load(true);else if(cid&&state.data&&blocksMissing())renderAll()}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
   setInterval(install,800);
 })();
