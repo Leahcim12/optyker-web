@@ -2,12 +2,21 @@
    write remains in the existing, authenticated sheet/editor workflow. */
 (function(root){
 'use strict';
-const VERSION='20260925-dossier2';
+const VERSION='20261003-fondo1';
 const text=v=>String(v==null?'':v);
 const esc=v=>text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const kind=r=>text(r?.sheet_type||r?.data?.sheetType||r?.kind||'visit');
 const groups=[['lac','Lenti a contatto'],['eyewear','Occhiali'],['prescription','Prescrizione'],['analysis','Anomalie visive'],['visualexam','Esame visivo'],['indications','Indicazioni d’uso'],['hearing','Udito'],['protocol_ovc','Protocollo VC'],['protocol_ovc_bambini','VC Bambini'],['analisi_visiva_integrata','Analisi visiva integrata'],['fondo_oculare','Fondo oculare'],['visit','Visita completa']];
-function category(r){const t=kind(r);if(/^lac(?:_|$)/i.test(t))return'lac';if(/^eyewear_/i.test(t))return'eyewear';if(t==='usage')return'indications';if(t==='visual_anomalies')return'analysis';return t;}
+function category(r){const t=kind(r);if(/^lac(?:_|$)/i.test(t))return'lac';if(/^eyewear_/i.test(t))return'eyewear';if(t==='usage')return'indications';if(t==='visual_anomalies')return'analysis';if(groups.some(g=>g[0]===t))return t;
+ // Clinical tool rows can carry free-text types/labels (e.g. "Fondo Oculare"): fold them into the canonical tile.
+ const d=r?.data||{},x=[t,r?.kind,r?.title,d.sheetLabel,d.sheetType,d.type,d.label].map(text).join(' ').toLowerCase();
+ if(/fondo|fundus|retin/.test(x))return'fondo_oculare';
+ if(/bambin|child|pediatr/.test(x)&&/ovc|\bvc\b|protocol/.test(x))return'protocol_ovc_bambini';
+ if(/integrat/.test(x))return'analisi_visiva_integrata';
+ if(/indicaz|usage|istruz/.test(x))return'indications';
+ if(/anomali/.test(x))return'analysis';
+ if(/protocol/.test(x)&&/ovc|\bvc\b/.test(x))return'protocol_ovc';
+ return t;}
 function dateValue(v){
  const s=text(v).trim();let m=/^(\d{1,2})[/.](\d{1,2})[/.](\d{4})$/.exec(s),y,mo,d;
  if(m){y=+m[3];mo=+m[2];d=+m[1];}else{m=/^(\d{4})-(\d{2})-(\d{2})(?:T.*)?$/.exec(s);if(!m)return null;y=+m[1];mo=+m[2];d=+m[3];}
