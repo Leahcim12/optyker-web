@@ -2011,4 +2011,67 @@ boot();
 })();
 
 </script>
+<script id="optykerSignedDocsV1">
+/* OPTYKER_SIGNED_DOCS_V1: area cliente "Documenti firmati" (privacy, consensi, ritiro occhiali) */
+(function(){
+  if(window.__optykerSignedDocsV1)return;window.__optykerSignedDocsV1=true;
+  const SD={list:null,loading:false,error:'',open:null,opening:''};
+  const ESC=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const D=v=>{const p=String(v||'').slice(0,10).split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:String(v||'')};
+  async function rpc(name,args){const t=await token();const r=await fetch(U+'/rest/v1/rpc/'+name,{method:'POST',headers:{'Content-Type':'application/json','apikey':K,'Authorization':'Bearer '+t},body:JSON.stringify(args||{})});const x=await r.json().catch(()=>null);if(!r.ok)throw Error((x&&x.message)||'Documenti non disponibili');if(!x||x.ok!==true)throw Error((x&&x.error)||'Documenti non disponibili');return x}
+  async function loadSigned(force){
+    if(SD.loading)return;if(SD.list&&!force){render();return}
+    SD.loading=true;SD.error='';if(state.tab==='signed')render();
+    try{const x=await rpc('optyker_customer_signed_documents',{});SD.list=x.documents||[]}
+    catch(e){SD.error=e?.message||'Documenti non disponibili'}
+    finally{SD.loading=false;if(state.tab==='signed')render()}
+  }
+  window.loadSignedDocuments=loadSigned;
+  const KIND={privacy:'Privacy',privacy_withdrawal:'Revoca',lac:'Lenti a contatto',ortho:'Ortocheratologia',delivery:'Ritiro occhiali'};
+  function listMarkup(){
+    const head='<div class="page"><div class="header"><div class="eyebrow">OTTICA VISUAL CARE</div><h1>Documenti firmati</h1><div class="sub">Informative, consensi e dichiarazioni che hai firmato in negozio</div></div>';
+    if(SD.loading&&!SD.list)return head+'<div class="card"><div class="shopLoading">Caricamento documenti…</div></div></div>';
+    const rows=(SD.list||[]).map(d=>'<div class="docCard"><div class="docTop"><div><div class="docTitle">'+ESC(d.title)+'</div><div class="docMeta">'+ESC([D(d.date),d.detail].filter(Boolean).join(' · '))+'</div></div></div><span class="docBadge">'+ESC(KIND[d.kind]||'Documento')+(d.signed?' · Firmato':'')+'</span><div style="margin-top:10px"><button class="action secondary" onclick="openSignedDocument(\''+ESC(d.kind)+'\',\''+ESC(d.id)+'\')">'+(SD.opening===d.id?'Apro…':'Visualizza')+'</button></div></div>').join('');
+    return head+'<div class="docsNotice">Qui trovi una copia di ogni documento firmato con Ottica Visual Care. Per correzioni o per revocare un consenso rivolgiti al negozio.</div>'+
+      (SD.error?'<div class="error">'+ESC(SD.error)+'</div>':'')+
+      '<div class="card"><h2>I tuoi documenti</h2>'+(rows||(SD.list?'<div class="docMeta">Non ci sono ancora documenti firmati collegati al tuo profilo.</div>':''))+'</div>'+
+      '<button class="action secondary" onclick="loadSignedDocuments(true)">Aggiorna</button></div>';
+  }
+  const CSP='<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src data:">';
+  function privacyHtml(r){
+    const d=r.data||{},f=d.form||{},p=d.patient||{},rev=r.kind==='privacy_withdrawal';
+    const sig=/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(r.signature_data_url||'')?r.signature_data_url:'';
+    const ch=v=>v==='yes'?'Acconsento':v==='no'?'Non acconsento':'Non espressa';
+    const body='<header><b>OTTICA VISUAL CARE</b><h1>'+(rev?'Revoca consenso privacy':'Informativa privacy del cliente')+'</h1><p>'+ESC(p.name||'')+' · '+ESC(D(d.acquired_on||r.created_at))+'</p></header>'+
+      (rev?'<p>Revoca registrata per: <b>'+ESC({health:'Dati relativi alla salute',marketing:'Comunicazioni promozionali',all:'Entrambe le finalità'}[d.scope]||d.scope||'')+'</b>.</p>':
+      '<p>Versione testo: '+ESC(d.template_version||'')+'</p><div class="notice">'+ESC(d.notice||'')+'</div><section><h2>Dichiarazioni e scelte</h2><p>Presa visione: '+(f.acknowledged?'Sì':'Non confermata')+'.</p>'+
+      (d.statements?.health?'<p>'+ESC(d.statements.health)+'<br><b>Scelta: '+ch(f.health)+'</b></p>':'')+(d.statements?.marketing?'<p>'+ESC(d.statements.marketing)+'<br><b>Scelta: '+ch(f.marketing)+'</b></p>':'')+
+      '<p>Firmatario: '+ESC(f.signer_name||'')+(f.relationship?' · '+ESC(f.relationship):'')+'</p>'+(sig?'<img class="signature" src="'+sig+'" alt="Firma">':'<p>Firma non presente.</p>')+'</section>')+
+      '<footer><p>Riferimento: '+ESC(r.id)+'</p>'+(d.document_sha256?'<p class="digest">Impronta documento: '+ESC(d.document_sha256)+'</p>':'')+'<p>Copia del documento conservato nel registro Optyker di Ottica Visual Care.</p></footer>';
+    return '<!doctype html><html lang="it"><head><meta charset="utf-8">'+CSP+'<meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font:14px/1.6 Arial,sans-serif;color:#162f46;margin:0;padding:18px}header{border-bottom:2px solid #2c6c9a;margin-bottom:14px}header b{letter-spacing:.1em;color:#27628d}h1{font-size:21px;margin:8px 0}h2{font-size:17px}.notice{white-space:pre-wrap;overflow-wrap:anywhere}section{margin-top:18px;border-top:1px solid #abc6de;padding-top:10px}.signature{max-width:300px;height:90px;object-fit:contain}footer{font-size:11px;border-top:1px solid #abc6de;margin-top:18px;padding-top:8px}.digest{overflow-wrap:anywhere}</style></head><body>'+body+'</body></html>';
+  }
+  function consentHtml(r){let h=String(r.data?.html||'');if(!h)return privacyHtml(r);return /<head[^>]*>/i.test(h)?h.replace(/<head([^>]*)>/i,'<head$1>'+CSP):'<!doctype html><html><head><meta charset="utf-8">'+CSP+'</head><body>'+h+'</body></html>'}
+  function closeViewer(){const m=document.getElementById('optykerSignedViewer');if(m)m.remove();if(SD.open&&SD.open.url)URL.revokeObjectURL(SD.open.url);SD.open=null}
+  window.closeSignedDocument=closeViewer;
+  function viewer(title,inner,actions){closeViewer();const m=document.createElement('div');m.id='optykerSignedViewer';m.style.cssText='position:fixed;inset:0;z-index:2147483000;background:rgba(10,20,30,.55);display:flex;align-items:stretch;justify-content:center;padding:max(10px,env(safe-area-inset-top)) 10px 10px';
+    m.innerHTML='<div style="background:#fff;border-radius:18px;width:100%;max-width:820px;display:flex;flex-direction:column;overflow:hidden"><div style="display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid #e5e7eb"><b style="flex:1;font-size:15px">'+ESC(title)+'</b>'+actions+'<button type="button" onclick="closeSignedDocument()" style="border:0;background:#18181b;color:#fff;border-radius:10px;padding:8px 12px;font-weight:700">Chiudi</button></div>'+inner+'</div>';document.body.appendChild(m)}
+  window.openSignedDocument=async(kind,id)=>{
+    if(SD.opening)return;SD.opening=id;render();
+    try{const r=await rpc('optyker_customer_signed_document',{p_kind:kind,p_id:id});
+      if(kind==='delivery'){const bin=atob(r.pdf_base64||'');const u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);const url=URL.createObjectURL(new Blob([u8],{type:'application/pdf'}));
+        viewer('Ritiro occhiali'+(r.reference?' · '+r.reference:''),'<iframe title="Documento" src="'+url+'" style="flex:1;border:0;width:100%"></iframe>','<a href="'+url+'" download="ritiro-occhiali.pdf" style="border:1px solid #d4d4d8;border-radius:10px;padding:7px 11px;font-weight:700;color:#18181b;text-decoration:none">Scarica PDF</a>');SD.open={url};}
+      else{const html=(kind==='privacy'||kind==='privacy_withdrawal')?privacyHtml(r):consentHtml(r);const url=URL.createObjectURL(new Blob([html],{type:'text/html'}));
+        viewer({privacy:'Informativa privacy',privacy_withdrawal:'Revoca consenso',lac:'Consenso lenti a contatto',ortho:'Consenso ortocheratologia'}[kind]||'Documento','<iframe title="Documento" sandbox="allow-modals" srcdoc="'+ESC(html)+'" style="flex:1;border:0;width:100%"></iframe>','<a href="'+url+'" download="documento-firmato.html" style="border:1px solid #d4d4d8;border-radius:10px;padding:7px 11px;font-weight:700;color:#18181b;text-decoration:none">Scarica</a>');SD.open={url};}
+    }catch(e){SD.error=e?.message||'Documento non disponibile'}
+    finally{SD.opening='';if(state.tab==='signed')render()}
+  };
+  const basePage=page;
+  page=function(tab){if(tab==='signed'){if(!SD.list&&!SD.loading&&!SD.error)setTimeout(()=>loadSigned(false),0);return listMarkup()}return basePage(tab)};
+  function mountDrawer(){const drawer=document.querySelector('.drawerNav');if(!drawer||state.me?.role!=='customer'||drawer.querySelector('[data-nav="signed"]'))return;const docs=drawer.querySelector('[data-nav="documents"]');const b=document.createElement('button');b.className='drawerBtn';b.dataset.nav='signed';b.setAttribute('onclick',"goTab('signed')");b.textContent='Documenti firmati';if(docs&&docs.nextSibling)drawer.insertBefore(b,docs.nextSibling);else drawer.appendChild(b);b.classList.toggle('active',state.tab==='signed')}
+  const baseRender=render;
+  render=function(){baseRender();mountDrawer()};
+  const baseLogout=window.logout;if(typeof baseLogout==='function')window.logout=function(){SD.list=null;SD.error='';closeViewer();return baseLogout.apply(this,arguments)};
+  mountDrawer();
+})();
+</script>
 </body></html>
