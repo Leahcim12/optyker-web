@@ -52,6 +52,21 @@ def patch_customer(text):
     text=replace_one(text,"open:open,print:function()", "open:open,openEditorById:function(id,button){return open(id,button,true)},print:function()")
     return text
 
+V4_MARK='OPTYKER_INVOICE_EDIT_V4_20261004'
+def patch_customer_v4(text):
+    """Split products into separate rows, and allow a confirmed total different from the till payment."""
+    if V4_MARK in text:return text
+    text=replace_one(text,"var current=null,editing=false,saving=false;","var current=null,editing=false,saving=false;/* "+V4_MARK+" */")
+    text=replace_one(text,"'<div class=\"oieWarn\"><b>Fattura collegata alla cassa.</b> Puoi cambiare descrizioni, aggiungere note o righe, ma il totale deve restare <b>'+esc(money(d.locked_total,d.currency))+'</b>. Per una riga solo descrittiva usa prezzo 0,00 €.</div>'",
+        "'<div class=\"oieWarn\"><b>Fattura collegata alla cassa.</b> Incassato: <b>'+esc(money(d.locked_total,d.currency))+'</b>. Puoi cambiare prezzi, IVA e righe; se il totale risulta diverso dall\\'incassato ti verrà chiesta una conferma. Per una riga solo descrittiva usa prezzo 0,00 €.</div>'")
+    text=replace_one(text,"font-weight:900;cursor:pointer\">+ Aggiungi riga</button>",
+        "font-weight:900;cursor:pointer\">+ Aggiungi riga</button>'+(d.can_split?'<button type=\"button\" id=\"oieSplit\" style=\"margin:10px 0 0 8px;border:1px solid #c9d8e3;border-radius:8px;background:#fff;color:#1769aa;padding:8px 11px;font-weight:900;cursor:pointer\">Dividi prodotti (montatura, lente OD/OS, LAC OD/OS)</button>':'')+'")
+    text=replace_one(text,"E('oieCancel').onclick=function(){show(d)};",
+        "E('oieCancel').onclick=function(){show(d)};var split=E('oieSplit');if(split)split.onclick=function(){split.disabled=true;split.textContent='Divido…';request('invoice_split_preview',{id:d.id}).then(function(r){if(!r||!r.changed||!Array.isArray(r.lines)||!r.lines.length){alert('Nessun prodotto da dividere: mancano i prezzi nella scheda collegata.');split.disabled=false;split.textContent='Dividi prodotti (montatura, lente OD/OS, LAC OD/OS)';return}E('oieRows').innerHTML=r.lines.map(editorRow).join('');wireRows();split.remove()}).catch(function(e){alert('Impossibile dividere: '+e.message);split.disabled=false;split.textContent='Dividi prodotti (montatura, lente OD/OS, LAC OD/OS)'})};")
+    text=replace_one(text,"if(d.linked_payment&&d.locked_total!=null&&Math.round(total*100)!==Math.round(Number(d.locked_total)*100))return alert('Il totale deve restare '+money(d.locked_total,d.currency)+' perché la fattura è collegata al pagamento di cassa.');var payload={",
+        "var totalChanged=!!(d.linked_payment&&d.locked_total!=null&&Math.round(total*100)!==Math.round(Number(d.locked_total)*100));if(totalChanged&&!window.confirm('Il totale della fattura ('+money(total,d.currency)+') è diverso da quanto incassato in cassa ('+money(d.locked_total,d.currency)+').\\n\\nVuoi salvare comunque la fattura con il nuovo totale?'))return;var payload={confirm_total_change:totalChanged,")
+    return text
+
 ADMIN_BRIDGE='''
   // OPTYKER_INVOICE_EDIT_ACCESS_20260928
   function openCustomerInvoiceEditor(id,button,edit){
@@ -86,7 +101,7 @@ def patch_admin(text):
     return text
 
 def main():
-    customer=patch_customer((ROOT/'customer-invoice-print.js').read_text(encoding='utf-8'))
+    customer=patch_customer_v4(patch_customer((ROOT/'customer-invoice-print.js').read_text(encoding='utf-8')))
     (SITE/'customer-invoice-print.js').write_text(customer,encoding='utf-8')
     path=SITE/'billing-admin.js';path.write_text(patch_admin(path.read_text(encoding='utf-8')),encoding='utf-8')
     page=SITE/'index.html';html=page.read_text(encoding='utf-8')
