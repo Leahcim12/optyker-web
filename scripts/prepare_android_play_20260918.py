@@ -9,10 +9,10 @@ root = Path('mobile-app')
 config_path = root / 'app.json'
 config = json.loads(config_path.read_text())
 e = config['expo']
-assert e['android']['package'] == 'it.otticavisualcare.app'
-e['version'] = '13.0.1'
+assert e['android']['package'] == 'com.otticavisualcare.app'
+e['version'] = '13.0.2'
 e['icon'] = './assets/play-icon.png'
-e['android']['versionCode'] = 14
+e['android']['versionCode'] = 15
 e['android']['allowBackup'] = False
 e['android']['permissions'] = ['INTERNET', 'CAMERA', 'RECORD_AUDIO']
 e['android']['blockedPermissions'] = [
@@ -83,4 +83,4 @@ entry = entry.replace("import App from './App';", "import App from './App';\nimp
 assert entry.count('registerRootComponent(Root);') == 1
 entry = entry.replace('registerRootComponent(Root);', 'function PlayRoot(){return <SafeAreaProvider><Root/></SafeAreaProvider>}\nregisterRootComponent(PlayRoot);')
 entry_path.write_text(entry)
-print('Prepared OTTICA VISUAL CARE 13.0.1 (14), it.otticavisualcare.app, target SDK 36.')
+print('Prepared OTTICA VISUAL CARE 13.0.2 (15), com.otticavisualcare.app, target SDK 36.')

@@ -1,7 +1,7 @@
-name: Android Play Bundle - OVC
+name: Android Play Bundle - OVC com package
 on:
   push:
-    branches: ['build/android-play-20260918']
+    branches: ['build/android-play-com-20261006']
     paths:
       - 'mobile-app/**'
       - 'scripts/*android_play*'
@@ -10,7 +10,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: android-play-bundle-20260918
+  group: android-play-bundle-com-20261006
   cancel-in-progress: true
 jobs:
   build:
@@ -36,12 +36,10 @@ jobs:
         run: |
           python -m pip install Pillow==11.3.0
           python scripts/prepare_android_play_20260918.py
-      - name: Install Expo SDK 57 compatible dependencies
+      - name: Install locked Expo SDK 57 dependencies
         working-directory: mobile-app
         run: |
-          npm install --include=dev
-          npx expo install expo-build-properties react-native-safe-area-context --npm
-          npx expo install --fix --npm
+          npm ci --include=dev
           npx expo install --check
           mkdir -p ../dist/android-play
           npm audit --json > ../dist/android-play/dependency-audit.json || true
@@ -75,11 +73,116 @@ jobs:
           java -jar dist/android-play/bundletool.jar dump config --bundle=dist/android-play/ovc-release-unsigned.aab > dist/android-play/bundle-config.json
           python scripts/verify_android_play_20260918.py
           cp mobile-app/assets/play-icon.png dist/android-play/icon-1024.png
-      - name: Save validated unsigned bundle for private signing
+      - name: Split validated bundle into downloads smaller than 32 MiB
+        run: |
+          python - <<'PY_PARTS'
+          from pathlib import Path
+          import hashlib
+          import json
+
+          out = Path('dist/android-play')
+          bundle = out / 'ovc-release-unsigned.aab'
+          parts_dir = Path('dist/android-play-parts')
+          parts_dir.mkdir(parents=True, exist_ok=True)
+          part_bytes = 24 * 1024 * 1024
+          assert 0 < bundle.stat().st_size <= 2 * part_bytes, 'Unexpected bundle size: revise download partition count'
+          parts = []
+          bundle_hash = hashlib.sha256()
+          with bundle.open('rb') as source:
+              for index in range(1, 3):
+                  chunk = source.read(part_bytes)
+                  if not chunk:
+                      break
+                  name = f'{bundle.name}.part-{index:02d}'
+                  (parts_dir / name).write_bytes(chunk)
+                  bundle_hash.update(chunk)
+                  parts.append({'name': name, 'size_bytes': len(chunk), 'sha256': hashlib.sha256(chunk).hexdigest()})
+              assert not source.read(1), 'Bundle has more than two parts'
+
+          report = json.loads((out / 'build-report.json').read_text())
+          digest = bundle_hash.hexdigest()
+          assert digest == report['sha256_unsigned'], 'Bundle changed after validation'
+          assert sum(p['size_bytes'] for p in parts) == bundle.stat().st_size
+          reconstruction_hash = hashlib.sha256()
+          for part in parts:
+              content = (parts_dir / part['name']).read_bytes()
+              assert hashlib.sha256(content).hexdigest() == part['sha256']
+              reconstruction_hash.update(content)
+          assert reconstruction_hash.hexdigest() == digest
+
+          manifest = {
+              'schema_version': 1,
+              'package': report['package'],
+              'version_name': report['version_name'],
+              'version_code': report['version_code'],
+              'source_commit': report['source_commit'],
+              'bundle_filename': bundle.name,
+              'bundle_size_bytes': bundle.stat().st_size,
+              'bundle_sha256': digest,
+              'part_size_limit_bytes': part_bytes,
+              'parts': parts,
+          }
+          (out / 'aab-parts.json').write_text(json.dumps(manifest, indent=2) + '\n')
+          (out / 'aab-parts.sha256').write_text(''.join(f"{p['sha256']}  {p['name']}\n" for p in parts))
+          (out / 'aab-bundle.sha256').write_text(f'{digest}  {bundle.name}\n')
+          (out / 'REASSEMBLE.txt').write_text(
+              'Extract every artifact to one directory. Verify the parts with aab-parts.sha256, '
+              'then concatenate parts in the order recorded in aab-parts.json. '
+              'Verify the reconstructed AAB with aab-bundle.sha256 before private signing. '
+              'The bundle is deliberately unsigned.\n'
+          )
+          # Each single-file artifact stays below the local 32 MiB download limit.
+          # Reserve 64 KiB for ZIP metadata and artifact bookkeeping.
+          cap = 32 * 1024 * 1024 - 64 * 1024
+          for name in ['sorgenti-android.zip', 'bundletool.jar']:
+              assert (out / name).stat().st_size < cap, f'{name} exceeds the download budget'
+          metadata = [p for p in out.iterdir() if p.is_file() and p.suffix not in {'.aab', '.jar', '.zip'}]
+          assert sum(p.stat().st_size for p in metadata) < cap, 'Metadata exceeds the download budget'
+          print('Verified', len(parts), 'AAB parts; complete SHA-256:', digest)
+          PY_PARTS
+      - name: Save first unsigned bundle part for private signing
         uses: actions/upload-artifact@v4
         with:
-          name: ovc-play-bundle-unsigned
-          path: dist/android-play/
+          name: ovc-play-com-aab-part-01
+          path: dist/android-play-parts/ovc-release-unsigned.aab.part-01
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 7
+      - name: Save second unsigned bundle part for private signing
+        if: hashFiles('dist/android-play-parts/ovc-release-unsigned.aab.part-02') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: ovc-play-com-aab-part-02
+          path: dist/android-play-parts/ovc-release-unsigned.aab.part-02
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 7
+      - name: Save manifest, validation, checksums and build report
+        uses: actions/upload-artifact@v4
+        with:
+          name: ovc-play-com-build-metadata
+          path: |
+            dist/android-play/*.json
+            dist/android-play/*.xml
+            dist/android-play/*.txt
+            dist/android-play/*.sha256
+            dist/android-play/icon-1024.png
+          if-no-files-found: error
+          retention-days: 7
+      - name: Save exact prepared sources and dependency lock
+        uses: actions/upload-artifact@v4
+        with:
+          name: ovc-play-com-sources
+          path: dist/android-play/sorgenti-android.zip
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 7
+      - name: Save pinned bundletool for local validation
+        uses: actions/upload-artifact@v4
+        with:
+          name: ovc-play-com-bundletool
+          path: dist/android-play/bundletool.jar
+          compression-level: 0
           if-no-files-found: error
           retention-days: 7
       - name: Build temporary emulator APK with throwaway test key only
@@ -105,9 +208,9 @@ jobs:
             mkdir -p dist/smoke
             adb install "$RUNNER_TEMP/smoke.apk"
             adb logcat -c
-            adb shell am start -W -n it.otticavisualcare.app/.MainActivity
+            adb shell am start -W -n com.otticavisualcare.app/.MainActivity
             sleep 40
-            adb shell pidof it.otticavisualcare.app > dist/smoke/pid.txt
+            adb shell pidof com.otticavisualcare.app > dist/smoke/pid.txt
             adb shell uiautomator dump /sdcard/window.xml
             adb pull /sdcard/window.xml dist/smoke/window.xml
             adb exec-out screencap -p > dist/smoke/launch.png
@@ -119,7 +222,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ovc-play-smoke-evidence
+          name: ovc-play-com-smoke-evidence
           path: dist/smoke/
           if-no-files-found: warn
           retention-days: 7
@@ -127,10 +230,12 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: ovc-play-diagnostics-not-release
+          name: ovc-play-com-diagnostics-not-release
           path: |
-            dist/android-play/
-            mobile-app/android/app/build/outputs/bundle/release/
+            dist/android-play/*.json
+            dist/android-play/*.xml
+            dist/android-play/*.txt
+            dist/android-play/*.sha256
             mobile-app/android/app/src/main/AndroidManifest.xml
           if-no-files-found: warn
           retention-days: 3

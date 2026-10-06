@@ -6,9 +6,9 @@ out=Path('dist/android-play')
 aab=out/'ovc-release-unsigned.aab'
 ns='{http://schemas.android.com/apk/res/android}'
 root=ET.parse(out/'manifest.xml').getroot()
-assert root.attrib['package']=='it.otticavisualcare.app'
-assert root.attrib[ns+'versionCode']=='14'
-assert root.attrib[ns+'versionName']=='13.0.1'
+assert root.attrib['package']=='com.otticavisualcare.app'
+assert root.attrib[ns+'versionCode']=='15'
+assert root.attrib[ns+'versionName']=='13.0.2'
 sdk=root.find('uses-sdk')
 assert int(sdk.attrib[ns+'targetSdkVersion'])>=36
 app=root.find('application')
@@ -51,7 +51,7 @@ with zipfile.ZipFile(aab) as z:
         libs.append({'path':name,'bits':bits,'minimum_load_alignment':min(aligns),'required_alignment':required})
 assert libs and any(x['bits']==64 for x in libs)
 config=json.loads((out/'bundle-config.json').read_text())
-report={'app':'OTTICA VISUAL CARE','package':'it.otticavisualcare.app','version_name':'13.0.1','version_code':14,'target_sdk':int(sdk.attrib[ns+'targetSdkVersion']),'min_sdk':int(sdk.attrib[ns+'minSdkVersion']),'debuggable':False,'cleartext':False,'allow_backup':False,'permissions':permissions,'native_libraries':libs,'all_64bit_native_libraries_16kb_aligned':True,'signature':'unsigned - private upload signing performed separately','sha256_unsigned':hashlib.sha256(aab.read_bytes()).hexdigest(),'source_commit':os.environ.get('GITHUB_SHA'),'workflow_run':os.environ.get('GITHUB_RUN_ID'),'bundle_config':config}
+report={'app':'OTTICA VISUAL CARE','package':'com.otticavisualcare.app','version_name':'13.0.2','version_code':15,'target_sdk':int(sdk.attrib[ns+'targetSdkVersion']),'min_sdk':int(sdk.attrib[ns+'minSdkVersion']),'debuggable':False,'cleartext':False,'allow_backup':False,'permissions':permissions,'native_libraries':libs,'all_64bit_native_libraries_16kb_aligned':True,'signature':'unsigned - private upload signing performed separately','sha256_unsigned':hashlib.sha256(aab.read_bytes()).hexdigest(),'source_commit':os.environ.get('GITHUB_SHA'),'workflow_run':os.environ.get('GITHUB_RUN_ID'),'bundle_config':config}
 (out/'build-report.json').write_text(json.dumps(report,indent=2)+'\n')
 # Archive actual prepared sources and native generated project, not signing keys or build caches.
 with zipfile.ZipFile(out/'sorgenti-android.zip','w',zipfile.ZIP_DEFLATED) as z:

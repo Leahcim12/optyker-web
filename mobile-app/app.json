@@ -2,7 +2,7 @@
   "expo": {
     "name": "OTTICA VISUAL CARE",
     "slug": "ottica-visual-care",
-    "version": "13.0.0",
+    "version": "13.0.2",
     "orientation": "portrait",
     "scheme": "otticavisualcare",
     "userInterfaceStyle": "light",
@@ -12,11 +12,11 @@
       "bundleIdentifier": "it.otticavisualcare.app"
     },
     "android": {
-      "package": "it.otticavisualcare.app",
+      "package": "com.otticavisualcare.app",
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
       },
-      "versionCode": 13,
+      "versionCode": 15,
       "permissions": [
         "INTERNET",
         "CAMERA",
