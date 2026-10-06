@@ -40,7 +40,8 @@ jobs:
         working-directory: mobile-app
         run: |
           npm ci --include=dev
-          npx expo install --check
+          # Check the versions shipped with the installed SDK, keeping the tested dependency lock.
+          EXPO_OFFLINE=1 npx expo install --check
           mkdir -p ../dist/android-play
           npm audit --json > ../dist/android-play/dependency-audit.json || true
       - name: Generate native Android project and disable debug signing for release
