@@ -17,7 +17,9 @@ try{
    if(url.pathname.includes('optyker-staff-auth'))data={ok:true,username:b.username||'Michael Mologni',needs_password:false,has_email:true};
    else if(url.pathname.endsWith('/optyker-eyewear-edit-api')){
     writes.push(b);const row=rows.find(r=>r.id===b.payload.edit_sheet_id);assert(row);assert.equal(b.action,'update');assert.equal(b.payload.client_id,cid);assert.equal(b.payload.expected_updated_at,row.updated_at);
-    row.data={...row.data,...b.payload};row.updated_at='2026-10-01T08:30:00Z';data={ok:true,data:row};
+    row.data={...row.data,...b.payload,pricing:{...row.data.pricing,total:b.payload.manual_final_price??row.data.pricing.total,manual_final_price:b.payload.manual_final_price}};row.updated_at=new Date(Date.parse(stamp)+writes.length*1000).toISOString();data={ok:true,data:row,manual_final_price_saved:true};
+   }else if(url.pathname.endsWith('/optyker-eyewear-final-price')){
+    throw Error('Existing-sheet price must not create a second save request');
    }else if(url.pathname.endsWith('/optyker-quotes-api')&&b.action==='save_lac'){
     writes.push(b);const row=rows.find(r=>r.id===lacId);assert.equal(b.client_id,cid);row.data=b.quote_data;row.updated_at='2026-10-01T08:30:00Z';data={ok:true,data:row};
    }else if(url.pathname.endsWith('/optyker_client_sheet_actions')){
@@ -37,7 +39,9 @@ try{
   }return route.fulfill({status:204,body:''});
  });
  await page.goto('https://www.optyker.it/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.OPTYKER_CLIENT_SHEETS?.version==='20261001-quote-edit');
- const operator=await page.locator('#optykerLoginOperator option').evaluateAll(a=>a.find(x=>/michael/i.test(x.value))?.value);await page.selectOption('#optykerLoginOperator',operator);await page.waitForTimeout(300);await page.fill('#optykerAuthPassword','SYNTHETIC_PASSWORD_NOT_REAL');await page.click('.optykerLoginButton');await page.waitForFunction(()=>window.optykerAuthenticated);
+ // This test covers sheet editing. Establish a synthetic staff session locally;
+ // every API is intercepted, so authentication/network timing is not under test.
+ await page.evaluate(()=>{window.optykerAuthenticated=true;OPTYKER_CLOUD.username='synthetic-staff';OPTYKER_CLOUD.password='synthetic-password';window.optykerSetActiveOperator?.('synthetic-staff');document.body.classList.add('optykerV2Logged');document.getElementById('optykerLoginScreen')?.style.setProperty('display','none','important');document.getElementById('mainApp')?.style.setProperty('display','grid','important');window.showDashboard?.();});
  await page.click('#navClients');await page.evaluate(({clients,cid,rows})=>{OPTYKER_CLOUD.clients=clients;OPTYKER_CLOUD.sheets[cid]=rows;clientSelect(cid);}, {clients,cid,rows});await page.waitForSelector('#clientSheetActionsDock',{state:'attached'});await page.waitForTimeout(1500);report.errors=[];
 
  // A direct open has no preceding row click; this was missing the edit action.
@@ -54,10 +58,19 @@ try{
  report.checks.push('Direct quote open renders edit immediately and restores the selected document');
  // Save through the real UI; the network is entirely intercepted.
  await page.evaluate(()=>{document.getElementById('eyNotes').value='Preventivo aggiornato TEST';document.getElementById('eyNotes').dispatchEvent(new Event('input',{bubbles:true}));});
+ await page.locator('[data-ey-step="5"]').click();
+ await page.locator('#eyManualFinalPrice').fill('210,50');
+ await page.locator('#eyManualFinalPrice').dispatchEvent('change');
  await page.locator('[data-existing-save]').click();
  await page.waitForFunction(()=>document.getElementById('optykerExistingSheetEditStatus')?.textContent==='Modifiche salvate nello stesso documento.');
  assert.equal(writes.length,1);assert.equal(writes[0].payload.edit_sheet_id,qid);assert.equal(writes[0].payload.notes,'Preventivo aggiornato TEST');assert.equal(writes[0].payload.lens.lens_type_os,'Monofocale');assert.equal(writes[0].payload.lens.unit_price_od,100);assert.equal(writes[0].payload.lens.unit_price_os,100);
  assert.equal(rows.length,3);report.checks.push('Real eyewear save updates the existing quote ID without creating a new document');
+ assert.equal(rows[0].data.pricing.total,210.5);
+ await page.locator('#eyManualFinalPrice').fill('205');await page.locator('#eyManualFinalPrice').dispatchEvent('change');
+ await page.locator('[data-existing-save]').click();
+ await page.waitForFunction(()=>document.getElementById('optykerExistingSheetEditStatus')?.textContent==='Modifiche salvate nello stesso documento.'&&document.getElementById('eySave')?.disabled===false);
+ assert.equal(writes.length,2);assert.equal(rows[0].data.pricing.total,205);assert.equal(rows.length,3);
+ report.checks.push('Two consecutive final-price edits reuse the updated timestamp and make no second price request');
  await page.click('[data-existing-back]');
  // The legacy quote shortcut stops propagation before the old editor listener.
  await page.evaluate(qid=>{const b=document.createElement('button');b.dataset.quoteOpen=qid;b.id='testQuoteShortcut';b.textContent='Apri preventivo TEST';document.getElementById('clientsPanel').append(b);},qid);
@@ -74,7 +87,7 @@ try{
  assert.equal(await page.locator('#clientSheetDialog').count(),0);assert(await page.locator('#lacPanel').isVisible());
  await page.click('[data-existing-save]');
  await page.waitForFunction(()=>document.getElementById('optykerExistingSheetEditStatus')?.textContent==='Modifiche salvate nello stesso documento.');
- assert.equal(writes.length,2);assert.equal(writes[1].action,'save_lac');assert.equal(rows.length,3);
+ assert.equal(writes.length,3);assert.equal(writes[2].action,'save_lac');assert.equal(rows.length,3);
  report.checks.push('LAC quotation opens its editor and preserves the quote on save');
  await page.click('[data-existing-back]');
  // Changing the selected record cannot reuse a stale quote's edit callback.
@@ -86,6 +99,6 @@ try{
  rows[0].converted_order={order_sheet_id:'synthetic-order',reference:'B-TEST'};
  await page.evaluate(qid=>OPTYKER_CLIENT_SHEETS.open('quotes',qid),qid);await page.waitForSelector('[data-cs-edit-existing]');
  assert(await page.locator('[data-cs-edit-existing]').isDisabled());
- assert.equal(writes.length,2);report.checks.push('Selected-record context and converted-quote protections remain intact');
+ assert.equal(writes.length,3);report.checks.push('Selected-record context and converted-quote protections remain intact');
  assert.deepEqual(report.errors,[]);report.ok=true;
 }catch(e){report.error=String(e);if(page)await page.screenshot({path:OUT+'/failure.png'}).catch(()=>{});throw e;}finally{fs.writeFileSync(OUT+'/result.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1});

@@ -22,11 +22,18 @@ if MARK not in h:
     if pos < 0: raise SystemExit('Chiusura IIFE Occhiali non trovata')
     body=body[:pos]+'\n'+addon+'\n'+body[pos:]
     h=h[:body_start]+body+h[end:]
+else:
+    # The fetched base may already contain this addon. Refresh it so fixes reach
+    # the actual deployed runtime instead of being skipped by the old marker.
+    start=h.index('/* '+MARK+' */')
+    tail='setInterval(restoreManualFinalCurrent,220);'
+    end=h.index(tail,start)+len(tail)
+    h=h[:start]+addon.rstrip()+h[end:]
 
 page.write_text(h,encoding='utf-8')
 for alias in ('gestionale-v2','gestionale-v3'):
     (ROOT/alias/'index.html').write_text(h,encoding='utf-8')
 
-for needle in (MARK,'20260916-finalprice2','eyManualFinalPrice','manual_final_price','optyker-eyewear-final-price','restoreManualFinalCurrent'):
+for needle in (MARK,'20260916-finalprice2','eyManualFinalPrice','manual_final_price','optyker-eyewear-final-price','restoreManualFinalCurrent','manual_final_price_saved'):
     if needle not in h: raise SystemExit('Prezzo finale Occhiali incompleto: '+needle)
 print('Prezzo finale manuale Occhiali installato e auto-ripristinabile')

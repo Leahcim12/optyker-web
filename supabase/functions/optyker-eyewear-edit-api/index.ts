@@ -114,6 +114,25 @@ function cleanData(p:any){
   };
 }
 function sameInstant(a:any,b:any){const x=Date.parse(String(a||"")),y=Date.parse(String(b||""));return Number.isFinite(x)&&Number.isFinite(y)&&x===y}
+function applyFinalPrice(cleaned:any,old:any,p:any){
+  // Save the override together with the edited sheet, before copying it to the
+  // laboratory. A second request used to leave its timestamp and snapshot stale.
+  const calculated=cleaned.pricing.total;
+  const raw=p.clear_manual_final_price===true?null:
+    (p.manual_final_price??old.pricing?.manual_final_price??old.manual_final_price);
+  if(raw==null){
+    delete cleaned.manual_final_price;
+    delete cleaned.pricing.manual_final_price;
+  }else{
+    const amount=typeof raw==='number'||typeof raw==='string'?Number(String(raw).trim().replace(',','.')):NaN;
+    if(String(raw).trim()===''||!Number.isFinite(amount)||amount<0||amount>1000000)throw new Error('Prezzo finale non valido.');
+    cleaned.manual_final_price=money(amount);
+    cleaned.pricing.manual_final_price=money(amount);
+    cleaned.pricing.total=money(amount);
+  }
+  cleaned.pricing.calculated_total=calculated;
+  return cleaned;
+}
 async function updateSheet(p:any,operator:string){
   const id=norm(p.edit_sheet_id),clientId=norm(p.client_id),expected=norm(p.expected_updated_at);
   if(!id||!clientId||!expected)throw new Error("Apri di nuovo il documento dall’anagrafica prima di salvarlo.");
@@ -132,10 +151,12 @@ async function updateSheet(p:any,operator:string){
   const old=existing.data&&typeof existing.data==="object"?existing.data:{};
   cleaned.order_parameters=normalizeOrderParameters(p.order_parameters??old.order_parameters);
   cleaned={...old,...cleaned,frame:{...(old.frame||{}),...(cleaned.frame||{})},lens:{...(old.lens||{}),...(cleaned.lens||{})},pricing:cleaned.pricing};
+  cleaned=applyFinalPrice(cleaned,old,p);
   cleaned.mode=existing.sheet_type==="eyewear_quote"?"quote":"job";cleaned.sheetType=existing.sheet_type;cleaned.documentType=existing.document_type||(cleaned.mode==="quote"?"Preventivo":"Busta");cleaned.reference_code=existing.reference_code||old.reference_code||"";cleaned.client_id=clientId;cleaned.savedAt=new Date().toISOString();
   const {data:client,error:cErr}=await db.from("optyker_clients").select("id,name,surname,reference_no").eq("id",clientId).maybeSingle();if(cErr)throw cErr;if(!client)throw new Error("Cliente non trovato.");
   cleaned.client={id:client.id,name:client.name||"",surname:client.surname||"",reference_no:client.reference_no||""};
-  const {data:updated,error:uErr}=await db.from("optyker_sheets").update({operator,data:cleaned,updated_at:new Date().toISOString()}).eq("id",id).eq("client_id",clientId).select("*").single();if(uErr)throw uErr;
+  const {data:updated,error:uErr}=await db.from("optyker_sheets").update({operator,data:cleaned,updated_at:new Date().toISOString()}).eq("id",id).eq("client_id",clientId).eq("updated_at",existing.updated_at).select("*").maybeSingle();if(uErr)throw uErr;
+  if(!updated)throw new Error('La scheda è stata modificata: riaprila dall’anagrafica prima di salvare.');
   if(work){
     const summary="Montatura: "+[cleaned.frame?.brand,cleaned.frame?.model].filter(Boolean).join(" ")+" · DX: "+norm(cleaned.lens?.lens_type_od)+" · SX: "+norm(cleaned.lens?.lens_type_os);
     const payload={...(work.payload&&typeof work.payload==="object"?work.payload:{}),snapshot:updated.data,summary_text:summary,source_updated_at:updated.updated_at,edited_at:new Date().toISOString(),edited_by:operator};
@@ -151,6 +172,6 @@ Deno.serve(async(req:Request)=>{
     const body=await req.json().catch(()=>({}));
     const operator=await auth(body),action=norm(body.action),p=body?.payload||{};
     if(action!=="update")return out({ok:false,error:"Azione non riconosciuta"},400);
-    return out({ok:true,data:await updateSheet(p,operator)});
-  }catch(e){const m=e instanceof Error?e.message:String(e);return out({ok:false,error:m},/AUTH_REQUIRED|Credenziali|Troppi tentativi/.test(m)?401:400)}
+    return out({ok:true,data:await updateSheet(p,operator),manual_final_price_saved:true});
+  }catch(e){const m=e&&typeof e==='object'&&'message' in e?String(e.message):String(e);return out({ok:false,error:m},/AUTH_REQUIRED|Credenziali|Troppi tentativi/.test(m)?401:400)}
 });

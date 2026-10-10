@@ -85,6 +85,13 @@ var _eyApiManualBase=api;
 api=function(action,payloadArg){
   return _eyApiManualBase.apply(this,arguments).then(function(x){
     if(action!=='save'||!x||!x.data||!x.data.id)return x;
+    // Existing-sheet edits persist the final price in the same server update.
+    // Do not issue another write with a newer timestamp than the edit session.
+    if(x.manual_final_price_saved===true){
+      var input=manualFinalInput(),price=x.data.data&&x.data.data.pricing||{},amount=price.manual_final_price;
+      if(input){input.dataset.persisted=amount!=null?'1':'0';input.dataset.clear='0';input.dataset.userDirty='0';input.dataset.restoredValue=amount!=null?(manualFinalKey()+'|'+Number(amount).toFixed(2)):''}
+      return x
+    }
     return saveManualFinalPrice(x.data.id,payloadArg).then(function(saved){if(saved&&saved.data)x.data=saved.data;return x})
   })
 };
