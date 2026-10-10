@@ -2050,6 +2050,18 @@ boot();
       '<footer><p>Riferimento: '+ESC(r.id)+'</p>'+(d.document_sha256?'<p class="digest">Impronta documento: '+ESC(d.document_sha256)+'</p>':'')+'<p>Copia del documento conservato nel registro Optyker di Ottica Visual Care.</p></footer>';
     return '<!doctype html><html lang="it"><head><meta charset="utf-8">'+CSP+'<meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font:14px/1.6 Arial,sans-serif;color:#162f46;margin:0;padding:18px}header{border-bottom:2px solid #2c6c9a;margin-bottom:14px}header b{letter-spacing:.1em;color:#27628d}h1{font-size:21px;margin:8px 0}h2{font-size:17px}.notice{white-space:pre-wrap;overflow-wrap:anywhere}section{margin-top:18px;border-top:1px solid #abc6de;padding-top:10px}.signature{max-width:300px;height:90px;object-fit:contain}footer{font-size:11px;border-top:1px solid #abc6de;margin-top:18px;padding-top:8px}.digest{overflow-wrap:anywhere}</style><'+'/head><body>'+body+'<'+'/body></html>';
   }
+function loadConsentDocuments() {
+  if (window.OPTYKER_CONSENT_DOCUMENTS) return Promise.resolve(window.OPTYKER_CONSENT_DOCUMENTS);
+  if (!window.__optykerConsentDocumentsLoading) window.__optykerConsentDocumentsLoading = new Promise(function(resolve,reject) {
+    var script=document.createElement('script');
+    script.src='https://optyker.it/consent-documents.js?v=20261010-original-pages1';
+    script.onload=function(){if(window.OPTYKER_CONSENT_DOCUMENTS)resolve(window.OPTYKER_CONSENT_DOCUMENTS);else reject(new Error('Documento completo non disponibile. Riprova.'));};
+    script.onerror=function(){reject(new Error('Impossibile caricare il documento completo. Riprova.'));};
+    document.head.appendChild(script);
+  }).catch(function(error){window.__optykerConsentDocumentsLoading=null;throw error;});
+  return window.__optykerConsentDocumentsLoading;
+}
+
   function consentHtml(r){let h=String(r.data?.html||'');if(!h)return privacyHtml(r);return /<head[^>]*>/i.test(h)?h.replace(/<head([^>]*)>/i,'<head$1>'+CSP):'<!doctype html><html><head><meta charset="utf-8">'+CSP+'<'+'/head><body>'+h+'<'+'/body></html>'}
   function closeViewer(){const m=document.getElementById('optykerSignedViewer');if(m)m.remove();if(SD.open&&SD.open.url)URL.revokeObjectURL(SD.open.url);SD.open=null}
   window.closeSignedDocument=closeViewer;
@@ -2060,6 +2072,11 @@ boot();
     try{const r=await rpc('optyker_customer_signed_document',{p_kind:kind,p_id:id});
       if(kind==='delivery'){const bin=atob(r.pdf_base64||'');const u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);const url=URL.createObjectURL(new Blob([u8],{type:'application/pdf'}));
         viewer('Ritiro occhiali'+(r.reference?' · '+r.reference:''),'<iframe title="Documento" src="'+url+'" style="flex:1;border:0;width:100%"></iframe>','<a href="'+url+'" download="ritiro-occhiali.pdf" style="border:1px solid #d4d4d8;border-radius:10px;padding:7px 11px;font-weight:700;color:#18181b;text-decoration:none">Scarica PDF</a>');SD.open={url};}
+      else if(kind==='lac'||kind==='ortho'){
+        const documents=await loadConsentDocuments();
+        const html=documents.html(r), blob=await documents.pdf(r), url=URL.createObjectURL(blob);
+        viewer(KIND[kind],'<iframe title="Documento completo firmato" sandbox="allow-modals" srcdoc="'+ESC(html)+'" style="flex:1;border:0;width:100%"></iframe>','<a href="'+url+'" download="'+kind+'-firmato.pdf" style="border:1px solid #d4d4d8;border-radius:10px;padding:7px 11px;font-weight:700;color:#18181b;text-decoration:none">Scarica PDF</a>');SD.open={url};
+      }
       else{const html=(kind==='privacy'||kind==='privacy_withdrawal')?privacyHtml(r):consentHtml(r);const url=URL.createObjectURL(new Blob([html],{type:'text/html'}));
         viewer({privacy:'Informativa privacy',privacy_withdrawal:'Revoca consenso',lac:'Consenso lenti a contatto',ortho:'Consenso ortocheratologia'}[kind]||'Documento','<iframe title="Documento" sandbox="allow-modals" srcdoc="'+ESC(html)+'" style="flex:1;border:0;width:100%"></iframe>','<a href="'+url+'" download="documento-firmato.html" style="border:1px solid #d4d4d8;border-radius:10px;padding:7px 11px;font-weight:700;color:#18181b;text-decoration:none">Scarica</a>');SD.open={url};}
     }catch(e){SD.error=e?.message||'Documento non disponibile'}
