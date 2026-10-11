@@ -28,6 +28,6 @@ if not "%RC%"=="0" (
 )
 echo AGGIORNAMENTO COMPLETATO.
 echo Ora Chiudi cassa puo avviare la chiusura giornaliera RCH.
-echo Il ritorno da Z a REG resta manuale.
+echo La RCH torna in REG da sola dopo la chiusura o se resta ferma in Z.
 pause
 endlocal

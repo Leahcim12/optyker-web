@@ -29,7 +29,7 @@ if(-not (Test-Path -LiteralPath $config -PathType Leaf)){throw 'Cloud Relay non 
 Write-Host ''
 Write-Host 'Optyker RCH - aggiornamento SOLO Cloud Relay' -ForegroundColor Cyan
 Write-Host 'Il connettore fiscale e la RCH non verranno modificati durante l aggiornamento.' -ForegroundColor DarkGray
-Write-Host 'Download Cloud Relay 2.2-daily-closure...'
+Write-Host 'Download Cloud Relay 2.3 (chiusura verificata e ritorno automatico in REG)...'
 
 Invoke-WebRequest -UseBasicParsing -Uri $source -OutFile $candidate -TimeoutSec 60
 $tokens=$null;$errors=$null
@@ -40,7 +40,8 @@ if($errors.Count -gt 0 -or $text -notmatch '2\.2-daily-closure' -or $text -notma
   throw 'Cloud Relay scaricato non valido. Nessuna modifica applicata.'
 }
 
-Write-Host 'Componente verificato.' -ForegroundColor Green
+$revision=if($text -match "\`$WorkerRevision='([^']+)'"){$Matches[1]}else{'2.2'}
+Write-Host ('Componente verificato. Revisione: '+$revision) -ForegroundColor Green
 if(Test-Path -LiteralPath $worker -PathType Leaf){Copy-Item -LiteralPath $worker -Destination ($worker+'.previous') -Force}
 
 # Stop ONLY the cloud worker. Never stop the fiscal connector.
@@ -59,9 +60,10 @@ if($running.Count -lt 1){throw 'Il Cloud Relay aggiornato non risulta avviato. L
 
 Write-Host ''
 Write-Host 'AGGIORNAMENTO COMPLETATO.' -ForegroundColor Green
-Write-Host 'Cloud Relay: 2.2-daily-closure' -ForegroundColor Green
+Write-Host ('Cloud Relay: 2.2-daily-closure, revisione '+$revision) -ForegroundColor Green
 Write-Host 'Il connettore fiscale NON e stato toccato.' -ForegroundColor Cyan
 Write-Host 'Chiusura RCH: parte solo quando confermi Chiudi cassa in Optyker.' -ForegroundColor Cyan
-Write-Host 'Ritorno Z -> REG: resta manuale tramite Porta RCH in REG.' -ForegroundColor Cyan
+Write-Host 'Dopo la chiusura, e ogni volta che la RCH resta ferma in Z, Optyker la riporta in REG da solo (solo comando =C1).' -ForegroundColor Cyan
+Write-Host 'Per disattivare il ritorno automatico crea il file auto-reg-disabled nella cartella OptykerRCH.' -ForegroundColor DarkGray
 Write-Host 'Nessuna chiusura fiscale e nessuno scontrino sono stati eseguiti durante questo aggiornamento.' -ForegroundColor DarkGray
 if(-not $NoPause){$null=Read-Host 'Premi INVIO per terminare'}

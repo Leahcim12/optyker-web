@@ -51,8 +51,8 @@ test('cash preflight passes only explicit fiscal type; a service cannot use a go
   assert.match(f.ids.get('optykerCashRchPreflightResult').innerHTML,/Tipologia fiscale bene\/servizio da assegnare/);
   assert.equal(f.requests.length,0);
 });
-test('missing VAT and bank transfer are flagged without inference or cart mutation',()=>{
-  const f=fixture();f.hooks.state.stage='balance';f.hooks.state.payment='bank';
+test('missing VAT and an unmapped payment are flagged without inference or cart mutation',()=>{
+  const f=fixture();f.hooks.state.stage='balance';f.hooks.state.payment='other';
   f.hooks.state.cart={one:{qty:1,item:{title:'Lens',price:'1.01'}}};
   const before=JSON.stringify(f.hooks.state.cart);
   f.hooks.openRch();f.ids.get('optykerCashRchPreflight').onclick();

@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$PrinterIp='192.168.1.10',
   [int]$Port=8765,
   [switch]$LibraryOnly,
@@ -7,13 +7,24 @@ param(
 
 $ErrorActionPreference='Stop'
 # Compatibility marker for older build checks: 2.1-manual-reg
+# Optyker and the database still identify this worker as 2.2-daily-closure.
 $WorkerVersion='2.2-daily-closure'
+# OPTYKER_RCH_REG_AUTO_20261011: daily closure confirmed on the electronic journal,
+# automatic return to REG after the closure and whenever the RCH stays idle in Z.
+$WorkerRevision='2.3-reg-auto'
 $RelayApi='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-rch-relay-api'
 $Base=if($env:LOCALAPPDATA){Join-Path $env:LOCALAPPDATA 'OptykerRCH'}else{Join-Path ([System.IO.Path]::GetTempPath()) 'OptykerRCH'}
 $ConfigPath=Join-Path $Base 'cloud-relay.json'
 $ConnectorPath=Join-Path $Base 'rch-optyker-connector.ps1'
 $LogPath=Join-Path $Base 'cloud-relay.log'
 $LocalOrigin='https://optyker.it'
+# A RCH left idle in Z (after a closure, by another program or from the keyboard)
+# goes back to REG after this delay. Only =C1 is sent: never a closure or a receipt.
+# Create an empty file named auto-reg-disabled in the OptykerRCH folder to switch it off.
+$AutoRegAfterSeconds=45
+$AutoRegRetrySeconds=300
+$script:ZIdleSince=$null
+$script:AutoRegBlockedUntil=[DateTime]::MinValue
 
 function Write-RelayLog([string]$message){
   try{
@@ -89,7 +100,8 @@ function Assert-CommandAccepted([string]$raw,[string]$label){
   }
 }
 function Invoke-ExactPrinterCommand([string]$command){
-  if($command -cnotin @('=C1','=C3','=C10')){throw 'Comando RCH non autorizzato dal Cloud Relay.'}
+  # =C453/$0 only reads the last document of the electronic journal: no print, no fiscal write.
+  if($command -cnotin @('=C1','=C3','=C10','=C453/$0')){throw 'Comando RCH non autorizzato dal Cloud Relay.'}
   $body='<?xml version="1.0" encoding="UTF-8"?>'+"`n<Service>`n  <cmd>$command</cmd>`n</Service>`n"
   $bytes=[System.Text.Encoding]::UTF8.GetBytes($body)
   $req=[System.Net.HttpWebRequest]::Create("http://$PrinterIp/service.cgi")
@@ -123,10 +135,22 @@ function Assert-NoUncertainFiscalJournal {
     try{$j=Get-Content -LiteralPath $f.FullName -Raw | ConvertFrom-Json;if([string]$j.state -in @('claiming','sending','uncertain')){throw 'Una emissione fiscale ha un esito da verificare. Controlla la RCH prima della chiusura giornaliera.'}}catch{if($_.Exception.Message -like 'Una emissione fiscale*'){throw};throw 'Registro locale RCH non leggibile: chiusura giornaliera bloccata per sicurezza.'}
   }
 }
-function Restore-RegManual {
+function Test-ActiveFiscalWrite {
+  # A receipt being claimed or sent must never be interrupted by a mode change.
+  $journal=Join-Path $Base 'receipts'
+  if(-not (Test-Path -LiteralPath $journal)){return $false}
+  foreach($f in Get-ChildItem -LiteralPath $journal -Filter '*.json' -ErrorAction SilentlyContinue){
+    try{$j=Get-Content -LiteralPath $f.FullName -Raw | ConvertFrom-Json;if([string]$j.state -in @('claiming','sending')){return $true}}catch{return $true}
+  }
+  return $false
+}
+function Open-PrinterLock {
   $journal=Join-Path $Base 'receipts'
   New-Item -ItemType Directory -Force -Path $journal | Out-Null
-  $lock=[System.IO.File]::Open((Join-Path $journal 'printer.lock'),[System.IO.FileMode]::OpenOrCreate,[System.IO.FileAccess]::ReadWrite,[System.IO.FileShare]::None)
+  return [System.IO.File]::Open((Join-Path $journal 'printer.lock'),[System.IO.FileMode]::OpenOrCreate,[System.IO.FileAccess]::ReadWrite,[System.IO.FileShare]::None)
+}
+function Restore-RegManual {
+  $lock=Open-PrinterLock
   try{
     $before=Public-CloudStatus (Invoke-LocalGet '/status')
     if(Test-RegReady $before){return @{ok=$true;state='completed';manual=$true;alreadyReg=$true;mode=[string]$before.mode;emittedFiscalDocument=$false;dailyClosureExecuted=$false}}
@@ -135,34 +159,140 @@ function Restore-RegManual {
     $after=Wait-RchStatus {param($s) Test-RegReady $s} 12000
     if(-not (Test-RegReady $after)){throw 'La RCH non ha confermato il ritorno in REG.'}
     Write-RelayLog 'manual_restore_reg completed'
+    $script:ZIdleSince=$null
     return @{ok=$true;state='completed';manual=$true;alreadyReg=$false;mode=[string]$after.mode;emittedFiscalDocument=$false;dailyClosureExecuted=$false}
   } finally {$lock.Dispose()}
 }
+# BEGIN OPTYKER_RCH_CLOSURE_JOURNAL_20261011
+# The electronic journal decides when the RCH drops the HTTP answer of =C10.
+# Same document layout already verified by the connector (DOCUMENTO N. / CHIUSURA GIORNALIERA N.).
+function Read-LastJournalText {
+  $raw=Invoke-ExactPrinterCommand '=C453/$0'
+  $nodes=(Read-SafeXml $raw).SelectNodes('/Service/EJ')
+  if($nodes.Count -ne 1){throw 'Giornale RCH assente o ambiguo.'}
+  return ([string]$nodes[0].InnerText).Replace("`r",'')
+}
+function Get-JournalNumbers([string]$text){
+  $documents=[regex]::Matches($text,'(?m)^[ \t]*DOCUMENTO(?:[ \t]+COMMERCIALE)?[ \t]+N[.°]?[ \t]*(\d{4})-(\d{4})[ \t]*$')
+  $closures=[regex]::Matches($text,'(?m)^[ \t]*CHIUSURA GIORNALIERA N\.[ \t]+(\d{1,4})[ \t]*$')
+  $document=$null;$closure=$null
+  if($documents.Count -eq 1){$document=[int]$documents[0].Groups[1].Value}
+  if($closures.Count -eq 1){$closure=[int]$closures[0].Groups[1].Value}
+  return [pscustomobject]@{documentCount=$documents.Count;document=$document;closureCount=$closures.Count;closure=$closure}
+}
+function Get-ExpectedClosureNumber([string]$journalText){
+  # Last document = a sale ZZZZ-NNNN: this closure is ZZZZ. Last document = closure N: next one is N+1.
+  $n=Get-JournalNumbers $journalText
+  if($n.documentCount -eq 1 -and $n.closureCount -eq 0){return $n.document}
+  if($n.documentCount -eq 0 -and $n.closureCount -eq 1){return ($n.closure+1)}
+  return $null
+}
+function Test-ClosureInJournal([string]$before,[string]$after,$expected){
+  # $true: closure document with the expected number. $false: journal unchanged. $null: not provable.
+  if($after -ceq $before){return $false}
+  if($null -eq $expected){return $null}
+  $n=Get-JournalNumbers $after
+  if($n.closureCount -eq 1 -and $n.closure -eq $expected){return $true}
+  return $null
+}
+function Restore-RegAfterClosure {
+  for($attempt=1;$attempt -le 2;$attempt++){
+    try{
+      $state=Wait-RchStatus {param($s) (Test-ZIdle $s) -or (Test-RegReady $s)} 20000
+      if(Test-RegReady $state){$script:ZIdleSince=$null;return $true}
+      if(Test-ZIdle $state){
+        $null=Invoke-ExactPrinterCommand '=C1'
+        $state=Wait-RchStatus {param($s) Test-RegReady $s} 15000
+        if(Test-RegReady $state){Write-RelayLog 'auto_reg after_closure completed';$script:ZIdleSince=$null;return $true}
+      }
+    }catch{Write-RelayLog ('auto_reg after_closure error '+$_.Exception.Message)}
+    Start-Sleep -Seconds 2
+  }
+  Write-RelayLog 'auto_reg after_closure not_confirmed'
+  return $false
+}
 function Close-DailyManual {
-  $journal=Join-Path $Base 'receipts'
-  New-Item -ItemType Directory -Force -Path $journal | Out-Null
-  $lock=[System.IO.File]::Open((Join-Path $journal 'printer.lock'),[System.IO.FileMode]::OpenOrCreate,[System.IO.FileAccess]::ReadWrite,[System.IO.FileShare]::None)
+  $lock=Open-PrinterLock
   try{
     Assert-NoUncertainFiscalJournal
     $before=Public-CloudStatus (Invoke-LocalGet '/status')
     if(-not (Test-RegReady $before)){throw 'Chiusura giornaliera bloccata: la RCH deve essere in REG, inattiva e senza errori.'}
     $null=Invoke-ExactPrinterCommand '=C3'
     $z=Wait-RchStatus {param($s) Test-ZIdle $s} 15000
-    if(-not (Test-ZIdle $z)){throw 'La RCH non ha confermato la modalità Z. La chiusura giornaliera non è stata inviata.'}
-    $writeStarted=$false
-    try{
-      $writeStarted=$true
-      $null=Invoke-ExactPrinterCommand '=C10'
-    }catch{
-      if($writeStarted){Write-RelayLog ('daily_closure uncertain '+$_.Exception.Message);return @{ok=$false;state='uncertain';error=('Comando di chiusura inviato ma esito non confermato: '+$_.Exception.Message);manual=$true;dailyClosureExecuted=$null;emittedFiscalDocument=$false}}
-      throw
+    if(-not (Test-ZIdle $z)){
+      $null=Restore-RegAfterClosure
+      throw 'La RCH non ha confermato la modalità Z. La chiusura giornaliera non è stata inviata.'
     }
-    $after=Wait-RchStatus {param($s) Test-ZIdle $s} 30000
-    if(-not (Test-ZIdle $after)){Write-RelayLog 'daily_closure uncertain post_status';return @{ok=$false;state='uncertain';error='La RCH ha ricevuto la chiusura ma lo stato finale non è confermato. Verifica la stampa prima di ripetere.';manual=$true;dailyClosureExecuted=$null;emittedFiscalDocument=$false}}
-    Write-RelayLog 'daily_closure completed'
-    return @{ok=$true;state='completed';manual=$true;mode=[string]$after.mode;dailyClosureExecuted=$true;emittedFiscalDocument=$false;returnedToReg=$false}
+    $journalBefore=$null;$expected=$null
+    try{$journalBefore=Read-LastJournalText;$expected=Get-ExpectedClosureNumber $journalBefore}
+    catch{$journalBefore=$null;$expected=$null;Write-RelayLog ('daily_closure journal_before '+$_.Exception.Message)}
+    $sendError=$null
+    try{$null=Invoke-ExactPrinterCommand '=C10'}
+    catch{$sendError=[string]$_.Exception.Message;Write-RelayLog ('daily_closure response_not_confirmed '+$sendError)}
+    $after=Wait-RchStatus {param($s) Test-ZIdle $s} 120000
+    $verified=$null
+    if($null -ne $journalBefore -and (Test-ZIdle $after)){
+      try{$verified=Test-ClosureInJournal $journalBefore (Read-LastJournalText) $expected}
+      catch{$verified=$null;Write-RelayLog ('daily_closure journal_after '+$_.Exception.Message)}
+      if(($verified -is [bool]) -and (-not $verified)){
+        # Unchanged journal: read once more after a pause before declaring that nothing was printed.
+        Start-Sleep -Seconds 3
+        try{$verified=Test-ClosureInJournal $journalBefore (Read-LastJournalText) $expected}catch{$verified=$null}
+      }
+    }
+    $confirmedBy=$null
+    if(($null -eq $sendError) -and (Test-ZIdle $after)){$confirmedBy='rch_ack'}
+    elseif($verified -eq $true){$confirmedBy='journal'}
+    if($null -eq $confirmedBy){
+      if(($null -ne $sendError) -and ($verified -is [bool]) -and (-not $verified)){
+        $returned=Restore-RegAfterClosure
+        Write-RelayLog 'daily_closure not_executed journal_unchanged'
+        return @{ok=$false;state='failed';error='La RCH non ha eseguito la chiusura: il giornale elettronico non è cambiato. Nessuna chiusura stampata: puoi ripetere la chiusura.';manual=$true;dailyClosureExecuted=$false;emittedFiscalDocument=$false;returnedToReg=$returned;workerRevision=$WorkerRevision}
+      }
+      if($null -ne $sendError){
+        Write-RelayLog ('daily_closure uncertain '+$sendError)
+        return @{ok=$false;state='uncertain';error=('Comando di chiusura inviato ma esito non confermato: '+$sendError);manual=$true;dailyClosureExecuted=$null;emittedFiscalDocument=$false;workerRevision=$WorkerRevision}
+      }
+      Write-RelayLog 'daily_closure uncertain post_status'
+      return @{ok=$false;state='uncertain';error='La RCH ha ricevuto la chiusura ma lo stato finale non è confermato. Verifica la stampa prima di ripetere.';manual=$true;dailyClosureExecuted=$null;emittedFiscalDocument=$false;workerRevision=$WorkerRevision}
+    }
+    $returned=Restore-RegAfterClosure
+    Write-RelayLog ('daily_closure completed '+$confirmedBy+' reg='+$returned)
+    $mode=if($returned){'REG'}else{[string]$after.mode}
+    return @{ok=$true;state='completed';manual=$true;mode=$mode;dailyClosureExecuted=$true;emittedFiscalDocument=$false;returnedToReg=$returned;confirmedBy=$confirmedBy;closureNumber=$expected;workerRevision=$WorkerRevision}
   } finally {$lock.Dispose()}
 }
+# END OPTYKER_RCH_CLOSURE_JOURNAL_20261011
+# BEGIN OPTYKER_RCH_AUTO_REG_20261011
+function Test-AutoRegEnabled {
+  return -not (Test-Path -LiteralPath (Join-Path $Base 'auto-reg-disabled'))
+}
+function Invoke-AutoReg($status,[DateTime]$now){
+  # Returns $true only when =C1 was sent, so the caller refreshes the published status.
+  if(-not (Test-AutoRegEnabled)){$script:ZIdleSince=$null;return $null}
+  if(-not (Test-ZIdle $status)){$script:ZIdleSince=$null;return $null}
+  if($null -eq $script:ZIdleSince){$script:ZIdleSince=$now;return $null}
+  if(($now-$script:ZIdleSince).TotalSeconds -lt $AutoRegAfterSeconds){return $null}
+  if($now -lt $script:AutoRegBlockedUntil){return $null}
+  if(Test-ActiveFiscalWrite){return $null}
+  $lock=$null
+  try{$lock=Open-PrinterLock}catch{return $null}
+  try{
+    $fresh=Public-CloudStatus (Invoke-LocalGet '/status')
+    if(-not (Test-ZIdle $fresh)){$script:ZIdleSince=$null;return $null}
+    $null=Invoke-ExactPrinterCommand '=C1'
+    $after=Wait-RchStatus {param($s) Test-RegReady $s} 12000
+    $script:ZIdleSince=$null
+    if(Test-RegReady $after){Write-RelayLog 'auto_reg completed'}
+    else{$script:AutoRegBlockedUntil=$now.AddSeconds($AutoRegRetrySeconds);Write-RelayLog 'auto_reg not_confirmed'}
+    return $true
+  }catch{
+    $script:AutoRegBlockedUntil=$now.AddSeconds($AutoRegRetrySeconds)
+    Write-RelayLog ('auto_reg error '+$_.Exception.Message)
+    return $true
+  }finally{$lock.Dispose()}
+}
+# END OPTYKER_RCH_AUTO_REG_20261011
 function Invoke-RemoteCommand($command){
   $kind=[string]$command.kind
   if($kind -in @('fiscal_sale','fiscal_void')){
@@ -182,17 +312,22 @@ function Read-LocalStatus {
     if($h.ok -ne $true){throw 'Health check del connettore locale non confermato.'}
     $s=Public-CloudStatus (Invoke-LocalGet '/status')
     $s.automaticVoidReference=($h.capabilities.automaticVoidReference -eq $true)
+    $s.workerRevision=$WorkerRevision
+    $s.autoReg=(Test-AutoRegEnabled)
     return $s
-  }catch{return @{ok=$false;mode='';idleState='';errorCode=-1;printerError=-1;paperEnd=-1;coverOpen=-1;busy=-1;lastCmd=-1;error=('Connettore locale: '+$_.Exception.Message)}}
+  }catch{return @{ok=$false;mode='';idleState='';errorCode=-1;printerError=-1;paperEnd=-1;coverOpen=-1;busy=-1;lastCmd=-1;error=('Connettore locale: '+$_.Exception.Message);workerRevision=$WorkerRevision}}
 }
 function Run-RelayCycle($config,[ref]$lastStatusAt,[ref]$cachedStatus){
   $now=[DateTime]::UtcNow
-  if($null -eq $cachedStatus.Value -or ($now-$lastStatusAt.Value).TotalSeconds -ge 8){$cachedStatus.Value=Read-LocalStatus;$lastStatusAt.Value=$now}
+  if($null -eq $cachedStatus.Value -or ($now-$lastStatusAt.Value).TotalSeconds -ge 8){
+    $cachedStatus.Value=Read-LocalStatus;$lastStatusAt.Value=$now
+    if((Invoke-AutoReg $cachedStatus.Value $now) -eq $true){$cachedStatus.Value=Read-LocalStatus;$lastStatusAt.Value=[DateTime]::UtcNow}
+  }
   $poll=Invoke-Relay 'poll' @{machine_id=$config.machine_id;secret=$config.secret;connector_version=$WorkerVersion;status=$cachedStatus.Value}
   $cmd=$poll.command
   if($null -eq $cmd){return}
   $result=$null
-  try{$result=Invoke-RemoteCommand $cmd}catch{$result=@{ok=$false;state='failed';error=$_.Exception.Message;connectorVersion=$WorkerVersion};Write-RelayLog ('command_error '+$_.Exception.Message)}
+  try{$result=Invoke-RemoteCommand $cmd}catch{$result=@{ok=$false;state='failed';error=$_.Exception.Message;connectorVersion=$WorkerVersion;workerRevision=$WorkerRevision};Write-RelayLog ('command_error '+$_.Exception.Message)}
   try{$null=Invoke-Relay 'complete' @{machine_id=$config.machine_id;secret=$config.secret;command_id=[string]$cmd.id;result=$result}}catch{Write-RelayLog ('complete_error '+$_.Exception.Message)}
   if([string]$cmd.kind -in @('restore_reg','daily_closure')){$cachedStatus.Value=Read-LocalStatus;$lastStatusAt.Value=[DateTime]::MinValue}
 }
@@ -202,7 +337,7 @@ if([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT){throw 'Il relay 
 if(-not (Test-Path -LiteralPath $ConnectorPath -PathType Leaf)){throw 'Connettore RCH locale non installato.'}
 $config=Read-RelayConfig
 if($null -eq $config){throw 'Cloud Relay non associato. Esegui Installa collegamento iPad.'}
-Write-RelayLog ('start '+$WorkerVersion)
+Write-RelayLog ('start '+$WorkerVersion+' '+$WorkerRevision+' auto_reg='+(Test-AutoRegEnabled))
 $lastStatusAt=[DateTime]::MinValue;$cachedStatus=$null
 do{
   try{Run-RelayCycle $config ([ref]$lastStatusAt) ([ref]$cachedStatus)}

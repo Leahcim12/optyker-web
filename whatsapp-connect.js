@@ -1,7 +1,7 @@
 /* Optyker: guided official WhatsApp connection. Chats stay inside Optyker. */
 (function(){
 'use strict';
-if(window.OPTYKER_WHATSAPP_GUIDED_V2)return;window.OPTYKER_WHATSAPP_GUIDED_V2='20260913-internal-guided2';
+if(window.OPTYKER_WHATSAPP_GUIDED_V2)return;window.OPTYKER_WHATSAPP_GUIDED_V2='20261011-meta-details1';
 const $=id=>document.getElementById(id),endpoint='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-whatsapp-connect';
 let cfg=null,loadSeq=0,readyApp='',sdkPending=null,attempt=null,nonce='',nonceAt=0,preparing=false;
 const session=()=>{const c=window.OPTYKER_CLOUD||{};return [c.username||'',c.password||''].join('\n')};
@@ -58,6 +58,10 @@ async function load(verify=false){
  }catch(e){if(seq!==loadSeq)return;status(e.message,true);if(e.code==='META_REAUTHORIZE'&&cfg){cfg.connected=false;cfg.enabled=false;publish()}render()}
 }
 function stop(a,text,bad=false){if(attempt!==a)return;clearTimeout(a.timer);clearTimeout(a.fallback);attempt=null;status(text,bad);render()}
+/* OPTYKER_WHATSAPP_META_DETAILS_20261011: show what Meta reported, so the cause can be fixed. No secret is displayed. */
+function metaDetail(x){x=x||{};const parts=[];const msg=String(x.error_message||x.message||'').trim(),code=String(x.error_code||x.code||'').trim(),step=String(x.current_step||'').trim(),sid=String(x.session_id||'').trim();
+ if(msg)parts.push(msg);if(code)parts.push('codice '+code);if(step)parts.push('passaggio '+step);if(sid)parts.push('sessione '+sid);
+ return parts.length?' Dettaglio Meta: '+parts.join(' · ').slice(0,400)+'.':''}
 async function finish(a,allowDiscovery=false){
  if(attempt!==a||a.sending||!a.code||(!a.ids&&!allowDiscovery))return;
  a.sending=true;clearTimeout(a.fallback);status('Autorizzazione ricevuta. Salvataggio e verifica della ricezione…');
@@ -74,15 +78,15 @@ function connect(){
  const a={owner:session(),nonce,code:'',ids:null,sending:false};attempt=a;
  a.timer=setTimeout(()=>stop(a,'Procedura non conclusa. Premi Verifica collegamento; se necessario, ricollega il numero.',true),240000);
  status('Completa l’autorizzazione nella finestra Meta. Se non appare, consenti i popup per Optyker.');render();
- try{window.FB.login(r=>{if(attempt!==a)return;if(!r?.authResponse?.code){stop(a,'Autorizzazione non completata. Puoi riprovare.',true);return}a.code=r.authResponse.code;finish(a);a.fallback=setTimeout(()=>finish(a,true),2500);},
+ try{window.FB.login(r=>{if(attempt!==a)return;if(!r?.authResponse?.code){stop(a,'Autorizzazione non completata ('+String(r?.status||'senza risposta')+'). Puoi riprovare.'+(a.lastMeta||''),true);return}a.code=r.authResponse.code;finish(a);a.fallback=setTimeout(()=>finish(a,true),2500);},
  {config_id:cfg.meta_config_id,response_type:'code',override_default_response_type:true,extras:{setup:{},version:'v4',featureType:'whatsapp_business_app_onboarding',sessionInfoVersion:'3'}});}catch(e){stop(a,'La finestra Meta non si è aperta. Consenti i popup e riprova.',true)}
 }
 window.addEventListener('message',ev=>{
  if(!['https://www.facebook.com','https://web.facebook.com','https://facebook.com'].includes(ev.origin)||!attempt)return;
  let d=ev.data;try{if(typeof d==='string')d=JSON.parse(d)}catch{return}if(d?.type!=='WA_EMBEDDED_SIGNUP')return;
  const a=attempt;if(d.event==='FINISH'||d.event==='FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING'){a.ids=d.data||{};finish(a)}
- else if(d.event==='CANCEL')stop(a,'Collegamento annullato. I dati precedenti sono conservati.');
- else if(d.event==='ERROR')stop(a,'Meta non ha completato l’autorizzazione. Verifica l’abilitazione WhatsApp dell’app Meta e riprova.',true);
+ else if(d.event==='CANCEL'){a.lastMeta=metaDetail(d.data);stop(a,'Collegamento annullato nella finestra Meta. I dati precedenti sono conservati.'+a.lastMeta,true)}
+ else if(d.event==='ERROR'){a.lastMeta=metaDetail(d.data);stop(a,'Meta non ha completato l’autorizzazione.'+(a.lastMeta||' Verifica l’abilitazione WhatsApp dell’app Meta e riprova.'),true)}
 });
 function mount(){
  const pane=$('optykerSettingsWhatsAppPane'),card=pane?.querySelector('.optykerSettingsCard');if(!card)return false;if($('waQuickConnect'))return true;

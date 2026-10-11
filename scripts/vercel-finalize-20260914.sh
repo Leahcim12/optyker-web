@@ -119,3 +119,15 @@ python scripts/apply_client_search_agenda.py
 python scripts/apply_agenda_force_duration.py
 python scripts/apply_agenda_edit_simple.py
 python scripts/check_desktop_html.py
+# Release 20261011: automatic RCH return to REG before receipts (Cloud Relay restore_reg = =C1 only),
+# bonifico/Alma/PagoDil/PagoLight receipts as electronic payment, Meta error details. No printer commands.
+node --check rch-auto-reg.js
+python scripts/apply_rch_auto_reg.py
+node --check _site/rch-auto-reg.js
+grep -q 'id="optykerRchAutoRegJs"' _site/index.html
+python scripts/apply_release_20261011.py
+node --check _site/cash-register.js
+node --check _site/unified-fiscal-void.js
+node --check _site/fiscal-receipts.js
+node --check _site/whatsapp-connect.js
+python scripts/check_desktop_html.py

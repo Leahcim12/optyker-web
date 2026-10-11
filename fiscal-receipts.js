@@ -91,6 +91,7 @@ async function reprintJob(job,button,m){
   }
   var c=window.OPTYKER_CLOUD||{};
   message(m,'Verifica del documento e ristampa sulla RCH in corso…');
+  if(window.OPTYKER_RCH_AUTO_REG){try{await window.OPTYKER_RCH_AUTO_REG.ensureReg()}catch(e){}}
   await bridge('/receipt/reprint',{jobId:job.id,username:c.username||window.OPTYKER_ACTIVE_USER,password:c.password});
   message(m,'Ristampa confermata dalla RCH.');
  }catch(e){message(m,e.message)}finally{button.disabled=false;m.querySelector('.ofClose').disabled=false}
@@ -135,6 +136,7 @@ async function openVoid(originalId){
 function departmentOptions(selected){return '<option value="">Seleziona IVA e tipo</option>'+[[1,'Bene · IVA 4%'],[2,'Bene · IVA 22%'],[3,'Servizio · esente Art.10']].map(function(x){return '<option value="'+x[0]+'"'+(Number(selected)===x[0]?' selected':'')+'>'+x[1]+'</option>'}).join('')}
 function addLine(tbody,line){var row=document.createElement('tr');row.innerHTML='<td><input data-field="description" aria-label="Descrizione" maxlength="100" value="'+esc(line.description||'')+'" required></td><td><input data-field="quantity" aria-label="Quantità" type="number" min="1" max="99" step="1" value="'+esc(line.quantity||1)+'" required style="width:55px"></td><td><input data-field="unit_price" aria-label="Prezzo unitario" type="number" min="0.01" step="0.01" value="'+esc(line.unit_price||'')+'" required style="width:85px"></td><td><select data-field="department" aria-label="IVA e tipo" required>'+departmentOptions(line.department)+'</select></td><td><select data-field="expense_code" aria-label="Tipo spesa sanitaria"><option value="none">Non sanitaria</option><option value="AD">AD · dispositivo medico CE</option><option value="AA">AA · altra spesa sanitaria</option></select></td><td><button type="button" aria-label="Rimuovi riga">×</button></td>';tbody.appendChild(row);row.querySelector('button').onclick=function(){row.remove()}}
 async function checkReady(){
+ if(window.OPTYKER_RCH_AUTO_REG){try{await window.OPTYKER_RCH_AUTO_REG.ensureReg()}catch(e){}}
  var h=await bridge('/health');
  if(h.version!==VERSION||!h.capabilities||h.capabilities.automaticReference!==true)throw new Error('Aggiorna il connettore sul PC: Cassa → RCH → Installa / aggiorna connettore.');
  var status=await bridge('/status');

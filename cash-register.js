@@ -187,7 +187,7 @@ function ensureUI(){
       '</div>'+
       '<div id="optykerCashDepositWrap" class="optykerCashDepositWrap" style="display:none"><div><label>Importo acconto</label><input id="optykerCashDeposit" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00"></div><div class="optykerCashDuePreview"><span>Resterà da saldare</span><b id="optykerCashDue">€ 0,00</b></div></div>'+
       '<div class="optykerCashPayLabel optykerCashPayLabelSpaced">Metodo di pagamento</div><div class="optykerCashPayModes">'+
-        '<button class="optykerCashPayMode" data-pay="cash" type="button">Contanti</button><button class="optykerCashPayMode active" data-pay="card" type="button">Carta</button><button class="optykerCashPayMode" data-pay="mixed" type="button">Contanti + carta</button><button class="optykerCashPayMode" data-pay="bank" type="button">Bonifico</button><button class="optykerCashPayMode" data-pay="pending" type="button" title="Pagamento dilazionato" aria-label="RATE - pagamento dilazionato">RATE</button>'+
+        '<button class="optykerCashPayMode" data-pay="cash" type="button">Contanti</button><button class="optykerCashPayMode active" data-pay="card" type="button">Carta</button><button class="optykerCashPayMode" data-pay="mixed" type="button">Contanti + carta</button><button class="optykerCashPayMode" data-pay="bank" type="button">Bonifico</button><button class="optykerCashPayMode" data-pay="alma" type="button" title="Alma · pagamento rateale (scontrino: pagamento elettronico)" aria-label="Alma">Alma</button><button class="optykerCashPayMode" data-pay="pagodil" type="button" title="PagoDil · pagamento dilazionato (scontrino: pagamento elettronico)" aria-label="PagoDil">PagoDil</button><button class="optykerCashPayMode" data-pay="pagolight" type="button" title="PagoLight · pagamento dilazionato (scontrino: pagamento elettronico)" aria-label="PagoLight">PagoLight</button>'+
       '</div>'+
       '<div id="optykerCashMixed" class="optykerCashMixed" hidden><label for="optykerCashMixedCash">Contanti <input id="optykerCashMixedCash" type="number" min="0.01" step="0.01" inputmode="decimal"></label><div>Carta <b id="optykerCashMixedCard">€ 0,00</b></div><small>La carta copre il resto. Verrà stampato un solo scontrino.</small><a href="/rch-connector/Aggiorna-RCH-POS.bat?v=20260926-mixed3" download>Aggiorna connettore RCH per pagamento misto</a></div>'+
       '<label id="optykerCashTsBox" class="optykerCashTsBox"><input id="optykerCashTs" type="checkbox"><span class="optykerCashTsCheck">✓</span><span><b>Scontrino parlante · detrazione</b><small id="optykerCashTsHint">Inserisci il codice fiscale anche per un cliente occasionale.</small></span></label>'+
@@ -429,7 +429,7 @@ function checkout(){
   var autoReceipt=!inv&&S.payment!=='pending';
   var lines=rows.map(function(x){return {variant_id:x.item.variant_id,quantity:x.qty,department:Number(x.department||({'04':1,'22':2,'ART10':3}[x.item.fiscal_vat_code||x.item.vat_code])||0)}});
   if(autoReceipt&&lines.some(function(l){return !l.department})){toast('Seleziona l’IVA degli articoli nel carrello.','error');return}
-  if(autoReceipt&&!['cash','card','mixed'].includes(S.payment)){toast('Il pagamento selezionato non è configurato sulla RCH. Seleziona il metodo effettivamente usato oppure prepara la fattura.','error');return}
+  if(autoReceipt&&!['cash','card','mixed','bank','alma','pagodil','pagolight'].includes(S.payment)){toast('Il pagamento selezionato non è configurato sulla RCH. Seleziona il metodo effettivamente usato oppure prepara la fattura.','error');return}
   var split=S.payment==='mixed'?mixedAmounts(S.stage==='deposit'?dep:total):null;
   if(S.payment==='mixed'&&!split){toast('Inserisci una quota contanti maggiore di zero e inferiore all’importo da incassare.','error');return}
   var payload={client_id:S.clientId,payment_method:S.payment,payment_stage:S.stage,deposit_amount:dep,expected_total:total,
@@ -520,7 +520,7 @@ function recentSales(clientId){
   loadHistory()
 }
 function receiptDate(v){try{return new Date(v).toLocaleString('it-IT')}catch(e){return ''}}
-function paymentLabel(v){return {cash:'Contanti',card:'Carta',mixed:'Contanti + carta',bank:'Bonifico',pending:'Rate',other:'Altro'}[v]||v||''}
+function paymentLabel(v){return {cash:'Contanti',card:'Carta',mixed:'Contanti + carta',bank:'Bonifico',alma:'Alma',pagodil:'PagoDil',pagolight:'PagoLight',pending:'Da pagare',other:'Altro'}[v]||v||''}
 function loadHistory(){
   var request=++H.request,clientId=H.clientId,offset=H.offset;
   var box=E('optykerCashSaleList');if(!box)return;

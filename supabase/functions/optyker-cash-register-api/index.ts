@@ -403,7 +403,7 @@ async function checkout(body:any,operator:string){
   const rawStage=norm(p.payment_stage);
   const paymentStage=["deposit","balance","delivery_balance"].includes(rawStage)?rawStage:"balance";
   const pm=norm(p.payment_method);
-  const paymentMethod=["cash","card","bank","other","pending"].includes(pm)?pm:"card";
+  const paymentMethod=["cash","card","bank","alma","pagodil","pagolight","other","pending"].includes(pm)?pm:"card";
   const invoiceRequested=!!p.invoice_requested;
   const tsRequested=!!p.ts_requested;
   const tsExpenseCode=norm(p.ts_expense_code)==="AA"?"AA":"AD";
@@ -575,7 +575,7 @@ async function settleSale(body:any,operator:string){
   const rawStage=norm(p.payment_stage);
   const stage=rawStage==="delivery_balance"?"delivery_balance":"balance";
   const pm=norm(p.payment_method);
-  const method=["cash","card","bank","other"].includes(pm)?pm:"card";
+  const method=["cash","card","bank","alma","pagodil","pagolight","other"].includes(pm)?pm:"card";
   const invoiceRequested=!!p.invoice_requested;
   const tsRequested=!!p.ts_requested;
   const tsExpenseCode=norm(p.ts_expense_code)==="AA"?"AA":"AD";

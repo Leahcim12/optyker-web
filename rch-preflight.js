@@ -77,6 +77,8 @@
     });
     if(input.paymentMethod==='cash')payment={code:1,label:'Contanti'};
     else if(input.paymentMethod==='card')payment={code:4,label:'Carte elettroniche'};
+    // AdE FAQ: bank transfer and consumer financing are electronic payments on the receipt.
+    else if(['bank','alma','pagodil','pagolight'].indexOf(input.paymentMethod)>=0)payment={code:4,label:'Pagamento elettronico ('+({bank:'bonifico',alma:'Alma',pagodil:'PagoDil',pagolight:'PagoLight'})[input.paymentMethod]+')'};
     else if(input.paymentMethod==='cheque')payment={code:3,label:'Assegni'};
     else issue('payment_unmapped',input.paymentMethod==='pending'?'Il non riscosso richiede una distinzione verificata tra beni, servizi e fatture.':'Metodo di pagamento senza codice RCH verificato.');
     if(input.stage!=='balance')issue('stage_unverified','Acconti e saldi collegati a documenti precedenti richiedono una gestione fiscale dedicata.');

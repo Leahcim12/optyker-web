@@ -30,8 +30,18 @@ test('one mixed receipt closes with separate cash and card amounts only when sto
 test('protect invoice, duplicate-issued and unsupported payment boundaries',()=>{
  assert.throws(()=>makeDocument({...payment,invoice_requested:true},input),/fattura/);
  assert.throws(()=>makeDocument({...payment,billing_invoice_id:'id'},input),/fattura/);
- assert.throws(()=>makeDocument({...payment,payment_method:'bank'},input),/non mappato/);
+ assert.throws(()=>makeDocument({...payment,payment_method:'other'},input),/non mappato/);
+ assert.throws(()=>makeDocument({...payment,payment_method:'pending'},input),/non mappato/);
  assert.throws(()=>makeDocument(payment,{...input,not_already_issued:false}),/già/);
+});
+test('bank transfer and consumer financing print as electronic payment 4, method preserved',()=>{
+ for(const method of ['card','bank','alma','pagodil','pagolight']){
+  const d=makeDocument({...payment,payment_method:method},input);
+  assert.equal(d.paymentCode,4,method);assert.equal(d.commands.at(-1),'=T4',method);assert.equal(d.paymentMethod,method);
+  assert.ok(!d.commands.some(c=>/BONIFICO|ALMA|PAGO/i.test(c)),'no free text added to the fiscal sequence');
+ }
+ assert.equal(makeDocument(payment,input).commands.at(-1),'=T1');
+ assert.equal(makeDocument({...payment,payment_method:'cheque'},input).commands.at(-1),'=T3');
 });
 test('CF checksum and command injection are checked independently of TS',()=>{
  const cf=fiscalCode('RSSMRA85T10A562S');

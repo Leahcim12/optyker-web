@@ -7,6 +7,8 @@ function money(n){return new Intl.NumberFormat('it-IT',{style:'currency',currenc
 async function post(url,body,timeout){var r=await fetch(url,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined,cache:'no-store',signal:AbortSignal.timeout(timeout||20000)}),x=await r.json();if(!r.ok||x.ok!==true)throw new Error(x.error||'Collegamento non disponibile');return x}
 function api(a,p,relay){var c=window.OPTYKER_CLOUD||{};return post(ROOT+(relay?'optyker-rch-relay-api':'optyker-fiscal-api'),{action:a,payload:p||{},username:c.username||window.OPTYKER_ACTIVE_USER,password:c.password})}
 async function ready(){
+ // OPTYKER_RCH_AUTO_REG_20261011: a RCH left idle in Z returns to REG (=C1 only) before the checks.
+ if(window.OPTYKER_RCH_AUTO_REG){try{await window.OPTYKER_RCH_AUTO_REG.ensureReg()}catch(e){}}
  var h=null;try{h=await post(LOCAL+'/health',null,1200)}catch{}
  if(h){if(h.capabilities?.automaticVoidReference!==true)throw new Error('Aggiornamento annulli richiesto sul PC cassa. Usa Aggiorna funzione annullo RCH qui sotto; il solo Cloud Relay non basta.');var s=await post(LOCAL+'/status',null,5000);checkStatus(s);return 'local'}
  var d=(await api('status',{},true)).data;

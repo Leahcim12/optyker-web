@@ -24,7 +24,7 @@ $startup = [Environment]::GetFolderPath("Startup")
 $startupHelper = Join-Path $base 'Attiva-Avvio-Automatico-RCH.ps1'
 $publicRoot = 'https://leahcim12.github.io/optyker-web/rch-connector'
 $source = "$publicRoot/rch-optyker-connector.ps1?v=20260914-cloud4"
-$workerSource = "$publicRoot/rch-optyker-cloud-worker.ps1?v=20260916-dailyclosure1"
+$workerSource = "$publicRoot/rch-optyker-cloud-worker.ps1?v=20261011-regauto1"
 $startupSource = "$publicRoot/Attiva-Avvio-Automatico-RCH.ps1?v=20260914-cloud4"
 $relayApi='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-rch-relay-api'
 
@@ -169,6 +169,6 @@ if($relayOnly){
 
 Write-Host ""
 Write-Host "La chiusura giornaliera RCH parte solo quando confermi Chiudi cassa in Optyker." -ForegroundColor Cyan
-Write-Host "Il ritorno in REG NON e automatico: resta manuale tramite Porta RCH in REG." -ForegroundColor Cyan
+Write-Host "Dopo la chiusura, o se la RCH resta ferma in Z, Optyker la riporta in REG da solo (solo comando =C1)." -ForegroundColor Cyan
 Write-Host "Puoi chiudere questa finestra."
 if(-not $NoPause){$null=Read-Host "Premi INVIO per terminare"}

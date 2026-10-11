@@ -78,10 +78,16 @@ test('programmed department types and payment credit types match the captured RC
   assert.equal(p.departments.some(d=>d.department>=4),false);
 });
 test('unverified payments and ambiguous non-riscosso remain unassigned',()=>{
-  for(const method of ['pending','bank','transfer','unpaid_goods',4,null,'']){
+  for(const method of ['pending','transfer','unpaid_goods',4,null,'']){
     const input=valid();input.paymentMethod=method;
     const out=validate(input);assert.equal(out.dataValid,false);assert.equal(out.payment,null);
     assert.ok(out.issues.some(x=>x.code==='payment_unmapped'));
+  }
+});
+test('bank transfer and consumer financing map to the electronic payment 4',()=>{
+  for(const method of ['bank','alma','pagodil','pagolight']){
+    const input=valid();input.paymentMethod=method;const out=validate(input);
+    assert.equal(out.payment.code,4,method);assert.ok(!out.issues.some(x=>x.code==='payment_unmapped'),method);
   }
 });
 test('amounts, quantities, empty or excessive cart are bounded',()=>{

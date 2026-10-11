@@ -2,6 +2,9 @@
 export const SERIAL = '72IV6003831';
 export const RELEASE = '20260915-reference2';
 export const REVIEW_URL = 'https://g.page/r/CeicKuw6aQ5FEAE/review';
+// AdE FAQ on POS/RT: bank transfers and consumer financing (Alma, PagoDil, PagoLight) are
+// recorded on the commercial document as electronic payments, like cards: RCH payment 4.
+export const ELECTRONIC_PAYMENT_METHODS = Object.freeze(['card','bank','alma','pagodil','pagolight']);
 export const DEPARTMENTS = Object.freeze({1:{vat:'04',type:'goods'},2:{vat:'22',type:'goods'},3:{vat:'ART10',type:'services'}});
 export function cents(value) {
   const s=String(value);
@@ -25,7 +28,7 @@ export function description(value) {
 export function makeDocument(payment,input,clientFiscal='') {
   if(payment.invoice_requested||payment.billing_invoice_id)throw new Error('Questo pagamento segue il flusso fattura');
   const mixed=payment.payment_method==='mixed';
-  const paymentCode=mixed?null:{cash:1,card:4,cheque:3}[payment.payment_method];
+  const paymentCode=mixed?null:({cash:1,cheque:3}[payment.payment_method]||(ELECTRONIC_PAYMENT_METHODS.includes(payment.payment_method)?4:undefined));
   if(!mixed&&!paymentCode)throw new Error('Metodo di pagamento RCH non mappato: usare il flusso manuale del registratore');
   const amount=cents(payment.amount);if(amount<=0)throw new Error('Nessun importo da emettere');
   let breakdown=null;

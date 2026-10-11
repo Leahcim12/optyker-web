@@ -2,7 +2,7 @@ from pathlib import Path
 import re,shutil,json
 from apply_ts_connection import DocumentClosings
 VERSION='20260922-unified-rch1'
-ACCESS='20260925-close-access1'
+ACCESS='20261011-resolve1'
 ROOT=Path(__file__).resolve().parent.parent
 
 def change(s,a,b):
@@ -42,5 +42,5 @@ def patch(site):
  for alias in ('gestionale-v2','gestionale-v3'):
   d=site/alias;d.mkdir(exist_ok=True);(d/'index.html').write_bytes(p.read_bytes())
   for name in ('cash-day-control.js','admin-cash-closure.js','admin-cash-today-controls.js','cash-sessions.js'):shutil.copyfile(site/name,d/name)
- (site/'cash-sessions-version.json').write_text(json.dumps({'version':VERSION,'access_version':ACCESS,'features':['reopen_same_day','repeat_close','immutable_history','idempotent_confirmation','staff_unified_rch_close','fiscal_default_on','confirmed_fiscal_outcome','unified_header_footer_buttons','closure_date_selection','read_only_entrypoint_always_available']})+'\n')
+ (site/'cash-sessions-version.json').write_text(json.dumps({'version':VERSION,'access_version':ACCESS,'features':['reopen_same_day','repeat_close','immutable_history','idempotent_confirmation','staff_unified_rch_close','fiscal_default_on','confirmed_fiscal_outcome','unified_header_footer_buttons','closure_date_selection','read_only_entrypoint_always_available','attention_resolution','opening_not_blocked_by_attention']})+'\n')
 if __name__=='__main__':patch(ROOT/'_site')

@@ -17,7 +17,7 @@ goto ENDSETUP
 
 :RELAYONLY
 echo Installazione esistente rilevata.
-echo Aggiorno SOLO il Cloud Relay per il pulsante manuale Porta RCH in REG.
+echo Aggiorno SOLO il Cloud Relay: chiusura verificata e ritorno automatico in REG.
 echo Il connettore fiscale non verra modificato.
 echo.
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -Command "try { [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/Leahcim12/optyker-web/main/rch-connector/Aggiorna-Relay-REG.ps1' -OutFile '%TMPPS1%' -TimeoutSec 60; exit 0 } catch { Write-Host ''; Write-Host 'ERRORE DOWNLOAD' -ForegroundColor Red; Write-Host $_.Exception.Message -ForegroundColor Red; exit 1 }"
@@ -34,8 +34,8 @@ if not "%RC%"=="0" (
   exit /b %RC%
 )
 echo Operazione completata.
-echo Se era un aggiornamento, riapri Optyker e usa Porta RCH in REG.
-echo Il passaggio in REG NON e automatico.
+echo Se era un aggiornamento, riapri Optyker: la RCH torna in REG da sola.
+echo Il ritorno in REG usa solo il comando =C1: nessuna chiusura e nessuno scontrino.
 pause
 exit /b 0
 

@@ -124,7 +124,9 @@ async function checkout(body:any,operator:string){
  if(p.expected_total!=null&&Math.abs(money(p.expected_total)-total)>0.01)throw new Error('Il totale del carrello è cambiato: ricarica i prodotti prima di incassare.');
  const client=await clientById(norm(p.client_id));if(p.client_id&&!client)throw new Error('Cliente non trovato');
  let stage=['deposit','balance','delivery_balance'].includes(norm(p.payment_stage))?norm(p.payment_stage):'balance';
- let method=['cash','card','mixed','bank','other','pending'].includes(norm(p.payment_method))?norm(p.payment_method):'card';
+ // Bank transfer and consumer financing print as electronic payment (RCH payment 4).
+ const ELECTRONIC=['bank','alma','pagodil','pagolight'];
+ let method=['cash','card','mixed','bank','alma','pagodil','pagolight','other','pending'].includes(norm(p.payment_method))?norm(p.payment_method):'card';
  const invoiceRequested=!!p.invoice_requested,ts=!!p.ts_requested,stockOnly=total===0,tsCode=norm(p.ts_expense_code)==='AA'?'AA':'AD',opposition=!!p.ts_opposition;
  let autoReceipt=p.auto_receipt===true&&total>0;if(stockOnly){stage='balance';method='other';autoReceipt=false}
  if(invoiceRequested&&!client)throw new Error('Per creare la fattura seleziona un cliente.');
@@ -132,14 +134,14 @@ async function checkout(body:any,operator:string){
  if(stockOnly&&ts)throw new Error('Uno scarico magazzino a 0,00 € non genera una spesa Sistema TS.');
  if(ts&&invoiceRequested)throw new Error('Per una spesa Sistema TS non usare la fattura elettronica.');
  if(autoReceipt&&invoiceRequested)throw new Error('La fattura elettronica e lo scontrino RCH sono flussi separati.');
- if(autoReceipt&&!['cash','card','mixed'].includes(method))throw new Error('Per lo scontrino RCH seleziona Contanti o Carta.');
+ if(autoReceipt&&!['cash','card','mixed',...ELECTRONIC].includes(method))throw new Error('Per lo scontrino RCH seleziona un metodo di pagamento configurato.');
  let paidNow=0;if(!stockOnly&&method!=='pending'){if(stage==='deposit'){paidNow=money(p.deposit_amount);if(!(paidNow>0&&paidNow<total))throw new Error("L'acconto deve essere maggiore di 0 e inferiore al totale.")}else paidNow=total}
  if(method==='mixed'&&(!autoReceipt||invoiceRequested||ts))throw new Error('Il pagamento misto richiede uno scontrino RCH senza fattura né invio TS.');
  if(method!=='mixed'&&p.payment_breakdown!=null)throw new Error('Ripartizione ammessa solo per Contanti + carta.');
  const breakdown=method==='mixed'?mixedBreakdown(p.payment_breakdown,paidNow):null;
  if(invoiceRequested&&paidNow<=0)throw new Error('Non è possibile fatturare un pagamento di 0,00 €.');if(ts&&paidNow<=0)throw new Error('Per preparare il Sistema TS deve esserci un pagamento.');
  const due=stockOnly?0:money(Math.max(0,total-paidNow)),paymentStatus=stockOnly?'paid':due>0?(paidNow>0?'partially_paid':'pending'):'paid',identity=stockOnly?null:purchaseIdentity(client,p.fiscal_code,ts);
- let lines:any[]=priced,snapshot:any=null;if(autoReceipt){lines=fiscalLines(priced,choices);snapshot=paymentDocument(lines,method==='mixed'?'card':method,paidNow,0,identity,{ts,code:tsCode,opposition});if(breakdown)snapshot.input.payment_breakdown=breakdown}
+ let lines:any[]=priced,snapshot:any=null;if(autoReceipt){lines=fiscalLines(priced,choices);snapshot=paymentDocument(lines,method==='mixed'||ELECTRONIC.includes(method)?'card':method,paidNow,0,identity,{ts,code:tsCode,opposition});if(breakdown)snapshot.input.payment_breakdown=breakdown}
  const requestHash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(p))))].map(v=>v.toString(16).padStart(2,'0')).join('');
  const channel=stockOnly?'physical_stock_only':autoReceipt?'physical_rch_receipt':invoiceRequested?'physical_invoice':'physical_pos_pending';
  const salePayload:any={client_id:client?.id||null,operator_username:operator,payment_stage:stage,payment_method:method,payment_status:paymentStatus,status:due>0?'open_balance':'completed',subtotal:total,discount_total:money(q.discount_total),total,paid_amount:paidNow,due_amount:due,currency:'EUR',shopify_draft_order_id:null,shopify_order_id:null,shopify_order_name:null,note:norm(p.note).slice(0,1000),invoice_requested:invoiceRequested,completed_at:due>0?null:new Date().toISOString(),delivered_at:stage==='delivery_balance'&&due===0?new Date().toISOString():null,data:{source:'optyker_pos_local',channel,shopify_order_created:false,stock_only:stockOnly,checkout_request_id:requestId,checkout_request_hash:requestHash,client_cart_selection:true,pricing,client_snapshot:client||null,fiscal_identity:identity,lines,payment_stage:stage,paid_now:paidNow,due_amount:due,...(breakdown?{payment_breakdown:breakdown}:{})}};

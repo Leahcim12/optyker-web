@@ -13,7 +13,14 @@ export async function sessionAction(db:any,action:string,p:any,operator:string,c
   if(requested&&!confirmed)throw new Error('Chiusura RCH non confermata: usa Verifica esito, senza ripetere');
   return {...result,fiscal_requested:requested,fiscal_confirmed:confirmed,closure:op.snapshot?.closure||null};
  };
- if(!/^session_(status|history|open|close|result)$/.test(action))throw new Error('Azione sessione non valida');
+ if(!/^session_(status|history|open|close|result|resolve)$/.test(action))throw new Error('Azione sessione non valida');
+ if(action==='session_resolve'){
+  // Operator verification of the printed Z for an unconfirmed closure. Never sends a printer command.
+  if(!UUID.test(String(p.request_id||'')))throw new Error('Riferimento operazione non valido');
+  if(typeof p.printed!=='boolean')throw new Error('Indica se la chiusura Z risulta stampata');
+  if(!canCloseFiscal)throw new Error('Operatore non abilitato alla verifica della chiusura RCH');
+  return await outcome(await rpc('optyker_cash_session_resolve',{p_request_id:p.request_id,p_printed:p.printed,p_operator:operator}));
+ }
  if(action==='session_result'){
   if(!UUID.test(String(p.request_id||'')))throw new Error('Riferimento operazione non valido');
   const op=await get(db.from('optyker_cash_session_operations').select('id,input').eq('id',p.request_id).maybeSingle());
@@ -24,7 +31,7 @@ export async function sessionAction(db:any,action:string,p:any,operator:string,c
  const date=String(p.date||p.business_date||'');
  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||Number.isNaN(Date.parse(date+'T12:00:00Z'))||new Date(date+'T12:00:00Z').toISOString().slice(0,10)!==date)throw new Error('Data non valida');
  const state=()=>rpc('optyker_cash_session_state',{p_business_date:date});
- if(action==='session_status')return {...await state(),cash_session_capabilities:{fiscal_closure:canCloseFiscal,version:'20260922-unified-rch1'}};
+ if(action==='session_status')return {...await state(),cash_session_capabilities:{fiscal_closure:canCloseFiscal,resolve_attention:canCloseFiscal,version:'20261011-resolve1'}};
  if(action==='session_history'){
   const rows=await get(db.from('optyker_cash_session_operations').select('id,kind,state,sequence_no,operator_username,created_at,completed_at,snapshot,error').eq('business_date',date).eq('register_code','main').order('created_at',{ascending:false}).limit(100));
   const result=rows.map((r:any)=>({id:r.id,kind:r.kind,state:r.state,sequence_no:r.sequence_no,operator_username:r.operator_username,at:r.completed_at||r.created_at,closure:r.snapshot?.closure||null,error:r.error}));

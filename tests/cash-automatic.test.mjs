@@ -17,7 +17,8 @@ test('fiscal mapping is explicit and unknown VAT or unsupported payments stop be
  assert.deepEqual(fiscalLines(lines).map(l=>l.fiscal_department),[1,2]);
  assert.equal(fiscalLines(lines,[{variant_id:'a',department:2}])[0].fiscal_department,2);
  assert.throws(()=>fiscalLines([{...lines[0],fiscal_vat_code:''}]),/IVA/);
- assert.throws(()=>paymentDocument(fiscalLines(lines),'bank',53.36,0,null),/pagamento/);
+ assert.throws(()=>paymentDocument(fiscalLines(lines),'other',53.36,0,null),/pagamento/);
+ for(const method of ['bank','alma','pagodil','pagolight'])assert.equal(paymentDocument(fiscalLines(lines),method,53.36,0,null).totalCents,5336,method);
 });
 test('deposit plus balance preserve total and each tax amount exactly, including rounding',()=>{
  const ls=fiscalLines(lines);

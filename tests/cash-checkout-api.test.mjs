@@ -48,8 +48,14 @@ test('real checkout handler accepts occasional CF, snapshots the receipt, and ke
  const changed=await call({...payload,fiscal_code:'VRDLGI80A01H501K'});assert.equal(changed.ok,false);assert.equal(mutations.length,2);
 });
 test('invalid CF, missing fiscal mapping and unsupported payment fail before sale or Shopify mutations',async()=>{
- for(const patch of [{fiscal_code:'RSSMRA80A01H501X'},{fiscal_code:''},{payment_method:'bank'},{lines:[{variant_id:vid,quantity:2,department:9}]}]){
+ for(const patch of [{fiscal_code:'RSSMRA80A01H501X'},{fiscal_code:''},{payment_method:'other'},{lines:[{variant_id:vid,quantity:2,department:9}]}]){
   const {call,tables,mutations}=setup(),r=await call({...payload,...patch});assert.equal(r.ok,false);assert.equal(mutations.length,0);assert.equal(tables.optyker_pos_sales.length,0);
+ }
+});
+test('bank transfer and financing keep their method and get an electronic receipt snapshot',async()=>{
+ for(const method of ['bank','alma','pagodil','pagolight']){
+  const {call}=setup(),r=await call({...payload,payment_method:method,request_id:'12345678-1234-4234-8234-'+String(method.length).padStart(12,'0')});
+  assert.equal(r.ok,true,r.error);assert.equal(r.data.payment.payment_method,method);assert.equal(r.data.payment.data.fiscal_snapshot.totalCents,2900);
  }
 });
 test('concurrent retries of the same checkout create only one order and one payment',async()=>{

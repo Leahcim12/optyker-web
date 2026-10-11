@@ -366,7 +366,7 @@ setInterval(function(){if(cashDayE('optykerCashOverlay'))cashDayInstall()},5000)
 if(window.__OPTYKER_ADMIN_REPORTS_2026__)return;window.__OPTYKER_ADMIN_REPORTS_2026__=true;
 var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-customer-invoice-print-api';
 var MONTHS=['','Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
-var METHODS={cash:'Contanti',card:'Carta / POS',mixed:'Misto',financing:'Finanziaria / rate',installments:'Rate',bank:'Bonifico',transfer:'Bonifico',check:'Assegno',checks:'Assegno',other:'Altro'};
+var METHODS={cash:'Contanti',card:'Carta / POS',mixed:'Misto',financing:'Finanziaria / rate',installments:'Rate',alma:'Alma',pagodil:'PagoDil',pagolight:'PagoLight',bank:'Bonifico',transfer:'Bonifico',check:'Assegno',checks:'Assegno',other:'Altro'};
 var STAGES={deposit:'Acconto',balance:'Saldo',delivery_balance:'Saldo alla consegna',full:'Pagamento'};
 var R={year:0,month:0,day:'',timer:null};
 function E(id){return document.getElementById(id)}

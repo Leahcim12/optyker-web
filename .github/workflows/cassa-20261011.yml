@@ -1,0 +1,134 @@
+name: Verifica cassa 11/10 (REG automatico, chiusure da verificare, pagamenti)
+on:
+  push:
+    branches: [fix/cassa-20261011]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  relay:
+    name: Cloud Relay 2.3 e connettore (senza stampante)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Sintassi, marcatori e codifica degli script RCH
+        shell: pwsh
+        run: |
+          $files=@('rch-connector/rch-optyker-cloud-worker.ps1','rch-connector/Aggiorna-Relay-REG.ps1','rch-connector/Installa-RCH-Optyker.ps1','rch-connector/rch-optyker-connector.ps1','rch-connector/Attiva-Avvio-Automatico-RCH.ps1')
+          foreach($f in $files){$t=$null;$e=$null;[void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $f).Path,[ref]$t,[ref]$e);if($e.Count){$e|ForEach-Object{Write-Host $_.Message};throw "Parser errors in $f"}}
+          $w=Get-Content -Raw rch-connector/rch-optyker-cloud-worker.ps1
+          foreach($n in @('2.2-daily-closure','2.1-manual-reg','Close-DailyManual',"'=C10'",'Restore-RegManual','restore_reg',"`$WorkerRevision='2.3-reg-auto'")){if(-not $w.Contains($n)){throw "Marker mancante: $n"}}
+          $b=[IO.File]::ReadAllBytes((Resolve-Path 'rch-connector/rch-optyker-cloud-worker.ps1').Path)
+          if($b[0] -ne 0xEF -or $b[1] -ne 0xBB -or $b[2] -ne 0xBF){throw 'BOM UTF-8 mancante: Windows PowerShell 5.1 leggerebbe male gli accenti'}
+          Write-Host 'RCH PowerShell syntax, markers and encoding OK'
+      - name: Cloud Relay 2.3 e test esistenti del connettore
+        shell: pwsh
+        run: |
+          & ./tests/rch-cloud-worker-reg.test.ps1
+          & ./tests/rch-emission.test.ps1
+          & ./tests/rch-auto-reference.test.ps1
+          & ./tests/rch-reference-successor.test.ps1
+          & ./tests/rch-reference-updater.test.ps1
+      - name: File .bat con fine riga Windows
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          for name in ('Aggiorna-Relay-REG.bat','Installa-RCH-Optyker.bat'):
+              data=Path('rch-connector',name).read_bytes()
+              assert data.count(b'\n')==data.count(b'\r\n'),name+' must use CRLF'
+          print('BAT CRLF OK')
+          PY
+
+  database:
+    name: Sessioni cassa su dati sintetici
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: fixture_only
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: fixture_only
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Migrazioni in ordine e regressioni (nessun dato reale, nessuna stampante)
+        run: |
+          psql -v ON_ERROR_STOP=1 -f tests/cash-sessions/schema.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20260922213000_cash_repeat_sessions.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20260922213100_cash_repeat_guards.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20260928165101_fix_rch_historical_uncertain_closure_guard.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261011090000_cash_session_attention_resolution.sql
+          psql -v ON_ERROR_STOP=1 -f tests/cash-sessions/regression.sql
+          psql -v ON_ERROR_STOP=1 -f tests/cash-sessions/resolve.sql
+
+  web:
+    name: Test, build di produzione e browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test unitari (pagamenti, RCH, sessioni cassa)
+        run: |
+          npm install --prefix "$RUNNER_TEMP/qa" --ignore-scripts --no-audit --no-fund jsdom@26.1.0
+          export NODE_PATH="$RUNNER_TEMP/qa/node_modules"
+          node --check rch-auto-reg.js && node --check cash-sessions.js && node --check cash-register.js && node --check whatsapp-connect.js && node --check fiscal-receipts.js && node --check unified-fiscal-void.js && node --check rch-preflight.js && node --check client-tools.js
+          node --test tests/fiscal-domain.test.mjs tests/cash-automatic.test.mjs tests/cash-checkout-api.test.mjs tests/rch-preflight.test.mjs tests/rch-ui.test.mjs tests/fiscal-ui.test.mjs tests/fiscal-void-ui.test.mjs tests/fiscal-cash-flow.test.mjs tests/rch-reprint-ui.test.mjs tests/unified-fiscal-void.test.mjs tests/unified-fiscal-void-ui.test.mjs tests/agenda-whatsapp.test.mjs
+          node --experimental-strip-types --test tests/cash-sessions/staff-fiscal-actions.test.mjs
+      - name: Build di produzione identica a Vercel
+        run: |
+          cmd=$(python3 -c "import json;print(json.load(open('vercel.json'))['buildCommand'])")
+          echo "$cmd"
+          bash -c "$cmd"
+          python3 - <<'PY'
+          from pathlib import Path
+          site=Path('_site')
+          pages=[site/'index.html',site/'gestionale-v2/index.html',site/'gestionale-v3/index.html']
+          assert len({p.read_bytes() for p in pages})==1,'desktop aliases differ'
+          html=pages[0].read_text(encoding='utf-8')
+          for needle in ('rch-auto-reg.js?v=20261011-autoreg1','cash-register.js?v=20261011-cassa1','whatsapp-connect.js?v=20261011-cassa1','cash-sessions.js?v=20260922-unified-rch1&access=20261011-resolve1'):
+              assert needle in html,needle
+          assert html.count('id="optykerRchAutoRegJs"')==1
+          for name,needle in (('cash-register.js','data-pay="pagolight"'),('cash-sessions.js','OPTYKER_CASH_ATTENTION_RESOLUTION_20261011'),('rch-auto-reg.js','OPTYKER_RCH_AUTO_REG_20261011'),('whatsapp-connect.js','OPTYKER_WHATSAPP_META_DETAILS_20261011'),('fiscal-receipts.js','OPTYKER_RCH_AUTO_REG'),('rch-connector/rch-optyker-cloud-worker.ps1',"WorkerRevision='2.3-reg-auto'")):
+              assert needle in (site/name).read_text(encoding='utf-8-sig'),(name,needle)
+          assert 'data-pay="pending"' not in (site/'cash-register.js').read_text(encoding='utf-8')
+          print('PRODUCTION ARTIFACT OK')
+          PY
+          node --test tests/cash-cart-selection.test.mjs
+      - name: Dipendenze browser
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Test browser (endpoint simulati, nessun pagamento, nessun comando RCH reale)
+        run: |
+          python -m http.server 8766 --directory _site >/tmp/web.log 2>&1 &
+          sleep 1
+          node tests/cash-sessions/browser.cjs
+          node tests/cash-sessions/entrypoints.browser.cjs
+          node tests/cash-sessions/resolve.browser.cjs
+          node tests/cash-fiscal-preflight.browser.cjs
+          node tests/login-render-loop.browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cassa-20261011
+          path: |
+            /tmp/cash-sessions/
+            /tmp/client-search-check/
+          retention-days: 3
