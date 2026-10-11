@@ -11,10 +11,12 @@ ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / '_site'
 VERSION = '20261011-cassa1'
 ASSETS = ('cash-register.js', 'rch-preflight.js', 'unified-fiscal-void.js', 'fiscal-receipts.js',
-          'whatsapp-connect.js', 'client-tools.js')
+          'whatsapp-connect.js', 'client-tools.js', 'cash-pos5.js')
 CHECKS = {
     'cash-register.js': ('data-pay="alma"', 'data-pay="pagodil"', 'data-pay="pagolight"',
-                         "['cash','card','mixed','bank','alma','pagodil','pagolight']"),
+                         "['cash','card','mixed','bank','alma','pagodil','pagolight']",
+                         '<option value="pagolight">PagoLight</option>'),
+    'cash-pos5.js': ('Scegli il pagamento del saldo, poi premi Saldo consegna.',),
     'rch-preflight.js': ("['bank','alma','pagodil','pagolight']",),
     'unified-fiscal-void.js': ('OPTYKER_RCH_AUTO_REG',),
     'fiscal-receipts.js': ('OPTYKER_RCH_AUTO_REG',),
@@ -43,7 +45,7 @@ def main():
         for name in ASSETS:
             html = bump(html, name)
         page.write_text(html, encoding='utf-8')
-        for name in ('cash-register.js', 'whatsapp-connect.js', 'fiscal-receipts.js'):
+        for name in ('cash-register.js', 'whatsapp-connect.js', 'fiscal-receipts.js', 'cash-pos5.js'):
             if name + '?v=' + VERSION not in html and name in html:
                 raise SystemExit('Cache version not refreshed for ' + name + ' in ' + str(page))
     # Dynamic loaders that reference fiscal-receipts.js keep the same cache version.
