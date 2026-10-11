@@ -69,7 +69,7 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20260922213000_cash_repeat_sessions.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20260922213100_cash_repeat_guards.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20260928165101_fix_rch_historical_uncertain_closure_guard.sql
-          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261011090000_cash_session_attention_resolution.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261011091406_cash_session_attention_resolution.sql
           psql -v ON_ERROR_STOP=1 -f tests/cash-sessions/regression.sql
           psql -v ON_ERROR_STOP=1 -f tests/cash-sessions/resolve.sql
 
@@ -178,12 +178,13 @@ jobs:
           node-version: '22'
       - name: Build e test storici
         run: |
+          set +e
           cmd=$(python3 -c "import json;print(json.load(open('vercel.json'))['buildCommand'])")
           bash -c "$cmd" >/tmp/build.log 2>&1 || { echo "::notice title=${{ matrix.ref }}::build failed"; tail -20 /tmp/build.log; exit 0; }
           npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund jsdom@26.1.0 >/dev/null 2>&1
           export NODE_PATH="$PWD/node_modules"
           for t in tests/fiscal-cash-flow.test.mjs tests/agenda-whatsapp.test.mjs; do
             timeout 180 node --test --test-force-exit --test-reporter=spec "$t" >/tmp/out.txt 2>&1; rc=$?
-            summary=$(grep -E "^ℹ (pass|fail)|✖ [^f]" /tmp/out.txt | head -8 | tr '\n' ' ' | cut -c1-600)
+            summary=$(grep -E "^ℹ (pass|fail)|✖ [^f]|Error" /tmp/out.txt | head -12 | tr '\n' ' ' | cut -c1-900)
             echo "::notice title=${{ matrix.ref }} $t rc=$rc::$summary"
           done

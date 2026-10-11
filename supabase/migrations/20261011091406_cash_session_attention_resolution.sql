@@ -1,4 +1,5 @@
 -- OPTYKER_CASH_ATTENTION_RESOLUTION_20261011
+-- Applied as Supabase migration 20261011091406 (function hashes verified equal to the CI-tested build).
 -- A closure whose RCH outcome stayed unconfirmed ("attention") no longer blocks the
 -- opening, and an authorised operator can resolve it after checking the printed Z:
 --   printed     -> the cashier summary of that closure is saved as confirmed manually;
