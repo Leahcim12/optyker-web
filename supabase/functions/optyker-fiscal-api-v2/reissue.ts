@@ -1,6 +1,6 @@
 // Staff-authenticated fiscal-only reissue. No payment/sale insertion and no printer dispatch.
 import {createClient} from 'npm:@supabase/supabase-js@2.116.0';
-import {makeDocument,markAutomaticDocument} from 'https://raw.githubusercontent.com/Leahcim12/optyker-web/0f285050eea54a539b2beaad3acbd9d29f9ab4fb/supabase/functions/optyker-fiscal-api/domain.mjs';
+import {makeDocument,markAutomaticDocument} from 'https://raw.githubusercontent.com/Leahcim12/optyker-web/52caf62e741a41e658b15998878e4bff80b5d6cc/supabase/functions/optyker-fiscal-api/domain.mjs';
 import {VERSION,validId,planForSale,choosePreparation} from './reissue-domain.mjs';
 const db=createClient(Deno.env.get('SUPABASE_URL')||'',Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'',{auth:{persistSession:false,autoRefreshToken:false}});
 const fields='id,sale_id,payment_id,serial,operation,state,document,document_number,document_date,original_job_id,reissue_of_job_id,updated_at';

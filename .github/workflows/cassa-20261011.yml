@@ -73,8 +73,31 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f tests/cash-sessions/regression.sql
           psql -v ON_ERROR_STOP=1 -f tests/cash-sessions/resolve.sql
 
+  unit:
+    name: Test unitari (pagamenti, RCH, sessioni cassa)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test unitari (ogni file separato, errori come annotazioni)
+        run: |
+          npm install --prefix "$RUNNER_TEMP/qa" --ignore-scripts --no-audit --no-fund jsdom@26.1.0
+          export NODE_PATH="$RUNNER_TEMP/qa/node_modules"
+          failed=0
+          for f in rch-auto-reg.js cash-sessions.js cash-register.js whatsapp-connect.js fiscal-receipts.js unified-fiscal-void.js rch-preflight.js client-tools.js; do bash scripts/ci-run.sh "node --check $f" node --check "$f" || failed=1; done
+          for t in tests/fiscal-domain.test.mjs tests/cash-automatic.test.mjs tests/cash-checkout-api.test.mjs tests/rch-preflight.test.mjs tests/rch-ui.test.mjs tests/fiscal-ui.test.mjs tests/fiscal-void-ui.test.mjs tests/fiscal-cash-flow.test.mjs tests/rch-reprint-ui.test.mjs tests/unified-fiscal-void.test.mjs tests/unified-fiscal-void-ui.test.mjs tests/agenda-whatsapp.test.mjs tests/cash-fiscal-reissue-api.test.mjs; do
+            bash scripts/ci-run.sh "$t" node --test --test-reporter=spec "$t" || failed=1
+          done
+          bash scripts/ci-run.sh staff-fiscal-actions node --experimental-strip-types --test --test-reporter=spec tests/cash-sessions/staff-fiscal-actions.test.mjs || failed=1
+          exit $failed
+
   web:
-    name: Test, build di produzione e browser
+    name: Build di produzione e test browser
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -84,19 +107,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Test unitari (pagamenti, RCH, sessioni cassa)
-        run: |
-          npm install --prefix "$RUNNER_TEMP/qa" --ignore-scripts --no-audit --no-fund jsdom@26.1.0
-          export NODE_PATH="$RUNNER_TEMP/qa/node_modules"
-          node --check rch-auto-reg.js && node --check cash-sessions.js && node --check cash-register.js && node --check whatsapp-connect.js && node --check fiscal-receipts.js && node --check unified-fiscal-void.js && node --check rch-preflight.js && node --check client-tools.js
-          node --test tests/fiscal-domain.test.mjs tests/cash-automatic.test.mjs tests/cash-checkout-api.test.mjs tests/rch-preflight.test.mjs tests/rch-ui.test.mjs tests/fiscal-ui.test.mjs tests/fiscal-void-ui.test.mjs tests/fiscal-cash-flow.test.mjs tests/rch-reprint-ui.test.mjs tests/unified-fiscal-void.test.mjs tests/unified-fiscal-void-ui.test.mjs tests/agenda-whatsapp.test.mjs
-          node --experimental-strip-types --test tests/cash-sessions/staff-fiscal-actions.test.mjs
       - name: Build di produzione identica a Vercel
         run: |
           cmd=$(python3 -c "import json;print(json.load(open('vercel.json'))['buildCommand'])")
           echo "$cmd"
-          bash -c "$cmd"
-          python3 - <<'PY'
+          bash scripts/ci-run.sh "Build Vercel" bash -c "$cmd"
+          cat > /tmp/artifact-check.py <<'PY'
           from pathlib import Path
           site=Path('_site')
           pages=[site/'index.html',site/'gestionale-v2/index.html',site/'gestionale-v3/index.html']
@@ -110,7 +126,8 @@ jobs:
           assert 'data-pay="pending"' not in (site/'cash-register.js').read_text(encoding='utf-8')
           print('PRODUCTION ARTIFACT OK')
           PY
-          node --test tests/cash-cart-selection.test.mjs
+          bash scripts/ci-run.sh "Artifact check" python3 /tmp/artifact-check.py
+          bash scripts/ci-run.sh "cash-cart-selection" node --test --test-reporter=spec tests/cash-cart-selection.test.mjs
       - name: Dipendenze browser
         run: |
           npm install --no-save --package-lock=false playwright@1.58.2
@@ -119,11 +136,11 @@ jobs:
         run: |
           python -m http.server 8766 --directory _site >/tmp/web.log 2>&1 &
           sleep 1
-          node tests/cash-sessions/browser.cjs
-          node tests/cash-sessions/entrypoints.browser.cjs
-          node tests/cash-sessions/resolve.browser.cjs
-          node tests/cash-fiscal-preflight.browser.cjs
-          node tests/login-render-loop.browser.cjs
+          failed=0
+          for t in tests/cash-sessions/browser.cjs tests/cash-sessions/entrypoints.browser.cjs tests/cash-sessions/resolve.browser.cjs tests/cash-fiscal-preflight.browser.cjs tests/login-render-loop.browser.cjs; do
+            bash scripts/ci-run.sh "$t" node "$t" || failed=1
+          done
+          exit $failed
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -131,4 +148,5 @@ jobs:
           path: |
             /tmp/cash-sessions/
             /tmp/client-search-check/
+          if-no-files-found: ignore
           retention-days: 3
