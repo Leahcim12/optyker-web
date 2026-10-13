@@ -5,7 +5,7 @@
 (function(){
 'use strict';
 if(window.OPTYKER_RCH_AUTO_REG)return;
-var RELAY='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-rch-relay-api',LOCAL='http://127.0.0.1:8765',VERSION='20261011-autoreg1',running=null;
+var RELAY='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-rch-relay-api',LOCAL='http://127.0.0.1:8765',VERSION='20261013-update1',running=null;
 function credentials(){var c=window.OPTYKER_CLOUD||{};return {username:c.username||window.OPTYKER_ACTIVE_USER||'',password:c.password||''}}
 function zero(v){return v===0||v==='0'}
 function readyFlags(s){return !!(s&&s.ok===true&&zero(s.idleState)&&['busy','errorCode','printerError','paperEnd','coverOpen'].every(function(k){return zero(s[k])}))}
@@ -58,6 +58,42 @@ function wrap(){
  });
  try{window.OPTYKER_FISCAL=Object.freeze(next)}catch(e){}
 }
-window.OPTYKER_RCH_AUTO_REG=Object.freeze({version:VERSION,ensureReg:ensureReg,wrap:wrap});
+/* OPTYKER_RCH_RELAY_UPDATE_20261013: the PC cassa reports its Cloud Relay revision. While it is
+   older than 2.3 a visible "Aggiorna connettore RCH" button downloads the one-time updater.
+   The button disappears by itself once the PC cassa reports the new revision. */
+var CURRENT_REVISION='2.3-reg-auto',UPDATE_URL='/rch-connector/Aggiorna-Relay-REG.bat?v=20261013-update1',worker=null,workerAt=0,workerRun=null;
+function windowsPc(){return /Windows/i.test(String(navigator.userAgent||''))}
+function workerInfo(force){
+ if(!force&&worker&&Date.now()-workerAt<60000)return Promise.resolve(worker);
+ if(workerRun)return workerRun;
+ workerRun=relayStatus().then(function(d){
+  var rev=d&&d.status?String(d.status.workerRevision||''):'';
+  return {online:!!d,revision:rev,updated:d?rev===CURRENT_REVISION:null,windows:windowsPc(),url:UPDATE_URL};
+ },function(){return {online:false,revision:'',updated:null,windows:windowsPc(),url:UPDATE_URL}}).then(function(r){worker=r;workerAt=Date.now();workerRun=null;return r});
+ return workerRun;
+}
+function updateHelp(){
+ alert('Aggiornamento del connettore RCH (una volta sola, sul PC cassa):\n\n1. Apri il file scaricato "Aggiorna-Relay-REG.bat" (in basso nel browser o nella cartella Download). Se il browser avvisa, scegli "Conserva".\n2. Se Windows chiede conferma: "Ulteriori informazioni" e poi "Esegui comunque".\n3. Attendi la scritta AGGIORNAMENTO COMPLETATO.\n\nNon vengono stampati scontrini e non viene fatta nessuna chiusura.');
+}
+function showUpdateButton(){
+ var badge=document.getElementById('optykerCashRch');if(!badge||!badge.parentNode)return;
+ workerInfo().then(function(info){
+  var old=document.getElementById('optykerRchRelayUpdate');
+  if(!(info&&info.online&&info.updated===false)){if(old)old.remove();return}
+  if(old)return;
+  var a=document.createElement('a');a.id='optykerRchRelayUpdate';a.className='optykerRchRelayUpdate';a.textContent='Aggiorna connettore RCH';
+  if(info.windows){a.href=UPDATE_URL;a.setAttribute('download','Aggiorna-Relay-REG.bat');a.title='Scarica e avvia l\'aggiornamento sul PC cassa';a.addEventListener('click',function(){setTimeout(updateHelp,400)})}
+  else{a.href='#';a.title='Da fare sul PC della cassa';a.addEventListener('click',function(ev){ev.preventDefault();alert('Apri Optyker sul PC della cassa, entra in Cassa e premi "Aggiorna connettore RCH": scarica un file da aprire una volta sola.')})}
+  var after=document.getElementById('optykerRchRegBtn')||badge;if(after.parentNode)after.parentNode.insertBefore(a,after.nextSibling);
+ });
+}
+function updateStyle(){
+ if(document.getElementById('optykerRchRelayUpdateCss'))return;
+ var s=document.createElement('style');s.id='optykerRchRelayUpdateCss';
+ s.textContent='.optykerRchRelayUpdate{margin-left:8px;display:inline-flex;align-items:center;min-height:30px;padding:5px 11px;border-radius:9px;background:#b45309;border:1px solid #b45309;color:#fff!important;font:700 12px/1.2 system-ui,sans-serif;text-decoration:none!important;cursor:pointer;white-space:nowrap}.optykerRchRelayUpdate:hover{background:#92400e}';
+ (document.head||document.documentElement).appendChild(s);
+}
+window.OPTYKER_RCH_AUTO_REG=Object.freeze({version:VERSION,ensureReg:ensureReg,wrap:wrap,workerInfo:workerInfo,updateUrl:UPDATE_URL});
 wrap();setInterval(wrap,1000);
+updateStyle();setInterval(showUpdateButton,5000);setTimeout(showUpdateButton,1500);
 })();

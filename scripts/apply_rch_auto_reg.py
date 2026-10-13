@@ -5,14 +5,15 @@ import shutil
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / '_site'
-VERSION = '20261011-autoreg1'
+VERSION = '20261013-update1'
 TAG = '<script id="optykerRchAutoRegJs" defer src="/rch-auto-reg.js?v=' + VERSION + '"></script>'
 
 
 def main():
     source = ROOT / 'rch-auto-reg.js'
     text = source.read_text(encoding='utf-8')
-    if 'OPTYKER_RCH_AUTO_REG_20261011' not in text or "queue_aux',{kind:'restore_reg'}" not in text:
+    if ('OPTYKER_RCH_AUTO_REG_20261011' not in text or "queue_aux',{kind:'restore_reg'}" not in text
+            or 'OPTYKER_RCH_RELAY_UPDATE_20261013' not in text or 'Aggiorna-Relay-REG.bat' not in text):
         raise SystemExit('rch-auto-reg.js is not the expected release')
     for forbidden in ('daily_closure', '=C10', 'queue_fiscal', 'bridge_claim'):
         if forbidden in text:

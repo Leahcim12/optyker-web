@@ -20,6 +20,21 @@ function row(k,v){return '<p><span>'+esc(k)+'</span><strong>'+esc(money(v))+'</s
 function pending(ctx,id){ctx.pending=id;ctx.busy=false;display(ctx,'<p>Chiusura richiesta: attendo la conferma della RCH prima di completare il riepilogo. Non viene inviato un secondo comando.</p><button type="button" id="csResume">Verifica esito</button>');E('csResume').onclick=function(){resume(ctx,id)}}
 /* OPTYKER_CASH_ATTENTION_RESOLUTION_20261011: an unconfirmed closure is checked on paper, never resent. */
 function canResolve(ctx){return !!(ctx.metrics&&ctx.metrics.cash_session_capabilities&&ctx.metrics.cash_session_capabilities.resolve_attention===true)}
+/* OPTYKER_CASH_SESSIONS_UPDATE_20261013: one Z per day by default, visible PC cassa update, no loop after a verification. */
+function closeModal(ctx){var m=E('optykerCashSessionsModal');clearTimeout(ctx.timer);ctx.paused=true;if(m)m.remove();if(active===ctx)active=null}
+function fiscalClosedToday(m){var c=m&&m.closure,s=c&&c.snapshot&&c.snapshot.session;if(!s||s.fiscal_closure!==true)return '';var t='';try{t=new Date(c.closed_at||s.closed_at).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Rome'})}catch(e){}return t||'oggi'}
+function workerBanner(ctx){
+ var r=window.OPTYKER_RCH_AUTO_REG;if(!r||typeof r.workerInfo!=='function')return;
+ r.workerInfo().then(function(info){
+  if(active!==ctx||!info||!info.online||info.updated!==false)return;
+  var card=ctx.body&&ctx.body.parentNode;if(!card||card.querySelector('.csUpdate'))return;
+  var box=document.createElement('div');box.className='csUpdate';
+  box.innerHTML='<b>Aggiorna il connettore RCH sul PC cassa (una volta sola).</b> Con la versione attuale la RCH non conferma la chiusura a Optyker e il risultato resta «da verificare».';
+  if(info.windows){var a=document.createElement('a');a.href=info.url;a.setAttribute('download','Aggiorna-Relay-REG.bat');a.className='csUpdateLink';a.textContent='Aggiorna connettore RCH';a.addEventListener('click',function(){setTimeout(function(){alert('Apri il file scaricato «Aggiorna-Relay-REG.bat» (se il browser avvisa, scegli «Conserva»; se Windows chiede conferma: «Ulteriori informazioni» e poi «Esegui comunque») e attendi AGGIORNAMENTO COMPLETATO. Non stampa nulla e non fa chiusure.')},400)});box.appendChild(document.createElement('br'));box.appendChild(a)}
+  else box.appendChild(document.createTextNode(' Da fare sul PC della cassa: in Cassa premi «Aggiorna connettore RCH».'));
+  card.insertBefore(box,ctx.body);
+ }).catch(function(){});
+}
 function attention(ctx,info){
  info=info||{};var known=ctx.metrics&&ctx.metrics.session&&ctx.metrics.session.pending;if(known&&info.id&&known.id===info.id)info=Object.assign({},known,info);
  ctx.pending=info.id||ctx.pending;ctx.busy=false;clearTimeout(ctx.timer);
@@ -31,7 +46,7 @@ function attention(ctx,info){
  if(canResolve(ctx))html+='<p class="csResolve"><button type="button" id="csPrinted">Sì, la chiusura Z è stata stampata</button> <button type="button" id="csNotPrinted">No, non è stata stampata</button></p>'+
   '<p class="csHint">Sì: Optyker salva il riepilogo di quella chiusura con gli importi contati allora. No: il tentativo viene annullato e puoi ripetere la chiusura. In entrambi i casi non viene inviato nulla alla RCH.</p>';
  else html+='<p>Ricarica Optyker per completare la verifica oppure chiedi a un operatore abilitato.</p><button type="button" id="csResume">Verifica esito</button>';
- display(ctx,html);status(ctx,info.error||'Esito RCH non confermato: nessun nuovo invio.');
+ display(ctx,html);status(ctx,info.error||'Esito RCH non confermato: nessun nuovo invio.');workerBanner(ctx);
  if(E('csPrinted'))E('csPrinted').onclick=function(){resolveAttention(ctx,ctx.pending,true)};
  if(E('csNotPrinted'))E('csNotPrinted').onclick=function(){resolveAttention(ctx,ctx.pending,false)};
  if(E('csResume'))E('csResume').onclick=function(){resume(ctx,ctx.pending)};
@@ -46,7 +61,11 @@ async function resolveAttention(ctx,id,printed){
   if(r.state==='completed'||r.state==='failed'){
    ctx.pending=null;ctx.request=null;
    status(ctx,r.state==='completed'?'Verifica registrata: riepilogo di quella chiusura salvato. Nessun comando inviato alla RCH.':(r.error||'Verifica registrata.'));
-   display(ctx,'<p><b>'+(r.state==='completed'?'Chiusura verificata e salvata.':'Tentativo annullato: puoi ripetere la chiusura.')+'</b></p><button type="button" id="csReload">Continua</button>');
+   if(r.state==='completed'){
+    display(ctx,'<p><b>Chiusura verificata e salvata.</b></p><p>La RCH è già chiusa: non serve un’altra chiusura fiscale.</p><button type="button" id="csDone">Fatto</button>');
+    E('csDone').onclick=function(){closeModal(ctx)};notify();return;
+   }
+   display(ctx,'<p><b>Tentativo annullato: puoi ripetere la chiusura.</b></p><button type="button" id="csReload">Continua</button>');
    E('csReload').onclick=function(){load(ctx)};notify();return;
   }
   load(ctx);
@@ -117,7 +136,7 @@ async function load(ctx){
    var h=await api(ctx,'session_history',{date:ctx.date});
    display(ctx,'<h3>Storico del '+esc(ctx.date.split('-').reverse().join('/'))+'</h3>'+(h.history||[]).map(function(x){var c=x.closure||{};return '<section class="csHistory"><b>'+(x.kind==='open'?'Apertura':'Chiusura n. '+(x.sequence_no||''))+'</b> · '+esc(new Date(x.at).toLocaleString('it-IT'))+' · '+esc(x.state)+'<p>'+esc(x.operator_username||'')+'</p>'+(x.closure?row('Incassi del periodo',c.total_collected)+row('Fondo successivo',c.next_opening_cash)+(c.fiscal_closure===true?'<p>Chiusura RCH confermata</p>':'<p>Riepilogo gestionale</p>'):'')+'</section>'}).join(''));return;
   }
-  var html=notice+'<p><b>'+esc(ctx.date.split('-').reverse().join('/'))+'</b> · '+s.closures_count+' chiusure già registrate.</p>';
+  var html=notice+'<p><b>'+esc(ctx.date.split('-').reverse().join('/'))+'</b> · '+s.closures_count+' chiusure già registrate.</p>',zDone='';
   if(ctx.kind==='open'){
    if(m.opened&&!m.closed){display(ctx,html+'<p>La cassa è già aperta. Puoi registrare una nuova chiusura.</p>');return}
    html+='<p>Il fondo proposto è quello lasciato nell’ultima chiusura. Puoi modificarlo prima della conferma.</p><div class="csFields">'+field('csOpening','Fondo contanti',base.opening_cash)+field('csOpeningChecks','Fondo assegni',base.opening_checks)+'</div>';
@@ -126,10 +145,13 @@ async function load(ctx){
    html+='<p><b>Nuova chiusura n. '+s.number+'</b>. La precedente resta nello storico; puoi confermare anche senza nuovi movimenti.</p><div class="csAmounts">'+row('Incassi dall’ultima chiusura',delta.total_collected)+row('Di cui contanti',delta.cash_total)+row('Di cui carta',delta.card_total)+row('Contante atteso nel cassetto',s.cash_expected)+row('Incassi complessivi del giorno',daily.total_collected)+'</div><div class="csFields">'+field('csCount','Contanti contati',Math.max(0,s.cash_expected))+field('csChecks','Assegni contati',base.opening_checks)+field('csFund','Fondo contanti da lasciare',Math.max(0,Math.min(base.opening_cash,s.cash_expected)))+field('csFundChecks','Fondo assegni da lasciare',base.opening_checks)+'</div><p>La differenza fra denaro contato e fondo lasciato viene registrata come trasferimento in cassaforte, non come nuovo incasso.</p>';
    if(ctx.date===today()){
     if(m.cash_session_capabilities?.fiscal_closure!==true)throw new Error('Chiusura completa non ancora disponibile: aggiorna Optyker e riprova. Nessun comando inviato.');
-    html+='<label class="csOption"><input id="csFiscal" type="checkbox" checked> Chiudi anche la RCH e stampa la chiusura fiscale Z</label><p id="csFiscalHelp">È già selezionato: basta confermare qui. Non serve andare in Amministrazione. Il riepilogo viene completato dopo la conferma della RCH. Togli la spunta soltanto per salvare un riepilogo senza chiudere il registratore.</p>';
+    zDone=fiscalClosedToday(m);
+    if(zDone)html+='<label class="csOption"><input id="csFiscal" type="checkbox"> Chiudi anche la RCH e stampa un’altra chiusura fiscale Z</label><p id="csFiscalHelp" class="csNotice"><b>La RCH è già stata chiusa oggi'+(zDone==='oggi'?'':' alle '+esc(zDone))+'.</b> Per salvare il conteggio non serve un’altra chiusura Z: la spunta è tolta. Mettila solo se dopo quella chiusura hai fatto altri scontrini.</p>';
+    else html+='<label class="csOption"><input id="csFiscal" type="checkbox" checked> Chiudi anche la RCH e stampa la chiusura fiscale Z</label><p id="csFiscalHelp">È già selezionato: basta confermare qui. Non serve andare in Amministrazione. Il riepilogo viene completato dopo la conferma della RCH. Togli la spunta soltanto per salvare un riepilogo senza chiudere il registratore.</p>';
    }else html+='<p><b>Data precedente: solo riepilogo gestionale.</b> Non viene eseguita una chiusura fiscale retrodatata.</p>';
   }
-  html+='<label>Note<textarea id="csNotes" maxlength="2000"></textarea></label><button id="csConfirm" type="button">'+(ctx.kind==='open'?'Conferma apertura':ctx.date===today()?'Conferma chiusura completa':'Salva riepilogo gestionale')+'</button>';display(ctx,html);
+  html+='<label>Note<textarea id="csNotes" maxlength="2000"></textarea></label><button id="csConfirm" type="button">'+(ctx.kind==='open'?'Conferma apertura':ctx.date===today()?(zDone?'Salva solo riepilogo gestionale':'Conferma chiusura completa'):'Salva riepilogo gestionale')+'</button>';display(ctx,html);
+  if(ctx.kind==='close')workerBanner(ctx);
   if(E('csFiscal'))E('csFiscal').onchange=function(){E('csConfirm').textContent=this.checked?'Conferma chiusura completa':'Salva solo riepilogo gestionale'};
   confirmButton(ctx,function(){
    if(ctx.kind==='open')return {opening_cash:amount('csOpening'),opening_checks:amount('csOpeningChecks')};
@@ -144,6 +166,6 @@ function open(kind,date,admin){
  var ctx={kind:kind,date:date,admin:!!admin,body:modal.querySelector('.csBody'),message:modal.querySelector('.csMessage'),busy:false,request:null};active=ctx;
  modal.querySelector('.csExit').onclick=function(){if(ctx.busy)return;ctx.paused=true;clearTimeout(ctx.timer);modal.remove();active=null};load(ctx);
 }
-window.OPTYKER_CASH_SESSIONS={version:'20260922-unified-rch1',resolution:'20261011-resolve1',open:open};
-var style=document.createElement('style');style.textContent='#optykerCashSessionsModal{position:fixed;inset:0;z-index:2147483646;background:#132b4499;display:flex;align-items:center;justify-content:center;padding:18px}.csCard{position:relative;background:white;color:#18354a;border-radius:16px;padding:24px;width:640px;max-width:100%;max-height:92vh;overflow:auto;box-sizing:border-box;font:14px/1.5 system-ui}.csExit{position:absolute;right:14px;top:10px}.csCard button{padding:10px 16px;border:1px solid #c7d3dd;background:#eff4f7;border-radius:8px;cursor:pointer}.csCard #csConfirm{margin-top:16px;background:#8f2939;color:white}.csFields{display:grid;grid-template-columns:1fr 1fr;gap:14px}.csFields label,.csCard label{display:block}.csFields input,.csCard textarea{width:100%;padding:9px;box-sizing:border-box;border:1px solid #b9c7cf;border-radius:6px;font:inherit}.csCard textarea{min-height:60px}.csAmounts p{display:flex;justify-content:space-between;gap:15px;margin:5px 0}.csOption{padding:12px;background:#fff2dc;margin:15px 0}.csMessage{font-weight:600;overflow-wrap:anywhere}.csHistory{padding:12px;border-bottom:1px solid #ddd}.csResolve button{margin:4px 6px 4px 0}.csCard #csPrinted{background:#1f5f46;color:#fff;border-color:#1f5f46}.csHint{font-size:12px;color:#4a5f6e}.csNotice{padding:10px 12px;background:#fff2dc;border-radius:8px}@media(max-width:500px){.csFields{grid-template-columns:1fr}.csCard{padding:18px}.csAmounts p{flex-wrap:wrap}}';document.head.appendChild(style);
+window.OPTYKER_CASH_SESSIONS={version:'20260922-unified-rch1',resolution:'20261011-resolve1',update:'20261013-update1',open:open};
+var style=document.createElement('style');style.textContent='#optykerCashSessionsModal{position:fixed;inset:0;z-index:2147483646;background:#132b4499;display:flex;align-items:center;justify-content:center;padding:18px}.csCard{position:relative;background:white;color:#18354a;border-radius:16px;padding:24px;width:640px;max-width:100%;max-height:92vh;overflow:auto;box-sizing:border-box;font:14px/1.5 system-ui}.csExit{position:absolute;right:14px;top:10px}.csCard button{padding:10px 16px;border:1px solid #c7d3dd;background:#eff4f7;border-radius:8px;cursor:pointer}.csCard #csConfirm{margin-top:16px;background:#8f2939;color:white}.csFields{display:grid;grid-template-columns:1fr 1fr;gap:14px}.csFields label,.csCard label{display:block}.csFields input,.csCard textarea{width:100%;padding:9px;box-sizing:border-box;border:1px solid #b9c7cf;border-radius:6px;font:inherit}.csCard textarea{min-height:60px}.csAmounts p{display:flex;justify-content:space-between;gap:15px;margin:5px 0}.csOption{padding:12px;background:#fff2dc;margin:15px 0}.csMessage{font-weight:600;overflow-wrap:anywhere}.csHistory{padding:12px;border-bottom:1px solid #ddd}.csResolve button{margin:4px 6px 4px 0}.csCard #csPrinted{background:#1f5f46;color:#fff;border-color:#1f5f46}.csHint{font-size:12px;color:#4a5f6e}.csNotice{padding:10px 12px;background:#fff2dc;border-radius:8px}.csUpdate{margin:0 0 14px;padding:12px 14px;border:1px solid #f0b46a;background:#fff4e5;border-radius:10px;font-size:13px}.csCard a.csUpdateLink{display:inline-block;margin-top:8px;padding:9px 14px;border-radius:8px;background:#b45309;color:#fff;font-weight:700;text-decoration:none}@media(max-width:500px){.csFields{grid-template-columns:1fr}.csCard{padding:18px}.csAmounts p{flex-wrap:wrap}}';document.head.appendChild(style);
 })();

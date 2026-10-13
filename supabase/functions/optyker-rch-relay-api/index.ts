@@ -44,7 +44,10 @@ function safeStatus(v:any){
     coverOpen:Number.isFinite(Number(s.coverOpen))?Number(s.coverOpen):-1,
     busy:Number.isFinite(Number(s.busy))?Number(s.busy):-1,
     lastCmd:Number.isFinite(Number(s.lastCmd))?Number(s.lastCmd):-1,
-    error:norm(s.error).slice(0,180)
+    error:norm(s.error).slice(0,180),
+    // OPTYKER_RCH_RELAY_UPDATE_20261013: lets Optyker show the one-time PC update only when needed.
+    workerRevision:norm(s.workerRevision).slice(0,40),
+    autoReg:s.autoReg===true
   };
 }
 
