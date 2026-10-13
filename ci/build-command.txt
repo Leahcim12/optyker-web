@@ -1,0 +1,1 @@
+bash scripts/vercel-build-20261013.sh
