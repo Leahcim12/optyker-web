@@ -1,0 +1,980 @@
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100 1344k  100 1344k    0     0  5076k      0 --:--:-- --:--:-- --:--:-- 5093k
+Patch Optyker applicata: 1375284 bytes
+Etichetta aggiornata: DOCUMENTI DA STAMPARE MANUTENZIONE LAC
+Documenti Visual Training aggiunti
+Login Optyker: Amministratore collegato al portale amministrativo
+Operator profile patch OK
+Fix login legacy rimossi: []
+Nome operatore corretto nel frontend: Diego Panseri
+Billing admin + separazione fatture clienti/aziende applicati
+Optyker cash register loader OK 20260915-reference2
+Optyker client tools loader OK 20260903-live1
+Optyker form automation loader OK 20260906-lens-list1 frame + LAC solutions + supplements + company selector + eyewear rules + extra treatments + lens catalog types
+Optyker warehouse loader OK 20260906-lac-form1
+Single root view OK
+WhatsApp Shopify staff aggiunto, bytes: 73231
+Shopify staff agenda OK
+/home/runner/work/optyker-web/optyker-web/scripts/patch_apple_app_redirects_v13.py:22: SyntaxWarning: invalid escape sequence '\?'
+  var target='""" + TARGET + """'+'&fresh='+Date.now();
+Vecchie app Apple reindirizzate a Optyker 13.0
+Build verificata 1377352 43464 263749
+Optyker production build V8 OK
+Optyker production build V9 OK
+Optyker production build V10 OK
+Optyker production build V11 OK
+Optyker production build V12 stable OK
+Optyker production build V13 OK
+Optyker Aurora: screen-only design applied to desktop entry points (20260909-aurora1).
+Optyker Vision installed: 20260910-vision1; original scripts preserved.
+Desktop entry points verified byte-for-byte (Python; no cmp dependency)
+Optyker Vision production build OK
+Optyker Workspace installed: 20260910-workspace1; original scripts and controls preserved.
+Desktop entry points verified byte-for-byte (Python; no cmp dependency)
+Optyker Workspace production build OK
+Optyker Services installed: 20260910-services1; original scripts and form controls preserved.
+Desktop entry points verified byte-for-byte (Python; no cmp dependency)
+Optyker Services production build OK
+Cart-first POS and privacy entry installed: 20260910-cart-privacy1
+Desktop entry points verified byte-for-byte (Python; no cmp dependency)
+Optyker Cart Privacy build OK
+Esoform: 32 additional lenses, original per-eye prices, automatic 15% POS discount
+TAP version 13
+# Subtest: 32 per-eye prices match the requested list and 15% discount exactly
+ok 1 - 32 per-eye prices match the requested list and 15% discount exactly
+  ---
+  duration_ms: 1.946761
+  type: 'test'
+  ...
+# Subtest: three-lens pack is one per-eye unit, two eyes cost 76.50
+ok 2 - three-lens pack is one per-eye unit, two eyes cost 76.50
+  ---
+  duration_ms: 0.303728
+  type: 'test'
+  ...
+# Subtest: discount does not affect existing lenses, other brands or ordinary items
+ok 3 - discount does not affect existing lenses, other brands or ordinary items
+  ---
+  duration_ms: 0.214944
+  type: 'test'
+  ...
+# Subtest: Shopify receives original price and one discount, ignoring caller price overrides
+ok 4 - Shopify receives original price and one discount, ignoring caller price overrides
+  ---
+  duration_ms: 0.188043
+  type: 'test'
+  ...
+# Subtest: cent rounding remains exact at multiple quantities; mismatches stop completion
+ok 5 - cent rounding remains exact at multiple quantities; mismatches stop completion
+  ---
+  duration_ms: 0.492582
+  type: 'test'
+  ...
+# Subtest: Esoform search is token-based and case-insensitive
+ok 6 - Esoform search is token-based and case-insensitive
+  ---
+  duration_ms: 0.719303
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 77.214508
+Desktop entry points verified byte-for-byte (Python; no cmp dependency)
+TS: 32 additional lenses, per-eye prices and automatic 15% POS discount
+TAP version 13
+# Subtest: all 32 TS per-eye list prices and discounted prices match the request
+ok 1 - all 32 TS per-eye list prices and discounted prices match the request
+  ---
+  duration_ms: 1.543644
+  type: 'test'
+  ...
+# Subtest: two eyes cost 85 EUR and a 20 EUR deposit leaves 65 EUR
+ok 2 - two eyes cost 85 EUR and a 20 EUR deposit leaves 65 EUR
+  ---
+  duration_ms: 0.283577
+  type: 'test'
+  ...
+# Subtest: TS and Esoform share the discount without discounting ordinary or legacy lenses
+ok 3 - TS and Esoform share the discount without discounting ordinary or legacy lenses
+  ---
+  duration_ms: 0.803439
+  type: 'test'
+  ...
+# Subtest: the original canonical price receives exactly one discount, ignoring browser overrides
+ok 4 - the original canonical price receives exactly one discount, ignoring browser overrides
+  ---
+  duration_ms: 0.17302
+  type: 'test'
+  ...
+# Subtest: hybrid lenses and cent rounding remain exact; mismatched totals cannot complete
+ok 5 - hybrid lenses and cent rounding remain exact; mismatched totals cannot complete
+  ---
+  duration_ms: 7.288867
+  type: 'test'
+  ...
+# Subtest: search finds TS products and reserved IDs remain distinguishable from Shopify variants
+ok 6 - search finds TS products and reserved IDs remain distinguishable from Shopify variants
+  ---
+  duration_ms: 0.824551
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 82.553377
+Desktop entry points verified byte-for-byte (Python; no cmp dependency)
+OVC Operations installed; existing clinical calculations and Esoform pricing retained
+TAP version 13
+# Subtest: OVC price applied only to active cards
+ok 1 - OVC price applied only to active cards
+  ---
+  duration_ms: 1.199436
+  type: 'test'
+  ...
+# Subtest: missing OVC tariff is standard; zero is free
+ok 2 - missing OVC tariff is standard; zero is free
+  ---
+  duration_ms: 0.235475
+  type: 'test'
+  ...
+# Subtest: non service and inactive item cannot receive service pricing
+ok 3 - non service and inactive item cannot receive service pricing
+  ---
+  duration_ms: 0.123937
+  type: 'test'
+  ...
+# Subtest: standard product remains unaffected; mapped service cannot bypass card price
+ok 4 - standard product remains unaffected; mapped service cannot bypass card price
+  ---
+  duration_ms: 0.223807
+  type: 'test'
+  ...
+# Subtest: Shopify variant price override uses authoritative tariff
+ok 5 - Shopify variant price override uses authoritative tariff
+  ---
+  duration_ms: 0.951132
+  type: 'test'
+  ...
+# Subtest: free service, anonymous customer, higher dedicated price
+ok 6 - free service, anonymous customer, higher dedicated price
+  ---
+  duration_ms: 0.246371
+  type: 'test'
+  ...
+# Subtest: stale expected total blocks before completion
+ok 7 - stale expected total blocks before completion
+  ---
+  duration_ms: 0.457198
+  type: 'test'
+  ...
+# Subtest: Esoform 15 percent discount coexists without stacking OVC
+ok 8 - Esoform 15 percent discount coexists without stacking OVC
+  ---
+  duration_ms: 0.507094
+  type: 'test'
+  ...
+# Subtest: Both catalogs retain their own canonical lookup
+ok 9 - Both catalogs retain their own canonical lookup
+  ---
+  duration_ms: 0.390077
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 71.839173
+Desktop entry points verified byte-for-byte (Python; no cmp dependency)
+Public asset paths verified: /; literal asset references updated: 12
+Desktop entry points verified byte-for-byte (Python; no cmp dependency)
+Staff reference UI embedded; all pre-existing scripts preserved: /home/runner/work/optyker-web/optyker-web/_site/iphone-app-v13/index.html
+PASS: shared staff/client UI, staff routes, profile fields, role guards, unchanged business handlers, inline production asset.
+Optyker: email-only recovery, isolated reset and verified registration embedded in deployment
+TAP version 13
+# Subtest: recovery asks only for email and sends no password or session
+ok 1 - recovery asks only for email and sends no password or session
+  ---
+  duration_ms: 3.467862
+  type: 'test'
+  ...
+# Subtest: a mail service error is not reported as a sent link
+ok 2 - a mail service error is not reported as a sent link
+  ---
+  duration_ms: 1.770667
+  type: 'test'
+  ...
+# Subtest: registration uses native confirmation, never an admin reset or auto-login
+ok 3 - registration uses native confirmation, never an admin reset or auto-login
+  ---
+  duration_ms: 1.134489
+  type: 'test'
+  ...
+# Subtest: a misconfigured auto-confirm response is never persisted
+ok 4 - a misconfigured auto-confirm response is never persisted
+  ---
+  duration_ms: 1.258826
+  type: 'test'
+  ...
+# Subtest: opening reset without a link cannot reuse a logged-in account
+ok 5 - opening reset without a link cannot reuse a logged-in account
+  ---
+  duration_ms: 6.187317
+  type: 'test'
+  ...
+# Subtest: a forged or expired bearer cannot show the password form
+ok 6 - a forged or expired bearer cannot show the password form
+  ---
+  duration_ms: 1.424235
+  type: 'test'
+  ...
+# Subtest: a reset link changes only the bearer account, never a supplied email/id
+ok 7 - a reset link changes only the bearer account, never a supplied email/id
+  ---
+  duration_ms: 2.031209
+  type: 'test'
+  ...
+# Subtest: used token hashes are refused and no password change is attempted
+ok 8 - used token hashes are refused and no password change is attempted
+  ---
+  duration_ms: 1.295451
+  type: 'test'
+  ...
+# Subtest: signup confirmation never opens password reset or creates app login
+ok 9 - signup confirmation never opens password reset or creates app login
+  ---
+  duration_ms: 2.515979
+  type: 'test'
+  ...
+# Subtest: legacy endpoint rejects all unauthenticated password-write variants
+ok 10 - legacy endpoint rejects all unauthenticated password-write variants
+  ---
+  duration_ms: 83.901007
+  type: 'test'
+  ...
+# Subtest: deployment contains the new flow and preserves both app interfaces
+ok 11 - deployment contains the new flow and preserves both app interfaces
+  ---
+  duration_ms: 6.335791
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 184.754578
+PASS native Auth requires email confirmation
+PASS legacy reset denied server-side
+PASS legacy register denied server-side
+OVC login design installed; auth rules preserved; async button reference captured
+PASS login design: auth requests intact, isolated recovery, role UI, input nodes and JavaScript syntax
+TAP version 13
+# Subtest: recovery asks only for email and sends no password or session
+ok 1 - recovery asks only for email and sends no password or session
+  ---
+  duration_ms: 3.526461
+  type: 'test'
+  ...
+# Subtest: a mail service error is not reported as a sent link
+ok 2 - a mail service error is not reported as a sent link
+  ---
+  duration_ms: 1.792549
+  type: 'test'
+  ...
+# Subtest: registration uses native confirmation, never an admin reset or auto-login
+ok 3 - registration uses native confirmation, never an admin reset or auto-login
+  ---
+  duration_ms: 1.130642
+  type: 'test'
+  ...
+# Subtest: a misconfigured auto-confirm response is never persisted
+ok 4 - a misconfigured auto-confirm response is never persisted
+  ---
+  duration_ms: 1.220558
+  type: 'test'
+  ...
+# Subtest: opening reset without a link cannot reuse a logged-in account
+ok 5 - opening reset without a link cannot reuse a logged-in account
+  ---
+  duration_ms: 6.173247
+  type: 'test'
+  ...
+# Subtest: a forged or expired bearer cannot show the password form
+ok 6 - a forged or expired bearer cannot show the password form
+  ---
+  duration_ms: 1.41446
+  type: 'test'
+  ...
+# Subtest: a reset link changes only the bearer account, never a supplied email/id
+ok 7 - a reset link changes only the bearer account, never a supplied email/id
+  ---
+  duration_ms: 2.021854
+  type: 'test'
+  ...
+# Subtest: used token hashes are refused and no password change is attempted
+ok 8 - used token hashes are refused and no password change is attempted
+  ---
+  duration_ms: 1.300608
+  type: 'test'
+  ...
+# Subtest: signup confirmation never opens password reset or creates app login
+ok 9 - signup confirmation never opens password reset or creates app login
+  ---
+  duration_ms: 2.494025
+  type: 'test'
+  ...
+# Subtest: legacy endpoint rejects all unauthenticated password-write variants
+ok 10 - legacy endpoint rejects all unauthenticated password-write variants
+  ---
+  duration_ms: 23.675934
+  type: 'test'
+  ...
+# Subtest: deployment contains the new flow and preserves both app interfaces
+ok 11 - deployment contains the new flow and preserves both app interfaces
+  ---
+  duration_ms: 6.287218
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 108.819301
+September 11 workflow, print and navigation release installed; legacy root observer removed: 1
+OVC default-price fields attached to warehouse service table and editor
+Real-page warranty writers, red quote theme and cache identity corrected
+TAP version 13
+# Subtest: Customer prices override warehouse defaults without cross-customer leakage
+ok 1 - Customer prices override warehouse defaults without cross-customer leakage
+  ---
+  duration_ms: 2.791083
+  type: 'test'
+  ...
+# Subtest: Changing the default affects only inherited prices
+ok 2 - Changing the default affects only inherited prices
+  ---
+  duration_ms: 0.497979
+  type: 'test'
+  ...
+# Subtest: Clearing an override restores inheritance; clearing both uses warehouse price
+ok 3 - Clearing an override restores inheritance; clearing both uses warehouse price
+  ---
+  duration_ms: 0.440123
+  type: 'test'
+  ...
+# Subtest: Inactive or absent cards use standard prices, including personal free tariffs
+ok 4 - Inactive or absent cards use standard prices, including personal free tariffs
+  ---
+  duration_ms: 0.396527
+  type: 'test'
+  ...
+# Subtest: Shopify service identifiers cannot bypass personal prices
+ok 5 - Shopify service identifiers cannot bypass personal prices
+  ---
+  duration_ms: 0.310117
+  type: 'test'
+  ...
+# Subtest: Price reads fail closed when customer overrides cannot be fetched
+ok 6 - Price reads fail closed when customer overrides cannot be fetched
+  ---
+  duration_ms: 0.643519
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 65.949233
+Public asset paths verified: /; literal asset references updated: 12
+Desktop entry points verified byte-for-byte (Python; no cmp dependency)
+Client sheet actions and in-place editing linked to the actual app build
+Materials certificate installed on saved Buste Occhiali and client detail
+Public asset paths verified: /; literal asset references updated: 0
+Desktop entry points verified byte-for-byte (Python; no cmp dependency)
+Signed delivery, care instructions and exact archived PDF added to Buste Occhiali
+Public asset paths verified: /; literal asset references updated: 0
+Desktop entry points verified byte-for-byte (Python; no cmp dependency)
+Eyewear warranty buttons, authenticated claims and staff controls installed
+Public asset paths verified: /; literal asset references updated: 0
+Desktop entry points verified byte-for-byte (Python; no cmp dependency)
+Optyker-style customer dashboard and shared eyewear warranty assets built
+TS protected configuration loader applied 20260913-ts3
+Public asset paths verified: /; literal asset references updated: 0
+Desktop entry points verified byte-for-byte (Python; no cmp dependency)
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 0.085s
+
+OK
+Final desktop HTML verified: 76 valid inline scripts, one TS loader, no visible code
+Anagrafica: explicit save controls and autofill installed 20260919-profile-loop1
+Public asset paths verified: /; literal asset references updated: 0
+Desktop entry points verified byte-for-byte (Python; no cmp dependency)
+Final desktop HTML verified: 76 valid inline scripts, one TS loader, no visible code
+Agenda routing and internal guided WhatsApp connection installed
+Public asset paths verified: /; literal asset references updated: 6
+Desktop entry points verified byte-for-byte (Python; no cmp dependency)
+Final desktop HTML verified: 76 valid inline scripts, one TS loader, no visible code
+TAP version 13
+# Subtest: Preserves 56 columns, quoted commas, quotes and CRLF
+ok 1 - Preserves 56 columns, quoted commas, quotes and CRLF
+  ---
+  duration_ms: 1.301119
+  type: 'test'
+  ...
+# Subtest: Rejects incorrect headers and truncated records
+ok 2 - Rejects incorrect headers and truncated records
+  ---
+  duration_ms: 0.476658
+  type: 'test'
+  ...
+# Subtest: Rejects duplicate Focus identifiers and missing identifiers
+ok 3 - Rejects duplicate Focus identifiers and missing identifiers
+  ---
+  duration_ms: 0.994578
+  type: 'test'
+  ...
+# Subtest: CSV never evaluates formulas or HTML
+ok 4 - CSV never evaluates formulas or HTML
+  ---
+  duration_ms: 0.198769
+  type: 'test'
+  ...
+# Subtest: Malformed quotes are rejected
+ok 5 - Malformed quotes are rejected
+  ---
+  duration_ms: 0.258008
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 60.323978
+Client tools and separated physical RCH receipt route installed: 20260919-cash-open1
+Public asset paths verified: /; literal asset references updated: 15
+Desktop entry points verified byte-for-byte (Python; no cmp dependency)
+Final desktop HTML verified: 76 valid inline scripts, one TS loader, no visible code
+Desktop entry points verified byte-for-byte (Python; no cmp dependency)
+Final desktop HTML verified: 76 valid inline scripts, one TS loader, no visible code
+Optyker manual RCH REG UI build OK
+Ophthalmic prescriptions and shared oculist selector included in desktop entry points
+Public asset paths verified: /; literal asset references updated: 0
+Desktop entry points verified byte-for-byte (Python; no cmp dependency)
+TAP version 13
+# Subtest: source dates, net total, liquid detail and text escaping are preserved
+ok 1 - source dates, net total, liquid detail and text escaping are preserved
+  ---
+  duration_ms: 274.152356
+  type: 'test'
+  ...
+# Subtest: switching clients discards a late response from the previous client
+ok 2 - switching clients discards a late response from the previous client
+  ---
+  duration_ms: 3.256954
+  type: 'test'
+  ...
+# Subtest: logout clears records and does not issue another request
+ok 3 - logout clears records and does not issue another request
+  ---
+  duration_ms: 2.547265
+  type: 'test'
+  ...
+# Subtest: server errors remain visible and refresh retries the selected client
+ok 4 - server errors remain visible and refresh retries the selected client
+  ---
+  duration_ms: 2.39749
+  type: 'test'
+  ...
+# Subtest: clinical source view separates contact powers from original prescription
+ok 5 - clinical source view separates contact powers from original prescription
+  ---
+  duration_ms: 2.118209
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 339.277605
+LAC history viewer installed in all desktop entry points
+Public asset paths verified: /; literal asset references updated: 0
+Desktop entry points verified byte-for-byte (Python; no cmp dependency)
+TAP version 13
+# Subtest: unknown cache is not represented as an empty patient dossier
+ok 1 - unknown cache is not represented as an empty patient dossier
+  ---
+  duration_ms: 2.282286
+  type: 'test'
+  ...
+# Subtest: customer scope and duplicate row IDs are respected
+ok 2 - customer scope and duplicate row IDs are respected
+  ---
+  duration_ms: 0.259661
+  type: 'test'
+  ...
+# Subtest: only valid explicit dates accepted, no rollover or guessed dates
+ok 3 - only valid explicit dates accepted, no rollover or guessed dates
+  ---
+  duration_ms: 1.404194
+  type: 'test'
+  ...
+# Subtest: latest dated sheet and consent count use only current customer
+ok 4 - latest dated sheet and consent count use only current customer
+  ---
+  duration_ms: 0.30585
+  type: 'test'
+  ...
+# Subtest: missing and invalid order counts never become zero
+ok 5 - missing and invalid order counts never become zero
+  ---
+  duration_ms: 0.262294
+  type: 'test'
+  ...
+# Subtest: presentation source does not perform writes or replace native form values
+ok 6 - presentation source does not perform writes or replace native form values
+  ---
+  duration_ms: 0.486552
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 67.859533
+Original customer workspace applied: 20260919-original1 palette: 20260919-red1 dossier: 20260925-dossier2 (no data migration)
+Operator responsiveness installed: 20260925-responsive1 (client reads and UI only)
+Public asset paths verified: /; literal asset references updated: 0
+Desktop entry points verified byte-for-byte (Python; no cmp dependency)
+Final desktop HTML verified: 76 valid inline scripts, one TS loader, no visible code
+Original consent pages restored: 8 ortho + 5 LAC; original PDFs preserved.
+Shared signed consent renderer prepared for website and app.
+Desktop entry points verified byte-for-byte (Python; no cmp dependency)
+Final desktop HTML verified: 76 valid inline scripts, one TS loader, no visible code
+TAP version 13
+# Subtest: ortho: archived and new documents contain every original page and the captured signature
+ok 1 - ortho: archived and new documents contain every original page and the captured signature
+  ---
+  duration_ms: 10.307017
+  type: 'test'
+  ...
+# Subtest: lac: archived and new documents contain every original page and the captured signature
+ok 2 - lac: archived and new documents contain every original page and the captured signature
+  ---
+  duration_ms: 4.392904
+  type: 'test'
+  ...
+# Subtest: no incomplete-document timeout printing and identical desktop aliases
+ok 3 - no incomplete-document timeout printing and identical desktop aliases
+  ---
+  duration_ms: 22.041064
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 113.138558
+Turni e orari: refresh post-salvataggio corretto
+Agenda overlapping appointments render side by side
+Administrator daily opening/closure installed: 20260916-admin-cash8
+Cassa POS5 installed: 20260914-pos5
+Agenda appointment creation repaired: hidden studio auto-assigned and no longer reset
+Agenda staff rules installed: absences, private notes, forced overlap, optional contact
+Laboratory statusLabel and legacy automation hint normalized for order/cart patch
+Order + persistent client cart + 48h/10d laboratory UI installed
+Eyewear: current client + Preventivo/Busta Ordina lenti + persistent-cart handoff enabled
+Eyewear frame search results are selectable and populate the quote/job fields
+Occhiali: Ordina lenti viene creato e collegato stabilmente nei comandi finali
+Customer invoice preview/edit/print added; SDI remains separate: 20260916-invoice-edit2
+RCH Cloud Relay caricato dopo POS5; controlli REG/idle/errori preservati
+Public asset paths verified: /; literal asset references updated: 0
+Final desktop HTML verified: 78 valid inline scripts, one TS loader, no visible code
+Cart line selection installed: 20260916-selection3-quote1
+TAP version 13
+# Subtest: only checked lines enter total, checkout and fiscal emission; all rows stay until delivery
+ok 1 - only checked lines enter total, checkout and fiscal emission; all rows stay until delivery
+  ---
+  duration_ms: 4.309779
+  type: 'test'
+  ...
+# Subtest: nothing selected cannot start a zero-price stock movement
+ok 2 - nothing selected cannot start a zero-price stock movement
+  ---
+  duration_ms: 0.820936
+  type: 'test'
+  ...
+# Subtest: manual unit prices and deposits are calculated on selected lines and deposit keeps cart rows
+ok 3 - manual unit prices and deposits are calculated on selected lines and deposit keeps cart rows
+  ---
+  duration_ms: 1.770466
+  type: 'test'
+  ...
+# Subtest: normal balance keeps the product; delivery balance removes only delivered selected rows
+ok 4 - normal balance keeps the product; delivery balance removes only delivered selected rows
+  ---
+  duration_ms: 1.662352
+  type: 'test'
+  ...
+# Subtest: zero-price selected line still supports existing stock-only flow without consuming before delivery
+ok 5 - zero-price selected line still supports existing stock-only flow without consuming before delivery
+  ---
+  duration_ms: 1.011323
+  type: 'test'
+  ...
+# Subtest: client save completes before checkout; server remaining cart and selections are restored
+ok 6 - client save completes before checkout; server remaining cart and selections are restored
+  ---
+  duration_ms: 9.3987
+  type: 'test'
+  ...
+# Subtest: failed save prevents the payment; checkout timeout keeps rows and recovery id
+ok 7 - failed save prevents the payment; checkout timeout keeps rows and recovery id
+  ---
+  duration_ms: 2.7692
+  type: 'test'
+  ...
+# Subtest: recovery applies remaining cart without clearing another selected customer
+ok 8 - recovery applies remaining cart without clearing another selected customer
+  ---
+  duration_ms: 1.156721
+  type: 'test'
+  ...
+# Subtest: a stale save cannot replace the cart while checkout is in progress
+ok 9 - a stale save cannot replace the cart while checkout is in progress
+  ---
+  duration_ms: 1.062129
+  type: 'test'
+  ...
+# Subtest: ordered row cancellation requires confirmation before any request
+ok 10 - ordered row cancellation requires confirmation before any request
+  ---
+  duration_ms: 1.181849
+  type: 'test'
+  ...
+# Subtest: ordered row cancellation flushes cart then applies only server remaining rows
+ok 11 - ordered row cancellation flushes cart then applies only server remaining rows
+  ---
+  duration_ms: 1.130412
+  type: 'test'
+  ...
+# Subtest: failed cancellation never removes local rows or issues payment
+ok 12 - failed cancellation never removes local rows or issues payment
+  ---
+  duration_ms: 1.030812
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 91.662224
+Eyewear parameters and recoverable order cancellation installed: 20260915-order-params1
+TAP version 13
+# Subtest: empty measurements stay null; explicit zero is retained
+ok 1 - empty measurements stay null; explicit zero is retained
+  ---
+  duration_ms: 1.486428
+  type: 'test'
+  ...
+# Subtest: six order measurements round-trip with decimal commas and correct units
+ok 2 - six order measurements round-trip with decimal commas and correct units
+  ---
+  duration_ms: 1.32798
+  type: 'test'
+  ...
+# Subtest: custom angles require a value and are omitted when customization is disabled
+ok 3 - custom angles require a value and are omitted when customization is disabled
+  ---
+  duration_ms: 0.584
+  type: 'test'
+  ...
+# Subtest: invalid values rejected; measurement normalization does not accept price changes
+ok 4 - invalid values rejected; measurement normalization does not accept price changes
+  ---
+  duration_ms: 0.41204
+  type: 'test'
+  ...
+# Subtest: production assembly contains parameters, print support and cancellation hooks
+ok 5 - production assembly contains parameters, print support and cancellation hooks
+  ---
+  duration_ms: 16.002573
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 78.74099
+Unified TS/RCH void published: 20260915-unified1 manual REG relay: 20260916-manualreg2&clickfix=1
+TAP version 13
+# Subtest: TS states never shortcut an uncertain submission or cancellation
+ok 1 - TS states never shortcut an uncertain submission or cancellation
+  ---
+  duration_ms: 0.907737
+  type: 'test'
+  ...
+# Subtest: RCH uncertain or awaiting-reference jobs are never prepared again
+ok 2 - RCH uncertain or awaiting-reference jobs are never prepared again
+  ---
+  duration_ms: 1.077432
+  type: 'test'
+  ...
+# Subtest: void automatic reference needs matching original, kind, total, serial and successor
+ok 3 - void automatic reference needs matching original, kind, total, serial and successor
+  ---
+  duration_ms: 18.163326
+  type: 'test'
+  ...
+# Subtest: frontend has one confirmation and obtains original references from the server
+ok 4 - frontend has one confirmation and obtains original references from the server
+  ---
+  duration_ms: 1.04272
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 85.553617
+Prezzo finale manuale Occhiali installato e auto-ripristinabile
+Numeri schede LAC e Occhiali installati
+RCH daily closure worker compatibility applied
+RCH status and manual REG UI verified: 20260919-regui1 (fiscal code unchanged)
+Login desktop reso cliccabile sopra ogni overlay: 20260919-login-click1
+Final desktop HTML verified: 79 valid inline scripts, one TS loader, no visible code
+Receipt wait optimisation installed 20260922-latency1
+Fiscal-only reissue installed 20260923-reissue2
+Recorded balance UI installed: 20260921-balance1
+Cashier layers and full error details included: 20260923-printdiag1
+Customer lookup and fiscal preflight installed: 20260919-clientsearch1 (existing payment routes unchanged)
+Final desktop HTML verified: 79 valid inline scripts, one TS loader, no visible code
+Optyker final production patches OK
+Final desktop HTML verified: 79 valid inline scripts, one TS loader, no visible code
+TAP version 13
+# Subtest: trial/final classification prefers explicit stage
+ok 1 - trial/final classification prefers explicit stage
+  ---
+  duration_ms: 2.005449
+  type: 'test'
+  ...
+# Subtest: Busta and laboratory orders default to final
+ok 2 - Busta and laboratory orders default to final
+  ---
+  duration_ms: 0.689738
+  type: 'test'
+  ...
+# Subtest: ordinary LAC sheet defaults to trial
+ok 3 - ordinary LAC sheet defaults to trial
+  ---
+  duration_ms: 0.661305
+  type: 'test'
+  ...
+# Subtest: product title reads brand and both eyes
+ok 4 - product title reads brand and both eyes
+  ---
+  duration_ms: 1.638447
+  type: 'test'
+  ...
+# Subtest: workspace mounts only in the dedicated client LAC tab and never falls back to Anagrafica
+ok 5 - workspace mounts only in the dedicated client LAC tab and never falls back to Anagrafica
+  ---
+  duration_ms: 0.307593
+  type: 'test'
+  ...
+# Subtest: saved LAC cards expose direct in-place editing
+ok 6 - saved LAC cards expose direct in-place editing
+  ---
+  duration_ms: 0.206901
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 61.64462
+Client LAC product workspace installed: 20260924-lac-products4
+Final desktop HTML verified: 79 valid inline scripts, one TS loader, no visible code
+Client LAC product workspace installed on production build
+Mixed cashier assets published: 20260926-mixed3
+Client search and agenda updated: 20261002-client-search-agenda1
+Agenda force and duration: 20261002-force-duration1
+Agenda edit: prefilled form, schedule options only on request
+Final desktop HTML verified: 81 valid inline scripts, one TS loader, no visible code
+RCH automatic REG before receipts published: 20261013-update1
+Release 20261011 published: 20261011-cassa1
+Final desktop HTML verified: 81 valid inline scripts, one TS loader, no visible code
+TAP version 13
+# (node:4149) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: add, remove and edit lines without losing source metadata
+ok 1 - add, remove and edit lines without losing source metadata
+  ---
+  duration_ms: 25.412252
+  type: 'test'
+  ...
+# Subtest: notes and description edits preserve discounted totals
+ok 2 - notes and description edits preserve discounted totals
+  ---
+  duration_ms: 0.92155
+  type: 'test'
+  ...
+# Subtest: validation blocks empty, negative, blank, invalid and duplicated rows
+ok 3 - validation blocks empty, negative, blank, invalid and duplicated rows
+  ---
+  duration_ms: 1.371318
+  type: 'test'
+  ...
+# Subtest: line rounding is consistent and zero-price descriptions allowed
+ok 4 - line rounding is consistent and zero-price descriptions allowed
+  ---
+  duration_ms: 0.824213
+  type: 'test'
+  ...
+# Subtest: only internal non-transmitted invoices can be edited
+ok 5 - only internal non-transmitted invoices can be edited
+  ---
+  duration_ms: 0.969112
+  type: 'test'
+  ...
+# Subtest: administrator session is accepted without operator password
+ok 6 - administrator session is accepted without operator password
+  ---
+  duration_ms: 13.90723
+  type: 'test'
+  ...
+# Subtest: forged, expired and wrong-scope administrator tokens fail closed
+ok 7 - forged, expired and wrong-scope administrator tokens fail closed
+  ---
+  duration_ms: 6.99352
+  type: 'test'
+  ...
+# Subtest: operator password authentication retained
+ok 8 - operator password authentication retained
+  ---
+  duration_ms: 3.282131
+  type: 'test'
+  ...
+# Subtest: successful save returns authoritative rows, history and same invoice number
+ok 9 - successful save returns authoritative rows, history and same invoice number
+  ---
+  duration_ms: 2.868558
+  type: 'test'
+  ...
+# Subtest: stale editor and concurrent changes cannot overwrite another operator
+ok 10 - stale editor and concurrent changes cannot overwrite another operator
+  ---
+  duration_ms: 2.196123
+  type: 'test'
+  ...
+# Subtest: payment-locked total mismatch never writes; same total accepts new rows
+ok 11 - payment-locked total mismatch never writes; same total accepts new rows
+  ---
+  duration_ms: 1.501045
+  type: 'test'
+  ...
+# Subtest: missing referenced payment prevents modification
+ok 12 - missing referenced payment prevents modification
+  ---
+  duration_ms: 0.991386
+  type: 'test'
+  ...
+# Subtest: unauthorized API calls return 401 and expose no invoice data
+ok 13 - unauthorized API calls return 401 and expose no invoice data
+  ---
+  duration_ms: 3.715445
+  type: 'test'
+  ...
+# Subtest: till invoices marked as internal customer documents are editable
+ok 14 - till invoices marked as internal customer documents are editable
+  ---
+  duration_ms: 0.819246
+  type: 'test'
+  ...
+# Subtest: payment-linked total can change only with explicit confirmation, recorded in history
+ok 15 - payment-linked total can change only with explicit confirmation, recorded in history
+  ---
+  duration_ms: 1.27935
+  type: 'test'
+  ...
+# Subtest: administration reports require the administrator session, not an operator password
+ok 16 - administration reports require the administrator session, not an operator password
+  ---
+  duration_ms: 1.928128
+  type: 'test'
+  ...
+1..16
+# tests 16
+# suites 0
+# pass 16
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 272.002364
+Invoice editor: administrator access, rows, notes, revision and payment checks installed
+Release 20261013 published: Ufficio, cliente nelle schede, logo in fattura
+Report 20261014 published: richiami del mese e giacenze di magazzino
+Final desktop HTML verified: 81 valid inline scripts, one TS loader, no visible code
+EXIT=0
+Python 3.12.3
+v22.23.3
