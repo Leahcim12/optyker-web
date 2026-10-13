@@ -1,0 +1,33 @@
+name: Claude snapshot 20261013 (temporaneo)
+on:
+  push:
+    branches: ['claude/snapshot-20261013']
+    paths: ['.github/workflows/claude-snapshot-20261013.yml']
+permissions:
+  contents: write
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scarica la pagina base pubblica
+        run: |
+          mkdir -p snapshot
+          curl -fL --retry 3 "https://whgziwaegjzqsgcntesr.supabase.co/storage/v1/object/public/optyker-web/index.html?v=snap20261013" -o snapshot/base-index.html
+          test -s snapshot/base-index.html
+      - name: Build identica a Vercel
+        env:
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          bash scripts/vercel-build-v13.sh > snapshot/build-log.txt 2>&1 && bash scripts/vercel-finalize-20260914.sh >> snapshot/build-log.txt 2>&1 && node --test tests/invoice-edit.test.cjs >> snapshot/build-log.txt 2>&1 && python scripts/apply_invoice_edit_access.py >> snapshot/build-log.txt 2>&1 && echo BUILD_OK >> snapshot/build-log.txt || echo BUILD_FAILED >> snapshot/build-log.txt
+          tail -30 snapshot/build-log.txt
+          tar -czf snapshot/site.tar.gz _site
+          ls -la snapshot
+      - name: Salva lo snapshot sul ramo temporaneo
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add -f snapshot
+          git commit -m "Snapshot temporaneo della build" || exit 0
+          git push
