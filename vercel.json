@@ -1,5 +1,5 @@
 {
-  "buildCommand": "bash scripts/vercel-build-v13.sh && bash scripts/vercel-finalize-20260914.sh && node --test tests/invoice-edit.test.cjs && python scripts/apply_invoice_edit_access.py && node --check _site/customer-invoice-print.js && node --check _site/billing-admin.js",
+  "buildCommand": "bash scripts/vercel-build-v13.sh && bash scripts/vercel-finalize-20260914.sh && node --test tests/invoice-edit.test.cjs && python scripts/apply_invoice_edit_access.py && node --check _site/customer-invoice-print.js && node --check _site/billing-admin.js && node --check optyker-office.js && node --check sheet-client-picker.js && python scripts/apply_release_20261013.py && node --check _site/customer-invoice-print.js && node --check _site/billing-admin.js && node --check _site/optyker-office.js && node --check _site/sheet-client-picker.js && python scripts/check_desktop_html.py",
   "outputDirectory": "_site",
   "framework": null,
   "cleanUrls": false

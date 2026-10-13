@@ -1,0 +1,110 @@
+/* Optyker · Ufficio (operatori e Amministrazione) · 20261013-office1 */
+#moduleNav>#navOffice{order:22!important}
+.optykerOfficePanel{padding:0 25px 28px;box-sizing:border-box;color:#18181b;font-family:Manrope,"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif}
+.optykerOfficeAdminPanel{color:#18181b;font-family:Manrope,"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif}
+.oof,.oof *{box-sizing:border-box}
+.oof{--oof-ink:#18181b;--oof-muted:#5f5f68;--oof-soft:#8a8a93;--oof-line:#e7e5e0;--oof-card:#fff;--oof-wash:#f5f4f1;--oof-accent:#c2364f;--oof-accent-dark:#8c1d33;--oof-accent-wash:#f8e9ec;--oof-ok:#256b3c;--oof-ok-wash:#e8f5ec;max-width:1320px}
+.oofHead{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;margin:4px 0 18px}
+.oofEyebrow{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--oof-accent-dark)}
+.oofTitle{margin:4px 0 2px;font:400 34px/1.15 "Instrument Serif",Georgia,serif;color:var(--oof-ink)}
+.oofAdmin .oofTitle{font:800 26px/1.2 Manrope,"Segoe UI",system-ui,sans-serif}
+.oofSub{font-size:13px;color:var(--oof-muted);max-width:640px;line-height:1.5}
+.oofTools{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.oofField{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:700;color:var(--oof-muted)}
+.oof .oofField select,.oof .oofField input{height:40px!important;min-height:0!important;min-width:118px;padding:0 12px!important;border:1px solid #d6d3cc!important;border-radius:10px!important;background:#fff!important;color:var(--oof-ink)!important;font:600 13px Manrope,"Segoe UI",system-ui,sans-serif!important;outline:none;box-sizing:border-box!important}
+.oof .oofField input[type=file]{height:auto!important;padding:8px 10px!important;min-width:0;width:100%}
+.oof .oofField select:focus,.oof .oofField input:focus{border:1px solid var(--oof-accent)!important;padding-bottom:0!important;box-shadow:0 0 0 3px rgba(194,54,79,.14)!important}
+.oof .oofField input[type=file]:focus{padding-bottom:8px!important}
+.oofBtn{height:40px;padding:0 16px;border:1px solid #d6d3cc;border-radius:10px;background:#fff;color:var(--oof-ink);font:700 13px Manrope,"Segoe UI",system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+.oofBtn:hover{border-color:#b9b5ac}
+.oofBtn:focus-visible{outline:3px solid rgba(194,54,79,.3);outline-offset:2px}
+.oofBtn.primary{background:var(--oof-ink);border-color:var(--oof-ink);color:#fff}
+.oofBtn.primary:hover{background:#2e2e33}
+.oofBtn.small{height:34px;padding:0 12px;font-size:12px}
+.oofBtn.danger{color:#a12b3d}
+.oofBtn[disabled]{opacity:.55;cursor:default}
+.oofKpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:0 0 14px}
+.oofKpi{background:var(--oof-card);border:1px solid var(--oof-line);border-radius:15px;padding:18px 18px 16px;box-shadow:0 1px 2px rgba(24,24,27,.04);min-width:0}
+.oofKpi span{display:block;font-size:11px;font-weight:700;color:var(--oof-muted)}
+.oofKpi b{display:block;margin-top:8px;font-size:26px;line-height:1.1;font-weight:800;letter-spacing:-.01em;color:var(--oof-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oofKpi small{display:block;margin-top:6px;font-size:11px;color:var(--oof-soft)}
+.oofKpi.main{background:var(--oof-ink);border-color:var(--oof-ink)}
+.oofKpi.main span,.oofKpi.main small{color:#c9c7c1}
+.oofKpi.main b{color:#fff}
+.oofGrid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(280px,1fr);gap:14px;margin:0 0 14px}
+.oofCard{background:var(--oof-card);border:1px solid var(--oof-line);border-radius:15px;padding:18px;box-shadow:0 1px 2px rgba(24,24,27,.04);min-width:0}
+.oofCardHead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0 0 14px}
+.oofCardHead h2{margin:0;font-size:14px;font-weight:800;color:var(--oof-ink)}
+.oofCardHead span{font-size:11px;color:var(--oof-soft);font-weight:600}
+.oofBars{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:8px;align-items:end;height:210px;padding:4px 2px 0}
+.oofBar{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0;border:0;background:transparent;padding:0;cursor:pointer;font:inherit;color:inherit}
+.oofBar .val{font-size:9px;font-weight:700;color:var(--oof-muted);margin-bottom:4px;white-space:nowrap}
+.oofBar .col{width:100%;max-width:42px;border-radius:7px 7px 3px 3px;background:#dedad2;min-height:3px;transition:background .15s}
+.oofBar.has .col{background:#3f3f46}
+.oofBar.current .col{background:var(--oof-accent)}
+.oofBar.future .col{background:repeating-linear-gradient(135deg,#efede8 0 4px,#e5e2db 4px 8px)}
+.oofBar.sel .col{box-shadow:0 0 0 3px rgba(194,54,79,.22)}
+.oofBar .lab{margin-top:7px;font-size:10px;font-weight:700;color:var(--oof-soft);text-transform:uppercase;letter-spacing:.04em}
+.oofBar.current .lab{color:var(--oof-accent-dark)}
+.oofBar:focus-visible{outline:2px solid rgba(194,54,79,.4);outline-offset:2px;border-radius:6px}
+.oofBarInfo{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--oof-wash);font-size:12px;color:var(--oof-muted);min-height:38px}
+.oofBarInfo b{color:var(--oof-ink)}
+.oofSplit{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.oofSplit li{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:baseline}
+.oofSplit li span{font-size:13px;font-weight:700}
+.oofSplit li b{font-size:13px;font-weight:800;white-space:nowrap}
+.oofSplit li small{grid-column:1/-1;font-size:11px;color:var(--oof-soft)}
+.oofSplit li i{grid-column:1/-1;display:block;height:6px;border-radius:999px;background:#efede8;overflow:hidden}
+.oofSplit li i em{display:block;height:100%;border-radius:999px;background:#3f3f46}
+.oofSplit li.eyewear i em{background:var(--oof-accent)}
+.oofSlips{display:grid;gap:8px}
+.oofSlip{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px;border:1px solid var(--oof-line);border-radius:12px;background:#fff}
+.oofSlipIcon{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;background:var(--oof-accent-wash);color:var(--oof-accent-dark);font-size:10px;font-weight:900;letter-spacing:.04em}
+.oofSlipIcon.img{background:#eef2ff;color:#3842a8}
+.oofSlipMain{min-width:0}
+.oofSlipMain b{display:block;font-size:13px;font-weight:800}
+.oofSlipMain small{display:block;margin-top:2px;font-size:11px;color:var(--oof-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oofSlipActions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.oofYear{margin:10px 0 2px;font-size:10px;font-weight:800;letter-spacing:.12em;color:var(--oof-soft)}
+.oofEmpty{padding:22px 16px;border:1px dashed #d6d3cc;border-radius:12px;text-align:center;font-size:12px;color:var(--oof-muted);background:#fbfaf8}
+.oofNote{margin:10px 2px 0;font-size:11px;line-height:1.55;color:var(--oof-soft)}
+.oofLoading{padding:40px 0;text-align:center;color:var(--oof-muted);font-size:13px}
+.oofError{padding:14px 16px;border-radius:12px;background:#fff0f0;color:#a12b3d;font-size:13px;font-weight:600;margin:0 0 14px}
+.oofAvatar{width:46px;height:46px;flex:0 0 46px;border-radius:50%;display:grid;place-items:center;background:var(--oof-accent-wash);color:var(--oof-accent-dark);font-weight:800;font-size:15px;overflow:hidden}
+.oofAvatar img{width:100%;height:100%;object-fit:cover}
+.oofAvatar.big{width:58px;height:58px;flex-basis:58px;font-size:18px}
+.oofWho{display:flex;align-items:center;gap:14px;min-width:0}
+.oofAccounts{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.oofAccount{display:flex;flex-direction:column;gap:14px;text-align:left;background:#fff;border:1px solid var(--oof-line);border-radius:15px;padding:16px;cursor:pointer;font:inherit;color:inherit;box-shadow:0 1px 2px rgba(24,24,27,.04)}
+.oofAccount:hover{border-color:#c9c5bc;box-shadow:0 6px 18px rgba(24,24,27,.07)}
+.oofAccount:focus-visible{outline:3px solid rgba(194,54,79,.3);outline-offset:2px}
+.oofAccount .oofWho b{display:block;font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oofAccount .oofWho small{display:block;font-size:11px;color:var(--oof-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oofAccountNums{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.oofAccountNums div{padding:10px;border-radius:10px;background:var(--oof-wash);min-width:0}
+.oofAccountNums span{display:block;font-size:10px;font-weight:700;color:var(--oof-muted)}
+.oofAccountNums b{display:block;margin-top:3px;font-size:16px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oofAccountFoot{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11px;color:var(--oof-muted)}
+.oofPill{display:inline-block;padding:3px 9px;border-radius:999px;background:var(--oof-wash);font-size:10px;font-weight:800;color:var(--oof-muted)}
+.oofPill.ok{background:var(--oof-ok-wash);color:var(--oof-ok)}
+.oofBack{border:0;background:transparent;padding:6px 0;margin:0 0 8px;font:800 12px Manrope,"Segoe UI",system-ui,sans-serif;color:var(--oof-accent-dark);cursor:pointer}
+.oofUpload{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end}
+.oofUpload .wide{grid-column:1/-1}
+.oofUploadFoot{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.oofHint{font-size:11px;color:var(--oof-soft);line-height:1.5}
+.oofUnlock{max-width:420px;display:grid;gap:12px}
+.oofToast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:2147483600;max-width:min(560px,calc(100vw - 32px));padding:12px 16px;border-radius:12px;background:#18181b;color:#fff;font:700 13px Manrope,"Segoe UI",system-ui,sans-serif;box-shadow:0 12px 30px rgba(0,0,0,.25);display:none}
+.oofToast.error{background:#a12b3d}
+.oofToast.ok{background:#256b3c}
+@media (max-width:1100px){.oofGrid{grid-template-columns:1fr}}
+@media (max-width:760px){
+  .optykerOfficePanel{padding:0 14px 24px}
+  .oofTitle{font-size:28px}
+  .oofKpi b{font-size:22px}
+  .oofBars{gap:4px;height:180px}
+  .oofBar .val{display:none}
+  .oofUpload{grid-template-columns:1fr 1fr}
+  .oofSlip{grid-template-columns:auto minmax(0,1fr)}
+  .oofSlipActions{grid-column:1/-1;justify-content:flex-start}
+}
+@media print{.oofBtn,.oofTools,.oofBack{display:none!important}}
