@@ -1,0 +1,33 @@
+name: Claude CI release 20261013 (temporaneo)
+on:
+  push:
+    branches: ['claude/ci-release-20261013']
+    paths: ['.github/workflows/claude-ci-20261013.yml']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build identica a Vercel (buildCommand di vercel.json)
+        env:
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          mkdir -p ci
+          python3 -c "import json;print(json.load(open('vercel.json'))['buildCommand'])" > ci/build-command.txt
+          set +e
+          bash -c "$(cat ci/build-command.txt)" > ci/build-log.txt 2>&1
+          echo "EXIT=$?" >> ci/build-log.txt
+          set -e
+          tail -40 ci/build-log.txt
+          python3 --version >> ci/build-log.txt; node --version >> ci/build-log.txt
+          tar -czf ci/site.tar.gz _site
+      - name: Salva i risultati sul ramo temporaneo
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add -f ci
+          git commit -m "Risultati CI temporanei" || exit 0
+          git push
