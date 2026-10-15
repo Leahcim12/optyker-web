@@ -24,3 +24,7 @@ node --check optyker-report.js
 python scripts/apply_report_20261014.py
 node --check _site/optyker-report.js
 python scripts/check_desktop_html.py
+
+# DDT: open existing transport documents and print from the preview.
+python scripts/apply_ddt_view_20261015.py
+python scripts/check_desktop_html.py
