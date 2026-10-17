@@ -89,7 +89,31 @@ async function withFiscalCatalog(lines:any[]) {
     return {...l,fiscal_vat_code:vat,fiscal_item_type:l.is_service||found.some(e=>e.category==='services')?'services':vat?'goods':''};
   });
 }
+// Warehouse barcode lookup includes products without a Shopify variant.
+function isInventoryId(id:string){return /^inventory:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)}
+function scanText(value:any){return norm(value).replace(/^\][A-Za-z][0-9]/,'').replace(/[\r\n\t]/g,'').trim()}
+function inventoryProduct(r:any){
+  const linked=norm(r.shopify_variant_id),id=linked?gid('ProductVariant',linked):'inventory:'+r.id;
+  return {variant_id:id,product_id:r.shopify_product_id||'',catalog_id:linked?null:id,inventory_item_id:r.id,
+    title:r.title||'Prodotto',variant_title:r.variant_title||'',vendor:r.vendor||'',product_type:r.product_type||r.category||'',
+    sku:r.sku||'',barcode:r.barcode||'',image:r.image_url||'',price:money(r.price),list_price:money(r.price),available:true,
+    inventory_quantity:r.inventory_quantity??r.shopify_inventory_quantity??null,vat_code:r.vat_code||'',fiscal_vat_code:r.vat_code||'',fiscal_item_type:'goods'};
+}
+async function warehouseProducts(search:string,first:number){
+  const code=scanText(search),limit=Math.max(1,Math.min(180,first||70));
+  const query=()=>db.from('optyker_inventory_items').select('id,shopify_product_id,shopify_variant_id,title,variant_title,vendor,product_type,category,sku,barcode,image_url,price,inventory_quantity,shopify_inventory_quantity,vat_code').eq('active',true).neq('category','services');
+  // Exact codes use a parameterized filter, preserving leading zeroes and punctuation.
+  if(code){const {data,error}=await query().eq('barcode',code).limit(180);if(error)throw error;if(data?.length)return {exact:true,rows:data.map(inventoryProduct)}}
+  let q=query();
+  const term=code.replace(/[%_,()."\\]/g,' ').slice(0,100).trim();
+  if(term)q=q.or(['title','variant_title','vendor','sku','barcode'].map(k=>k+'.ilike.%'+term+'%').join(','));
+  const {data,error}=await q.order('title').limit(limit);if(error)throw error;
+  return {exact:false,rows:(data||[]).map(inventoryProduct)};
+}
 async function products(search:string,first:number,clientId:string){
+  search=scanText(search);
+  const warehouse=await warehouseProducts(search,first);
+  if(warehouse.exact)return await withFiscalCatalog(warehouse.rows);
   const context=await ovcContext(db,clientId);
   const q=[
     "query CashProducts($first:Int!,$query:String){",
@@ -128,7 +152,9 @@ async function products(search:string,first:number,clientId:string){
       });
     }
   }
-  return await withFiscalCatalog([...serviceSearch(context,search),...listLensProducts(search),...outRows.filter(x=>!serviceForId(x.variant_id,context))]);
+  const combined=[...serviceSearch(context,search),...listLensProducts(search),...warehouse.rows,...outRows.filter(x=>!serviceForId(x.variant_id,context))];
+  const seen=new Set();
+  return await withFiscalCatalog(combined.filter(x=>{if(seen.has(x.variant_id))return false;seen.add(x.variant_id);return true}));
 }
 async function clients(search:string,selectedId:string){
   let q=db.from("optyker_clients")
@@ -147,8 +173,14 @@ async function clients(search:string,selectedId:string){
   return rows;
 }
 async function lookupVariants(ids:string[],context:any){
-  const uniq=[...new Set(ids.filter(x=>!isLensCatalogId(x)&&!isServiceId(x)).map(x=>gid("ProductVariant",x)).filter(Boolean))].slice(0,100);
+  const uniq=[...new Set(ids.filter(x=>!isLensCatalogId(x)&&!isServiceId(x)&&!isInventoryId(x)).map(x=>gid("ProductVariant",x)).filter(Boolean))].slice(0,100);
   const local=ids.map(id=>isServiceId(id)?serviceForId(id,context):lensProduct(id)).filter(Boolean);
+  const inventoryIds=ids.filter(isInventoryId).map(id=>id.slice(10));
+  if(inventoryIds.length){
+    const {data,error}=await db.from('optyker_inventory_items').select('*').eq('active',true).neq('category','services').in('id',inventoryIds);
+    if(error)throw error;
+    local.push(...(data||[]).map(r=>({...inventoryProduct(r),variant_id:'inventory:'+r.id,catalog_id:'inventory:'+r.id})));
+  }
   if(!uniq.length)return local;
   const q=[
     "query CashVariants($ids:[ID!]!){",
@@ -341,7 +373,7 @@ async function quoteLines(linesIn:any[],clientId:string){
   const quantities=new Map<string,number>();
   for(const l of linesIn){
     const rawId=norm(l?.variant_id);
-    const id=(isLensCatalogId(rawId)||isServiceId(rawId))?rawId:gid("ProductVariant",rawId);
+    const id=(isLensCatalogId(rawId)||isServiceId(rawId)||isInventoryId(rawId))?rawId:gid("ProductVariant",rawId);
     const qty=Number(l?.quantity);
     if(!id||!Number.isInteger(qty)||qty<1||qty>99||(quantities.get(id)||0)+qty>99)throw new Error("Articolo o quantità non valida");
     quantities.set(id,(quantities.get(id)||0)+qty);
@@ -466,7 +498,7 @@ async function checkout(body:any,operator:string){
     if(tsRequested)tags.push("Sistema TS");
 
     const draftInput:any={
-      lineItems:lines.map(x=>serviceDraftLine(x)||cashDraftLine(x)),
+      lineItems:lines.map(x=>serviceDraftLine(x)||(isInventoryId(x.variant_id)?{title:x.title,sku:x.sku,quantity:x.quantity,originalUnitPriceWithCurrency:{amount:money(x.price).toFixed(2),currencyCode:'EUR'}}:cashDraftLine(x))),
       note:note||("Vendita cassa Optyker · "+stageLabel(paymentStage)+" · Operatore: "+operator),
       tags,
       customAttributes:attrs
