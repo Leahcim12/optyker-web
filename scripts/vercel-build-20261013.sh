@@ -28,3 +28,8 @@ python scripts/check_desktop_html.py
 # DDT: open existing transport documents and print from the preview.
 python scripts/apply_ddt_view_20261015.py
 python scripts/check_desktop_html.py
+
+# WhatsApp 20261107: pulsante "Controllo 6 mesi" nella prescrizione optometrica.
+node --check wa-recall-control.js
+python scripts/apply_wa_recall_20261107.py
+python scripts/check_desktop_html.py
