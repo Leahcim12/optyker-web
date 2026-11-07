@@ -47,6 +47,10 @@ Prova senza inviare niente: `optyker-whatsapp-ai` con `mode: "dry_run"` e un tok
 | `signature` | *Assistente automatico · Ottica Visual Care* | firma in fondo alle risposte |
 | `store_info` | indirizzo, sito, WhatsApp | testo del negozio usato per le risposte su contatti |
 
+## Automazioni (richiami, promemoria, auguri)
+
+`optyker-whatsapp-automations` (ogni minuto da pg_cron) invia i modelli uno alla volta: al massimo 12 per esecuzione, 2,5 secondi tra un invio e l'altro, un solo messaggio per numero a ogni esecuzione. Se 360dialog o Meta rispondono con un limite ("troppe richieste") il messaggio torna in coda e si riprova al minuto dopo: non viene più segnato come fallito. Il motivo dell'ultimo blocco è nel campo `last_retry` della risposta (tabella `net._http_response`).
+
 ## Da sapere
 
 - Lo stato delle buste passa da solo a "pronto" alla data prevista se nessuno lo cambia a mano: se il laboratorio è in ritardo, aggiornare lo stato in Optyker, altrimenti l'assistente dirà che è pronto.
