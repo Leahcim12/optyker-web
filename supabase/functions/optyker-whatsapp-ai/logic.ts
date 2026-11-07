@@ -22,6 +22,7 @@ export type Settings = {
   enabled: boolean;
   test_phones: string[];
   model: string;
+  effort?: string | null;
   operator_pause_hours: number;
   handoff_wait_hours: number;
   signature: string;
@@ -263,7 +264,7 @@ LENTI A CONTATTO (lenti_a_contatto):
 
 Se ti chiedono se sei una persona, rispondi che sei l'assistente automatico del negozio e che per le altre richieste risponde un operatore.
 
-COME CONCLUDERE: a ogni passaggio chiama esattamente uno strumento. Alla fine chiama uno solo tra rispondi (con il testo esatto da inviare al cliente), nessuna_risposta e passa_all_operatore (con il motivo, che legge solo il negozio).
+COME CONCLUDERE: agisci solo chiamando gli strumenti, uno per volta; il testo che scrivi fuori dagli strumenti non arriva al cliente. Alla fine chiama uno solo tra rispondi (con il testo esatto da inviare al cliente), nessuna_risposta e passa_all_operatore (con il motivo, che legge solo il negozio).
 
 INFORMAZIONI DEL NEGOZIO:
 ${clean(input.storeInfo, 2000) || 'Ottica Visual Care, Lallio (BG)'}
@@ -369,6 +370,26 @@ export function byClient(clients: Client[], data: unknown[][], key: string) {
   };
 }
 
+export const EFFORTS = ['low', 'medium', 'high'];
+
+/**
+ * Richiesta all'API Claude. Con Claude Sonnet 5.5: tool_choice solo "auto" (any/tool non ammessi),
+ * niente temperature/top_p, ragionamento adattivo regolato da output_config.effort (predefinito qui: low,
+ * adatto a una chat; i token di ragionamento rientrano in max_tokens e si pagano come output).
+ */
+export function modelRequest(input: { model: string; effort?: string | null; system: string; messages: unknown[] }) {
+  const effort = EFFORTS.includes(String(input.effort)) ? String(input.effort) : 'low';
+  return {
+    model: input.model,
+    max_tokens: 4096,
+    system: [{ type: 'text', text: input.system, cache_control: { type: 'ephemeral' } }],
+    tools: TOOLS,
+    tool_choice: { type: 'auto', disable_parallel_tool_use: true },
+    output_config: { effort },
+    messages: input.messages,
+  };
+}
+
 export const FINAL_TOOLS = new Set(['rispondi', 'nessuna_risposta', 'passa_all_operatore']);
 export const WRITE_TOOLS = new Set(['prenota_appuntamento', 'sposta_appuntamento', 'disdici_appuntamento']);
 
@@ -385,6 +406,7 @@ export function finalizeReply(text: unknown, signature: string): string | null {
 
 type ModelResponse = {
   content?: { type: string; id?: string; name?: string; input?: Record<string, unknown>; text?: string }[];
+  stop_reason?: string | null;
   usage?: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number };
 };
 
@@ -409,6 +431,9 @@ export async function runAgent(input: {
     out.usage.input_tokens += Number(res.usage?.input_tokens || 0);
     out.usage.output_tokens += Number(res.usage?.output_tokens || 0);
     out.usage.cache_read_input_tokens += Number(res.usage?.cache_read_input_tokens || 0);
+    if (res.stop_reason === 'refusal') return done({ decision: 'handoff', reason: 'il modello non ha voluto rispondere' });
+    if (res.stop_reason === 'max_tokens') return done({ decision: 'handoff', reason: 'risposta del modello interrotta (troppo lunga)' });
+    // I blocchi (anche quelli di ragionamento) tornano al modello invariati nel passaggio successivo.
     const blocks = Array.isArray(res.content) ? res.content : [];
     const uses = blocks.filter((b) => b.type === 'tool_use');
     if (!uses.length) return done({ decision: 'handoff', reason: 'nessuna azione scelta dal modello' });

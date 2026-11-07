@@ -5,8 +5,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 // Segreti: ANTHROPIC_API_KEY (modello IA) e D360_API_KEY (invio WhatsApp tramite 360dialog).
 import {
   addDays, BOT_SENDER, buildSystemPrompt, buildUserMessage, byClient, currentOrders, daysBetween, DEBOUNCE_MS, digits, finalizeReply,
-  gate, hasNonText, IGNORED_TYPES, isOperatorMessage, italianDay, last10, pendingInbound, romeParts, romeTimestamp,
-  runAgent, slotTimes, TOOLS, validDate, validTime,
+  gate, hasNonText, IGNORED_TYPES, isOperatorMessage, italianDay, last10, modelRequest, pendingInbound, romeParts, romeTimestamp,
+  runAgent, slotTimes, validDate, validTime,
   type Client, type Decision, type Msg, type Service, type Settings, type StoreHours,
 } from './logic.ts';
 
@@ -69,17 +69,13 @@ async function storeContext(): Promise<{ hours: StoreHours; services: Service[] 
   return { hours: hours || {}, services };
 }
 
-async function callModel(model: string, system: string, messages: unknown[]) {
+async function callModel(s: Settings, system: string, messages: unknown[]) {
   const key = String(Deno.env.get('ANTHROPIC_API_KEY') || '').trim();
   if (!key) throw new Error('Chiave ANTHROPIC_API_KEY non ancora salvata sul server');
   const r = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST', signal: AbortSignal.timeout(60000),
+    method: 'POST', signal: AbortSignal.timeout(90000),
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({
-      model, max_tokens: 1024,
-      system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
-      tools: TOOLS, tool_choice: { type: 'any', disable_parallel_tool_use: true }, messages,
-    }),
+    body: JSON.stringify(modelRequest({ model: s.model, effort: s.effort, system, messages })),
   });
   const x = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error('IA ' + r.status + ': ' + String(x?.error?.message || '').slice(0, 200));
@@ -252,7 +248,7 @@ async function think(s: Settings, phone: string, now: Date, clients: Client[], h
   const userText = buildUserMessage({ now, clients, history, pending, signature: s.signature });
   return runAgent({
     userText,
-    callModel: (messages) => callModel(s.model, system, messages),
+    callModel: (messages) => callModel(s, system, messages),
     runTool: toolRunner({ phone, clients, services, dryRun }),
   });
 }

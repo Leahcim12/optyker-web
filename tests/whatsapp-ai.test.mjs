@@ -124,6 +124,19 @@ test('ordini attuali e dati per ogni cliente collegato al numero', () => {
   assert.deepEqual(r.senza_dati, ['Mario Rossi', 'nome non indicato']);
 });
 
+test('richiesta al modello compatibile con Claude Sonnet 5.5', () => {
+  const r = L.modelRequest({ model: 'claude-sonnet-5-5', system: 'S', messages: [{ role: 'user', content: 'x' }] });
+  assert.deepEqual(r.tool_choice, { type: 'auto', disable_parallel_tool_use: true });
+  assert.deepEqual(r.output_config, { effort: 'low' });
+  assert.equal(r.max_tokens, 4096);
+  assert.deepEqual(r.system, [{ type: 'text', text: 'S', cache_control: { type: 'ephemeral' } }]);
+  assert.equal(r.tools, L.TOOLS);
+  for (const k of ['temperature', 'top_p', 'top_k', 'thinking']) assert.ok(!(k in r), k);
+  assert.equal(L.modelRequest({ model: 'm', effort: 'medium', system: '', messages: [] }).output_config.effort, 'medium');
+  assert.equal(L.modelRequest({ model: 'm', effort: 'max', system: '', messages: [] }).output_config.effort, 'low');
+  assert.equal(L.modelRequest({ model: 'm', effort: null, system: '', messages: [] }).output_config.effort, 'low');
+});
+
 test('testo finale per WhatsApp', () => {
   assert.equal(L.finalizeReply('  **Pronti** per il ritiro!\n\n\n\nA presto  ', '_Firma_'), '*Pronti* per il ritiro!\n\nA presto\n\n_Firma_');
   assert.equal(L.finalizeReply('### Orari\nlunedì', ''), 'Orari\nlunedì');
@@ -166,6 +179,20 @@ test('ciclo: silenzio, nessuna risposta, errori e scritture', async () => {
   // Troppi passaggi.
   const loop = async () => use('stato_ordini', { cliente_id: 'c1' });
   assert.equal((await L.runAgent({ userText: 'x', callModel: loop, runTool: async () => ({}), maxRounds: 3 })).reason, 'troppi passaggi senza conclusione');
+  // Rifiuto o risposta interrotta: all'operatore, anche se c'è un rispondi parziale.
+  for (const stop_reason of ['refusal', 'max_tokens']) {
+    const r = await L.runAgent({ userText: 'x', callModel: model({ ...use('rispondi', { testo: 'Ciao' }), stop_reason }), runTool: async () => ({}) });
+    assert.equal(r.decision, 'handoff', stop_reason);
+  }
+});
+
+test('ciclo: i blocchi di ragionamento tornano al modello invariati', async () => {
+  const thinking = { type: 'thinking', thinking: '', signature: 'firma-123' };
+  const first = { content: [thinking, { type: 'text', text: 'Controllo…' }, { type: 'tool_use', id: 'u1', name: 'stato_ordini', input: {} }], stop_reason: 'tool_use' };
+  const callModel = model(first, use('rispondi', { testo: 'Pronti!' }));
+  const d = await L.runAgent({ userText: 'x', callModel, runTool: async () => ({ con_dati: [] }) });
+  assert.equal(d.decision, 'reply');
+  assert.deepEqual(callModel.seen[1][1], { role: 'assistant', content: first.content });
 });
 
 test('webhook: messaggi ricevuti, echi dell\'app Business, stati, cronologia ignorata', () => {
