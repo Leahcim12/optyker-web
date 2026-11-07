@@ -33,6 +33,9 @@ test('gate: operatore attivo e chat in attesa dell\'operatore', () => {
   assert.equal(L.gate({ settings: settings(), phone, now, messages: free, lastHandoffAt: null }).ok, true);
   // Echi dell'app WhatsApp Business = operatore.
   assert.equal(L.gate({ settings: settings(), phone, now, messages: [msg('outbound', 3, { sender_name: L.PHONE_SENDER })], lastHandoffAt: null }).ok, false);
+  // Invio di prova del sistema (optyker-whatsapp-360, mittente OPTYKER): non è un operatore.
+  assert.equal(L.gate({ settings: settings(), phone, now, messages: [msg('outbound', 1, { sender_name: 'OPTYKER' })], lastHandoffAt: null }).ok, true);
+  assert.equal(L.senderLabel(msg('outbound', 1, { sender_name: 'OPTYKER' })), 'Negozio · messaggio automatico');
   // Passata all'operatore 5 ore fa, nessuna risposta: silenzio.
   assert.equal(L.gate({ settings: settings(), phone, now, messages: [], lastHandoffAt: ago(5) }).ok, false);
   // L'operatore ha risposto dopo (20 ore fa) e la pausa è finita: l'assistente riprende.

@@ -4,6 +4,8 @@
 export const BOT_SENDER = 'Assistente IA';
 export const AUTOMATION_SENDER = 'Automazione';
 export const PHONE_SENDER = 'WhatsApp Business (telefono)';
+/** Invii di sistema da optyker-whatsapp-360 (prove di configurazione): non sono un operatore. */
+export const SYSTEM_SENDER = 'OPTYKER';
 export const TZ = 'Europe/Rome';
 export const DEBOUNCE_MS = 6000;
 export const MAX_ROUNDS = 8;
@@ -42,7 +44,7 @@ export type Decision = {
   reason?: string;
   toolCalls: { name: string; input: unknown; ok: boolean }[];
   wrote: boolean;
-  usage: { input_tokens: number; output_tokens: number; cache_read_input_tokens: number };
+  usage: { input_tokens: number; output_tokens: number; cache_read_input_tokens: number; cache_creation_input_tokens: number };
 };
 
 export const digits = (v: unknown): string => String(v ?? '').replace(/\D/g, '');
@@ -57,10 +59,11 @@ export const IGNORED_TYPES = new Set(['reaction', 'sticker']);
 /** Messaggi testuali: testo, risposta a un pulsante di un modello, risposta a un elenco/pulsante. */
 export const TEXT_TYPES = new Set(['text', 'button', 'interactive']);
 
+const AUTOMATIC_SENDERS = new Set([BOT_SENDER, AUTOMATION_SENDER, SYSTEM_SENDER]);
+
+/** Messaggio scritto da una persona del negozio (da Optyker o dall'app WhatsApp Business). */
 export function isOperatorMessage(m: Msg): boolean {
-  if (m.direction !== 'outbound') return false;
-  const s = String(m.sender_name || '');
-  return s !== BOT_SENDER && s !== AUTOMATION_SENDER;
+  return m.direction === 'outbound' && !AUTOMATIC_SENDERS.has(String(m.sender_name || ''));
 }
 
 const hoursAgo = (now: Date, iso: string): number => (now.getTime() - Date.parse(iso)) / 3600000;
@@ -180,7 +183,7 @@ function clean(text: unknown, max = 1000): string {
 export function senderLabel(m: Msg): string {
   if (m.direction === 'inbound') return 'Cliente';
   if (m.sender_name === BOT_SENDER) return 'Negozio · assistente automatico (tu)';
-  if (m.sender_name === AUTOMATION_SENDER) return 'Negozio · messaggio automatico';
+  if (!isOperatorMessage(m)) return 'Negozio · messaggio automatico';
   return 'Negozio · operatore';
 }
 
@@ -407,7 +410,7 @@ export function finalizeReply(text: unknown, signature: string): string | null {
 type ModelResponse = {
   content?: { type: string; id?: string; name?: string; input?: Record<string, unknown>; text?: string }[];
   stop_reason?: string | null;
-  usage?: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number };
+  usage?: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number };
 };
 
 /**
@@ -423,7 +426,7 @@ export async function runAgent(input: {
   const messages: unknown[] = [{ role: 'user', content: input.userText }];
   const out: Decision = {
     decision: 'handoff', toolCalls: [], wrote: false,
-    usage: { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0 },
+    usage: { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
   };
   const done = (d: Partial<Decision>): Decision => Object.assign(out, d);
   for (let round = 0; round < (input.maxRounds ?? MAX_ROUNDS); round++) {
@@ -431,6 +434,7 @@ export async function runAgent(input: {
     out.usage.input_tokens += Number(res.usage?.input_tokens || 0);
     out.usage.output_tokens += Number(res.usage?.output_tokens || 0);
     out.usage.cache_read_input_tokens += Number(res.usage?.cache_read_input_tokens || 0);
+    out.usage.cache_creation_input_tokens += Number(res.usage?.cache_creation_input_tokens || 0);
     if (res.stop_reason === 'refusal') return done({ decision: 'handoff', reason: 'il modello non ha voluto rispondere' });
     if (res.stop_reason === 'max_tokens') return done({ decision: 'handoff', reason: 'risposta del modello interrotta (troppo lunga)' });
     // I blocchi (anche quelli di ragionamento) tornano al modello invariati nel passaggio successivo.
