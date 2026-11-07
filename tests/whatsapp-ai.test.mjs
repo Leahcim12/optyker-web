@@ -76,7 +76,7 @@ test('messaggio per il modello: clienti, ruoli e firma tolta', () => {
     pending: [msg('inbound', 0.1, { message: 'Di che colore è la lente destra?' })],
   });
   assert.match(text, /sabato 7 novembre 2026, ore 11:00/);
-  assert.match(text, /cliente_id c1: Mario Rossi/);
+  assert.match(text, /riconosciuti dal numero WhatsApp da cui scrive \(1\):\n- cliente_id c1: Mario Rossi/);
   assert.match(text, /assistente automatico \(tu\): Ciao!/);
   assert.doesNotMatch(text, /Assistente automatico · Ottica/);
   assert.match(text, /messaggio automatico: Promemoria/);
@@ -92,10 +92,36 @@ test('istruzioni: solo i quattro argomenti, colori della scheda LAC, orari e ser
     services: [{ id: 's1', name: 'Analisi Visiva', duration_minutes: 90 }],
   });
   for (const r of [/dando del tu/, /colore della lente destra e della lente sinistra/, /passa_all_operatore/, /nessuna_risposta/,
-    /lunedì: 09:00-13:00 e 15:00-19:00/, /martedì 8 dicembre \(2026-12-08\): chiuso/, /s1 · Analisi Visiva · 90 minuti/, /Via Primo Maggio 4/, /oltre 30/]) assert.match(s, r);
+    /lunedì: 09:00-13:00 e 15:00-19:00/, /martedì 8 dicembre \(2026-12-08\): chiuso/, /s1 · Analisi Visiva · 90 minuti/, /Via Primo Maggio 4/,
+    /pronti da non più di 30 giorni/,
+    // Il cliente è riconosciuto dal numero: niente richiesta di nome e cognome, famiglie gestite per nome.
+    /riconosciuto dal numero WhatsApp da cui scrive/, /Non chiedere mai nome, cognome o numero di telefono/,
+    /chiama lo strumento senza cliente_id/, /gli occhiali di Giulia sono pronti/]) assert.match(s, r);
+  assert.doesNotMatch(s, /chiedi per chi è la richiesta \(nome e cognome\)/);
   const names = L.TOOLS.map((t) => t.name);
   for (const n of ['stato_ordini', 'appuntamenti_cliente', 'orari_disponibili', 'prenota_appuntamento', 'sposta_appuntamento', 'disdici_appuntamento', 'lenti_a_contatto', 'rispondi', 'nessuna_risposta', 'passa_all_operatore']) assert.ok(names.includes(n), n);
   for (const t of L.TOOLS) assert.equal(t.input_schema.type, 'object');
+  // Ordini e lenti: cliente_id facoltativo, così bastano il numero e la domanda.
+  for (const n of ['stato_ordini', 'lenti_a_contatto', 'appuntamenti_cliente']) assert.deepEqual(L.TOOLS.find((t) => t.name === n).input_schema.required, [], n);
+});
+
+test('ordini attuali e dati per ogni cliente collegato al numero', () => {
+  const orders = [
+    { tipo: 'occhiali', stato: 'in_lavorazione', giorni_nello_stato: 2 },
+    { tipo: 'lenti a contatto', stato: 'pronto_per_il_ritiro', giorni_nello_stato: 3 },
+    { tipo: 'occhiali', stato: 'pronto_per_il_ritiro', giorni_nello_stato: 30 },
+    { tipo: 'occhiali', stato: 'pronto_per_il_ritiro', giorni_nello_stato: '31' },
+    { tipo: 'occhiali', stato: 'consegnato', giorni_nello_stato: 1 },
+    { tipo: 'occhiali', stato: 'annullato', giorni_nello_stato: 1 },
+    { tipo: 'occhiali', stato: 'pronto_per_il_ritiro', giorni_nello_stato: null },
+  ];
+  assert.deepEqual(L.currentOrders(orders).map((o) => [o.stato, o.giorni_nello_stato]), [['in_lavorazione', 2], ['pronto_per_il_ritiro', 3], ['pronto_per_il_ritiro', 30]]);
+  assert.deepEqual(L.currentOrders(null), []);
+  const family = [{ cliente_id: 'c1', nome: 'Mario', cognome: 'Rossi' }, { cliente_id: 'c2', nome: 'Giulia', cognome: 'Rossi' }, { cliente_id: 'c3', nome: null, cognome: null }];
+  const r = L.byClient(family, [[], [{ stato: 'pronto_per_il_ritiro' }], undefined], 'ordini');
+  assert.equal(r.clienti_collegati_al_numero, 3);
+  assert.deepEqual(r.con_dati, [{ cliente_id: 'c2', cliente: 'Giulia Rossi', ordini: [{ stato: 'pronto_per_il_ritiro' }] }]);
+  assert.deepEqual(r.senza_dati, ['Mario Rossi', 'nome non indicato']);
 });
 
 test('testo finale per WhatsApp', () => {

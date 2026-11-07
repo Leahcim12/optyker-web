@@ -16,8 +16,10 @@ Per tutto il resto **non scrive niente**: il messaggio resta all'operatore, che 
   - resta zitto se un operatore ha scritto in quella chat nelle ultime 12 ore (dal telefono o da Optyker);
   - resta zitto se ha già lasciato la chat all'operatore e nessuno ha ancora risposto (al massimo 48 ore);
   - lascia all'operatore foto, audio, documenti e posizioni; ignora reazioni e sticker.
-- I dati personali sono solo quelli dei clienti che in anagrafica hanno quel numero. Se sul numero ci sono più clienti (famiglia), chiede per chi è la richiesta.
-- "Pronto per il ritiro" solo se la busta è in quello stato da non più di 30 giorni; oltre, lascia all'operatore (potrebbe essere già stata ritirata).
+- **Il cliente è riconosciuto dal numero WhatsApp da cui scrive**: Optyker cerca il numero nel telefono e nel secondo telefono dell'anagrafica (anche cellulari a 9 cifre e numeri con +39 o 0039). L'assistente non chiede mai nome e cognome per riconoscerlo.
+- I dati personali sono solo quelli dei clienti con quel numero. Se sul numero ci sono più persone (famiglia), guarda i dati di tutte: se riguardano una sola persona risponde chiamandola per nome («gli occhiali di Giulia sono pronti»), altrimenti risponde per ciascuna; chiede di chi si tratta solo se non riesce a capirlo. Per prenotare chiede per chi è l'appuntamento.
+- Numero non presente in anagrafica: solo orari, indirizzo, contatti e nuove prenotazioni; il resto all'operatore.
+- Ordini: considera solo quelli in lavorazione o pronti da non più di 30 giorni (i più vecchi sono quasi sempre già ritirati); se non ce ne sono, lascia all'operatore.
 - Le risposte sono firmate *Assistente automatico · Ottica Visual Care* e compaiono anche nella chat del cliente in Optyker e sul telefono.
 - Ogni decisione (risposta, silenzio e motivo, strumenti usati) è registrata in `optyker_wa_ai_log`.
 

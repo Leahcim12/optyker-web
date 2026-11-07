@@ -4,7 +4,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 // resto resta in silenzio e la chat passa all'operatore. Impostazioni: optyker_wa_ai_settings.
 // Segreti: ANTHROPIC_API_KEY (modello IA) e D360_API_KEY (invio WhatsApp tramite 360dialog).
 import {
-  addDays, BOT_SENDER, buildSystemPrompt, buildUserMessage, daysBetween, DEBOUNCE_MS, digits, finalizeReply,
+  addDays, BOT_SENDER, buildSystemPrompt, buildUserMessage, byClient, currentOrders, daysBetween, DEBOUNCE_MS, digits, finalizeReply,
   gate, hasNonText, IGNORED_TYPES, isOperatorMessage, italianDay, last10, pendingInbound, romeParts, romeTimestamp,
   runAgent, slotTimes, TOOLS, validDate, validTime,
   type Client, type Decision, type Msg, type Service, type Settings, type StoreHours,
@@ -106,13 +106,21 @@ function toolRunner(ctx: { phone: string; clients: Client[]; services: Service[]
     if (!s) throw new Error('servizio non prenotabile: usa un servizio_id dell\'elenco');
     return s;
   };
+  const allIds = ctx.clients.map((c) => c.cliente_id);
+  // Con cliente_id: solo quel cliente (se collegato al numero). Senza: tutti i clienti riconosciuti dal numero.
+  const targets = (a: Record<string, unknown>): Client[] => {
+    if (a.cliente_id) {
+      const id = needClient(a.cliente_id);
+      return ctx.clients.filter((c) => c.cliente_id === id);
+    }
+    if (!ctx.clients.length) throw new Error('numero non presente in anagrafica: nessun cliente collegato');
+    return ctx.clients;
+  };
   const owned = async (id: unknown) => {
-    const lists = await Promise.all([
-      rpc('optyker_wa_ai_appointments', { p_phone: ctx.phone, p_client: null }),
-      ...ctx.clients.map((c) => rpc('optyker_wa_ai_appointments', { p_phone: ctx.phone, p_client: c.cliente_id })),
-    ]);
-    for (const l of lists) for (const a of l || []) if (a.appuntamento_id === String(id || '')) return a;
-    throw new Error('appuntamento non trovato tra quelli di questo numero');
+    const list = await rpc('optyker_wa_ai_appointments', { p_phone: ctx.phone, p_clients: allIds });
+    const found = (list || []).find((x: any) => x.appuntamento_id === String(id || ''));
+    if (!found) throw new Error('appuntamento non trovato tra quelli di questo numero');
+    return found;
   };
   const checkDay = (date: string) => {
     if (!validDate(date)) throw new Error('data non valida: usa AAAA-MM-GG');
@@ -134,13 +142,19 @@ function toolRunner(ctx: { phone: string; clients: Client[]; services: Service[]
 
   return async (name: string, a: Record<string, unknown>): Promise<unknown> => {
     switch (name) {
-      case 'stato_ordini':
-        return { ordini: await rpc('optyker_wa_ai_orders', { p_client: needClient(a.cliente_id) }) };
-      case 'lenti_a_contatto':
-        return { schede: await rpc('optyker_wa_ai_lac', { p_client: needClient(a.cliente_id) }) };
+      case 'stato_ordini': {
+        const t = targets(a);
+        const data = await Promise.all(t.map(async (c) => currentOrders(await rpc('optyker_wa_ai_orders', { p_client: c.cliente_id }))));
+        return byClient(t, data, 'ordini');
+      }
+      case 'lenti_a_contatto': {
+        const t = targets(a);
+        const data = await Promise.all(t.map((c) => rpc('optyker_wa_ai_lac', { p_client: c.cliente_id })));
+        return byClient(t, data, 'schede');
+      }
       case 'appuntamenti_cliente': {
-        const id = a.cliente_id ? needClient(a.cliente_id) : ctx.clients.length === 1 ? ctx.clients[0].cliente_id : null;
-        return { appuntamenti: await rpc('optyker_wa_ai_appointments', { p_phone: ctx.phone, p_client: id }) };
+        const ids = a.cliente_id ? [needClient(a.cliente_id)] : allIds;
+        return { appuntamenti: await rpc('optyker_wa_ai_appointments', { p_phone: ctx.phone, p_clients: ids }) };
       }
       case 'orari_disponibili': {
         const s = service(a.servizio_id), date = String(a.data || '');
