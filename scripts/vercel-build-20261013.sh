@@ -42,7 +42,7 @@ python scripts/check_desktop_html.py
 python scripts/apply_wa_lac_care_20261108.py
 python scripts/check_desktop_html.py
 
-# Laboratorio 20261108: buste separate in In corso, In preparazione, Consegnate e Annullate.
+# Laboratorio 20261108: buste separate per stato (Inserite, In preparazione, In lavorazione, In spedizione, Pronte, Consegnate, Annullate).
 node --check lab-status-tabs.js
 python scripts/apply_lab_tabs_20261108.py
 python scripts/check_desktop_html.py
