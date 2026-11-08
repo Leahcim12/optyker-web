@@ -6,7 +6,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {
   addDays, BOT_SENDER, buildSystemPrompt, buildUserMessage, byClient, currentOrders, daysBetween, DEBOUNCE_MS, digits, finalizeReply,
   gate, hasNonText, IGNORED_TYPES, isOperatorMessage, italianDay, last10, modelRequest, pendingInbound, romeParts, romeTimestamp,
-  runAgent, slotTimes, validDate, validTime, botHasTurn, fallbackMinutes, unanswered,
+  runAgent, slotTimes, validDate, validTime, botHasTurn, fallbackMinutes, unanswered, careDoc, CARE_DOCS, CARE_BASE_URL,
+  type CareDoc,
   type Client, type Decision, type Msg, type Service, type Settings, type StoreHours,
 } from './logic.ts';
 
@@ -90,7 +91,9 @@ async function manageToken(id: string): Promise<string> {
 }
 
 /** Strumenti dell'assistente. Ogni dato personale è filtrato sui clienti collegati al numero. */
-function toolRunner(ctx: { phone: string; clients: Client[]; services: Service[]; dryRun: boolean }) {
+type Attachment = { doc: CareDoc; url: string; filename: string; title: string };
+
+function toolRunner(ctx: { phone: string; clients: Client[]; services: Service[]; dryRun: boolean; attachments: Attachment[] }) {
   const ids = new Set(ctx.clients.map((c) => c.cliente_id));
   const needClient = (id: unknown) => {
     const v = String(id || '');
@@ -147,6 +150,23 @@ function toolRunner(ctx: { phone: string; clients: Client[]; services: Service[]
         const t = targets(a);
         const data = await Promise.all(t.map((c) => rpc('optyker_wa_ai_lac', { p_client: c.cliente_id })));
         return byClient(t, data, 'schede');
+      }
+      case 'istruzioni_pulizia': {
+        const t = targets(a);
+        const out = await Promise.all(t.map(async (c) => {
+          const doc = careDoc(await rpc('optyker_wa_ai_lac_care', { p_client: c.cliente_id }));
+          return { cliente_id: c.cliente_id, cliente: [c.nome, c.cognome].filter(Boolean).join(' '), doc };
+        }));
+        const found = out.filter((x) => x.doc);
+        for (const x of found) {
+          const d = CARE_DOCS[x.doc!];
+          if (!ctx.attachments.some((y) => y.doc === x.doc)) ctx.attachments.push({ doc: x.doc!, url: CARE_BASE_URL + d.file, filename: d.titolo + '.pdf', title: d.titolo });
+        }
+        return {
+          documenti_allegati: found.map((x) => ({ cliente: x.cliente, documento: CARE_DOCS[x.doc!].titolo })),
+          senza_documento: out.filter((x) => !x.doc).map((x) => x.cliente),
+          nota: found.length ? 'i PDF vengono allegati da soli al tuo messaggio' : 'nessun documento adatto: passa all\'operatore',
+        };
       }
       case 'appuntamenti_cliente': {
         const ids = a.cliente_id ? [needClient(a.cliente_id)] : allIds;
@@ -233,6 +253,18 @@ async function sendText(to: string, body: string) {
   return x;
 }
 
+async function sendDocument(to: string, a: Attachment) {
+  const key = String(Deno.env.get('D360_API_KEY') || '').trim();
+  const r = await fetch('https://waba-v2.360dialog.io/messages', {
+    method: 'POST', signal: AbortSignal.timeout(20000),
+    headers: { 'D360-API-KEY': key, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to, type: 'document', document: { link: a.url, filename: a.filename } }),
+  });
+  const x = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error('360dialog ' + r.status + ': ' + String(x?.error?.message || x?.meta?.developer_message || '').slice(0, 200));
+  return x;
+}
+
 async function storeOutbound(phone: string, clientId: string | null, text: string, x: any): Promise<string | null> {
   const wamid = x?.messages?.[0]?.id || null, now = new Date().toISOString();
   await rest('optyker_whatsapp_messages', {
@@ -242,14 +274,14 @@ async function storeOutbound(phone: string, clientId: string | null, text: strin
   return wamid;
 }
 
-async function think(s: Settings, phone: string, now: Date, clients: Client[], history: Msg[], pending: Msg[], dryRun: boolean, fallbackAfterMinutes = 0): Promise<Decision> {
+async function think(s: Settings, phone: string, now: Date, clients: Client[], history: Msg[], pending: Msg[], dryRun: boolean, fallbackAfterMinutes = 0, attachments: Attachment[] = []): Promise<Decision> {
   const { hours, services } = await storeContext();
   const system = buildSystemPrompt({ storeInfo: s.store_info, hours, services });
   const userText = buildUserMessage({ now, clients, history, pending, signature: s.signature, fallbackAfterMinutes });
   return runAgent({
     userText,
     callModel: (messages) => callModel(s, system, messages),
-    runTool: toolRunner({ phone, clients, services, dryRun }),
+    runTool: toolRunner({ phone, clients, services, dryRun, attachments }),
   });
 }
 
@@ -268,8 +300,9 @@ async function respond(id: string, s: Settings, phone: string, wamid: string, me
   const tag = fallback ? 'risposta di riserva dopo ' + fallback.minutes + ' minuti senza risposta dell\'operatore' : '';
 
   let d: Decision;
+  const attachments: Attachment[] = [];
   try {
-    d = await think(s, phone, now, clients, history, pending, false, fallback?.minutes || 0);
+    d = await think(s, phone, now, clients, history, pending, false, fallback?.minutes || 0, attachments);
   } catch (e) {
     return finish(id, { decision: 'error', client_id: clientId, model: s.model, reason: msg(e).slice(0, 500) });
   }
@@ -292,7 +325,19 @@ async function respond(id: string, s: Settings, phone: string, wamid: string, me
   try {
     const x = await sendText(phone, text);
     const replyWamid = await storeOutbound(phone, clientId, text, x);
-    return finish(id, { ...base, decision: 'reply', reply: text, reply_wamid: replyWamid, reason: tag || null });
+    // Istruzioni di pulizia in PDF scelte da istruzioni_pulizia: dopo il testo, una alla volta.
+    const sentDocs: string[] = [];
+    for (const a of attachments) {
+      try {
+        const dx = await sendDocument(phone, a);
+        await storeOutbound(phone, clientId, '[PDF] ' + a.title + ' · ' + a.url, dx);
+        sentDocs.push(a.title);
+      } catch (e) {
+        sentDocs.push(a.title + ' (invio non riuscito: ' + msg(e).slice(0, 120) + ')');
+      }
+    }
+    const note = [tag, sentDocs.length ? 'allegati: ' + sentDocs.join(', ') : ''].filter(Boolean).join(' · ');
+    return finish(id, { ...base, decision: 'reply', reply: text, reply_wamid: replyWamid, reason: note || null });
   } catch (e) {
     return finish(id, { ...base, decision: 'error', reply: text, reason: 'invio non riuscito: ' + msg(e).slice(0, 300) });
   }
@@ -360,8 +405,10 @@ async function dryRun(phone: string, text: string) {
   const history = (await recentMessages(phone)).filter((m) => !IGNORED_TYPES.has(String(m.type || ''))).slice(-20);
   const clients = ((await rpc('optyker_wa_ai_clients', { p_phone: phone })) || []) as Client[];
   const pending: Msg[] = [{ wamid: 'prova', direction: 'inbound', sender_name: 'Cliente', message: text, created_at: now.toISOString(), type: 'text' }];
-  const d = await think(s, phone, now, clients, history, pending, true);
+  const attachments: Attachment[] = [];
+  const d = await think(s, phone, now, clients, history, pending, true, 0, attachments);
   return {
+    allegati: attachments.map((a) => a.url),
     decision: d.decision, testo: d.decision === 'reply' ? finalizeReply(d.text, s.signature) : null, motivo: d.reason || null,
     strumenti: d.toolCalls.map((t) => ({ nome: t.name, ok: t.ok })), clienti_collegati: clients.length, usage: d.usage,
   };

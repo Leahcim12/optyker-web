@@ -268,3 +268,31 @@ test('risposta di riserva: dopo la risposta dell\'assistente la conversazione co
   assert.equal(L.botHasTurn([msg('outbound', 2), msg('outbound', 0.5, { sender_name: L.BOT_SENDER }), msg('outbound', 0.3, { sender_name: 'Automazione' })]), true);
   assert.equal(L.botHasTurn([msg('outbound', 2, { sender_name: L.BOT_SENDER }), msg('outbound', 0.3)]), false);
 });
+
+test('istruzioni di pulizia: documento dall\'ultima scheda LAC', () => {
+  assert.equal(L.careDoc(null), null);
+  assert.equal(L.careDoc({ prodotto_od: 'ortok', prodotto_os: 'ortok' }), 'ortok');
+  assert.equal(L.careDoc({ prodotto_od: 'scl_multifocale', prodotto_os: 'sclk' }), 'sclerali');
+  assert.equal(L.careDoc({ prodotto_od: 'rgp_multifocali', prodotto_os: 'rgp' }), 'rgp');
+  assert.equal(L.careDoc({ prodotto_od: 'esoform_mensili_sferiche_hydrogel_3l', prodotto_os: 'shopify_15450820280695' }), 'morbide');
+  // perossido spuntato vince sul tipo di lente
+  assert.equal(L.careDoc({ prodotto_od: 'rgp', prodotto_os: 'rgp', perossido: true }), 'perossido');
+  // permanenza: la segue l'operatore
+  assert.equal(L.careDoc({ prodotto_od: 'permanenza', prodotto_os: 'permanenza' }), null);
+  // occhi con tipi diversi: operatore
+  assert.equal(L.careDoc({ prodotto_od: 'rgp', prodotto_os: 'ortok' }), null);
+  // un solo occhio compilato
+  assert.equal(L.careDoc({ prodotto_od: 'ortok', prodotto_os: null }), 'ortok');
+  // schede importate: tipo e nome del prodotto
+  assert.equal(L.careDoc({ tipo_od: 'morbida spessorata', tipo_os: 'morbida' }), 'morbide');
+  assert.equal(L.careDoc({ tipo_od: 'rgp', nome_od: 'OK-PRO S', tipo_os: 'rgp', nome_os: 'OK-PRO S' }), 'ortok');
+  assert.equal(L.careDoc({ tipo_od: 'rgp', nome_od: 'ESA6', tipo_os: 'rgp', nome_os: 'ESA6' }), 'rgp');
+  assert.equal(L.careDoc({}), null);
+  assert.ok(L.TOOLS.some((t) => t.name === 'istruzioni_pulizia'));
+});
+
+test('prompt: appuntamento obbligatorio anche per il ritiro', () => {
+  const p = L.buildSystemPrompt({ storeInfo: '', hours: {}, services: [] });
+  assert.match(p, /anche solo per il ritiro/);
+  assert.match(p, /istruzioni_pulizia/);
+});

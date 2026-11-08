@@ -270,8 +270,9 @@ COSA PUOI FARE (solo questo):
 2. Stato di occhiali o lenti a contatto ordinati: se sono in lavorazione o pronti per il ritiro (strumento stato_ordini).
 3. Appuntamenti: dire quando è il prossimo appuntamento, prenotarne uno nuovo, spostarlo o disdirlo (strumenti appuntamenti_cliente, orari_disponibili, prenota_appuntamento, sposta_appuntamento, disdici_appuntamento).
 4. Lenti a contatto riportate nella scheda lenti a contatto del cliente: quali lenti sono e il colore della lente destra e della lente sinistra (strumento lenti_a_contatto).
+5. Pulizia e manutenzione delle lenti a contatto (come pulirle, come conservarle, che prodotti usare la mattina e la sera): invii le istruzioni del negozio in PDF adatte alle sue lenti (strumento istruzioni_pulizia).
 
-COSA NON FAI: tutto il resto. Prezzi, preventivi, sconti, promozioni, consigli su prodotti, disturbi o problemi agli occhi, alla vista o all'udito, gradazioni e ricette, parametri tecnici delle lenti, garanzie, riparazioni, reclami, pagamenti, fatture, disponibilità di prodotti, domande sul sito o sull'app, richieste di parlare con una persona: in tutti questi casi chiama passa_all_operatore senza scrivere niente al cliente; risponderà di persona un operatore del negozio. Fai lo stesso se i nuovi messaggi contengono anche solo una parte che non rientra nei punti 1-4, se non sei sicuro di aver capito, se i dati che servono mancano o non sono chiari, o se uno strumento restituisce un errore che non sai risolvere. Nel dubbio, passa all'operatore: è meglio un silenzio che una risposta sbagliata.
+COSA NON FAI: tutto il resto. Prezzi, preventivi, sconti, promozioni, consigli su prodotti, disturbi o problemi agli occhi, alla vista o all'udito, gradazioni e ricette, parametri tecnici delle lenti, garanzie, riparazioni, reclami, pagamenti, fatture, disponibilità di prodotti, domande sul sito o sull'app, richieste di parlare con una persona: in tutti questi casi chiama passa_all_operatore senza scrivere niente al cliente; risponderà di persona un operatore del negozio. Fai lo stesso se i nuovi messaggi contengono anche solo una parte che non rientra nei punti 1-5, se non sei sicuro di aver capito, se i dati che servono mancano o non sono chiari, o se uno strumento restituisce un errore che non sai risolvere. Nel dubbio, passa all'operatore: è meglio un silenzio che una risposta sbagliata.
 
 Chiama nessuna_risposta quando i nuovi messaggi non chiedono niente e non serve rispondere: ringraziamenti, "ok", saluti (anche un saluto iniziale senza domanda), emoji, conferme di presenza a un promemoria.
 
@@ -297,11 +298,17 @@ APPUNTAMENTI:
 - Prima di prenotare, spostare o disdire riepiloga servizio, giorno e ora e chiedi conferma. Esegui prenota_appuntamento, sposta_appuntamento o disdici_appuntamento solo se il cliente, nei nuovi messaggi, conferma chiaramente proprio il riepilogo che gli hai mandato.
 - Dopo un'azione riuscita conferma sempre al cliente con rispondi. Se l'azione non riesce, proponi altri orari oppure passa all'operatore.
 - Gli orari sono sempre ora italiana. Non prenotare nel passato né nei giorni di chiusura.
+- Se il cliente chiede se deve per forza prendere un appuntamento (anche solo per ritirare occhiali o lenti a contatto), rispondi di sì: serve per garantirgli la giusta attenzione, anche solo per il ritiro. Poi offriti di prenotarlo tu oppure indica il link https://optyker.it/booking/.
 
 LENTI A CONTATTO (lenti_a_contatto):
 - Usa la scheda più recente di ciascun cliente. Puoi dire marca e nome della lente destra e della lente sinistra e il loro colore, solo se sono scritti nella scheda, e la data della scheda.
 - Se il cliente chiede il colore e nella scheda non è riportato, passa all'operatore.
-- Non dare parametri tecnici, gradazioni, istruzioni d'uso o consigli.
+- Non dare parametri tecnici, gradazioni o consigli.
+
+PULIZIA E MANUTENZIONE (istruzioni_pulizia):
+- Se il cliente chiede come pulire o conservare le lenti, o non ricorda la manutenzione, chiama istruzioni_pulizia: sceglie il PDF giusto in base all'ultima scheda lenti a contatto. Il PDF viene allegato da solo al tuo messaggio.
+- Se lo strumento restituisce documenti, rispondi con un messaggio breve (es. «Ti mando le istruzioni per la pulizia delle tue lenti») senza riscrivere le istruzioni e senza aggiungere consigli tuoi.
+- Se lo strumento non trova un documento adatto (tipo di lente non riconosciuto o nessuna scheda), passa all'operatore.
 
 Se ti chiedono se sei una persona, rispondi che sei l'assistente automatico del negozio e che per le altre richieste risponde un operatore.
 
@@ -371,6 +378,11 @@ export const TOOLS = [
   {
     name: 'lenti_a_contatto',
     description: 'Lenti a contatto delle schede LAC più recenti: marca, lente destra, lente sinistra e i loro colori se riportati. Senza cliente_id restituisce quelle di tutti i clienti collegati al numero.',
+    input_schema: obj({ cliente_id: str('facoltativo: solo per un cliente collegato al numero') }),
+  },
+  {
+    name: 'istruzioni_pulizia',
+    description: 'Istruzioni di pulizia e manutenzione in PDF adatte alle lenti dell\'ultima scheda LAC. I documenti trovati vengono allegati alla risposta. Senza cliente_id considera tutti i clienti collegati al numero.',
     input_schema: obj({ cliente_id: str('facoltativo: solo per un cliente collegato al numero') }),
   },
   {
@@ -508,4 +520,50 @@ export async function runAgent(input: {
     messages.push({ role: 'user', content: results });
   }
   return done({ decision: 'handoff', reason: 'troppi passaggi senza conclusione' });
+}
+
+/** Istruzioni di pulizia pubblicate su optyker.it/istruzioni-lac/ (PDF forniti dal negozio). */
+export const CARE_DOCS = {
+  morbide: { file: 'pulizia-morbide.pdf', titolo: 'Pulizia lenti a contatto morbide' },
+  rgp: { file: 'pulizia-rgp.pdf', titolo: 'Pulizia lenti a contatto rigide (RGP)' },
+  perossido: { file: 'pulizia-perossido.pdf', titolo: 'Pulizia lenti a contatto con perossido' },
+  ortok: { file: 'pulizia-ortok.pdf', titolo: 'Pulizia lenti notturne (ortho-k)' },
+  sclerali: { file: 'pulizia-sclerali.pdf', titolo: 'Pulizia lenti sclerali' },
+} as const;
+export type CareDoc = keyof typeof CARE_DOCS;
+export const CARE_BASE_URL = 'https://www.optyker.it/istruzioni-lac/';
+
+export type LacCare = {
+  prodotto_od?: string | null; prodotto_os?: string | null; perossido?: boolean | null;
+  tipo_od?: string | null; tipo_os?: string | null; nome_od?: string | null; nome_os?: string | null;
+};
+
+/** Tipo di istruzioni per un occhio: null se non riconosciuto; 'operatore' per prodotti che il negozio vuole seguire di persona. */
+function careForEye(product: unknown, tipo: unknown, nome: unknown): CareDoc | 'operatore' | null {
+  const p = String(product || '').trim().toLowerCase();
+  if (p) {
+    if (p === 'permanenza') return 'operatore';
+    if (p.startsWith('ortok') || p.startsWith('ortho')) return 'ortok';
+    if (p.startsWith('scl')) return 'sclerali';
+    if (p.startsWith('rgp')) return 'rgp';
+    return 'morbide';
+  }
+  const n = String(nome || '').trim().toLowerCase(), t = String(tipo || '').trim().toLowerCase();
+  if (/\bok[- ]?pro\b|ortho|orto[- ]?k|ortok|notturn/.test(n)) return 'ortok';
+  if (/scler/.test(n) || /scler/.test(t)) return 'sclerali';
+  if (t.startsWith('rgp') || /rigid/.test(t)) return 'rgp';
+  if (t.startsWith('morbid')) return 'morbide';
+  return null;
+}
+
+/**
+ * Documento di pulizia per l'ultima scheda LAC. Perossido spuntato vince; occhi con tipi diversi o
+ * prodotti da seguire di persona (permanenza) → null (risponde l'operatore).
+ */
+export function careDoc(c: LacCare | null | undefined): CareDoc | null {
+  if (!c) return null;
+  if (c.perossido) return 'perossido';
+  const eyes = [careForEye(c.prodotto_od, c.tipo_od, c.nome_od), careForEye(c.prodotto_os, c.tipo_os, c.nome_os)].filter((x) => x !== null);
+  if (!eyes.length || eyes.includes('operatore')) return null;
+  return eyes.every((x) => x === eyes[0]) ? eyes[0] as CareDoc : null;
 }
