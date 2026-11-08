@@ -34,6 +34,8 @@ Deno.serve(async req=>{
  if(req.method!=='POST')return out({ok:false},405);
  const b=await req.json().catch(()=>({}));
  if(!(await rpc('optyker_wa_cron_ok',{p_token:String(b.token||'')}).catch(()=>false)))return out({ok:false},403);
+ // Assistente IA: risposte di riserva scadute (operatore in chat che non ha risposto entro il tempo impostato).
+ EdgeRuntime.waitUntil(fetch(U+'/functions/v1/optyker-whatsapp-ai',{method:'POST',headers:{'Content-Type':'application/json',authorization:'Bearer '+K},body:JSON.stringify({mode:'followups'})}).then(r=>r.body?.cancel()).catch(e=>console.error('optyker-whatsapp-ai followups',String(e))));
  const due:any[]=await rpc('optyker_wa_due');const res={due:due.length,sent:0,failed:0,skipped:0,waiting_template:0,retry_later:0,last_retry:''};
  if(!due.length)return out({ok:true,...res});
  let ok:Set<string>;try{ok=await approved()}catch(e){return out({ok:false,error:String((e as Error).message),...res})}
