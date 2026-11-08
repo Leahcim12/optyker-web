@@ -37,3 +37,7 @@ python scripts/check_desktop_html.py
 # WhatsApp 20261108: il pulsante WhatsApp della chat ricontrolla il collegamento al primo clic.
 python scripts/apply_wa_chat_retry_20261108.py
 python scripts/check_desktop_html.py
+
+# WhatsApp 20261108: istruzioni di pulizia LAC (PDF) e casella Perossido nella scheda LAC.
+python scripts/apply_wa_lac_care_20261108.py
+python scripts/check_desktop_html.py
