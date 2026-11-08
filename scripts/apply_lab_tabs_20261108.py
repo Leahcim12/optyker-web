@@ -1,4 +1,4 @@
-"""Laboratorio 20261108: buste separate in In corso, In preparazione, Consegnate e Annullate.
+"""Laboratorio 20261108: buste separate per stato (Inserite, In preparazione, In lavorazione, In spedizione, Pronte, Consegnate, Annullate).
 
 Copies lab-status-tabs.js with a content hash and loads it in the three desktop entry points.
 """
@@ -20,4 +20,4 @@ for rel in ('index.html', 'gestionale-v2/index.html', 'gestionale-v3/index.html'
         raise SystemExit('Laboratorio: desktop entry point changed in ' + rel)
     html = html.replace('</head>', tag + '\n</head>', 1)
     path.write_text(html, encoding='utf-8')
-print('Laboratorio: schede In corso, In preparazione, Consegnate, Annullate incluse nei tre accessi desktop')
+print('Laboratorio: schede per stato incluse nei tre accessi desktop')

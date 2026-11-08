@@ -1,18 +1,21 @@
-/* Optyker Laboratorio: separa le buste in quattro schede (In corso, In preparazione, Consegnate, Annullate).
+/* Optyker Laboratorio: separa le buste in una scheda per stato, nell'ordine del lavoro.
    Non cambia il caricamento né il salvataggio: legge lo stato dal menu di ogni scheda e mostra solo quelle della scheda scelta. */
 (function () {
 'use strict';
 if (window.OPTYKER_LAB_TABS) return;
 window.OPTYKER_LAB_TABS = '20261108';
 const TABS = [
-  { id: 'open', label: 'In corso', match: (s) => !['in_preparazione', 'completato', 'annullato'].includes(s) },
+  { id: 'new', label: 'Inserite', match: (s) => s === 'da_fare' || !s },
   { id: 'prep', label: 'In preparazione', match: (s) => s === 'in_preparazione' },
+  { id: 'work', label: 'In lavorazione', match: (s) => s === 'costruzione' },
+  { id: 'ship', label: 'In spedizione', match: (s) => s === 'in_spedizione' },
+  { id: 'ready', label: 'Pronte per la consegna', match: (s) => s === 'pronto_consegna' },
   { id: 'done', label: 'Consegnate', match: (s) => s === 'completato' },
   { id: 'cancelled', label: 'Annullate', match: (s) => s === 'annullato' },
 ];
-let active = 'open', busy = false;
-try { active = localStorage.getItem('optykerLabTab') || 'open'; } catch (e) { /* ignore */ }
-if (!TABS.some((t) => t.id === active)) active = 'open';
+let active = 'new', busy = false;
+try { active = localStorage.getItem('optykerLabTab') || 'new'; } catch (e) { /* ignore */ }
+if (!TABS.some((t) => t.id === active)) active = 'new';
 
 function bar(list) {
   let b = document.getElementById('labStatusTabs');
@@ -39,7 +42,7 @@ function apply() {
   try {
     const b = bar(list);
     const cards = [...list.querySelectorAll('.labCard')];
-    const counts = { open: 0, prep: 0, done: 0, cancelled: 0 };
+    const counts = Object.fromEntries(TABS.map((t) => [t.id, 0]));
     for (const c of cards) {
       const s = c.querySelector('.labStatusBox select')?.value || '';
       const tab = TABS.find((t) => t.match(s)) || TABS[0];
