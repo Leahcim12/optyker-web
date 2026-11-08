@@ -12,7 +12,9 @@ const out=(x:unknown,s=200)=>new Response(JSON.stringify(x),{status:s,headers:{'
 const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
 async function rpc(name:string,p:unknown={}){const r=await fetch(U+'/rest/v1/rpc/'+name,{method:'POST',headers:H,body:JSON.stringify(p)});const x=await r.json().catch(()=>null);if(!r.ok)throw new Error(name+': '+JSON.stringify(x).slice(0,300));return x}
 const digits=(v:any)=>String(v||'').replace(/\D/g,'');
-function normalize(v:any,cc='39'){let d=digits(v);if(d.startsWith('00'))d=d.slice(2);if(!d)return'';if(d.startsWith(cc)&&d.length>9)return d;return cc+d}
+// 9-10 cifre = numero nazionale (anche i cellulari che iniziano per 39, es. 392...): si aggiunge il prefisso.
+// 11 cifre o più = già con prefisso internazionale (39... o estero).
+function normalize(v:any,cc='39'){let d=digits(v);if(d.startsWith('00'))d=d.slice(2);if(!d)return'';if(d.length>=11)return d;return cc+d}
 const key=()=>String(Deno.env.get('D360_API_KEY')||'').trim();
 class Retry extends Error{}
 async function approved():Promise<Set<string>>{const r=await fetch('https://waba-v2.360dialog.io/v1/configs/templates',{signal:AbortSignal.timeout(20000),headers:{'D360-API-KEY':key()}});const x=await r.json().catch(()=>({}));if(!r.ok)throw new Error('templates HTTP '+r.status);return new Set((x.waba_templates||x.data||[]).filter((t:any)=>String(t.status).toLowerCase()==='approved'&&String(t.language).startsWith('it')).map((t:any)=>String(t.name)))}
@@ -34,6 +36,8 @@ Deno.serve(async req=>{
  if(req.method!=='POST')return out({ok:false},405);
  const b=await req.json().catch(()=>({}));
  if(!(await rpc('optyker_wa_cron_ok',{p_token:String(b.token||'')}).catch(()=>false)))return out({ok:false},403);
+ // Assistente IA: risposte di riserva scadute (operatore in chat che non ha risposto entro il tempo impostato).
+ EdgeRuntime.waitUntil(fetch(U+'/functions/v1/optyker-whatsapp-ai',{method:'POST',headers:{'Content-Type':'application/json',authorization:'Bearer '+K},body:JSON.stringify({mode:'followups'})}).then(r=>r.body?.cancel()).catch(e=>console.error('optyker-whatsapp-ai followups',String(e))));
  const due:any[]=await rpc('optyker_wa_due');const res={due:due.length,sent:0,failed:0,skipped:0,waiting_template:0,retry_later:0,last_retry:''};
  if(!due.length)return out({ok:true,...res});
  let ok:Set<string>;try{ok=await approved()}catch(e){return out({ok:false,error:String((e as Error).message),...res})}

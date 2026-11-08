@@ -51,6 +51,16 @@ Prova senza inviare niente: `optyker-whatsapp-ai` con `mode: "dry_run"` e un tok
 
 `optyker-whatsapp-automations` (ogni minuto da pg_cron) invia i modelli uno alla volta: al massimo 12 per esecuzione, 2,5 secondi tra un invio e l'altro, un solo messaggio per numero a ogni esecuzione. Se 360dialog o Meta rispondono con un limite ("troppe richieste") il messaggio torna in coda e si riprova al minuto dopo: non viene più segnato come fallito. Il motivo dell'ultimo blocco è nel campo `last_retry` della risposta (tabella `net._http_response`).
 
+### Numeri di telefono
+
+I numeri dell'anagrafica con 9 o 10 cifre sono nazionali e ricevono il prefisso 39, **anche i cellulari che iniziano per 39** (392…, 393…); con 11 cifre o più sono già internazionali (`0039…` diventa `39…`). Fino all'8/11/2026 i cellulari 39x a 10 cifre venivano scartati come "Numero non valido" (6 messaggi): corretto in `optyker-whatsapp-automations`, `optyker-whatsapp-360` e `optyker-whatsapp-api`, e i richiami saltati sono stati rimessi in coda.
+
+### Elenco giornaliero dei clienti non raggiunti
+
+`optyker_wa_unreachable_report(da, a)` (solo server, contiene dati personali) elenca i messaggi automatici non arrivati: numero non valido in anagrafica, non raggiungibile su WhatsApp (di solito il numero non ha WhatsApp), altri errori; aggiunge un suggerimento se il cellulare ha 9 cifre o se è un numero fisso. I mancati recapiti contano dall'ora in cui WhatsApp li segnala, così chiedendo un giorno dopo l'altro niente va perso o si ripete.
+
+Ogni mattina alle 7:32 un'attività pianificata di Claude ("Report WhatsApp non consegnati") esegue il report del giorno prima e lo manda via email a molognicompany@gmail.com (anche quando non ci sono problemi).
+
 ## Da sapere
 
 - Lo stato delle buste passa da solo a "pronto" alla data prevista se nessuno lo cambia a mano: se il laboratorio è in ritardo, aggiornare lo stato in Optyker, altrimenti l'assistente dirà che è pronto.
