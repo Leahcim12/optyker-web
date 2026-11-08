@@ -27,6 +27,8 @@ export type Settings = {
   effort?: string | null;
   operator_pause_hours: number;
   handoff_wait_hours: number;
+  /** Minuti dopo i quali l'assistente risponde sugli appuntamenti se l'operatore che segue la chat non risponde (0 = mai). */
+  operator_fallback_minutes?: number | null;
   signature: string;
   store_info: string;
 };
@@ -78,7 +80,7 @@ export function gate(input: {
   now: Date;
   messages: Msg[];
   lastHandoffAt: string | null;
-}): { ok: true } | { ok: false; reason: string; log: boolean } {
+}): { ok: true } | { ok: false; reason: string; log: boolean; fallback?: boolean } {
   const s = input.settings;
   if (!s || !s.enabled) return { ok: false, reason: 'assistente spento', log: false };
   const tests = (s.test_phones || []).filter((p) => digits(p).length >= 9);
@@ -87,14 +89,41 @@ export function gate(input: {
   }
   const operator = input.messages.filter(isOperatorMessage).sort(byTime).pop()?.created_at || null;
   if (operator && hoursAgo(input.now, operator) < Number(s.operator_pause_hours ?? 12)) {
-    return { ok: false, reason: 'un operatore ha scritto di recente in questa chat', log: true };
+    return { ok: false, reason: 'un operatore ha scritto di recente in questa chat', log: true, fallback: true };
   }
   const h = input.lastHandoffAt;
   if (h && hoursAgo(input.now, h) < Number(s.handoff_wait_hours ?? 48)) {
     const answered = !!operator && Date.parse(operator) > Date.parse(h);
-    if (!answered) return { ok: false, reason: 'la chat è in attesa della risposta di un operatore', log: true };
+    if (!answered) return { ok: false, reason: 'la chat è in attesa della risposta di un operatore', log: true, fallback: true };
   }
   return { ok: true };
+}
+
+/** Minuti di attesa della risposta di riserva (0 = spenta). */
+export function fallbackMinutes(s: Settings | null): number {
+  const n = Number(s?.operator_fallback_minutes ?? 30);
+  return Number.isFinite(n) && n > 0 ? Math.min(n, 1440) : 0;
+}
+
+/**
+ * Risposta di riserva: un operatore segue la chat ma non ha risposto. true se dopo il messaggio del cliente
+ * (inboundAt) nessuno del negozio ha scritto: né un operatore né l'assistente (gli invii automatici non contano).
+ */
+export function unanswered(messages: Msg[], inboundAt: string): boolean {
+  const t = Date.parse(inboundAt);
+  return !messages.some((m) =>
+    m.direction === 'outbound' && Date.parse(m.created_at) > t &&
+    (isOperatorMessage(m) || m.sender_name === BOT_SENDER)
+  );
+}
+
+/**
+ * true se, tra i messaggi scritti da persone del negozio e dall'assistente, l'ultimo è dell'assistente:
+ * dopo una risposta di riserva l'assistente continua subito la conversazione (solo appuntamenti), senza riattendere.
+ */
+export function botHasTurn(messages: Msg[]): boolean {
+  const last = messages.filter((m) => isOperatorMessage(m) || (m.direction === 'outbound' && m.sender_name === BOT_SENDER)).sort(byTime).pop();
+  return !!last && last.sender_name === BOT_SENDER;
 }
 
 /** Messaggi del cliente arrivati dopo l'ultimo messaggio del negozio (massimo 24 ore), dal più vecchio. */
@@ -199,6 +228,8 @@ export function buildUserMessage(input: {
   history: Msg[];
   pending: Msg[];
   signature: string;
+  /** Risposta di riserva: un operatore segue la chat ma non ha risposto entro questi minuti. */
+  fallbackAfterMinutes?: number;
 }): string {
   const line = (m: Msg) => `[${shortStamp(m.created_at)}] ${senderLabel(m)}: ${clean(stripSignature(String(m.message || ''), input.signature)) || '(vuoto)'}`;
   const clients = input.clients.length
@@ -217,6 +248,13 @@ export function buildUserMessage(input: {
     'NUOVI MESSAGGI DEL CLIENTE da valutare ora:',
     input.pending.map(line).join('\n'),
     '',
+    ...(input.fallbackAfterMinutes ? [
+      `ATTENZIONE: in questa chat sta scrivendo un operatore del negozio, ma non ha risposto entro ${input.fallbackAfterMinutes} minuti e la conversazione la segui tu. ` +
+      'Rispondi SOLO se i nuovi messaggi riguardano appuntamenti (sapere quando è il prossimo, prenotarne uno, spostarlo o disdirlo) ' +
+      'e solo per quella parte di cui sei sicuro; per qualsiasi altro argomento chiama passa_all_operatore. ' +
+      'Non dire che l\'operatore è assente e non scusarti per l\'attesa: rispondi direttamente alla richiesta.',
+      '',
+    ] : []),
     'Decidi seguendo le regole e concludi con rispondi, nessuna_risposta oppure passa_all_operatore.',
   ].join('\n');
 }
