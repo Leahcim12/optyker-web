@@ -33,3 +33,7 @@ python scripts/check_desktop_html.py
 node --check wa-recall-control.js
 python scripts/apply_wa_recall_20261107.py
 python scripts/check_desktop_html.py
+
+# WhatsApp 20261108: il pulsante WhatsApp della chat ricontrolla il collegamento al primo clic.
+python scripts/apply_wa_chat_retry_20261108.py
+python scripts/check_desktop_html.py
