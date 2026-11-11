@@ -46,3 +46,7 @@ python scripts/check_desktop_html.py
 node --check lab-status-tabs.js
 python scripts/apply_lab_tabs_20261108.py
 python scripts/check_desktop_html.py
+
+# Agenda 20261111: «Forza appuntamento» anche con studio o operatore occupato (avviso prima della conferma).
+python scripts/apply_agenda_force_occupied_20261111.py
+python scripts/check_desktop_html.py

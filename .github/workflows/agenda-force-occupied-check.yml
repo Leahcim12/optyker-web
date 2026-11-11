@@ -1,0 +1,54 @@
+name: Verifica Agenda forzatura con studio occupato
+on:
+  push:
+    branches: [agenda-forza-studio-occupato]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build the exact Vercel artifact
+        env:
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          python3 -m py_compile scripts/apply_agenda_force_occupied_20261111.py
+          bash scripts/vercel-build-20261013.sh
+          test -s _site/agenda-force-occupied-version.json
+      - name: Install isolated browser
+        run: |
+          npm install --prefix /tmp/browser playwright@1.55.0
+          /tmp/browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Forced booking with busy studio or operator (mocked APIs, no real data)
+        env:
+          NODE_PATH: /tmp/browser/node_modules
+          AGENDA_FORCE_SCREENSHOT: agenda-check/agenda-force-occupied.png
+        run: |
+          mkdir -p agenda-check
+          node tests/agenda-force-occupied.test.cjs
+      - name: Print the synthetic screenshot for review
+        run: base64 -w 0 agenda-check/agenda-force-occupied.png | fold -w 8000 | sed 's/^/SCREENSHOT_B64:/'
+      - name: Existing agenda flows (mocked APIs, no real data)
+        env:
+          NODE_PATH: /tmp/browser/node_modules
+          AGENDA_TEST_SCREENSHOT: agenda-check/agenda-search.png
+        run: node tests/client-search-agenda.test.cjs
+      - name: Archive the built site for review
+        if: always()
+        run: |
+          mkdir -p agenda-check
+          if [ -d _site ]; then python3 -c "import shutil; shutil.make_archive('agenda-check/site', 'zip', '_site')"; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: agenda-force-occupied-check
+          path: agenda-check/
+          retention-days: 3
