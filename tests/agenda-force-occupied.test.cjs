@@ -43,7 +43,10 @@ const {chromium}=require('playwright');
    }
    return route.fulfill({status:204,body:''});
  });
- const status=()=>page.locator('#oaNewStatus');
+ const notice=()=>page.locator('#oaForceOverlapNotice');
+ const noticeText=()=>page.evaluate(()=>{const e=document.getElementById('oaForceOverlapNotice');return e&&!e.hidden&&e.offsetParent?e.textContent:''});
+ const waitNotice=re=>page.waitForFunction(src=>{const e=document.getElementById('oaForceOverlapNotice');return!!e&&!e.hidden&&!!e.offsetParent&&new RegExp(src).test(e.textContent)},re.source);
+ const waitNoNotice=()=>page.waitForFunction(()=>{const e=document.getElementById('oaForceOverlapNotice');return!!e&&e.hidden&&!e.offsetParent});
  async function openForced(service,time){
    await page.click('#oaNew');await page.waitForSelector('#oaNewModal.open');
    await page.selectOption('#oaService',service.id);
@@ -62,50 +65,53 @@ const {chromium}=require('playwright');
    await page.waitForFunction(()=>window.optykerAuthenticated===true);errors.length=0;
    await page.evaluate(()=>optykerOpenAppointments());
 
-   // 1. Only studio for the service is busy: booking enabled, warning shown, overlap submitted.
+   // 1. Only studio for the service is busy: booking enabled, warning next to the force option, overlap submitted.
    await openForced(exam,'03:00');
    const box=await page.locator('#oaForceBox').textContent();
    assert(box.includes('con studio occupato'),box);assert(box.includes('già occupati'),box);
    assert(!box.includes('restano bloccate'),box);
-   await page.waitForFunction(()=>document.getElementById('oaNewStatus').textContent.includes('Studio 1 è già occupato'));
-   assert(await status().evaluate(e=>e.classList.contains('warn')&&!e.classList.contains('bad')));
+   await waitNotice(/^Attenzione: Studio 1 è già occupato in questo orario\. L’appuntamento verrà inserito comunque, sovrapposto\.$/);
    assert.equal(await page.inputValue('#oaOperator'),'');
    await page.locator('#oaForceBox').scrollIntoViewIfNeeded();
    await page.locator('#oaNewModal .oaCard').screenshot({path:process.env.AGENDA_FORCE_SCREENSHOT||'/tmp/agenda-force-occupied.png'});
    await page.selectOption('#oaOperator',op);
-   await page.waitForFunction(()=>/Studio 1 è già occupato e MICHAEL MOLOGNI ha già un appuntamento/.test(document.getElementById('oaNewStatus').textContent));
+   await waitNotice(/Studio 1 è già occupato e MICHAEL MOLOGNI ha già un appuntamento in questo orario/);
    assert(!(await page.locator('#oaCreate').isDisabled()));
    await confirm('Studio occupato');
    assert.equal(writes.length,1);
    assert.equal(writes[0].force_time,true);assert.equal(writes[0].studio_id,studio1.id);assert.equal(writes[0].operator_username,op);
 
-   // 2. A free studio exists: it is chosen first and no warning appears.
+   // 2. Reopening the window clears the old warning; a free studio is chosen first, without warning.
    scenario='free';
+   await page.click('#oaNew');await page.waitForSelector('#oaNewModal.open');
+   assert.equal(await notice().evaluate(e=>e.hidden),true);await page.click('[data-oac="new"]');
    await openForced(exam,'03:30');
-   assert.equal((await status().textContent()).trim(),'');
+   await waitNoNotice();
    await confirm('Studio libero');
    assert.equal(writes.length,2);assert.equal(writes[1].studio_id,studio2.id);assert.equal(writes[1].operator_username,null);
 
    // 3. Service without studio: busy operator warned, unassigned booking clean.
    await openForced(pickup,'04:00');
-   assert.equal((await status().textContent()).trim(),'');
+   await waitNoNotice();
    await page.selectOption('#oaOperator',op);
-   await page.waitForFunction(()=>document.getElementById('oaNewStatus').textContent.includes('MICHAEL MOLOGNI ha già un appuntamento'));
+   await waitNotice(/^Attenzione: MICHAEL MOLOGNI ha già un appuntamento in questo orario/);
    await page.selectOption('#oaOperator','');
-   await page.waitForFunction(()=>document.getElementById('oaNewStatus').textContent.trim()==='');
+   await waitNoNotice();
    await confirm('Senza studio');
    assert.equal(writes.length,3);assert.equal(writes[2].studio_id,null);assert.equal(writes[2].force_time,true);
 
-   // 4. Unchecking the force clears the warning and disables ordinary booking outside hours.
+   // 4. Unchecking the force hides the warning and ordinary booking outside hours stays disabled.
    scenario='busy';
    await openForced(exam,'05:00');
-   await page.waitForFunction(()=>document.getElementById('oaNewStatus').classList.contains('warn'));
+   await waitNotice(/Studio 1 è già occupato/);
    await page.uncheck('#oaForceClosed');
-   await page.waitForFunction(()=>!document.getElementById('oaNewStatus').classList.contains('warn'));
+   await waitNoNotice();
    assert(await page.locator('#oaCreate').isDisabled());
+   assert.equal(await noticeText(),'');
    await page.click('[data-oac="new"]');
    assert.equal(writes.length,3);assert(forceCalls.length>=4);assert.deepEqual(errors,[]);
-   console.log(JSON.stringify({ok:true,checks:['busy studio bookable with warning','busy operator named in warning','free studio preferred without warning',
-     'service without studio','force texts updated','unchecking force restores ordinary rules'],synthetic_writes:writes.length,page_errors:errors}));
+   console.log(JSON.stringify({ok:true,checks:['busy studio bookable with warning in the force box','busy operator named in warning','reopened window starts clean',
+     'free studio preferred without warning','service without studio','force texts updated','unchecking force hides warning and restores ordinary rules'],
+     synthetic_writes:writes.length,page_errors:errors}));
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

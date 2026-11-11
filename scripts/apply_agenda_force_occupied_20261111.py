@@ -4,8 +4,8 @@ Dal 2026-11-11 il database (migrazione 20261111133649_agenda_force_occupied) pro
 tutti gli studi abilitati per il servizio, prima quelli liberi, e salva l'appuntamento anche se lo studio
 o l'operatore sono già occupati (sovrapposizione forzata). Gli operatori segnati assenti restano esclusi.
 
-Questo passo aggiorna i testi della finestra «Nuovo appuntamento» e, prima della conferma, avvisa quando
-l'appuntamento forzato verrà sovrapposto a un altro. Nessuna modifica a dati o API.
+Questo passo aggiorna i testi della finestra «Nuovo appuntamento» e, nel riquadro della forzatura, avvisa
+prima della conferma quando l'appuntamento verrà sovrapposto a un altro. Nessuna modifica a dati o API.
 """
 from pathlib import Path
 import hashlib
@@ -14,44 +14,54 @@ import json
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / '_site'
 MARK = 'OPTYKER_AGENDA_FORCE_OCCUPIED_20261111'
-VERSION = '20261111-force-occupied1'
+VERSION = '20261111-force-occupied2'
 
-# Runs inside the native agenda closure (E and the force rows of the selected slot).
+# Runs inside the native agenda closure. r is the forced option chosen for the new appointment
+# (studio_busy/operator_busy come from optyker_force_booking_candidates); null hides the warning.
 NOTICE = (
     "/* " + MARK + " */\n"
-    "function oaForceOverlapNotice(r){var e=E('oaNewStatus');if(!e)return;r=r||{};"
+    "function oaForceOverlapNotice(r){var e=E('oaForceOverlapNotice');if(!e)return;r=r||{};"
     "var who=String(r.operator_username||'').trim(),busy=[];"
     "if(r.studio_busy)busy.push((r.studio_name||'Lo studio')+' è già occupato');"
     "if(r.operator_busy&&who)busy.push(who+' ha già un appuntamento');"
-    "e.textContent=busy.length?busy.join(' e ')+' in questo orario: con la forzatura l’appuntamento viene inserito comunque, sovrapposto.':'';"
-    "e.className='oaStatus'+(busy.length?' warn':'')}\n"
+    "e.textContent=busy.length?'Attenzione: '+busy.join(' e ')+' in questo orario. L’appuntamento verrà inserito comunque, sovrapposto.':'';"
+    "e.hidden=!busy.length}\n"
 )
 
 REPLACEMENTS = [
-    # Force box: the option now covers busy studios too.
+    # Force box: the option now covers busy studios too, with room for the warning.
     ('<input id="oaForceClosed" type="checkbox"> Forza appuntamento anche fuori dagli orari di apertura</label>',
      '<input id="oaForceClosed" type="checkbox"> Forza appuntamento anche fuori orario o con studio occupato</label>'),
-    ('Puoi lasciare l’operatore non assegnato. Le sovrapposizioni nello stesso studio restano bloccate.',
-     'Puoi lasciare l’operatore non assegnato. L’appuntamento viene inserito anche se lo studio o l’operatore sono già occupati.'),
+    ('Puoi lasciare l’operatore non assegnato. Le sovrapposizioni nello stesso studio restano bloccate.</div>',
+     'Puoi lasciare l’operatore non assegnato. L’appuntamento viene inserito anche se lo studio o l’operatore sono già occupati.</div>'
+     '<div id="oaForceOverlapNotice" class="oaForceOverlapNotice" role="status" aria-live="polite" hidden></div>'),
     ('<div class="oaOperatorHint">Sono mostrati solo gli operatori in turno, non assenti e liberi in quell’orario.</div>',
      '<div class="oaOperatorHint">Sono mostrati solo gli operatori in turno, non assenti e liberi in quell’orario. '
      'Con la forzatura anche quelli già impegnati o fuori turno, mai quelli assenti.</div>'),
-    # Warning before confirming a forced overlap (studio and services without studio).
+    # Warning for the forced option actually selected (studio, or services without studio).
     ('function oaSetStudios(rows,starts,forced){',
      NOTICE + 'function oaSetStudios(rows,starts,forced){'),
     ("force_time:!!forced};E('oaCreate').disabled=false}}",
-     "force_time:!!forced};E('oaCreate').disabled=false;if(forced)oaForceOverlapNotice(r)}}"),
+     "force_time:!!forced};E('oaCreate').disabled=false;oaForceOverlapNotice(forced?r:null)}}"),
     ("E('oaStudio').innerHTML='<option value=\"\">Nessuno studio necessario</option>';E('oaCreate').disabled=false;return}",
      "E('oaStudio').innerHTML='<option value=\"\">Nessuno studio necessario</option>';E('oaCreate').disabled=false;"
-     "if(forced)oaForceOverlapNotice(r);return}"),
+     "oaForceOverlapNotice(forced?r:null);return}"),
+    # Any reset of time, operator or studio, a new check of the time and a new window hide an old warning.
+    ('function oaResetStudio(msg){S.slot=null;',
+     'function oaResetStudio(msg){oaForceOverlapNotice(null);S.slot=null;'),
+    ('function oaManualChanged(){var request=++oaManualRequest;',
+     'function oaManualChanged(){oaForceOverlapNotice(null);var request=++oaManualRequest;'),
+    ("E('oaManualTime').value='';E('oaForceClosed').checked=false;",
+     "E('oaManualTime').value='';E('oaForceClosed').checked=false;oaForceOverlapNotice(null);"),
     # With forcing, no options only means that no active studio is enabled for the service.
     ("status('oaNewStatus','Nessuno studio libero per questo servizio in questo orario.',true)",
      "status('oaNewStatus','Nessuno studio attivo è abilitato per questo servizio.',true)"),
 ]
 
 CSS = ('<style id="optykerAgendaForceOccupiedCss">/* ' + MARK + ' */\n'
-       '#oaNewModal #oaNewStatus.oaStatus.warn{color:#7a4b00!important;background:#fff4d6;border:1px solid #e9c46a;'
-       'border-radius:8px;margin:8px 13px 0;padding:8px 11px!important;font-size:11px!important;font-weight:800;line-height:1.4}\n'
+       '#oaForceBox .oaForceOverlapNotice{margin-top:8px;padding:8px 10px;border-radius:8px;background:#ffe9a8;'
+       'border:1px solid #d9a521;color:#5c3b00;font-size:11px;font-weight:800;line-height:1.4}\n'
+       '#oaForceBox .oaForceOverlapNotice[hidden]{display:none!important}\n'
        '</style>\n')
 
 
@@ -76,7 +86,7 @@ for rel in ('index.html', 'gestionale-v2/index.html', 'gestionale-v3/index.html'
     path.write_text(updated, encoding='utf-8')
 
 main = (SITE / 'index.html').read_text(encoding='utf-8')
-for needle in [MARK, 'function oaForceOverlapNotice(r)', 'if(forced)oaForceOverlapNotice(r)}}',
+for needle in [MARK, 'function oaForceOverlapNotice(r)', 'id="oaForceOverlapNotice"', 'oaForceOverlapNotice(forced?r:null)}}',
                'con studio occupato', 'optykerAgendaForceOccupiedCss']:
     if needle not in main:
         raise SystemExit('Agenda forzatura incompleta: ' + needle)
