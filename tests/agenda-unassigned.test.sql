@@ -19,7 +19,7 @@ begin
   appointment:=(result#>>'{data,id}')::uuid;
   assert exists(select 1 from public.optyker_appointments where id=appointment and operator_username is null and source='staff' and created_by=actor and private_notes='private test');
   second_result:=public.optyker_book_unassigned_staff(actor,payload);
-  assert second_result->>'ok'='false','Occupied studio must remain blocked';
+  assert second_result->>'ok'='true' and second_result#>>'{data,forced_overlap}'='true','Forced booking must overlap a busy studio (20261111)';
   assert public.optyker_book_unassigned_staff(actor,payload||'{"force_time":false}'::jsonb)->>'ok'='false';
   assert public.optyker_book_unassigned_staff('__NOT_A_STAFF_ACCOUNT__',payload)->>'ok'='false';
   assert public.optyker_appointments_api('__NOT_A_STAFF_ACCOUNT__','invalid','appointment_create',payload)->>'ok'='false';
