@@ -2,7 +2,7 @@
 from pathlib import Path
 import re,json,hashlib
 ROOT=Path(__file__).resolve().parent.parent
-VERSION='20260921-balance1'
+VERSION='20261113-repeat1'
 MARK='OPTYKER_RECORDED_BALANCES_20260921'
 def main():
  site=ROOT/'_site';cash=site/'cash-register.js';s=cash.read_text()

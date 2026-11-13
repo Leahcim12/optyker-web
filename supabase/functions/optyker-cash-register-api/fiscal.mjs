@@ -28,11 +28,10 @@ function allocated(weights, amount) {
 export function paymentDocument(lines, method, amount, paidBefore, identity, flags={}) {
   const weights=lines.map(l=>cents(l.price)*Number(l.quantity));
   const before=cents(paidBefore),paid=cents(amount),total=weights.reduce((a,b)=>a+b,0);
-  if(before!==0&&before+paid!==total)throw new Error('È previsto il saldo completo del residuo');
   const start=allocated(weights,before),end=allocated(weights,before+paid);
   const partial=paid!==total;
   const input={not_already_issued:true,talking_receipt:!!identity,ts_requested:flags.ts===true,opposition:flags.opposition===true,
-    lines:lines.map((l,i)=>({description:(partial?(before?'SALDO ':'ACCONTO '):'')+l.title,
+    lines:lines.map((l,i)=>({description:(partial?(before+paid===total?'SALDO ':'ACCONTO '):'')+l.title,
       quantity:partial?1:Number(l.quantity),unit_price:partial?(end[i]-start[i])/100:l.price,
       department:l.fiscal_department,expense_code:flags.ts?(flags.code==='AA'?'AA':'AD'):'none'})).filter(l=>Number(l.unit_price)>0)};
   if(flags.ts&&flags.code==='AA'&&method==='cash')throw new Error('Le spese AA richiedono un pagamento tracciabile');

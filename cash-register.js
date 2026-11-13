@@ -485,14 +485,19 @@ function settleExisting(saleId,stage,modal){
   var tsOpp=!!(E('optykerCashTsOpposition')&&E('optykerCashTsOpposition').checked);
   if(ts&&inv){toast('Per una spesa Sistema TS non usare la fattura elettronica.','error');return}
   if(ts&&tsCode==='AA'&&S.payment==='cash'){toast('Le spese AA richiedono un pagamento tracciabile.','error');return}
-  var label=stage==='delivery_balance'?'saldo alla consegna':'saldo';
+  var additional=stage==='deposit',amount=additional?depositAmount():null;
+  if(additional&&!(amount>0&&amount<cartTotal())){toast('Importo acconto non valido.','error');return}
+  if(additional&&inv){toast('Per un acconto successivo usa lo scontrino RCH.','error');return}
+  var requestKey='optykerRepeatDeposit:'+saleId,requestId=additional?sessionStorage.getItem(requestKey):null;
+  if(additional&&!requestId){requestId=crypto.randomUUID();sessionStorage.setItem(requestKey,requestId)}
+  var label=additional?'nuovo acconto di '+euro(amount):stage==='delivery_balance'?'saldo alla consegna':'saldo';
   var extra=inv?'\nVerrà preparata anche la fattura del pagamento.':'';
   if(ts)extra+=tsOpp?'\nVerrà registrata l\'opposizione al Sistema TS.':'\nVerrà preparata la spesa '+tsCode+' per il Sistema TS.';
   if(!inv)extra+='\nLo scontrino verrà stampato con i dati fiscali salvati nella vendita.';
   if(!window.confirm('Registrare il '+label+'?'+extra))return;
   S.busy=true;renderCart();
-  Promise.resolve().then(function(){if(!inv){if(!window.OPTYKER_FISCAL)throw new Error('Modulo RCH non disponibile');return window.OPTYKER_FISCAL.checkReady()}}).then(function(){return api('settle',{auto_receipt:!inv,sale_id:saleId,payment_stage:stage,payment_method:S.payment,invoice_requested:inv,ts_requested:ts,ts_expense_code:tsCode,ts_opposition:tsOpp,note:String(E('optykerCashNote').value||'')})})
-    .then(function(x){var sale=x.data||{};var t='Saldo registrato'+(sale.billing_invoice?' · richiesta Fatture in Cloud preparata':'');if(sale.ts_document)t+=sale.ts_document.opposition?' · opposizione TS registrata':' · spesa TS collegata al documento';toast(t,'ok');if(modal)modal.classList.remove('open');if(!inv&&window.OPTYKER_FISCAL){if(sale.payment&&sale.payment.data&&sale.payment.data.fiscal_snapshot)return window.OPTYKER_FISCAL.issuePayment(sale.id,sale.payment.id);return window.OPTYKER_FISCAL.openSale(sale.id)}else openDeposits()})
+  Promise.resolve().then(function(){if(!inv){if(!window.OPTYKER_FISCAL)throw new Error('Modulo RCH non disponibile');return window.OPTYKER_FISCAL.checkReady()}}).then(function(){return api('settle',{auto_receipt:!inv,sale_id:saleId,deposit_amount:amount,request_id:requestId,payment_stage:stage,payment_method:S.payment,invoice_requested:inv,ts_requested:ts,ts_expense_code:tsCode,ts_opposition:tsOpp,note:String(E('optykerCashNote').value||'')})})
+    .then(function(x){var sale=x.data||{};var t='Saldo registrato'+(sale.billing_invoice?' · richiesta Fatture in Cloud preparata':'');if(sale.ts_document)t+=sale.ts_document.opposition?' · opposizione TS registrata':' · spesa TS collegata al documento';if(additional){sessionStorage.removeItem(requestKey);t='Acconto registrato · '+euro(amount)}toast(t,'ok');if(modal)modal.classList.remove('open');if(!inv&&window.OPTYKER_FISCAL){if(sale.payment&&sale.payment.data&&sale.payment.data.fiscal_snapshot)return window.OPTYKER_FISCAL.issuePayment(sale.id,sale.payment.id);return window.OPTYKER_FISCAL.openSale(sale.id)}else openDeposits()})
     .catch(function(e){toast('Verifica esito saldo: '+e.message,'error')}).finally(function(){S.busy=false;renderCart()})
 }
 function openTsDocuments(){

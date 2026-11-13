@@ -1,5 +1,5 @@
 /* OPTYKER_RECORDED_BALANCES_20260921: server-recorded deposits, no price/payment rewrites. */
-window.OPTYKER_RECORDED_BALANCES_VERSION='20260921-balance1';
+window.OPTYKER_RECORDED_BALANCES_VERSION='20261113-repeat1';
 var recordedBalance={seq:0,key:'',requested:'',data:null,loading:false,error:'',timer:0,controller:null,checking:false};
 function balanceKey(){return JSON.stringify([String(S.clientId||''),cartRows().map(function(r){return [String(r.item.variant_id),Number(r.qty)]}).sort(function(a,b){return a[0].localeCompare(b[0])})])}
 function balanceData(){return recordedBalance.key===balanceKey()?recordedBalance.data:null}
@@ -54,10 +54,10 @@ function balancePaint(){
  if(linked.length){
   var ids=new Set(linked.map(function(x){return x.group.sale_id})),g=linked[0].group;
   var whole=ids.size===1&&!choice.fresh.length&&g.lines.every(function(l){return linked.some(function(x){return x.line.variant_id===l.variant_id})});
-  b.disabled=!!(S.busy||S.clientCartLoading||S.clientCartError||clientCartHasPending()||!whole||g.due_cents===0||S.stage==='deposit');
+  b.disabled=!!(S.busy||S.clientCartLoading||S.clientCartError||clientCartHasPending()||!whole||g.due_cents===0||(S.stage==='deposit'&&!(depositAmount()>0&&Math.round(depositAmount()*100)<g.due_cents))||S.payment==='mixed'||S.payment==='pending');
   if(total)total.textContent=euro(cartTotal());
   var hint=E('optykerCashBalanceHint');if(!hint){hint=document.createElement('p');hint.id='optykerCashBalanceHint';box.appendChild(hint)}
-  hint.textContent=!whole?'Salda una vendita già registrata alla volta, selezionando tutte le sue righe e togliendo la spunta agli altri articoli.':g.due_cents===0?'Già saldato: usa Consegna, non Incassa.':S.stage==='deposit'?'Acconto già registrato. Seleziona Saldo per incassare soltanto il residuo.':'Con Saldo incassi '+euro(g.due_cents/100)+' sulla vendita esistente, non il prezzo originario.';
+  hint.textContent=!whole?'Salda una vendita già registrata alla volta, selezionando tutte le sue righe e togliendo la spunta agli altri articoli.':g.due_cents===0?'Già saldato: usa Consegna, non Incassa.':S.stage==='deposit'?'Acconto successivo sulla stessa vendita: inserisci un importo inferiore al residuo e scegli il pagamento.':'Con Saldo incassi '+euro(g.due_cents/100)+' sulla vendita esistente, non il prezzo originario.';
  }else {var hint=E('optykerCashBalanceHint');if(hint)hint.remove()}
 }
 var balanceNativeRender=renderCart;
@@ -75,8 +75,8 @@ checkout=async function(){
  var c=balanceChosen();
  if(c.linked.length){
   var g=c.linked[0].group,whole=!c.fresh.length&&c.linked.every(function(x){return x.group.sale_id===g.sale_id})&&g.lines.every(function(l){return c.linked.some(function(x){return x.line.variant_id===l.variant_id})});
-  if(!whole||!g.due_cents||S.stage==='deposit'){balancePaint();return}
-  return settleExisting(g.sale_id,S.stage==='delivery_balance'?'delivery_balance':'balance',null);
+  if(!whole||!g.due_cents||(S.stage==='deposit'&&!(depositAmount()>0&&Math.round(depositAmount()*100)<g.due_cents))){balancePaint();return}
+  return settleExisting(g.sale_id,S.stage==='deposit'?'deposit':S.stage==='delivery_balance'?'delivery_balance':'balance',null);
  }
  return balanceNativeCheckout.apply(this,arguments);
 };

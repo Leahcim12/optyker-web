@@ -601,6 +601,27 @@ async function settleSale(body:any,operator:string){
   const saleId=norm(p.sale_id);if(!saleId)throw new Error("Vendita non selezionata");
   const {data:sale,error}=await db.from("optyker_pos_sales").select("*").eq("id",saleId).maybeSingle();
   if(error)throw error;if(!sale)throw new Error("Vendita non trovata");
+  // Additional deposits never enter the legacy full-balance path.
+  if(norm(p.payment_stage)==='deposit'){
+    const requestId=norm(p.request_id),amount=money(p.deposit_amount),method=norm(p.payment_method);
+    if(!/^[a-f0-9-]{36}$/i.test(requestId)||!(amount>0)||!['cash','card','bank','alma','pagodil','pagolight'].includes(method))throw new Error('Acconto o pagamento non valido');
+    if(p.invoice_requested)throw new Error('Per un acconto successivo usa lo scontrino RCH.');
+    const {data:previous,error:previousError}=await db.from('optyker_pos_payments').select('*').eq('id',requestId).maybeSingle();
+    if(previousError)throw previousError;
+    if(previous){
+      if(previous.sale_id!==saleId||Number(previous.amount)!==amount||previous.payment_method!==method)throw new Error('Richiesta acconto già usata con dati diversi: verifica gli incassi');
+      return {...sale,payment:previous,recovered:true};
+    }
+    if(amount>=money(sale.due_amount))throw new Error('Acconto non valido: deve essere inferiore al residuo');
+    const client=sale.client_id?await clientById(String(sale.client_id)):null;
+    const identity=purchaseIdentity(client,p.fiscal_code||sale.data?.fiscal_identity?.fiscal,!!p.ts_requested);
+    const code=norm(p.ts_expense_code)==='AA'?'AA':'AD';
+    const snapshot=paymentDocument(sale.data?.lines||[],method,amount,sale.paid_amount||0,identity,{ts:!!p.ts_requested,code,opposition:!!p.ts_opposition});
+    const {data:result,error:depositError}=await db.rpc('optyker_repeat_deposit',{p_sale:saleId,p_request:requestId,p_operator:operator,p_amount:amount,p_expected_paid:money(sale.paid_amount),p_method:method,p_snapshot:snapshot,p_note:norm(p.note).slice(0,1000)});
+    if(depositError)throw depositError;
+    // The fiscal snapshot carries the TS fields into the normal RCH pipeline.
+    return {...result.sale,payment:result.payment,recovered:result.recovered};
+  }
   const due=money(sale.due_amount);
   if(due<=0)throw new Error("Questa vendita risulta già saldata.");
   const client=sale.client_id?await clientById(String(sale.client_id)):null;
