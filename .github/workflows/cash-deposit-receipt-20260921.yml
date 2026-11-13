@@ -34,7 +34,7 @@ jobs:
           bash scripts/vercel-finalize-20260914.sh
           node --check _site/cash-register.js
           node --test tests/cash-recorded-balances.test.mjs tests/cash-balance-handler-integrity.test.mjs tests/cash-repeat-deposit.test.mjs tests/cash-automatic.test.mjs
-          grep -Fq 'balances=20261113-repeat1' _site/index.html
+          grep -Fq "OPTYKER_RECORDED_BALANCES_VERSION='20261113-repeat1'" _site/cash-register.js
           python -c "import shutil;shutil.make_archive('/tmp/deposit-check/built','zip','_site')"
       - name: Browser dependencies
         run: |
