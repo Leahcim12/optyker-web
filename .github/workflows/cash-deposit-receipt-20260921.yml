@@ -9,6 +9,7 @@ on:
       - 'scripts/apply_cash_recorded_balances.py'
       - 'scripts/apply_cash_client_search.py'
       - 'tests/cash-recorded-balances*'
+      - 'tests/cash-repeat-deposit*'
       - 'tests/cash-balance-handler*'
       - '.github/workflows/cash-deposit-receipt-20260921.yml'
   workflow_dispatch:
@@ -32,8 +33,8 @@ jobs:
           bash scripts/vercel-build-v13.sh
           bash scripts/vercel-finalize-20260914.sh
           node --check _site/cash-register.js
-          node --test tests/cash-recorded-balances.test.mjs tests/cash-balance-handler-integrity.test.mjs
-          grep -Fq 'balances=20260921-balance1' _site/index.html
+          node --test tests/cash-recorded-balances.test.mjs tests/cash-balance-handler-integrity.test.mjs tests/cash-repeat-deposit.test.mjs tests/cash-automatic.test.mjs
+          grep -Fq 'balances=20261113-repeat1' _site/index.html
           python -c "import shutil;shutil.make_archive('/tmp/deposit-check/built','zip','_site')"
       - name: Browser dependencies
         run: |
@@ -55,7 +56,7 @@ jobs:
               try:
                   for path in ('/','/gestionale-v2/','/gestionale-v3/'):
                       html=urllib.request.urlopen('https://www.optyker.it'+path+'?balance-check='+str(int(time.time())),timeout=15).read().decode()
-                      assert 'balances=20260921-balance1' in html
+                      assert '20261113-repeat1' in html
                   actual=urllib.request.urlopen('https://www.optyker.it/cash-register.js?balance-check='+str(int(time.time())),timeout=15).read()
                   assert actual==expected
                   print('LIVE DEPOSIT BALANCE VERIFIED',hashlib.sha256(actual).hexdigest())
