@@ -6,7 +6,7 @@ const I={variant_id:'client_cart:00000000-0000-4000-8000-000000000077',title:'Oc
 const sid='00000000-0000-4000-8000-000000000011',pid='00000000-0000-4000-8000-000000000022';
 setTimeout(()=>process.exit(1),150000).unref();
 (async()=>{const browser=await chromium.launch({headless:true}),results=[];
-for(const mode of ['deposit','new-deposit','fully-paid','uncertain-receipt','mixed','timeout','mobile','search']){
+for(const mode of ['repeat-deposit','deposit','new-deposit','fully-paid','uncertain-receipt','mixed','timeout','mobile','search']){
  const context=await browser.newContext({serviceWorkers:'block',viewport:mode==='mobile'?{width:390,height:844}:{width:1440,height:1000}}),page=await context.newPage();page.setDefaultTimeout(8000);page.on('dialog',d=>d.accept());
  let paid=mode==='new-deposit'?0:mode==='fully-paid'?450:200,hasSale=mode!=='new-deposit';const calls=[],errors=[],paycalls=[];
  const cart=mode==='mixed'?[I,{...I,variant_id:'service:NEW',title:'Nuovo prodotto',price:10,list_price:10}]:[I];
@@ -20,7 +20,7 @@ for(const mode of ['deposit','new-deposit','fully-paid','uncertain-receipt','mix
  if(a==='quote_lines')return route.fulfill({json:{ok:true,data:{ovc_version:'20260910-ovc2',card:null,lines:(p.lines||[]).map(l=>({...cart.find(x=>x.variant_id===l.variant_id),...l}))}}});
  if(a==='clients')return route.fulfill({json:{ok:true,data:p.search?[B]:[A,B]}});
  if(a==='client_cart_get'||a==='client_cart_save')return route.fulfill({json:{ok:true,data:{client_id:p.client_id,items:p.items||cart,updated_at:'stamp'}}});
- if(a==='checkout'||a==='settle'){paycalls.push({action:a,payload:p});hasSale=true;paid=a==='checkout'?p.deposit_amount:450;return route.fulfill({json:{ok:true,data:replySale(a==='checkout'?'deposit':'balance')}})}
+ if(a==='checkout'||a==='settle'){paycalls.push({action:a,payload:p});hasSale=true;paid=a==='checkout'?p.deposit_amount:p.payment_stage==='deposit'?paid+p.deposit_amount:450;return route.fulfill({json:{ok:true,data:replySale(a==='checkout'?'deposit':'balance')}})}
  if(a==='status')return route.fulfill({json:{ok:true,data:{opened:true,closed:false,suggested_opening_cash:0}}});
  return route.fulfill({json:{ok:true,data:[],clients:[],sheets:[],consents:[]}});
  });
@@ -36,6 +36,11 @@ for(const mode of ['deposit','new-deposit','fully-paid','uncertain-receipt','mix
  if(mode==='new-deposit'){
   await page.locator('[data-stage="deposit"]').click();await page.locator('#optykerCashDeposit').fill('200');await page.locator('#optykerCashDeposit').dispatchEvent('input');await page.locator('#optykerCashDeposit').dispatchEvent('change');await button.click();
   await page.waitForFunction(()=>document.querySelector('.recordedLineBalance')?.textContent.includes('250,00'));assert.equal(paycalls.length,1);assert.equal(paycalls[0].payload.expected_total,450);assert.equal(paycalls[0].payload.deposit_amount,200);assert.match(await total.innerText(),/250,00/);
+ }else if(mode==='repeat-deposit'){
+  await page.locator('[data-stage="deposit"]').click();await page.locator('#optykerCashDeposit').fill('100');await page.locator('#optykerCashDeposit').dispatchEvent('input');await page.locator('#optykerCashDeposit').dispatchEvent('change');
+  assert.equal(await button.isDisabled(),false);await button.click();
+  await page.waitForFunction(()=>document.querySelector('.recordedLineBalance')?.textContent.includes('150,00'));
+  assert.equal(paycalls.length,1);assert.equal(paycalls[0].action,'settle');assert.equal(paycalls[0].payload.payment_stage,'deposit');assert.equal(paycalls[0].payload.deposit_amount,100);assert.equal(paycalls[0].payload.sale_id,sid);assert.match(paycalls[0].payload.request_id,/^[a-f0-9-]{36}$/i);
  }else if(mode==='deposit'){
   assert.equal(await page.locator('[data-price]').count(),0,'original price must not be replaced with discounted price');await button.click();await page.waitForFunction(()=>document.querySelector('.recordedLineBalance')?.textContent.includes('Saldato'));assert.equal(paycalls.length,1);assert.equal(paycalls[0].action,'settle');assert.equal(paycalls[0].payload.sale_id,sid);assert.match(await total.innerText(),/0,00/);assert.equal(await page.locator('.optykerCashCartItem').count(),1,'paid goods stay until delivery');assert.equal(await button.isDisabled(),true);
  }else if(mode==='uncertain-receipt'){

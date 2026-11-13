@@ -3,7 +3,7 @@ from pathlib import Path
 import re
 
 root = Path('_site')
-version = '20260926-mixed3'
+version = '20261113-repeat1'
 for alias in ('.', 'gestionale-v2', 'gestionale-v3'):
     page = root / alias / 'index.html'
     html = page.read_text(encoding='utf-8')
