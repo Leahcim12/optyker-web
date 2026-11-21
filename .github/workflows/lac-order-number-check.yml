@@ -1,0 +1,37 @@
+name: Verifica Scheda LAC numero d'ordine
+on:
+  push:
+    branches: [scheda-lac-numero-ordine]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build the exact Vercel artifact
+        env:
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          python3 -m py_compile scripts/apply_lac_order_number_20261121.py
+          bash scripts/vercel-build-20261013.sh
+          for f in _site/index.html _site/gestionale-v2/index.html _site/gestionale-v3/index.html; do
+            test "$(grep -o 'id="lacOrderNumber"' "$f" | wc -l)" = 1
+            test "$(grep -o 'id="optykerLacOrderNumberJs"' "$f" | wc -l)" = 1
+          done
+          ls _site/lac-order-number.*.js
+      - name: Install isolated browser
+        run: |
+          npm install --prefix /tmp/browser playwright@1.55.0
+          /tmp/browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Numero d'ordine in scheda, riepilogo e stampa (pagina sintetica, nessun dato reale)
+        env:
+          NODE_PATH: /tmp/browser/node_modules
+        run: node tests/lac-order-number.test.cjs
