@@ -50,3 +50,8 @@ python scripts/check_desktop_html.py
 # Agenda 20261111: «Forza appuntamento» anche con studio o operatore occupato (avviso prima della conferma).
 python scripts/apply_agenda_force_occupied_20261111.py
 python scripts/check_desktop_html.py
+
+# Scheda LAC 20261121: casella «Numero d'ordine» accanto a lotti e data di richiamo, riportata nel riepilogo.
+node --check lac-order-number.js
+python scripts/apply_lac_order_number_20261121.py
+python scripts/check_desktop_html.py
