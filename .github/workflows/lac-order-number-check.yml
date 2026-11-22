@@ -23,9 +23,20 @@ jobs:
           python3 -m py_compile scripts/apply_lac_order_number_20261121.py
           bash scripts/vercel-build-20261013.sh
           for f in _site/index.html _site/gestionale-v2/index.html _site/gestionale-v3/index.html; do
-            test "$(grep -o 'id="lacOrderNumber"' "$f" | wc -l)" = 1
-            test "$(grep -o 'id="optykerLacOrderNumberJs"' "$f" | wc -l)" = 1
+            for id in lacOdOrderNumber lacOsOrderNumber optykerLacOrderNumberJs; do
+              test "$(grep -o "id=\"$id\"" "$f" | wc -l)" = 1 || { echo "$f: $id non presente una sola volta"; exit 1; }
+            done
           done
+          python3 - <<'PY'
+          # Ogni numero d'ordine subito dopo il lotto della stessa lente, nella pagina reale.
+          import re
+          html = open('_site/index.html', encoding='utf-8').read()
+          for eye in ('Od', 'Os'):
+              if not re.search(r'id="lac' + eye + r'Lot"[^>]*>\s*</div><!-- OPTYKER_LAC_ORDER_NUMBER_20261121 -->'
+                               r'<div class="lacTraceField lacOrderNumberField"[^>]*><label for="lac' + eye + 'OrderNumber">', html):
+                  raise SystemExit('Numero d\'ordine non accanto al lotto ' + eye)
+          print('Numero d\'ordine DX e SX accanto ai lotti nella pagina pubblicata')
+          PY
           ls _site/lac-order-number.*.js
       - name: Install isolated browser
         run: |
