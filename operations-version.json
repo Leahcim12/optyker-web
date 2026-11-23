@@ -1,0 +1,11 @@
+{
+  "version": "20260910-ovc2",
+  "commit": "cff5c89a5b828b01f545646ac9b3f6e75adf4c84",
+  "assets": {
+    "optyker-operations.css": "0454f6432b13d234da4bcc0872359db3e215e7233150c5094327f3be8f27f73d",
+    "optyker-operations.js": "347be52f636c01f32605fe362b0c0fa39e550dbd7c20686420854327af6a37bf",
+    "ovc-card-logo.png": "e2a2ee21c96efddbe1f5ceb0cff424254ac6ec1e1ce9f12de6f96a80629c703e",
+    "cash-register.js": "7965a8b7d812c8e4cc2272c7fc76d23f33349d4ba8186065f6464d2453ff81ae",
+    "optyker-vision.js": "3a4f71cdbce4997885b3afdc7ea764ecbeef3cdd962bbbbcc5ec1b62adaea51c"
+  }
+}

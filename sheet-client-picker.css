@@ -1,0 +1,36 @@
+/* Optyker · cliente collegato alle schede · 20261013-sheetclient1 */
+.oscBar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;border:1px solid #dce5e8;border-radius:12px;background:#f4f8fb;font-family:Manrope,"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif}
+.oscBar.linked{background:#eef7f1;border-color:#cfe6d7}
+.oscInfo{display:flex;align-items:center;gap:10px;min-width:0;flex:1 1 280px}
+.oscDot{width:34px;height:34px;flex:0 0 34px;border-radius:50%;display:grid;place-items:center;background:#e3ebf2;color:#183a59;font-size:12px;font-weight:800}
+.oscBar.linked .oscDot{background:#d6eddf;color:#256b3c}
+.oscText{min-width:0}
+.oscLabel{display:block;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#52677a}
+.oscName{display:block;font-size:14px;font-weight:800;color:#172b3e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oscMeta{display:block;font-size:11px;color:#62788b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oscActions{display:flex;gap:8px;flex-wrap:wrap}
+.oscBtn{height:36px;padding:0 14px;border:1px solid #cbd6e0;border-radius:9px;background:#fff;color:#183a59;font:800 12px Manrope,"Segoe UI",system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+.oscBtn.primary{background:#183a59;border-color:#183a59;color:#fff}
+.oscBtn:focus-visible{outline:3px solid rgba(24,58,89,.25);outline-offset:2px}
+.oscEyBtn{margin-top:6px}
+.oscModal{position:fixed;inset:0;z-index:2147483200;display:none;align-items:flex-start;justify-content:center;padding:6vh 16px 16px;background:rgba(16,38,58,.45);backdrop-filter:blur(2px)}
+.oscModal.open{display:flex}
+.oscCard{width:min(620px,100%);box-sizing:border-box;max-height:84vh;display:flex;flex-direction:column;background:#fff;border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.28);overflow:hidden;font-family:Manrope,"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;color:#172b3e}
+.oscHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 18px 10px}
+.oscHead b{display:block;font-size:16px;font-weight:800}
+.oscHead small{display:block;margin-top:2px;font-size:11px;color:#62788b}
+.oscClose{width:34px;height:34px;border:1px solid #dce5e8;border-radius:9px;background:#fff;color:#183a59;font-size:18px;line-height:1;cursor:pointer}
+.oscCard .oscSearch{flex:0 0 auto;align-self:stretch;width:auto!important;min-height:0!important;margin:0 18px 10px!important;height:44px!important;padding:0 14px!important;border:1px solid #cbd6e0!important;border-radius:10px!important;background:#fff!important;box-sizing:border-box!important;font:600 15px Manrope,"Segoe UI",system-ui,sans-serif!important;color:#172b3e!important;outline:none}
+.oscCard .oscSearch:focus{border:1px solid #183a59!important;padding-bottom:0!important;box-shadow:0 0 0 3px rgba(24,58,89,.14)!important}
+.oscList{overflow:auto;padding:0 10px 10px;display:grid;gap:4px;align-content:start;-webkit-overflow-scrolling:touch}
+.oscItem{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:10px 10px;border:1px solid transparent;border-radius:10px;background:#fff;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.oscItem:hover,.oscItem:focus-visible{background:#f4f8fb;border-color:#dce5e8;outline:none}
+.oscItem.current{background:#eef7f1;border-color:#cfe6d7}
+.oscItem b{display:block;font-size:14px;font-weight:800}
+.oscItem small{display:block;margin-top:1px;font-size:11px;color:#62788b}
+.oscItem em{font-style:normal;font-size:11px;font-weight:800;color:#183a59;white-space:nowrap}
+.oscEmpty{padding:24px 12px;text-align:center;font-size:13px;color:#62788b}
+.oscFoot{padding:10px 18px 14px;border-top:1px solid #edf1f4;font-size:11px;color:#62788b}
+.oscToast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:2147483300;max-width:min(560px,calc(100vw - 32px));padding:11px 16px;border-radius:12px;background:#183a59;color:#fff;font:700 13px Manrope,"Segoe UI",system-ui,sans-serif;box-shadow:0 12px 30px rgba(0,0,0,.25);display:none}
+@media (max-width:760px){.oscModal{padding:0}.oscCard{max-height:100vh;height:100%;border-radius:0}.oscBar{padding:10px}.oscActions{width:100%}.oscActions .oscBtn{flex:1}}
+@media print{.oscBar,.oscModal,.oscEyBtn{display:none!important}}

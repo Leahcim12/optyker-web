@@ -1,0 +1,13 @@
+{
+  "version": "20260910-services1",
+  "commit": "cff5c89a5b828b01f545646ac9b3f6e75adf4c84",
+  "sections": [
+    "chat",
+    "cassa",
+    "documenti"
+  ],
+  "assets": {
+    "optyker-services.css": "cd7e991f0128a4bbcc179cfe99b35e3c1bc2f595b142e455a90db04cee7d56b2",
+    "optyker-services.js": "05488352cf90e3fa77422da982ec2434ffd11f42204f26561a69d7af84b5b996"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "release": "20261013",
+  "office": "20261013-office1",
+  "sheet_client": "20261013-sheetclient1",
+  "invoice": "20261013-invoice-logo1",
+  "assets": {
+    "optyker-office.js": "31fb5f0eb20196e927eb11ecec54e5395375c09e84b222d986626626b30344a2",
+    "optyker-office.css": "5534a61b4a3bcb3fcbfc4420c983025cac26475c4f052ef2468ef535808af90c",
+    "sheet-client-picker.js": "95797f036aeacc0e836cd89ff9a1aa14208d13b33c3e0a22dae11b9737d1170a",
+    "sheet-client-picker.css": "63c7fe1c8cce08197d56e157280c4d01364f1cae892acc699027f785d84d8a12",
+    "billing-admin.js": "d531551920aebf420985ccffbda4bedd1971b0cf39265f6fbb99a320dc9aadae",
+    "customer-invoice-print.js": "f27f78d3f2133ff17894b51b1effa270ee85de575b19a46424588a15cba3d3d4"
+  }
+}

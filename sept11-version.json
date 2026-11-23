@@ -1,0 +1,14 @@
+{
+  "version": "20260911-workflow1",
+  "commit": "cff5c89a5b828b01f545646ac9b3f6e75adf4c84",
+  "assets": {
+    "optyker-sept11.js": "a7747ba8e5dc8445968b5e4ba47166d9b363c37be1e878ae55b8b84f782867c5",
+    "optyker-sept11.css": "1e85ffaa146e5dc16f514bda6a88dbc044a7551df26d1aaa716834485e36b1bb",
+    "billing-compose.js": "96b5cb14b6d31ee5383a4d9927c0dc64085b419c0a2b659f055d45f9be6a17e9",
+    "warehouse-card-defaults.e81b681639ab.js": "e81b681639ab23e19a99785c8a14aeaf8cc8cde75b68dc4f3a60d650e2d934b3",
+    "warehouse-card-defaults.6d47a519e64e.css": "6d47a519e64e1a75411de2c45c24a1f5ec84215572298efae9cdda469e9b3487",
+    "warehouse.js": "8d56c98c6e5cfe7d8e64d7f1bf2214ed51ebc7d018cb8bf6ba30ce1081e6d5a9"
+  },
+  "service_card_prices_version": "20260911-card-defaults1",
+  "runtime_revision": "20260911-r2"
+}

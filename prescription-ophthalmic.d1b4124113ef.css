@@ -1,0 +1,25 @@
+#rxOphthalmicBlock{margin:8px 0 20px;padding:16px 18px;border:1px solid #cbdbe7;border-radius:12px;background:#f3f8fc;color:#203e55}
+#rxOphthalmicBlock [hidden]{display:none!important}
+.rxOphthalmicToggle{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700;cursor:pointer}
+.rxOphthalmicToggle input{width:20px!important;height:20px;margin:0;accent-color:#146da1}
+.rxOphthalmicGrid{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-top:16px}
+.rxOphthalmicGrid label{display:grid;gap:6px;font-size:14px;font-weight:600;flex:1 1 220px}
+.rxOphthalmicGrid label:first-child{flex:2 1 310px}
+#rxOphthalmicBlock select,#rxOphthalmicBlock input[type=date]{width:100%;min-height:42px;box-sizing:border-box;background:white;border:1px solid #b4c8d8;border-radius:8px;padding:8px 10px;font-size:14px}
+#rxOphthalmicBlock button{min-height:42px;padding:9px 14px;border:1px solid #98b5c9;border-radius:8px;background:white;color:#174966;font-size:14px;cursor:pointer}
+#rxOphthalmicBlock #rxSaveExisting{background:#146da1;color:white;border-color:#146da1}
+.rxOphthalmicFooter{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+#rxOphthalmicStatus:not(:empty){display:block;margin-top:12px;font-size:14px}
+#rxOphthalmicStatus.bad{color:#a22431}
+#rxSaveExisting{margin-top:12px}
+#rxOculistDialog{width:min(520px,calc(100vw - 32px));max-height:90vh;box-sizing:border-box;padding:24px;border:1px solid #cad8e2;border-radius:16px;color:#213b50;box-shadow:0 18px 80px #0b233b40}
+#rxOculistDialog::backdrop{background:#0b203870}
+#rxOculistDialog header,#rxOculistDialog footer{display:flex;align-items:center;justify-content:space-between;gap:12px}
+#rxOculistDialog h2{font-size:22px;margin:0 0 12px}
+#rxOculistDialog label{display:grid;gap:6px;margin:12px 0;font-size:14px;font-weight:600}
+#rxOculistDialog input{min-height:42px;box-sizing:border-box;width:100%;border:1px solid #b5c6d4;border-radius:8px;padding:9px 11px;font-size:16px}
+#rxOculistDialog button{min-height:40px;padding:8px 14px;font-size:14px;border-radius:8px;border:1px solid #b5c6d4;background:#fff;color:#213b50;cursor:pointer}
+#rxOculistDialog button.primary{background:#146da1;border-color:#146da1;color:#fff}
+#rxOculistDialog [role=status]{font-size:14px;color:#9a2b35}
+#rxOculistDialog footer{justify-content:flex-end;margin-top:20px}
+@media print{#rxOphthalmicBlock button,#rxOphthalmicStatus{display:none!important}}

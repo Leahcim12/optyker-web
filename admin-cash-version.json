@@ -1,0 +1,26 @@
+{
+  "version": "20260916-admin-cash8",
+  "commit": "cff5c89a5b828b01f545646ac9b3f6e75adf4c84",
+  "features": [
+    "admin_static_login_entry",
+    "admin_direct_query",
+    "admin_cash_navigation_lock",
+    "admin_opening",
+    "daily_closure",
+    "turnover_vs_paid",
+    "automatic_receipt_count",
+    "monthly_paid_total",
+    "today_open_button",
+    "today_close_button",
+    "carry_forward_cash_fund",
+    "rch_daily_closure",
+    "rch_closure_recovery"
+  ],
+  "assets": {
+    "admin-cash-closure.js": "68b3492cf056993706c86a80ada38b342c007f0ec679171aa68afd9b9e5c8b50",
+    "admin-cash-closure.css": "5cfbf3d8adeb28f029643ed4b4bab1925757f2b3f410bfad6dbb763315d958b4",
+    "admin-cash-today-controls.js": "bb33638853d6824b2773b96e0a3552852fdb3caeb0908ebd88e66f728f809b2c",
+    "admin-cash-today-controls.css": "72df1bd060c6d65a87c3cf3b797eb79fb4a77cd539c0966ba07e5b12916b0bd2",
+    "admin-cash-rch-recovery.js": "f117d40c13e29d93d0e09c1e94fc6f715ed4219000f8b910e7b6f3584271a6a4"
+  }
+}

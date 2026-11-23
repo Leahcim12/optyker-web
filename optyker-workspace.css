@@ -1,0 +1,278 @@
+/* OPTYKER VISION WORKSPACE / 20260910-workspace1
+   Agenda and client workspace. Screen only; time geometry, clinical content,
+   conditional visibility, save handlers and printing remain application-owned. */
+@media screen {
+  html[data-optyker-workspace-release] {
+    --ws-ink:#122e52; --ws-muted:#5b7392; --ws-line:#dce7f3;
+    --ws-blue:#1379ec; --ws-paper:#f4f8fd; --ws-shadow:0 6px 24px #13396408,0 1px 3px #13396404;
+  }
+  html[data-optyker-workspace-release] #mainApp :is(#optykerAppointmentsPanel,#clientsPanel) {
+    padding:24px!important; border:1px solid #e0eaf6!important; border-radius:22px!important;
+    background:#f8fbff!important; box-shadow:var(--ws-shadow)!important; color:var(--ws-ink)!important;
+  }
+  #mainApp :is(#optykerAppointmentsPanel,#clientsPanel) *,
+  :is(#oaNewModal,#oaManageModal) * {box-sizing:border-box}
+  #mainApp :is(#optykerAppointmentsPanel,#clientsPanel) :is(button,input,select,textarea),
+  :is(#oaNewModal,#oaManageModal) :is(button,input,select,textarea) {font-family:inherit}
+  #mainApp :is(#optykerAppointmentsPanel,#clientsPanel) :is(button,input,select,textarea):focus-visible,
+  :is(#oaNewModal,#oaManageModal) :is(button,input,select,textarea):focus-visible {
+    outline:3px solid #2386ee!important;outline-offset:3px!important;
+  }
+  #mainApp :is(#optykerAppointmentsPanel,#clientsPanel) button,
+  :is(#oaNewModal,#oaManageModal) button {
+    transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease!important;
+  }
+  #mainApp :is(#optykerAppointmentsPanel,#clientsPanel) button:disabled,
+  :is(#oaNewModal,#oaManageModal) :is(button,input,select):disabled {opacity:.55!important;cursor:not-allowed!important}
+
+  /* AGENDA: a clear title, compact tool groups and a generous calendar. */
+  #mainApp #optykerAppointmentsPanel .oaHead {
+    position:relative;isolation:isolate;overflow:hidden;display:flex;align-items:center!important;
+    gap:24px!important;flex-wrap:wrap!important;padding:26px 28px!important;margin:0 0 20px!important;
+    border:1px solid #153e69!important;border-radius:18px!important;
+    background:radial-gradient(ellipse at 100% 0%,#1b5880 0,transparent 55%),linear-gradient(115deg,#0a2344,#123a63)!important;
+    box-shadow:0 10px 22px #122e5210!important;
+  }
+  #mainApp #optykerAppointmentsPanel .oaHead::after {
+    content:"";position:absolute;pointer-events:none;z-index:-1;right:12%;top:-150px;
+    width:330px;height:330px;border:1px solid #5baee02b;border-radius:50%;box-shadow:0 0 0 38px #5baee009,0 0 0 39px #5baee01a;
+  }
+  #mainApp #optykerAppointmentsPanel .oaK {display:block!important;font-size:10px!important;font-weight:600!important;letter-spacing:.15em!important;color:#9cccef!important;margin-bottom:8px!important}
+  #mainApp #optykerAppointmentsPanel .oaTitle {font-size:29px!important;line-height:1.2!important;letter-spacing:-.8px!important;font-weight:650!important;color:#f5faff!important}
+  #mainApp #optykerAppointmentsPanel #oaRange {font-size:13px!important;line-height:1.5!important;color:#bfd9ef!important;margin-top:10px!important;font-weight:450!important}
+  #mainApp #optykerAppointmentsPanel .oaActions {gap:10px!important;flex-wrap:wrap!important;margin-left:auto!important}
+  #mainApp #optykerAppointmentsPanel .oaActions button {border-radius:11px!important;min-height:44px!important;padding:10px 16px!important;font-size:12px!important;font-weight:600!important}
+  #mainApp #optykerAppointmentsPanel #oaNew {background:linear-gradient(110deg,#187ff2,#349df6)!important;color:#fff!important;border:1px solid #48a4fb!important;box-shadow:0 5px 16px #05192c26!important}
+  #mainApp #optykerAppointmentsPanel #oaNew:hover {background:#086ede!important}
+  #mainApp #optykerAppointmentsPanel #oaSettings {background:#ffffff0b!important;border:1px solid #6490b5!important;color:#eaf5ff!important;box-shadow:none!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendarModeV7 {margin:0 0 16px!important;padding:5px!important;gap:4px!important;background:#eaf1fb!important;border:1px solid #dae6f4!important;border-radius:12px!important;vertical-align:middle}
+  #mainApp #optykerAppointmentsPanel #oaCalendarModeV7 button {min-height:38px!important;padding:9px 18px!important;border-radius:8px!important;font-size:12px!important;font-weight:600!important;color:#516e92!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendarModeV7 button.on {background:#fff!important;color:#155ea9!important;box-shadow:0 2px 7px #153d6a10!important}
+  #mainApp #optykerAppointmentsPanel #oa17SearchWrap {max-width:none!important;width:min(520px,100%)!important;margin:0 0 16px!important;float:right}
+  #mainApp #optykerAppointmentsPanel #oa17Search {height:46px!important;padding:0 38px 0 15px!important;font-size:13px!important;border:1px solid #d6e4f4!important;border-radius:12px!important;background:#fff!important;box-shadow:0 3px 12px #183e6504!important;color:#213e62!important}
+  #mainApp #optykerAppointmentsPanel #oa17Results {border-color:#d6e4f4!important;border-radius:14px!important;box-shadow:0 20px 44px #15365626!important}
+  #mainApp #optykerAppointmentsPanel #oaStoreCalendarV7 {clear:both}
+  #mainApp #optykerAppointmentsPanel .oaToolbar {display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:8px!important;padding:0 0 16px!important;margin:0!important;border:0!important;background:transparent!important}
+  #mainApp #optykerAppointmentsPanel .oaToolbar :is(button,select) {width:auto!important;height:40px!important;min-height:40px!important;border:1px solid #d6e3f2!important;border-radius:10px!important;padding:0 13px!important;background:#fff!important;font-size:12px!important;font-weight:550!important;color:#355576!important;box-shadow:none!important}
+  #mainApp #optykerAppointmentsPanel .oaToolbar :is(button,select):hover {border-color:#91bce8!important}
+  #mainApp #optykerAppointmentsPanel .oaViewSwitch {padding:4px!important;border:1px solid #dae6f4!important;border-radius:12px!important;background:#eaf1fb!important;gap:4px!important}
+  #mainApp #optykerAppointmentsPanel .oaViewSwitch button {border:0!important;height:34px!important;min-height:34px!important;background:transparent!important}
+  #mainApp #optykerAppointmentsPanel .oaViewSwitch button.active {background:#fff!important;color:#1563b5!important;box-shadow:0 2px 7px #153d6a12!important}
+  #mainApp #optykerAppointmentsPanel :is(#oaPrev,#oaNext) {width:38px!important;padding:0!important;font-size:22px!important;font-weight:400!important}
+  #mainApp #optykerAppointmentsPanel #oaOpFilter {margin-left:auto!important;min-width:185px!important;max-width:100%!important}
+  #mainApp #optykerAppointmentsPanel #oaReload {color:#1769bd!important;background:#edf5ff!important;border-color:#d4e6fb!important}
+  #mainApp #optykerAppointmentsPanel .oaStatus {font-size:12px!important;line-height:1.6!important;color:#5a7290!important}
+  #mainApp #optykerAppointmentsPanel .oaStatus.bad {color:#b03349!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar {
+    border:1px solid #d9e5f2!important;border-radius:15px!important;box-shadow:0 4px 18px #1c49760a!important;
+    background:#fff!important;scrollbar-width:thin;scrollbar-color:#b5cce5 #f3f7fd;overscroll-behavior:contain;
+  }
+  #mainApp #optykerAppointmentsPanel #oaCalendar.oaCalendarWeek {max-height:clamp(440px,calc(100dvh - 335px),850px)!important;min-height:420px!important;overflow:auto!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar.oaCalendarWeek .oaWeekGrid {min-width:1020px!important;grid-template-columns:64px repeat(7,minmax(136px,1fr))!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar :is(.oaWeekHead,.oaWeekCorner) {height:64px!important;border-color:#e2ebf7!important;background:#f9fbff!important;box-shadow:0 2px 2px #17385c03}
+  #mainApp #optykerAppointmentsPanel #oaCalendar .oaWeekHead {gap:7px!important;flex-direction:column!important;padding:8px!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar .oaWeekHead .oaDn {font-size:10px!important;font-weight:600!important;letter-spacing:.055em!important;color:#607b9a!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar .oaWeekHead .oaDd {font-size:19px!important;font-weight:650!important;line-height:1.1!important;color:#244369!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar .oaWeekHead.oaToday {background:#edf5ff!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar .oaWeekHead.oaToday .oaDd {display:grid;place-items:center;min-width:29px;height:29px;border-radius:9px;background:#177ce9;color:#fff!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar .oaTimes {background:#f9fbff!important;position:sticky!important;left:0;z-index:6;border-color:#dfe9f5!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar .oaTimeLabel {font-size:10px!important;color:#627a98!important;right:9px!important;background:#f9fbff!important;font-variant-numeric:tabular-nums;font-weight:500!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar .oaTimelineDay {border-color:#e4ecf7!important;background-color:#fff!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar .oaV14ExistingClosed {background:repeating-linear-gradient(135deg,#ecf1f7b0 0,#ecf1f7b0 3px,#f3f6fac9 3px,#f3f6fac9 8px)!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar .oaTimedEvent {left:4px!important;right:4px!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar .oaTimedEvent .oaEvent {
+    border-radius:8px!important;border:1px solid color-mix(in srgb,var(--c,#2686df) 34%,white)!important;
+    border-left:3px solid var(--c,#2686df)!important;background:color-mix(in srgb,var(--c,#2686df) 13%,white)!important;
+    padding:4px 7px!important;box-shadow:0 2px 6px #20446c08!important;text-align:left!important;
+  }
+  #mainApp #optykerAppointmentsPanel #oaCalendar .oaTimedEvent .oaEvent:hover {filter:none!important;box-shadow:0 3px 10px #20446c25!important;border-color:var(--c,#2686df)!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar .oaEventTime {font-size:9px!important;line-height:1.15!important;font-weight:600!important;color:#355577!important;font-variant-numeric:tabular-nums}
+  #mainApp #optykerAppointmentsPanel #oaCalendar .oaEventClient {font-size:11px!important;line-height:1.25!important;font-weight:650!important;color:#16375b!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar .oaEventMeta {font-size:9px!important;line-height:1.3!important;font-weight:450!important;color:#536e88!important;margin-top:2px!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar .oaMonthWeekdays {border-color:#dce7f4!important;border-radius:0!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar .oaMonthWeekdays>div {padding:13px 8px!important;font-size:11px!important;font-weight:600!important;background:#f4f8fe!important;color:#506f94!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar .oaMonthDay {min-height:126px!important;padding:9px!important;border-color:#e2ebf7!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar .oaMonthDate {font-size:16px!important;font-weight:600!important;color:#335473!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar .oaMonthDay.oaToday {background:#eff6ff!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar .oaMonthDay.oaToday .oaMonthDate {width:28px;height:28px;display:grid;place-items:center;border-radius:9px;background:#177ce9;color:white!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar .oaMonthEvent {padding:7px!important;border-radius:7px!important;font-size:10px!important;font-weight:550!important;background:color-mix(in srgb,var(--c,#2686df) 11%,white)!important;color:#2c4c70!important}
+
+  /* New/edit appointment: original fields and permissions, not a replacement form. */
+  html[data-optyker-workspace-release] :is(#oaNewModal,#oaManageModal) {padding:28px 16px!important;background:#071e3b8a!important;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+  html[data-optyker-workspace-release] :is(#oaNewModal .oaCard,#oaManageModal .oaV10Card) {width:min(800px,96vw)!important;max-height:calc(100dvh - 56px)!important;overflow-y:auto!important;overscroll-behavior:contain;border:1px solid #d7e5f4!important;border-radius:20px!important;background:#f8fbff!important;padding:0!important;box-shadow:0 26px 80px #071b4055!important;scrollbar-width:thin;scrollbar-color:#b8cde3 transparent}
+  html[data-optyker-workspace-release] :is(#oaNewModal,#oaManageModal) .oaMh {position:sticky;top:0;z-index:5;padding:20px 24px!important;margin:0 0 22px!important;min-height:76px!important;background:linear-gradient(115deg,#0c294c,#184a73)!important;border:0!important;color:white!important;align-items:center!important}
+  html[data-optyker-workspace-release] :is(#oaNewModal,#oaManageModal) .oaMt {font-size:21px!important;font-weight:600!important;letter-spacing:-.35px!important;color:#fff!important}
+  html[data-optyker-workspace-release] :is(#oaNewModal,#oaManageModal) .oaSub {font-size:12px!important;color:#c1d9ef!important;line-height:1.5!important}
+  html[data-optyker-workspace-release] :is(#oaNewModal,#oaManageModal) .oaClose {width:36px!important;height:36px!important;border-radius:10px!important;background:#ffffff14!important;border:1px solid #ffffff24!important;color:#fff!important;font-size:24px!important}
+  html[data-optyker-workspace-release] :is(#oaNewModal .oaGrid,#oaManageModal .oaV10EditGrid) {padding:0 24px!important;gap:16px!important}
+  html[data-optyker-workspace-release] :is(#oaNewModal .oaF,#oaManageModal .oaV10F)>label {font-size:12px!important;font-weight:600!important;color:#3c5978!important;line-height:1.5!important;margin-bottom:6px!important;text-transform:none!important}
+  html[data-optyker-workspace-release] :is(#oaNewModal .oaF,#oaManageModal .oaV10F) :is(input:not([type=checkbox]):not([type=radio]),select,textarea) {width:100%!important;min-width:0!important;min-height:43px!important;height:43px!important;padding:10px 12px!important;border:1px solid #d2e1f1!important;border-radius:10px!important;background:#fff!important;color:#1b3a60!important;font-size:13px!important;box-shadow:0 2px 4px #17385c02!important}
+  html[data-optyker-workspace-release] :is(#oaNewModal .oaF,#oaManageModal .oaV10F) textarea {height:auto!important;min-height:86px!important;resize:vertical}
+  html[data-optyker-workspace-release] :is(#oaNewModal,#oaManageModal) :is(.oaEmpty,.oaOperatorHint,.oaForceHelp,.oaV10Help) {font-size:11px!important;line-height:1.6!important;color:#617995!important}
+  html[data-optyker-workspace-release] :is(#oaNewModal .oaSlots,#oaManageModal .oaV10Times) {gap:7px!important;padding:12px!important;border:1px solid #dce8f5!important;border-radius:12px!important;background:#eef5fd!important}
+  html[data-optyker-workspace-release] :is(#oaNewModal,#oaManageModal) :is(.oaSlot,.oaV10Time,.oaV10Studio) {min-height:36px!important;padding:7px 12px!important;border-radius:9px!important;font-size:12px!important;font-weight:550!important}
+  html[data-optyker-workspace-release] :is(#oaNewModal,#oaManageModal) :is(.oaSlot.on,.oaV10Time.on,.oaV10Studio.on) {background:#197bef!important;border-color:#197bef!important;color:white!important}
+  html[data-optyker-workspace-release] :is(#oaNewModal .oaStatus,#oaManageModal .oaV10Status) {padding:10px 24px!important;font-size:12px!important;line-height:1.6!important}
+  html[data-optyker-workspace-release] :is(#oaNewModal .oaBottom,#oaManageModal .oaV10Bottom) {position:sticky;bottom:0;z-index:4;padding:16px 24px!important;margin:12px 0 0!important;background:#f8fbfff5!important;border-top:1px solid #dbe7f4!important;gap:9px!important;flex-wrap:wrap!important;box-shadow:0 -4px 14px #244c7606}
+  html[data-optyker-workspace-release] :is(#oaNewModal .oaBottom,#oaManageModal .oaV10Bottom) button {min-height:43px!important;border-radius:11px!important;padding:10px 17px!important;font-size:13px!important;font-weight:600!important}
+  html[data-optyker-workspace-release] :is(#oaCreate,#oaV10Save) {background:linear-gradient(110deg,#1276e9,#3196f2)!important;border-color:#147cec!important;color:#fff!important}
+
+  /* ANAGRAFICA: profile hero, clear page navigation and structured form cards. */
+  #mainApp #clientsPanel .clientHead {align-items:center!important;border:0!important;padding:2px 0 16px!important;margin:0!important}
+  #mainApp #clientsPanel .clientTitle {font-size:27px!important;font-weight:650!important;line-height:1.2!important;letter-spacing:-.7px!important;color:#133558!important}
+  #mainApp #clientsPanel .clientHint {display:none!important}
+  #mainApp #clientsPanel .clientHeadActions button {border-radius:10px!important;min-height:40px!important;padding:9px 14px!important;font-size:11px!important;font-weight:600!important;background:#edf5ff!important;color:#2368aa!important;border:1px solid #cbdff4!important;box-shadow:none!important}
+  #mainApp #clientsPanel .clientViewNav {display:inline-flex!important;flex-wrap:wrap!important;padding:4px!important;gap:4px!important;margin:0 0 18px!important;border:1px solid #dbe7f4!important;background:#eaf1fb!important;border-radius:12px!important}
+  #mainApp #clientsPanel .clientViewBtn {min-height:37px!important;padding:9px 17px!important;border:0!important;border-radius:8px!important;background:transparent!important;font-size:12px!important;font-weight:600!important;color:#587291!important}
+  #mainApp #clientsPanel .clientViewBtn.active {color:#1761ac!important;background:#fff!important;box-shadow:0 2px 6px #244c7812!important}
+  #mainApp #clientsPanel #clientWorkspaceHero {display:flex;flex-wrap:wrap!important;gap:22px!important;align-items:center!important;border:1px solid #19466d!important;border-radius:18px!important;padding:24px!important;background:radial-gradient(ellipse at 100% 0%,#235b7b 0,transparent 55%),linear-gradient(115deg,#0a2648,#123b63)!important;box-shadow:0 10px 22px #15375f0d!important;margin:0 0 18px!important}
+  #mainApp #clientsPanel .clientWorkspacePerson {gap:16px!important;min-width:0!important}
+  #mainApp #clientsPanel #clientWorkspaceAvatar {width:66px!important;height:66px!important;flex:0 0 66px!important;border-radius:18px!important;background:linear-gradient(145deg,#287abe,#14436b)!important;border:1px solid #6aaee254!important;color:#ecf9ff!important;font-size:22px!important;font-weight:600!important;box-shadow:0 5px 16px #071b3620!important}
+  #mainApp #clientsPanel #clientWorkspaceName {font-size:28px!important;line-height:1.2!important;font-weight:600!important;letter-spacing:-.7px!important;color:#f6fbff!important;overflow-wrap:anywhere}
+  #mainApp #clientsPanel #clientWorkspaceMeta {font-size:12px!important;line-height:1.6!important;color:#bdd6ed!important;font-weight:400!important;margin-top:9px!important;overflow-wrap:anywhere}
+  #mainApp #clientsPanel .clientWorkspaceActions {display:flex;flex-wrap:wrap!important;gap:8px!important;margin-left:auto!important}
+  #mainApp #clientsPanel .clientWorkspaceActions button {min-height:42px!important;padding:10px 14px!important;border-radius:10px!important;font-size:12px!important;font-weight:550!important;box-shadow:none!important;background:#ffffff08!important;color:#eaf4ff!important;border:1px solid #6490b0!important}
+  #mainApp #clientsPanel .clientWorkspaceActions button.primary {background:#2385ed!important;border-color:#399bfa!important;color:#fff!important;box-shadow:0 4px 12px #081c3922!important}
+  #mainApp #clientsPanel .clientWorkspaceActions button.clientDanger {background:#a83c4a16!important;border-color:#bd8290!important;color:#ffdce2!important}
+  #mainApp #clientsPanel :is(#optykerClientCashBtn,#optykerClientReceiptsBtn) {min-height:32px!important;padding:6px 10px!important;margin:10px 6px 0 0!important;border-radius:8px!important;border:1px solid #6b95b9!important;background:#ffffff0d!important;color:#ebf6ff!important;font-size:11px!important;font-weight:550!important}
+  #mainApp #clientsPanel #optykerClientCashBtn {border-color:#368fbb!important;background:#17567a!important}
+  #mainApp #clientsPanel #clientPageNav {display:flex!important;flex-wrap:wrap!important;gap:5px!important;padding:6px!important;margin:0 0 20px!important;background:#edf3fc!important;border:1px solid #dce8f6!important;border-radius:13px!important;box-shadow:none!important}
+  #mainApp #clientsPanel #clientPageNav .clientPageNavBtn {flex:1 1 105px!important;min-height:42px!important;padding:10px 12px!important;border-radius:9px!important;border:1px solid transparent!important;font-size:12px!important;font-weight:600!important;background:transparent!important;color:#577495!important;box-shadow:none!important}
+  #mainApp #clientsPanel #clientPageNav .clientPageNavBtn:hover {background:#ffffff9c!important;color:#1c609f!important}
+  #mainApp #clientsPanel #clientPageNav .clientPageNavBtn.active {background:#fff!important;border-color:#d7e5f6!important;color:#1567bb!important;box-shadow:0 3px 8px #15396110!important}
+  #mainApp #clientsPanel #clientPageNav .clientPageNavCount {background:#dfeeff!important;color:#326b9e!important;font-size:10px!important}
+  #mainApp #clientsPanel .clientPageIntro {padding:0 2px 14px!important;margin:0 0 17px!important;border-color:#dfebf8!important}
+  #mainApp #clientsPanel .clientPageIntroKicker {font-size:9px!important;letter-spacing:.12em!important;font-weight:600!important;color:#587da3!important}
+  #mainApp #clientsPanel .clientPageIntroTitle {font-size:22px!important;font-weight:600!important;letter-spacing:-.4px!important;color:#1b426b!important}
+  #mainApp #clientsPanel .clientPageIntroSub {font-size:12px!important;font-weight:400!important;line-height:1.6!important;color:#617b96!important}
+  #mainApp #clientsPanel #clientAnagraficaSection.clientIdentityPremium {padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;border-radius:0!important}
+  #mainApp #clientsPanel #clientAnagraficaSection .clientIdentityHeader {padding:0 2px 15px!important;margin:0!important;border:0!important;background:transparent!important}
+  #mainApp #clientsPanel .clientIdentityEyebrow {font-size:9px!important;letter-spacing:.12em!important;color:#6285a9!important;font-weight:600!important}
+  #mainApp #clientsPanel .clientIdentityTitle {font-size:18px!important;font-weight:600!important;letter-spacing:-.2px!important;color:#1b426b!important}
+  #mainApp #clientsPanel .clientIdentityStatus {border:1px solid #d5e7f1!important;background:#eff8fb!important;color:#35677d!important;font-size:10px!important;font-weight:550!important;box-shadow:none!important}
+  #mainApp #clientsPanel #clientAnagraficaSection .clientProfileSections {display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:18px!important;background:transparent!important;align-items:start!important}
+  #mainApp #clientsPanel #clientAnagraficaSection .clientProfileCard {min-width:0!important;margin:0!important;padding:22px!important;border:1px solid #dce8f5!important;border-radius:16px!important;background:#fff!important;box-shadow:var(--ws-shadow)!important}
+  #mainApp #clientsPanel #clientAnagraficaSection .clientProfileWide {grid-column:1 / -1!important}
+  #mainApp #clientsPanel #clientAnagraficaSection .clientProfileCardHead {gap:12px!important;align-items:center!important;margin:0 0 18px!important;padding-bottom:14px!important;border-bottom:1px solid #edf2fa!important}
+  #mainApp #clientsPanel #clientAnagraficaSection .clientProfileCardHead b {font-size:14px!important;font-weight:650!important;color:#22476c!important;letter-spacing:-.1px!important}
+  #mainApp #clientsPanel #clientAnagraficaSection .clientProfileCardHead small {font-size:11px!important;line-height:1.6!important;font-weight:400!important;color:#6a819a!important;margin-top:3px!important}
+  #mainApp #clientsPanel #clientAnagraficaSection .clientProfileIcon {width:36px!important;height:36px!important;flex:0 0 36px!important;border-radius:11px!important;border:1px solid #d9e9fb!important;background:linear-gradient(135deg,#eff7ff,#e0edfc)!important;color:#2468ad!important;font-size:12px!important;font-weight:600!important}
+  #mainApp #clientsPanel #clientAnagraficaSection .clientProfileCard:nth-child(2) .clientProfileIcon {background:#e7f7f4!important;border-color:#c9e9e1!important;color:#1a8078!important}
+  #mainApp #clientsPanel #clientAnagraficaSection .clientProfileGrid {gap:16px!important}
+  #mainApp #clientsPanel #clientAnagraficaSection .clientProfileField {min-width:0!important}
+  #mainApp #clientsPanel #clientAnagraficaSection .clientProfileField>span {font-size:12px!important;font-weight:550!important;color:#536e8b!important;letter-spacing:0!important;text-transform:none!important;margin-bottom:7px!important;line-height:1.4!important}
+  #mainApp #clientsPanel #clientAnagraficaSection .clientProfileField :is(input,select,textarea) {width:100%!important;min-width:0!important;min-height:44px!important;padding:11px 12px!important;border:1px solid #d1e1f2!important;border-radius:10px!important;background:#f9fbfe!important;color:#173b61!important;font-size:13px!important;line-height:1.4!important;font-weight:450!important;box-shadow:inset 0 1px 2px #204b7103!important}
+  #mainApp #clientsPanel #clientAnagraficaSection .clientProfileField :is(input,select,textarea):focus {background:#fff!important;border-color:#65a9ed!important;box-shadow:0 0 0 3px #1983ef0d!important}
+  #mainApp #clientsPanel #clientAnagraficaSection .clientProfileField :is(input,textarea)::placeholder {color:#8193a8!important;opacity:1}
+  #mainApp #clientsPanel #clientAnagraficaSection .clientNotesPremium textarea {min-height:112px!important;resize:vertical}
+  #mainApp #clientsPanel .onlineClientLinkBar {border:1px solid #cfe7e4!important;border-radius:13px!important;background:#edf9f5!important;padding:15px 18px!important}
+  #mainApp #clientsPanel :is(.clientMainSheetDates,.clientCommerceBox) {border-color:#dce8f5!important;border-radius:15px!important;background:#fff!important;box-shadow:var(--ws-shadow)!important}
+  #mainApp #clientsPanel .clientMainSheetDateBtn {border-color:#d5e4f6!important;border-radius:9px!important;padding:9px 12px!important;font-size:11px!important;font-weight:550!important}
+  #mainApp #clientsPanel .clientMainSheetDateBtn.active {background:#147bea!important;color:#fff!important;border-color:#147bea!important}
+  #mainApp #clientsPanel .clientCreateSheetMain {background:#197de9!important;border-color:#197de9!important;border-radius:11px!important;font-size:12px!important;font-weight:600!important;min-height:42px!important;padding:10px 15px!important}
+  #mainApp #clientsPanel .clientNewSheetMenu {border-color:#d2e3f4!important;border-radius:15px!important;box-shadow:0 20px 44px #15395d26!important}
+  #mainApp #clientsPanel .clientArchiveGrid {grid-template-columns:minmax(0,1fr) minmax(260px,.4fr)!important;gap:18px!important}
+  #mainApp #clientsPanel .clientArchiveGrid>.clientBox,#mainApp #clientsPanel .clientServer {border:1px solid #dce8f5!important;border-radius:16px!important;background:#fff!important;padding:22px!important;box-shadow:var(--ws-shadow)!important;min-width:0!important}
+  #mainApp #clientsPanel .clientBoxTitle {font-size:16px!important;font-weight:650!important;color:#24476b!important;letter-spacing:-.2px!important}
+  #mainApp #clientsPanel .clientSearchRow {gap:8px!important;margin:15px 0!important}
+  #mainApp #clientsPanel #clientArchiveSearch {min-width:0!important;min-height:45px!important;padding:10px 13px!important;background:#f7faff!important;border:1px solid #d5e4f5!important;border-radius:11px!important;font-size:13px!important}
+  #mainApp #clientsPanel .clientArchiveGrid button {min-height:38px!important;padding:8px 12px!important;border-radius:10px!important;font-size:12px!important;font-weight:550!important}
+  #mainApp #clientsPanel .clientArchiveGrid button.primary {background:#187ce6!important;border-color:#187ce6!important;color:#fff!important}
+  #mainApp #clientsPanel :is(.clientCounter,.clientServerStatus,.clientVisitHint,.serverFuture) {font-size:11px!important;line-height:1.6!important;color:#607995!important}
+  #mainApp #clientsPanel :is(.clientEmpty,.clientNoSheets,.clientCommerceEmpty) {border:1px dashed #ccdfee!important;border-radius:12px!important;padding:23px 17px!important;background:#f5f9fe!important;font-size:12px!important;line-height:1.6!important;color:#67809b!important}
+  #mainApp #clientsPanel .clientListItem {border:1px solid #dce8f5!important;border-radius:12px!important;padding:13px!important;margin:7px 0!important;background:#fff!important}
+  #mainApp #clientsPanel .clientListItem:hover {background:#f2f8ff!important;border-color:#9ac5eb!important}
+  #mainApp #clientsPanel .clientItemName {font-size:14px!important;color:#21436b!important;font-weight:600!important}
+  #mainApp #clientsPanel .clientItemMeta {font-size:11px!important;line-height:1.6!important;color:#6a83a0!important}
+
+  /* The existing shifts/hours tab keeps its meaning and status colors. */
+  #mainApp #optykerAppointmentsPanel .oa16Top {padding:6px 0 18px!important;border-color:#dce8f6!important;gap:12px!important}
+  #mainApp #optykerAppointmentsPanel .oa16Field>span {font-size:10px!important;letter-spacing:.04em!important;font-weight:600!important;color:#5c7997!important}
+  #mainApp #optykerAppointmentsPanel .oa16Field :is(input,select),#mainApp #optykerAppointmentsPanel :is(.oa16Nav,.oa16IconBtn,.oa16Export) {height:42px!important;border-radius:10px!important;border-color:#d2e2f3!important;background:#fff!important;color:#305a82!important;font-size:12px!important}
+  #mainApp #optykerAppointmentsPanel .oa16SectionTitle {font-size:20px!important;font-weight:600!important;color:#254d76!important;letter-spacing:-.3px!important}
+  #mainApp #optykerAppointmentsPanel .oa16SectionSub {font-size:12px!important;color:#617e9c!important}
+  #mainApp #optykerAppointmentsPanel .oa16GridWrap {border-color:#dbe7f5!important;border-radius:15px!important;box-shadow:var(--ws-shadow)!important}
+  #mainApp :is(#clientsPanel,#optykerAppointmentsPanel) .whSettingsCompanyCard {margin-top:18px!important;border-color:#dfebf6!important;background:#f8fbfe!important;border-radius:13px!important;box-shadow:none!important}
+}
+@media screen and (min-width:901px) {
+  /* Keep the reference sidebar aligned when the client report row is visible. */
+  html[data-optyker-active-workspace] #mainApp #moduleNav {position:fixed!important;inset:0 auto 0 0!important;width:var(--vision-sidebar,216px)!important;height:100dvh!important}
+  html[data-optyker-active-workspace] #mainApp>:is(#reportSectionTop,#currentClientBanner) {grid-column:2!important;margin:0 25px 18px!important;width:auto!important;min-width:0!important;box-sizing:border-box!important;border-color:#dce8f5!important;border-radius:15px!important}
+}
+@media screen and (max-width:1200px) {
+  #mainApp #clientsPanel #clientAnagraficaSection .clientProfileSections {grid-template-columns:1fr!important}
+  #mainApp #clientsPanel .clientArchiveGrid {grid-template-columns:1fr!important}
+  #mainApp #optykerAppointmentsPanel #oa17SearchWrap {width:min(410px,100%)!important}
+}
+@media screen and (max-width:900px) {
+  html[data-optyker-workspace-release] #mainApp :is(#optykerAppointmentsPanel,#clientsPanel) {padding:18px!important}
+  #mainApp #optykerAppointmentsPanel #oa17SearchWrap {float:none!important;width:100%!important}
+  #mainApp #optykerAppointmentsPanel .oaHead {padding:23px!important;gap:18px!important}
+  #mainApp #optykerAppointmentsPanel .oaActions {margin-left:0!important}
+  #mainApp #clientsPanel #clientWorkspaceHero {padding:22px!important}
+  #mainApp #clientsPanel .clientWorkspaceActions {margin-left:0!important}
+}
+@media screen and (max-width:600px) {
+  html[data-optyker-workspace-release] #mainApp :is(#optykerAppointmentsPanel,#clientsPanel) {padding:12px!important;border-radius:17px!important}
+  #mainApp #optykerAppointmentsPanel .oaHead {padding:20px!important;border-radius:14px!important}
+  #mainApp #optykerAppointmentsPanel .oaTitle {font-size:25px!important}
+  #mainApp #optykerAppointmentsPanel .oaActions {width:100%!important}
+  #mainApp #optykerAppointmentsPanel .oaActions button {flex:1 1 100%!important}
+  #mainApp #optykerAppointmentsPanel .oaToolbar #oaOpFilter {flex:1 1 100%!important;margin:0!important}
+  #mainApp #optykerAppointmentsPanel .oaViewSwitch {width:auto!important;flex:1 1 100%!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar.oaCalendarWeek {max-height:68dvh!important;min-height:390px!important}
+  #mainApp #clientsPanel #clientWorkspaceHero {padding:19px!important;border-radius:14px!important;gap:18px!important}
+  #mainApp #clientsPanel .clientWorkspacePerson {gap:12px!important}
+  #mainApp #clientsPanel #clientWorkspaceAvatar {width:48px!important;height:48px!important;flex-basis:48px!important;border-radius:14px!important;font-size:18px!important}
+  #mainApp #clientsPanel #clientWorkspaceName {font-size:23px!important}
+  #mainApp #clientsPanel .clientWorkspaceActions {width:100%!important;gap:7px!important}
+  #mainApp #clientsPanel .clientWorkspaceActions button {flex:1 1 calc(50% - 7px)!important;min-width:0!important;padding:10px 8px!important}
+  #mainApp #clientsPanel #clientAnagraficaSection .clientProfileCard {padding:18px 15px!important;border-radius:13px!important}
+  #mainApp #clientsPanel #clientAnagraficaSection .clientProfileGrid {gap:14px!important}
+  #mainApp #clientsPanel #clientAnagraficaSection .clientProfileGrid.address {grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  #mainApp #clientsPanel .clientSearchRow {flex-wrap:wrap!important}
+  #mainApp #clientsPanel #clientArchiveSearch {flex-basis:100%!important}
+  html[data-optyker-workspace-release] :is(#oaNewModal,#oaManageModal) {padding:12px 8px!important}
+  html[data-optyker-workspace-release] :is(#oaNewModal .oaCard,#oaManageModal .oaV10Card) {width:100%!important;max-height:calc(100dvh - 24px)!important;border-radius:16px!important}
+  html[data-optyker-workspace-release] :is(#oaNewModal .oaGrid,#oaManageModal .oaV10EditGrid) {padding:0 17px!important;grid-template-columns:1fr!important;gap:14px!important}
+  html[data-optyker-workspace-release] :is(#oaNewModal,#oaManageModal) .oaMh {padding:18px!important}
+  html[data-optyker-workspace-release] :is(#oaNewModal .oaBottom,#oaManageModal .oaV10Bottom) {padding:14px 17px!important}
+  html[data-optyker-workspace-release] :is(#oaNewModal .oaBottom,#oaManageModal .oaV10Bottom) button {flex:1 1 auto!important}
+}
+@media screen and (max-width:440px) {
+  #mainApp #clientsPanel #clientAnagraficaSection .clientProfileGrid.two {grid-template-columns:1fr!important}
+  #mainApp #clientsPanel #clientAnagraficaSection .clientProfileGrid.two .clientProfileSpan2 {grid-column:auto!important}
+}
+@media screen and (prefers-reduced-motion:reduce) {
+  #mainApp :is(#optykerAppointmentsPanel,#clientsPanel) *, :is(#oaNewModal,#oaManageModal) * {transition:none!important;animation:none!important;scroll-behavior:auto!important}
+}
+@media screen {
+  html[data-optyker-workspace-release] #oaNewModal,
+  html[data-optyker-workspace-release] #oaManageModal {z-index:200000!important}
+  html[data-optyker-workspace-release] #oaNewModal textarea#oaNotes,
+  html[data-optyker-workspace-release] #oaManageModal :is(textarea#oaV10Notes,textarea#oaV10PrivateNotes) {min-height:86px!important;height:auto!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar .oaTimeLabel:first-child {transform:translateY(2px)!important}
+  #mainApp #optykerAppointmentsPanel #oaCalendar .oaTimeLabel:last-child {transform:translateY(-100%)!important}
+}
+@media screen {
+  #mainApp #clientsPanel #clientWorkspaceHero {display:flex!important}
+  #mainApp #clientsPanel .clientWorkspacePerson {flex:1 1 300px!important;max-width:100%!important}
+  #mainApp #clientsPanel .clientWorkspaceActions {max-width:100%!important;flex:0 1 auto!important}
+  #mainApp #clientsPanel #optykerWorkspaceClientTools {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:18px}
+  #mainApp #clientsPanel #optykerWorkspaceClientTools:empty {display:none}
+  #mainApp #clientsPanel #optykerWorkspaceClientTools>.optykerClientToolsBlock {margin:0!important;padding:20px!important;min-width:0!important;border:1px solid #dce8f5!important;border-radius:15px!important;background:#fff!important;box-shadow:var(--ws-shadow)!important}
+  #mainApp #clientsPanel #optykerWorkspaceClientTools .optykerClientToolsHead {flex-wrap:wrap!important;gap:10px!important}
+  #mainApp #clientsPanel #optykerWorkspaceClientTools h3 {font-size:16px!important;font-weight:600!important;color:#284e74!important}
+  #mainApp #clientsPanel #optykerWorkspaceClientTools .optykerClientToolsSub {font-size:11px!important;line-height:1.6!important;color:#65809b!important}
+  #mainApp #clientsPanel #optykerWorkspaceClientTools :is(.optykerEmptySmall,.optykerPaidOk) {font-size:12px!important;line-height:1.6!important}
+  #mainApp #clientsPanel #optykerWorkspaceClientTools .optykerClientToolsBtn {font-size:11px!important;min-height:36px!important;border-radius:9px!important}
+  #mainApp #clientsPanel #optykerClientClinicalTools {grid-column:1/-1}
+}
+@media screen and (max-width:900px) {
+  #mainApp #clientsPanel #optykerWorkspaceClientTools {grid-template-columns:1fr}
+}
+@media print {#optykerWorkspaceClientTools {display:none!important}}
+@media screen and (prefers-reduced-motion:reduce) {
+  html[data-optyker-workspace-release] #mainApp :is(#optykerAppointmentsPanel,#clientsPanel) :is(button,input,select,textarea),
+  html[data-optyker-workspace-release] :is(#oaNewModal,#oaManageModal) :is(button,input,select,textarea) {transition:none!important;animation:none!important;scroll-behavior:auto!important}
+}

@@ -1,0 +1,7 @@
+{
+  "version": "20260911-secure-auth-v1",
+  "recovery": "verified-email-link",
+  "legacy_direct_reset": "disabled-server-side",
+  "auto_login_after_reset": false,
+  "registration": "native-email-confirmation"
+}

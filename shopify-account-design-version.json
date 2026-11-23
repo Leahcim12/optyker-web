@@ -1,0 +1,13 @@
+{
+  "version": "20260912-account-design1",
+  "commit": "cff5c89a5b828b01f545646ac9b3f6e75adf4c84",
+  "assets": {
+    "shopify-warranty/native-account.26ad78e67894.css": "26ad78e67894240e0b49e7243c2c2fcbbbddd9f8e48f5cdae28d0729b0eb8672",
+    "shopify-warranty/eyewear-cover.d7ea202df234.css": "d7ea202df23451d1653d1361b1a1715e7f70a748fd877fbd8793d0f9d8fb816c",
+    "shopify-warranty/eyewear-cover.92ced28f8dbc.js": "92ced28f8dbcf7d6292020e4f6884a3053fe2738ec8caf5a88b600f36eba7482",
+    "shopify-warranty/native-account.ab9fbdab66f3.js": "ab9fbdab66f31cd2ea144f0797696c57acc578fb082c1f23264012a03390b914",
+    "shopify-warranty/account-design.3ff22e1308c6.css": "3ff22e1308c6be3a34fe006643ef9683196f4485a2273eb18e1f709d8deb6be3",
+    "shopify-warranty/account-design.d4d7e1a994bc.js": "d4d7e1a994bc76bb2bc8f6c41cb3c8bbf4872873e62dda68c3329dc727b27005"
+  },
+  "page_body_sha256": "2242fe87cb5c0d4f2a87e36fda90918afd469edd560973ddc5aa52dd57fac182"
+}

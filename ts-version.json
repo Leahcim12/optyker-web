@@ -1,0 +1,8 @@
+{
+  "version": "20260910-ts15-v1",
+  "commit": "cff5c89a5b828b01f545646ac9b3f6e75adf4c84",
+  "products": 32,
+  "discount_percent": 15,
+  "price_unit": "occhio",
+  "catalog_sha256": "70fce022f1c0a95047647b109aba1a4ef7ad705fb72c394cc543bfb545a0ea21"
+}

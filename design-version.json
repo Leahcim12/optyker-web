@@ -1,0 +1,12 @@
+{
+  "design": "20260910-vision1",
+  "asset_paths": "20260910-paths2",
+  "commit": "cff5c89a5b828b01f545646ac9b3f6e75adf4c84",
+  "base_path": "/",
+  "assets": {
+    "optyker-aurora.css": "2fe1383a99c58d9a1a3fc717cfe24f0a77b74af500e157a4f1f687607abbf01e",
+    "optyker-vision.css": "ed53a18e2859a47800228798f085a431d759febd45dee7a0a820f3a5ac51ff4b",
+    "optyker-vision.js": "3a4f71cdbce4997885b3afdc7ea764ecbeef3cdd962bbbbcc5ec1b62adaea51c",
+    "optyker-vision-eye.webp": "a28de9ec2464bec826d88e2be4048b1abcf4d5a2bcd0d7108dd398fd5541cf26"
+  }
+}

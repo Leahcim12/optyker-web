@@ -1,0 +1,15 @@
+{
+  "version": "20260910-cart-privacy1",
+  "commit": "cff5c89a5b828b01f545646ac9b3f6e75adf4c84",
+  "sections": [
+    "cassa",
+    "dashboard",
+    "informativa"
+  ],
+  "assets": {
+    "cash-register.js": "7965a8b7d812c8e4cc2272c7fc76d23f33349d4ba8186065f6464d2453ff81ae",
+    "optyker-vision.js": "3a4f71cdbce4997885b3afdc7ea764ecbeef3cdd962bbbbcc5ec1b62adaea51c",
+    "optyker-cart-privacy.css": "8e7b8deae9aa80123d053a281b5d7786e1b926e22031320d5bf1b3bd00512b82",
+    "optyker-privacy.js": "f215faa3181852149d4220653f6990904a7103bad8526e3d956b26525e13a395"
+  }
+}

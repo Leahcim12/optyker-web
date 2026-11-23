@@ -1,0 +1,12 @@
+{
+  "version": "20260910-workspace1",
+  "commit": "cff5c89a5b828b01f545646ac9b3f6e75adf4c84",
+  "sections": [
+    "agenda",
+    "anagrafica"
+  ],
+  "assets": {
+    "optyker-workspace.css": "acfdac362d3159ccc46614480aa63803e5f60d25ed308f6f0d2f11dbcc96179c",
+    "optyker-workspace.js": "313cd0af01ef7ff43f9ef1ba5c0309dc0a6a2a257cb895dc4cf1efe66a80b612"
+  }
+}

@@ -1,0 +1,459 @@
+
+(function(){
+  if(window.__optykerBillingAdminLoaded)return;
+  window.__optykerBillingAdminLoaded=true;
+
+  var API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-billing-admin';
+  var NOTES_API='https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-billing-invoice-notes';
+  var TOKEN_KEY='optyker_billing_admin_token';
+  var state={token:'',mode:'outgoing',section:'billing',rows:[],provider:null,restoring:false,pendingSettings:false};
+  var months=['','Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+
+  function E(id){return document.getElementById(id)}
+  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]})}
+  function call(action,payload,token){
+    var body=payload||{};body.action=action;
+    var headers={'Content-Type':'application/json'};
+    var t=token||state.token;
+    if(t)headers.Authorization='Bearer '+t;
+    return fetch(API,{method:'POST',headers:headers,body:JSON.stringify(body)}).then(function(r){
+      return r.json().catch(function(){return {}}).then(function(x){
+        if(!r.ok||x&&x.ok===false){var er=new Error((x&&x.error)||('HTTP '+r.status));er.code=x&&x.code;er.status=r.status;er.payload=x;throw er}
+        return x
+      })
+    })
+  }
+  function notesCall(action,payload){
+    var body=payload||{};body.action=action;
+    var headers={'Content-Type':'application/json'};
+    if(state.token)headers.Authorization='Bearer '+state.token;
+    return fetch(NOTES_API,{method:'POST',headers:headers,body:JSON.stringify(body)}).then(function(r){
+      return r.json().catch(function(){return {}}).then(function(x){
+        if(!r.ok||x&&x.ok===false){var er=new Error((x&&x.error)||('HTTP '+r.status));er.status=r.status;throw er}
+        return x
+      })
+    })
+  }
+  function toast(msg,type){
+    var t=E('optykerBillingToast');
+    if(!t){t=document.createElement('div');t.id='optykerBillingToast';document.body.appendChild(t)}
+    t.className=type||'';t.textContent=msg;t.style.display='block';
+    clearTimeout(t.__hide);t.__hide=setTimeout(function(){t.style.display='none'},4200)
+  }
+  function ensureInvoiceNotesStyle(){
+    if(E('optykerBillingInvoiceNotesStyle'))return;
+    var s=document.createElement('style');s.id='optykerBillingInvoiceNotesStyle';
+    s.textContent='.optykerBillingAnnotations{margin-top:14px;border:1px solid #d8e4ec;border-radius:11px;background:#f8fbfd;padding:12px}.optykerBillingAnnotationsHead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}.optykerBillingAnnotationsTitle{font-size:12px;font-weight:950;color:#17334b}.optykerBillingAnnotationsSub{font-size:9px;color:#718493;margin-top:2px}.optykerBillingAnnotationsList{display:grid;gap:7px;margin:8px 0 10px}.optykerBillingAnnotationItem{border:1px solid #e0e8ee;border-radius:8px;background:#fff;padding:8px 9px}.optykerBillingAnnotationType{font-size:8px;font-weight:950;letter-spacing:.07em;text-transform:uppercase;color:#1769aa}.optykerBillingAnnotationBody{margin-top:3px;white-space:pre-wrap;word-break:break-word;font-size:11px;font-weight:750;color:#2b455d}.optykerBillingAnnotationMeta{margin-top:4px;font-size:8px;color:#8796a3}.optykerBillingAnnotationEmpty{padding:10px;border:1px dashed #cfdbe4;border-radius:8px;background:#fff;text-align:center;font-size:9px;color:#7c8d9a}.optykerBillingAnnotationForm{display:grid;grid-template-columns:150px 1fr auto;gap:7px;align-items:stretch}.optykerBillingAnnotationForm select,.optykerBillingAnnotationForm textarea{box-sizing:border-box;border:1px solid #cbd7e2;border-radius:8px;background:#fff;color:#223d55;font:700 10px/1.3 "Segoe UI",Arial,sans-serif;outline:none}.optykerBillingAnnotationForm select{height:38px;padding:0 8px}.optykerBillingAnnotationForm textarea{min-height:58px;resize:vertical;padding:8px 9px}.optykerBillingAnnotationForm select:focus,.optykerBillingAnnotationForm textarea:focus{border-color:#1769aa;box-shadow:0 0 0 2px rgba(23,105,170,.1)}.optykerBillingAnnotationForm button{align-self:stretch}.optykerBillingAnnotationHint{margin-top:7px;font-size:8px;color:#7b8d9c}.optykerBillingAnnotationError{padding:9px;border-radius:8px;background:#fff0f0;color:#a93636;font-size:9px;font-weight:750}@media(max-width:760px){.optykerBillingAnnotationForm{grid-template-columns:1fr}.optykerBillingAnnotationForm button{min-height:38px}}';
+    document.head.appendChild(s)
+  }
+  function ensureAdminAccess(){
+    ['optykerAdminAccessBox','navAdministration'].forEach(function(id){var old=E(id);if(old)old.remove()});
+    ['optykerLoginOperator','optykerUserSelect'].forEach(function(id){
+      var s=E(id);if(!s)return;
+      for(var i=s.options.length-1;i>=0;i--){
+        if(String(s.options[i].value||'').trim().toLowerCase()==='ottica visual care')s.remove(i)
+      }
+      if(!s.querySelector('option[value="__optyker_admin__"]')){
+        var option=document.createElement('option');option.value='__optyker_admin__';option.textContent='Amministrazione';s.appendChild(option)
+      }
+    })
+  }
+  // Intercept before the operator login handlers: administration keeps its own authentication.
+  document.addEventListener('change',function(ev){
+    var s=ev.target;
+    if(s&&['optykerLoginOperator','optykerUserSelect'].indexOf(s.id)>=0&&s.value==='__optyker_admin__'){
+      ev.preventDefault();ev.stopImmediatePropagation();s.value='';showAdminLogin(false)
+    }
+  },true);
+  function showAdminLogin(fromSidebar){
+    var screen=E('optykerLoginScreen'),shell=document.querySelector('#optykerLoginScreen .optykerLoginShell');if(!shell)return;
+    var appMain=E('mainApp');
+    if(fromSidebar&&screen){
+      screen.__optykerAdminFromSidebar=true;
+      screen.style.setProperty('display','flex','important');
+      screen.setAttribute('aria-hidden','false');
+      if(appMain)appMain.style.setProperty('display','none','important')
+    }
+    var normal=document.querySelector('.optykerUserLoginCard, #optykerLoginScreen .optykerLoginCard');if(normal)normal.style.display='none';
+    var old=E('optykerAdminLoginCard');if(old)old.remove();
+    var card=document.createElement('div');card.id='optykerAdminLoginCard';card.className='optykerAdminLoginCard';
+    card.innerHTML='<div class="optykerAdminLoginHead"><div class="optykerAdminLoginEyebrow">Optyker · Amministrazione</div><div class="optykerAdminLoginTitle">Ottica Visual Care</div><div class="optykerAdminLoginSub">Fatturazione e impostazioni'+(fromSidebar?' · Accedi per aprire le impostazioni':'')+'.</div></div><div id="optykerAdminLoginBody"><div class="optykerBillingLoading">Verifica account…</div></div><button id="optykerAdminLoginBack" type="button">← '+(fromSidebar?'Torna alla fatturazione':'Torna agli utenti')+'</button>';
+    shell.appendChild(card);
+    E('optykerAdminLoginBack').onclick=function(){
+      state.pendingSettings=false;card.remove();if(normal)normal.style.display='block';
+      if(screen&&screen.__optykerAdminFromSidebar){
+        screen.__optykerAdminFromSidebar=false;
+        screen.style.setProperty('display','none','important');
+        screen.setAttribute('aria-hidden','true');
+        if(appMain)appMain.style.setProperty('display','grid','important')
+      }
+    };
+    call('auth_status',{},'').then(function(x){renderAdminAuthForm(!!x.needs_password)}).catch(function(err){
+      var body=E('optykerAdminLoginBody');if(body)body.innerHTML='<div id="optykerAdminLoginError">'+esc(err.message)+'</div>'
+    })
+  }
+  function renderAdminAuthForm(needs){
+    var body=E('optykerAdminLoginBody');if(!body)return;
+    if(needs){
+      body.innerHTML='<label class="optykerAdminLoginLabel">Crea password</label><input id="optykerAdminPassword" class="optykerAdminLoginInput" type="password" autocomplete="new-password" placeholder="Almeno 8 caratteri"><label class="optykerAdminLoginLabel">Conferma password</label><input id="optykerAdminPassword2" class="optykerAdminLoginInput" type="password" autocomplete="new-password" placeholder="Ripeti la password"><div class="optykerAdminPasswordHint">La password viene salvata in forma protetta e non viene inserita nel codice del sito.</div><button id="optykerAdminLoginSubmit" type="button">CREA PASSWORD ED ENTRA</button><div id="optykerAdminLoginError"></div>';
+    }else{
+      body.innerHTML='<label class="optykerAdminLoginLabel">Utente</label><input class="optykerAdminLoginInput" value="Ottica Visual Care" readonly><label class="optykerAdminLoginLabel">Password</label><input id="optykerAdminPassword" class="optykerAdminLoginInput" type="password" autocomplete="current-password" placeholder="Password"><button id="optykerAdminLoginSubmit" type="button">ENTRA IN AMMINISTRAZIONE</button><div id="optykerAdminLoginError"></div>';
+    }
+    var btn=E('optykerAdminLoginSubmit'),pw=E('optykerAdminPassword'),pw2=E('optykerAdminPassword2');
+    btn.onclick=function(){
+      var err=E('optykerAdminLoginError');if(err)err.textContent='';
+      var password=pw?pw.value:'';
+      if(password.length<8){if(err)err.textContent='La password deve avere almeno 8 caratteri.';return}
+      if(needs&&pw2&&password!==pw2.value){if(err)err.textContent='Le password non coincidono.';return}
+      btn.disabled=true;btn.textContent=needs?'CREAZIONE…':'ACCESSO…';
+      var action=needs?'set_initial_password':'login';
+      var payload=needs?{password:password,confirm_password:pw2.value}:{username:'Ottica Visual Care',password:password};
+      call(action,payload,'').then(function(x){
+        if(!x.token)throw new Error('Token amministrativo non disponibile');
+        try{sessionStorage.setItem(TOKEN_KEY,x.token)}catch(z){}
+        startAdmin(x.token,password)
+      }).catch(function(e){if(err)err.textContent=e.message;btn.disabled=false;btn.textContent=needs?'CREA PASSWORD ED ENTRA':'ENTRA IN AMMINISTRAZIONE'})
+    };
+    [pw,pw2].forEach(function(x){if(x)x.onkeydown=function(ev){if(ev.key==='Enter'){ev.preventDefault();btn.click()}}});
+    setTimeout(function(){try{pw.focus()}catch(z){}},0)
+  }
+
+  function ensureHeaderTools(){
+    var right=document.querySelector('.topbarRight');if(!right||E('optykerBillingHeaderTools'))return;
+    var d=document.createElement('div');d.id='optykerBillingHeaderTools';d.className='optykerBillingHeaderTools';
+    d.innerHTML='<div class="optykerBillingHeaderBadge">Amministrazione · Ottica Visual Care</div><button id="optykerBillingLogout" class="optykerBillingBtn" type="button">Esci</button>';
+    right.appendChild(d);
+    E('optykerBillingLogout').onclick=function(){
+      try{sessionStorage.removeItem(TOKEN_KEY)}catch(z){}
+      state.token='';document.body.classList.remove('optykerBillingMode');window.OPTYKER_BILLING_ADMIN=false;window.optykerAuthenticated=false;window.OPTYKER_ACTIVE_USER='';
+      if(window.OPTYKER_CLOUD){OPTYKER_CLOUD.username='';OPTYKER_CLOUD.password=''}
+      location.reload()
+    }
+  }
+  function ensureSidebar(){
+    var nav=E('moduleNav');if(!nav)return;
+    nav.style.display='flex';
+    var group=E('optykerBillingNavGroup');
+    if(!group){
+      var children=Array.prototype.slice.call(nav.children);
+      children.forEach(function(ch){ch.setAttribute('data-billing-hidden','1');ch.style.setProperty('display','none','important')});
+      group=document.createElement('div');group.id='optykerBillingNavGroup';group.className='optykerBillingNavGroup';
+      group.innerHTML='<button id="optykerBillingMainNav" type="button">Fatturazione</button><div class="optykerBillingSubnav"><button data-billing-mode="outgoing" type="button">Fatture emesse</button><button id="optykerForeignNav" type="button">Fatture estere</button><button data-billing-mode="incoming" type="button">Fatture in entrata</button><button data-billing-mode="errors" type="button">Errori</button></div><button id="optykerBillingSettingsNav" class="moduleBtn" type="button">⚙ Impostazioni</button>';
+      nav.appendChild(group);
+      E('optykerBillingMainNav').onclick=function(){showSection(state.mode||'outgoing')};
+      E('optykerBillingSettingsNav').onclick=showAdminSettings;
+      var tsButton=document.createElement('button');tsButton.id='optykerTsSettingsNav';tsButton.className='moduleBtn';tsButton.type='button';tsButton.textContent='Sistema TS';group.appendChild(tsButton);
+      tsButton.onclick=function(){if(window.OPTYKER_TS_CONNECTION)window.OPTYKER_TS_CONNECTION.open();else toast('Ricarica la pagina per aprire Sistema TS.','error')};
+      E('optykerForeignNav').onclick=openForeignInvoices;
+      var bs=group.querySelectorAll('[data-billing-mode]');
+      for(var i=0;i<bs.length;i++)bs[i].onclick=function(){showSection(this.getAttribute('data-billing-mode'))}
+    }
+    Array.prototype.slice.call(nav.children).forEach(function(ch){if(ch!==group)ch.style.setProperty('display','none','important')})
+  }
+  function hideRegularPanels(){
+    var panels=document.querySelectorAll('.panel');
+    var active=state.section==='settings'?'optykerSettingsPanel':'optykerBillingPanel';
+    for(var i=0;i<panels.length;i++)panels[i].style.setProperty('display',panels[i].id===active?'block':'none','important');
+    var ids=['dashboardPanel','analysisPanel','prescriptionPanel','visualExamPanel','indicationsPanel','hearingPanel','clientsPanel','onlineOrdersPanel','lacPanel','analysisTabs','optykerLaboratoryPanel'];
+    for(i=0;i<ids.length;i++){var x=E(ids[i]);if(x)x.style.setProperty('display','none','important')}
+    var report=E('reportSectionTop');if(report)report.style.setProperty('display','none','important')
+  }
+  function showAdminSettings(){
+    window.OPTYKER_ADMIN_CASH_ACTIVE=false;document.body.classList.remove('optykerAdminCashMode');
+    var c=window.OPTYKER_CLOUD;
+    if(!c||c.username!=='Ottica Visual Care'||!c.password){state.pendingSettings=true;showAdminLogin(true);return}
+    state.section='settings';
+    if(typeof window.optykerOpenSettings==='function')window.optykerOpenSettings();
+    hideRegularPanels();
+    E('optykerBillingSettingsNav').classList.add('active');
+    document.querySelectorAll('[data-billing-mode]').forEach(function(b){b.classList.remove('active')});
+    window.scrollTo(0,0)
+  }
+  function yearsOptions(){
+    var y=(new Date()).getFullYear(),h='<option value="">Tutti gli anni</option>';
+    for(var n=y+1;n>=2018;n--)h+='<option value="'+n+'">'+n+'</option>';
+    return h
+  }
+  function monthsOptions(){
+    var h='<option value="">Tutti i mesi</option>';for(var i=1;i<=12;i++)h+='<option value="'+i+'">'+months[i]+'</option>';return h
+  }
+  function daysOptions(){
+    var h='<option value="">Tutti i giorni</option>';for(var i=1;i<=31;i++)h+='<option value="'+i+'">'+i+'</option>';return h
+  }
+  function openForeignInvoices(){
+    function open(){window.OptykerForeignInvoices.open({call:call,onChanged:function(){loadRows();loadProvider()}})}
+    if(window.OptykerForeignInvoices){open();return}
+    var button=E('optykerForeignNav');if(button)button.disabled=true;
+    var script=document.createElement('script');script.src='/foreign-invoices.js?v=20260909-foreign1';
+    script.onload=function(){if(button)button.disabled=false;open()};
+    script.onerror=function(){if(button)button.disabled=false;toast('Impossibile aprire le fatture estere. Riprova.','error')};document.head.appendChild(script)
+  }
+  function ensurePanel(){
+    var p=E('optykerBillingPanel');if(p)return p;
+    p=document.createElement('div');p.id='optykerBillingPanel';p.className='panel';
+    p.innerHTML='<div class="optykerBillingTop"><div><div class="optykerBillingEyebrow">OPTYKER · AMMINISTRAZIONE</div><div id="optykerBillingTitle" class="optykerBillingTitle">Fatturazione</div><div id="optykerBillingSub" class="optykerBillingSub"></div></div><div class="optykerBillingTopActions"><span id="optykerBillingProviderStatus" class="optykerBillingStatus">Verifica collegamento…</span><button id="optykerBillingSync" class="optykerBillingBtn primary" type="button">Aggiorna fatture</button></div></div>'+
+    '<div class="optykerBillingToolbar"><div class="optykerBillingField"><label>Ricerca</label><input id="billQ" type="search" placeholder="Numero, intestazione, fornitore/cliente, P.IVA…"></div><div class="optykerBillingField"><label>Anno</label><select id="billYear">'+yearsOptions()+'</select></div><div class="optykerBillingField"><label>Mese</label><select id="billMonth">'+monthsOptions()+'</select></div><div class="optykerBillingField"><label>Giorno</label><select id="billDay">'+daysOptions()+'</select></div><div class="optykerBillingField"><label>Fornitore / Cliente</label><select id="billCounterparty"><option value="">Tutti</option></select></div></div>'+
+    '<div class="optykerBillingToolbar2"><div class="optykerBillingField"><label>Data dal</label><input id="billFrom" type="date"></div><div class="optykerBillingField"><label>Data al</label><input id="billTo" type="date"></div><div class="optykerBillingField"><label>Tipo fornitore</label><select id="billSupplierType"><option value="">Tutti i tipi</option></select></div><div class="optykerBillingField"><label>Stato SDI</label><select id="billSdi"><option value="">Tutti gli stati</option><option value="delivered">Consegnata</option><option value="accepted">Accettata</option><option value="processing">In elaborazione</option><option value="rejected">Scartata</option><option value="error">Errore</option></select></div><div class="optykerBillingActionField"><button id="billApply" class="optykerBillingBtn primary" type="button">Applica filtri</button></div><div class="optykerBillingActionField"><button id="billReset" class="optykerBillingBtn" type="button">Azzera</button></div></div>'+
+    '<div id="optykerBillingSummary" class="optykerBillingSummary"></div><div id="optykerBillingTableWrap" class="optykerBillingTableWrap"><div class="optykerBillingLoading">Caricamento fatture…</div></div>';
+    var anchor=E('onlineOrdersPanel')||E('clientsPanel')||E('lacPanel')||document.querySelector('.panel');
+    if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(p,anchor.nextSibling);else (E('mainApp')||document.body).appendChild(p);
+    E('billApply').onclick=loadRows;
+    E('billReset').onclick=resetFilters;
+    E('billQ').onkeydown=function(ev){if(ev.key==='Enter'){ev.preventDefault();loadRows()}};
+    E('optykerBillingSync').onclick=syncInvoices;
+    var connect=document.createElement('button');
+    connect.id='optykerFicConnect';connect.className='optykerBillingBtn';connect.type='button';
+    connect.textContent='Collega Fatture in Cloud';
+    E('optykerBillingSync').parentNode.insertBefore(connect,E('optykerBillingSync'));
+    connect.onclick=function(){
+      connect.disabled=true;
+      call('fic_connect',{write:true}).then(function(x){
+        var target=new URL(x.url);
+        if(target.origin!=='https://api-v2.fattureincloud.it'||target.pathname!=='/oauth/authorize')throw new Error('Indirizzo autorizzazione non valido');
+        window.location.assign(target.href);
+      }).catch(function(e){toast(e.message,'error')}).finally(function(){connect.disabled=false});
+    };
+    var create=document.createElement('button');create.type='button';create.className='optykerBillingBtn';create.textContent='Nuova fattura';
+    connect.parentNode.insertBefore(create,connect);
+    create.onclick=function(){
+      function open(){window.OptykerInvoices.open({call:call,onChanged:function(){loadRows();loadProvider()}})}
+      if(window.OptykerInvoices){open();return}
+      create.disabled=true;var script=document.createElement('script');script.src='/billing-compose.js?v=20260909-foreign1';
+      script.onload=function(){create.disabled=false;open()};script.onerror=function(){create.disabled=false;toast('Impossibile aprire la creazione fattura. Riprova.','error')};document.head.appendChild(script)
+    };
+    return p
+  }
+  function resetFilters(){
+    ['billQ','billYear','billMonth','billDay','billCounterparty','billFrom','billTo','billSupplierType','billSdi'].forEach(function(id){var x=E(id);if(x)x.value=''});
+    loadRows()
+  }
+  function filters(){
+    return {
+      q:E('billQ')?E('billQ').value:'',
+      year:E('billYear')?E('billYear').value:'',
+      month:E('billMonth')?E('billMonth').value:'',
+      day:E('billDay')?E('billDay').value:'',
+      counterparty:E('billCounterparty')?E('billCounterparty').value:'',
+      date_from:E('billFrom')?E('billFrom').value:'',
+      date_to:E('billTo')?E('billTo').value:'',
+      supplier_type:E('billSupplierType')?E('billSupplierType').value:'',
+      sdi_status:E('billSdi')?E('billSdi').value:'',
+      limit:500
+    }
+  }
+  function sectionTitle(){
+    if(state.mode==='incoming')return ['Fatture in entrata','Fatture ricevute dai fornitori, separate dalle fatture emesse.'];
+    if(state.mode==='errors')return ['Errori SDI','Fatture con scarti o errori di trasmissione e relativo motivo.'];
+    return ['Fatture emesse','Fatture emesse da Ottica Visual Care e relativo stato nel Sistema di Interscambio.']
+  }
+  function showSection(mode){
+    window.OPTYKER_ADMIN_CASH_ACTIVE=false;document.body.classList.remove('optykerAdminCashMode');
+    state.section='billing';
+    var settingsNav=E('optykerBillingSettingsNav');if(settingsNav)settingsNav.classList.remove('active');
+    state.mode=mode||'outgoing';
+    hideRegularPanels();var p=ensurePanel();p.style.setProperty('display','block','important');
+    var st=sectionTitle();E('optykerBillingTitle').textContent=st[0];E('optykerBillingSub').textContent=st[1];
+    var bs=document.querySelectorAll('[data-billing-mode]');for(var i=0;i<bs.length;i++)bs[i].classList.toggle('active',bs[i].getAttribute('data-billing-mode')===state.mode);
+    loadCounterparties();loadRows();try{window.scrollTo(0,0)}catch(z){}
+  }
+  function loadCounterparties(){
+    var payload={direction:state.mode==='errors'?'':state.mode};
+    call('counterparties',payload).then(function(x){
+      var cp=E('billCounterparty'),ty=E('billSupplierType');if(!cp||!ty)return;
+      var oldCp=cp.value,oldTy=ty.value;
+      var names=[],types={};
+      (x.data||[]).forEach(function(r){if(r.name)names.push(r.name);if(r.supplier_type)types[r.supplier_type]=1});
+      names.sort(function(a,b){return a.localeCompare(b,'it')});
+      cp.innerHTML='<option value="">Tutti</option>'+names.map(function(n){return '<option value="'+esc(n)+'">'+esc(n)+'</option>'}).join('');
+      ty.innerHTML='<option value="">Tutti i tipi</option>'+Object.keys(types).sort().map(function(n){return '<option value="'+esc(n)+'">'+esc(n)+'</option>'}).join('');
+      cp.value=oldCp;ty.value=oldTy
+    }).catch(function(){})
+  }
+  function statusClass(v){
+    v=String(v||'').toLowerCase();
+    if(/error|reject|scart/.test(v))return 'error';
+    if(/deliver|accept|success|ok|consegn|accett/.test(v))return 'ok';
+    return ''
+  }
+  function fmtDate(v){
+    if(!v)return '—';var d=new Date(String(v).length===10?v+'T12:00:00':v);if(isNaN(d.getTime()))return String(v);
+    return d.toLocaleDateString('it-IT')
+  }
+  function fmtDateTime(v){
+    if(!v)return '';var d=new Date(v);if(isNaN(d.getTime()))return String(v);
+    return d.toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
+  }
+  function fmtMoney(v,c){
+    if(v==null||v==='')return '—';
+    try{return new Intl.NumberFormat('it-IT',{style:'currency',currency:c||'EUR'}).format(Number(v))}catch(z){return String(v)+' '+(c||'EUR')}
+  }
+  function loadRows(){
+    var wrap=E('optykerBillingTableWrap');if(!wrap)return;
+    wrap.innerHTML='<div class="optykerBillingLoading">Aggiornamento fatture…</div>';
+    var p=filters();if(state.mode!=='errors')p.direction=state.mode;
+    call(state.mode==='errors'?'errors':'list',p).then(function(x){
+      state.rows=Array.isArray(x.data)?x.data:[];renderSummary();renderTable()
+    }).catch(function(err){
+      if(err.status===401){try{sessionStorage.removeItem(TOKEN_KEY)}catch(z){};toast('Sessione scaduta. Accedi di nuovo.','error');setTimeout(function(){location.reload()},900);return}
+      wrap.innerHTML='<div class="optykerBillingEmpty">Errore: '+esc(err.message)+'</div>'
+    })
+  }
+  function renderSummary(){
+    var s=E('optykerBillingSummary');if(!s)return;
+    var total=0,errs=0;
+    state.rows.forEach(function(r){if(r.total!=null&&!isNaN(Number(r.total)))total+=Number(r.total);if(r.sdi_error_code||/error|reject|scart/i.test(r.sdi_status||''))errs++});
+    var h='<div class="optykerBillingMetric"><div class="optykerBillingMetricLabel">Documenti</div><div class="optykerBillingMetricValue">'+state.rows.length+'</div></div>';
+    h+='<div class="optykerBillingMetric"><div class="optykerBillingMetricLabel">Totale</div><div class="optykerBillingMetricValue">'+esc(fmtMoney(total,'EUR'))+'</div></div>';
+    if(state.mode==='errors')h+='<div class="optykerBillingMetric"><div class="optykerBillingMetricLabel">Errori trovati</div><div class="optykerBillingMetricValue">'+errs+'</div></div>';
+    s.innerHTML=h
+  }
+  function renderTable(){
+    var w=E('optykerBillingTableWrap');if(!w)return;
+    if(!state.rows.length){w.innerHTML='<div class="optykerBillingEmpty">Nessuna fattura trovata con i filtri selezionati.</div>';return}
+    var h='<table class="optykerBillingTable"><thead><tr>';
+    if(state.mode==='errors'){
+      h+='<th>Data</th><th>Fattura</th><th>Intestatario</th><th>Codice errore</th><th>Motivo</th><th>Stato SDI</th>';
+    }else{
+      h+='<th>Data</th><th>Numero</th><th>'+(state.mode==='incoming'?'Fornitore':'Cliente / Intestatario')+'</th><th>Intestazione</th><th>Totale</th><th>Stato SDI</th>';
+    }
+    h+='</tr></thead><tbody>';
+    state.rows.forEach(function(r){
+      h+='<tr data-invoice-id="'+esc(r.id)+'">';
+      if(state.mode==='errors'){
+        h+='<td>'+esc(fmtDate(r.issue_date||r.received_at))+'</td><td><div class="optykerInvoiceMain">'+esc(r.invoice_number||'—')+'</div><div class="optykerInvoiceMeta">'+esc(r.direction==='incoming'?'Entrata':'Emessa')+'</div></td><td><div class="optykerInvoiceMain">'+esc(r.counterparty_name||'—')+'</div><div class="optykerInvoiceMeta">'+esc(r.counterparty_vat||'')+'</div></td><td><span class="optykerBillingErrorCode">'+esc(r.sdi_error_code||'—')+'</span></td><td>'+esc(r.sdi_error_message||'Motivo non restituito dal provider')+'</td><td><span class="optykerStatusChip '+statusClass(r.sdi_status)+'">'+esc(r.sdi_status||'—')+'</span></td>';
+      }else{
+        h+='<td>'+esc(fmtDate(r.issue_date||r.received_at))+'</td><td><div class="optykerInvoiceMain">'+esc(r.invoice_number||'—')+'</div><div class="optykerInvoiceMeta">'+esc(r.sdi_protocol||'')+'</div></td><td><div class="optykerInvoiceMain">'+esc(r.counterparty_name||'—')+'</div><div class="optykerInvoiceMeta">'+esc(r.counterparty_vat||r.counterparty_fiscal_code||'')+'</div></td><td>'+esc(r.header||'—')+'</td><td class="optykerMoney">'+esc(fmtMoney(r.total,r.currency))+'</td><td><span class="optykerStatusChip '+statusClass(r.sdi_status)+'">'+esc(r.sdi_status||'—')+'</span></td>';
+      }
+      h+='</tr>'
+    });
+    h+='</tbody></table>';w.innerHTML=h;
+    var trs=w.querySelectorAll('[data-invoice-id]');for(var i=0;i<trs.length;i++)trs[i].onclick=function(){openDetail(this.getAttribute('data-invoice-id'))}
+  }
+  function renderInvoiceNotes(id,rows){
+    var box=E('optykerBillingAnnotationsList');if(!box)return;
+    var modal=E('optykerBillingModal');if(!modal||modal.getAttribute('data-invoice-id')!==id)return;
+    rows=Array.isArray(rows)?rows:[];
+    if(!rows.length){box.innerHTML='<div class="optykerBillingAnnotationEmpty">Nessuna riga o nota aggiunta.</div>';return}
+    box.innerHTML=rows.map(function(n){
+      var label=n.kind==='line'?'Riga descrittiva':'Nota interna';
+      return '<div class="optykerBillingAnnotationItem"><div class="optykerBillingAnnotationType">'+esc(label)+'</div><div class="optykerBillingAnnotationBody">'+esc(n.body||'')+'</div><div class="optykerBillingAnnotationMeta">'+esc(n.created_by||'Ottica Visual Care')+(n.created_at?' · '+esc(fmtDateTime(n.created_at)):'')+'</div></div>'
+    }).join('')
+  }
+  function loadInvoiceNotes(id){
+    var box=E('optykerBillingAnnotationsList');if(box)box.innerHTML='<div class="optykerBillingAnnotationEmpty">Caricamento…</div>';
+    return notesCall('list',{invoice_id:id}).then(function(x){renderInvoiceNotes(id,x.data||[])}).catch(function(err){
+      if(box)box.innerHTML='<div class="optykerBillingAnnotationError">'+esc(err.message)+'</div>'
+    })
+  }
+  function addInvoiceNote(id){
+    var input=E('optykerBillingAnnotationText'),kind=E('optykerBillingAnnotationKind'),btn=E('optykerBillingAnnotationAdd');
+    if(!input||!btn)return;
+    var body=String(input.value||'').trim();if(!body){input.focus();return}
+    btn.disabled=true;btn.textContent='Aggiunta…';
+    notesCall('add',{invoice_id:id,kind:kind?kind.value:'note',body:body}).then(function(){
+      input.value='';toast('Riga / nota aggiunta alla fattura.');return loadInvoiceNotes(id)
+    }).catch(function(err){toast(err.message,'error')}).finally(function(){btn.disabled=false;btn.textContent='Aggiungi'})
+  }
+  function openDetail(id){
+    var r=null;for(var i=0;i<state.rows.length;i++)if(state.rows[i].id===id){r=state.rows[i];break}if(!r)return;
+    ensureInvoiceNotesStyle();
+    var m=E('optykerBillingModal');if(!m){m=document.createElement('div');m.id='optykerBillingModal';m.className='optykerBillingModal';document.body.appendChild(m)}
+    m.setAttribute('data-invoice-id',id);
+    m.innerHTML='<div class="optykerBillingModalCard"><div class="optykerBillingModalHead"><div><div class="optykerBillingEyebrow">DETTAGLIO FATTURA</div><div class="optykerBillingModalTitle">'+esc(r.invoice_number||'Fattura')+'</div></div><button id="optykerBillingModalClose" class="optykerBillingBtn" type="button">Chiudi</button></div><div class="optykerBillingDetailGrid">'+
+      detail('Data',fmtDate(r.issue_date||r.received_at))+detail('Direzione',r.direction==='incoming'?'Fattura in entrata':'Fattura emessa')+
+      detail('Intestatario',r.counterparty_name||'—')+detail('P.IVA / C.F.',r.counterparty_vat||r.counterparty_fiscal_code||'—')+
+      detail('Totale',fmtMoney(r.total,r.currency))+detail('Stato SDI',r.sdi_status||'—')+
+      detail('Protocollo SDI',r.sdi_protocol||'—')+detail('Stato provider',r.provider_status||'—')+
+      detail('Intestazione',r.header||'—',true)+detail('Codice errore',r.sdi_error_code||'—')+
+      detail('Motivo errore',r.sdi_error_message||'—',true)+'</div>'+
+      '<div class="optykerBillingAnnotations"><div class="optykerBillingAnnotationsHead"><div><div class="optykerBillingAnnotationsTitle">Annotazioni interne (non modificano la fattura)</div><div class="optykerBillingAnnotationsSub">Puoi aggiungere annotazioni anche dopo la creazione della fattura.</div></div></div><div id="optykerBillingAnnotationsList" class="optykerBillingAnnotationsList"><div class="optykerBillingAnnotationEmpty">Caricamento…</div></div><div class="optykerBillingAnnotationForm"><select id="optykerBillingAnnotationKind"><option value="line">Riga descrittiva</option><option value="note">Nota interna</option></select><textarea id="optykerBillingAnnotationText" maxlength="2000" placeholder="Scrivi qui la riga o la nota da aggiungere…"></textarea><button id="optykerBillingAnnotationAdd" class="optykerBillingBtn primary" type="button">Aggiungi</button></div><div class="optykerBillingAnnotationHint">L’annotazione resta collegata alla fattura in Optyker e non modifica importo, XML o documento SDI già emesso.</div></div></div>';
+    m.style.display='flex';E('optykerBillingModalClose').onclick=function(){m.style.display='none'};m.onclick=function(ev){if(ev.target===m)m.style.display='none'};
+    E('optykerBillingAnnotationAdd').onclick=function(){addInvoiceNote(id)};
+    E('optykerBillingAnnotationText').onkeydown=function(ev){if((ev.ctrlKey||ev.metaKey)&&ev.key==='Enter'){ev.preventDefault();addInvoiceNote(id)}};
+    if(r.direction==='outgoing'){
+      var actions=document.createElement('div');actions.style.cssText='display:flex;gap:10px;flex-wrap:wrap;margin:16px 0';
+      var view=document.createElement('button');view.type='button';view.className='optykerBillingBtn';view.textContent='Visualizza / Stampa';view.onclick=function(){openCustomerInvoiceEditor(id,view,false)};actions.appendChild(view);
+      var edit=document.createElement('button');edit.type='button';edit.className='optykerBillingBtn primary';edit.textContent='Modifica fattura';edit.onclick=function(){openCustomerInvoiceEditor(id,edit,true)};actions.appendChild(edit);
+      if(r.provider_invoice_id||r.sdi_protocol||!['draft','not_applicable'].includes(r.sdi_status)){edit.disabled=true;edit.title='Documento elettronico o già trasmesso: modifica diretta non consentita.'}
+      var anchor=m.querySelector('.optykerBillingAnnotations');if(anchor)anchor.before(actions);else m.querySelector('.optykerBillingModalCard').appendChild(actions);
+    }
+    loadInvoiceNotes(id)
+  }
+
+  // OPTYKER_INVOICE_EDIT_ACCESS_20260928
+  function openCustomerInvoiceEditor(id,button,edit){
+    function go(){window.OPTYKER_CUSTOMER_INVOICE_PRINT.open(id,button,edit)}
+    if(window.OPTYKER_CUSTOMER_INVOICE_PRINT){go();return}
+    if(button)button.disabled=true;
+    var script=document.getElementById('optykerInvoiceEditorLoader');
+    if(!script){script=document.createElement('script');script.id='optykerInvoiceEditorLoader';script.src=(location.hostname.endsWith('github.io')?'/optyker-web/':'/')+'customer-invoice-print.js?v=20261013-invoice-logo1'}
+    script.addEventListener('load',function(){if(button)button.disabled=false;go()},{once:true});
+    script.addEventListener('error',function(){if(button)button.disabled=false;script.remove();toast('Modulo fatture non caricato. Ricarica la pagina.','error')},{once:true});
+    if(!script.isConnected)document.head.appendChild(script);
+  }
+  window.addEventListener('optyker:invoice-updated',function(){
+    if(!window.OPTYKER_BILLING_ADMIN)return;
+    var modal=E('optykerBillingModal');if(modal)modal.style.display='none';loadRows();
+  });
+
+  function detail(k,v,full){return '<div class="optykerBillingDetail'+(full?' full':'')+'"><b>'+esc(k)+'</b><span>'+esc(v)+'</span></div>'}
+  function loadProvider(){
+    call('fic_status',{}).then(function(x){
+      var b=E('optykerFicConnect');if(!b)return;
+      b.textContent=x.data&&x.data.can_write?'Ricollega Fatture in Cloud':x.data&&x.data.connected?'Abilita creazione e invio':'Collega Fatture in Cloud';
+    }).catch(function(){});
+    call('provider_status',{}).then(function(x){
+      state.provider=x.data||{};var s=E('optykerBillingProviderStatus');if(!s)return;
+      if(state.provider.enabled&&state.provider.provider_name){
+        s.className='optykerBillingStatus ok';s.textContent='Collegato · '+state.provider.provider_name+(state.provider.last_sync_at?' · '+fmtDate(state.provider.last_sync_at):'')
+      }else{
+        s.className='optykerBillingStatus warn';s.textContent='Collegamento fatturazione da completare'
+      }
+    }).catch(function(){var s=E('optykerBillingProviderStatus');if(s){s.className='optykerBillingStatus warn';s.textContent='Stato collegamento non disponibile'}})
+  }
+  function syncInvoices(){
+    var b=E('optykerBillingSync');if(b){b.disabled=true;b.textContent='Aggiornamento…'}
+    call('sync',{direction:'all'}).then(function(){toast('Fatture aggiornate.');loadProvider();loadRows()}).catch(function(err){
+      toast(err.message,err.code==='PROVIDER_NOT_CONFIGURED'?'warn':'error')
+    }).finally(function(){if(b){b.disabled=false;b.textContent='Aggiorna fatture'}})
+  }
+  function startAdmin(token,password){
+    state.token=token;window.OPTYKER_BILLING_ADMIN=true;window.OPTYKER_ACTIVE_USER='Ottica Visual Care';window.optykerAuthenticated=true;
+    // Existing settings APIs authenticate this same account. Keep the password in memory only.
+    if(window.OPTYKER_CLOUD){OPTYKER_CLOUD.username='Ottica Visual Care';OPTYKER_CLOUD.password=password||'';OPTYKER_CLOUD.clients=[];OPTYKER_CLOUD.sheets={};OPTYKER_CLOUD.consents={}}
+    document.body.classList.add('optykerBillingMode');
+    var screen=E('optykerLoginScreen');if(screen){screen.style.setProperty('display','none','important');screen.setAttribute('aria-hidden','true')}
+    var app=E('mainApp');if(app)app.style.display='grid';
+    ensureHeaderTools();ensureSidebar();ensurePanel();hideRegularPanels();showSection('outgoing');loadProvider();
+    if(state.pendingSettings&&password){state.pendingSettings=false;showAdminSettings()}
+  }
+  function restoreSession(){
+    if(state.restoring||state.token||window.OPTYKER_BILLING_ADMIN)return;state.restoring=true;
+    var t='';try{t=sessionStorage.getItem(TOKEN_KEY)||''}catch(z){}
+    if(!t){state.restoring=false;return}
+    call('provider_status',{},t).then(function(){startAdmin(t)}).catch(function(){try{sessionStorage.removeItem(TOKEN_KEY)}catch(z){}}).finally(function(){state.restoring=false})
+  }
+  // OPTYKER_ADMIN_ADDON_PANELS_20261013: Ufficio, Corrispettivi e Fatturato e incassi restano aperti
+  // finché la loro voce è attiva, invece di essere sostituiti dalla Fatturazione ogni 700 ms.
+  function optykerAdminAddonPanel(){var map={optykerOfficeAdminNav:'optykerOfficeAdminPanel',otkCorrNav:'otkCorrPanel',otkTurnNav:'otkTurnPanel'};for(var nav in map){var b=E(nav),p=E(map[nav]);if(b&&p&&b.classList.contains('active'))return p}return null}
+  function maintenance(){
+    ensureAdminAccess();
+    if(window.OPTYKER_BILLING_ADMIN){
+      document.body.classList.add('optykerBillingMode');ensureHeaderTools();ensureSidebar();ensurePanel();
+      if(window.OPTYKER_ADMIN_CASH_ACTIVE&&E('optykerAdminCashPanel')){
+        var bp=E('optykerBillingPanel');if(bp)bp.style.setProperty('display','none','important');
+        var sp=E('optykerSettingsPanel');if(sp)sp.style.setProperty('display','none','important');
+        E('optykerAdminCashPanel').style.setProperty('display','block','important')
+      }else if(optykerAdminAddonPanel()){
+        var bp2=E('optykerBillingPanel');if(bp2)bp2.style.setProperty('display','none','important');
+        var sp2=E('optykerSettingsPanel');if(sp2)sp2.style.setProperty('display','none','important');
+        optykerAdminAddonPanel().style.setProperty('display','block','important')
+      }else{
+        hideRegularPanels();
+        var p=E(state.section==='settings'?'optykerSettingsPanel':'optykerBillingPanel');if(p)p.style.setProperty('display','block','important')
+      }
+    }else restoreSession()
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',maintenance);else maintenance();
+  setInterval(maintenance,700)
+})();

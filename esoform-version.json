@@ -1,0 +1,8 @@
+{
+  "version": "20260910-esoform15-v1",
+  "commit": "cff5c89a5b828b01f545646ac9b3f6e75adf4c84",
+  "products": 32,
+  "discount_percent": 15,
+  "price_unit": "occhio",
+  "catalog_sha256": "a4401b521fe8a7de68a90b9c21a029bf33333325684dcb3207e2a2a01bbde667"
+}

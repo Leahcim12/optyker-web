@@ -1,0 +1,15 @@
+{
+  "version": "20260911-login-reference-v1",
+  "scope": [
+    "login",
+    "recovery-request",
+    "registration",
+    "auth-messages",
+    "isolated-reset"
+  ],
+  "design": "shared-customer-staff-reference",
+  "authentication_rules_unchanged": true,
+  "login_button_lifetime_fixed": true,
+  "base_app_scripts_sha256": "3017b19beebb4557f0245a6c8357b691148b894b7a11bcd8162b39722d1ad785",
+  "reset_scripts_sha256": "cbafb4110fc412d6c31603a78ccec8ad34491bbb1294e698e675190ff9bd2dfb"
+}
