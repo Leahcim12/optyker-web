@@ -1,0 +1,28 @@
+name: Verifica blocco stampa senza chiusura
+on:
+  push:
+    branches: [cassa-blocco-stampa-chiusura]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build the exact Vercel artifact
+        env:
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+        run: bash scripts/vercel-build-20261013.sh
+      - name: Keep the built site for inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: optyker-site
+          path: _site
+          retention-days: 3
