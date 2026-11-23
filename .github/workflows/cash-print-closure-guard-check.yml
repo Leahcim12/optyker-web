@@ -1,7 +1,20 @@
 name: Verifica blocco stampa senza chiusura
 on:
   push:
-    branches: [cassa-blocco-stampa-chiusura]
+    branches: [cassa-blocco-stampa-chiusura, main]
+    paths:
+      - 'cash-print-closure-guard.js'
+      - 'scripts/apply_cash_print_closure_guard_20261123.py'
+      - 'scripts/vercel-build-20261013.sh'
+      - 'tests/cash-print-closure-guard.browser.cjs'
+      - 'tests/cash-print-gate-server.test.mjs'
+      - 'supabase/functions/optyker-fiscal-api/**'
+      - 'supabase/functions/optyker-cash-print-gate/**'
+      - 'cash-register.js'
+      - 'fiscal-receipts.js'
+      - 'rch-cloud-relay.js'
+      - 'unified-fiscal-void.js'
+      - '.github/workflows/cash-print-closure-guard-check.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -9,26 +22,69 @@ jobs:
   verify:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Regola sul registro fiscale (rifiuto solo con «no» esplicito)
+        run: node --test tests/cash-print-gate-server.test.mjs
       - name: Build the exact Vercel artifact
         env:
           VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
-        run: bash scripts/vercel-build-20261013.sh
-      - name: Temporary inspection snapshot of the built page and scripts
         run: |
-          rm -rf /tmp/snap && mkdir -p /tmp/snap/gestionale-v2
-          cp _site/*.js _site/*.css _site/*.json _site/index.html /tmp/snap/ 2>/dev/null || true
-          cp _site/gestionale-v2/index.html /tmp/snap/gestionale-v2/index.html
-          cd /tmp/snap
-          git init -q -b snapshot
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git add -A
-          git commit -q -m "Snapshot build ${GITHUB_SHA}"
-          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" snapshot:refs/heads/debug/cassa-blocco-stampa-build
+          python3 -m py_compile scripts/apply_cash_print_closure_guard_20261123.py
+          bash scripts/vercel-build-20261013.sh
+          for f in _site/index.html _site/gestionale-v2/index.html _site/gestionale-v3/index.html; do
+            python3 - "$f" <<'PY'
+          import re, sys
+          html = open(sys.argv[1], encoding='utf-8').read()
+          first = re.search(r'<script\b[^>]*>', html).group(0)
+          if 'id="optykerCashPrintGuardJs"' not in first or html.count('id="optykerCashPrintGuardJs"') != 1:
+              raise SystemExit(sys.argv[1] + ': blocco stampa non è il primo script o è duplicato')
+          print(sys.argv[1] + ': blocco stampa primo script')
+          PY
+          done
+      - name: Install isolated browser
+        run: |
+          npm install --prefix /tmp/browser playwright@1.55.0
+          /tmp/browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Blocco stampa sulla pagina reale (API, connettore e Cloud Relay simulati, nessun dato reale)
+        env:
+          NODE_PATH: /tmp/browser/node_modules
+        run: node tests/cash-print-closure-guard.browser.cjs _site
+
+  live:
+    # Dopo la pubblicazione su main: pagina e API raggiungibili, senza credenziali e senza stampe.
+    if: github.ref == 'refs/heads/main'
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: optyker.it carica il blocco stampa come primo script
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsSL "https://www.optyker.it/?v=${GITHUB_SHA}" -o page.html && grep -q 'id="optykerCashPrintGuardJs"' page.html; then
+              python3 - <<'PY'
+          import re
+          html = open('page.html', encoding='utf-8').read()
+          assert 'id="optykerCashPrintGuardJs"' in re.search(r'<script\b[^>]*>', html).group(0)
+          print('Pagina pubblicata con il blocco stampa come primo script')
+          PY
+              exit 0
+            fi
+            sleep 20
+          done
+          echo 'Pagina pubblicata senza blocco stampa' >&2
+          exit 1
+      - name: Controllo chiusura e registro fiscale rispondono (senza credenziali)
+        run: |
+          code=$(curl -s -o gate.json -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{}' https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-cash-print-gate)
+          cat gate.json; echo
+          test "$code" = 401
+          code=$(curl -s -o fiscal.json -w '%{http_code}' -X POST -H 'Content-Type: application/json' -H 'Origin: https://www.optyker.it' -d '{"action":"prepare","payload":{}}' https://whgziwaegjzqsgcntesr.supabase.co/functions/v1/optyker-fiscal-api)
+          cat fiscal.json; echo
+          test "$code" = 401
+          grep -q AUTH_REQUIRED fiscal.json

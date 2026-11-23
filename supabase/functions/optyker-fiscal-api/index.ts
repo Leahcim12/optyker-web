@@ -1,6 +1,7 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.116.0';
 import {makeDocument,makeVoid,reference,resultState,markAutomaticDocument,automaticReference,SERIAL,RELEASE} from './domain.mjs';
 import {createUnifiedVoid} from './unified-void.mjs';
+import {createPrintGate} from './print-gate.mjs';
 declare const EdgeRuntime: {waitUntil(promise: Promise<unknown>): void};
 const db=createClient(Deno.env.get('SUPABASE_URL')||'',Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'',{auth:{persistSession:false,autoRefreshToken:false}});
 const origins=new Set(['https://www.optyker.it','https://optyker.it']);
@@ -35,6 +36,8 @@ async function saleView(saleId:any){
  const jobs=await one(db.from('optyker_fiscal_jobs').select('*').eq('sale_id',sale.id));
  return {sale_id:sale.id,status:sale.status,total:sale.total,lines:sale.data?.lines||[],has_fiscal_code:!!(sale.data?.fiscal_identity?.fiscal||sale.data?.client_snapshot?.fiscal),payments:payments.map(({data,...p}:any)=>({...p,automatic_receipt:!!data?.fiscal_snapshot})),jobs:jobs.filter((j:any)=>j.operation==='sale').map((j:any)=>({...publicJob(j),void_job:publicJob(jobs.find((v:any)=>v.original_job_id===j.id&&v.operation==='void'))}))};
 }
+// Cassa 20261123: nessuna nuova stampa RCH finché manca la chiusura del giorno precedente.
+const assertPrintGate=createPrintGate(db);
 async function prepare(p:any,operator:string){
  const payment=await one(db.from('optyker_pos_payments').select('*').eq('id',id(p.payment_id)).maybeSingle());
  if(!payment)throw new Error('Pagamento non trovato');
@@ -42,6 +45,7 @@ async function prepare(p:any,operator:string){
  if(!['completed','open_balance'].includes(sale.status))throw new Error('Completa prima la registrazione della vendita');
  const existing=await one(db.from('optyker_fiscal_jobs').select('*').eq('payment_id',payment.id).eq('operation','sale').maybeSingle());
  if(existing&&!['prepared','not_started'].includes(existing.state))return {job:publicJob(existing)};
+ await assertPrintGate();
  const snapshot=payment.data?.fiscal_snapshot;
  if(p.automatic===true&&!snapshot)throw new Error('Per questo pagamento precedente serve verificare le righe fiscali');
  const jobId=existing?.id||crypto.randomUUID();
@@ -61,6 +65,7 @@ async function prepareVoid(p:any,operator:string){
  const original=await getJob(p.original_job_id);let document=makeVoid(original,p);
  const existing=await one(db.from('optyker_fiscal_jobs').select('*').eq('original_job_id',original.id).eq('operation','void').maybeSingle());
  if(existing&&!['prepared','not_started'].includes(existing.state))return {job:publicJob(existing)};
+ await assertPrintGate();
  const queue=await one(db.from('optyker_ts_outbox').select('id').eq('job_id',original.id).maybeSingle());
  if(queue&&!await one(db.rpc('optyker_ts_can_void',{p_id:queue.id})))throw new Error('Spesa TS già elaborata o sospesa: verificarne la rettifica prima dell’annullo');
  const jobId=existing?.id||crypto.randomUUID();
