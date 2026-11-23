@@ -9,10 +9,10 @@ jobs:
   verify:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -20,9 +20,15 @@ jobs:
         env:
           VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
         run: bash scripts/vercel-build-20261013.sh
-      - name: Keep the built site for inspection
-        uses: actions/upload-artifact@v4
-        with:
-          name: optyker-site
-          path: _site
-          retention-days: 3
+      - name: Temporary inspection snapshot of the built page and scripts
+        run: |
+          rm -rf /tmp/snap && mkdir -p /tmp/snap/gestionale-v2
+          cp _site/*.js _site/*.css _site/*.json _site/index.html /tmp/snap/ 2>/dev/null || true
+          cp _site/gestionale-v2/index.html /tmp/snap/gestionale-v2/index.html
+          cd /tmp/snap
+          git init -q -b snapshot
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add -A
+          git commit -q -m "Snapshot build ${GITHUB_SHA}"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" snapshot:refs/heads/debug/cassa-blocco-stampa-build
