@@ -6,7 +6,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {
   addDays, BOT_SENDER, buildSystemPrompt, buildUserMessage, byClient, currentOrders, daysBetween, DEBOUNCE_MS, digits, finalizeReply,
   gate, hasNonText, IGNORED_TYPES, isOperatorMessage, italianDay, last10, modelRequest, pendingInbound, romeParts, romeTimestamp,
-  runAgent, slotTimes, validDate, validTime,
+  runAgent, slotTimes, validDate, validTime, botHasTurn, fallbackMinutes, unanswered, careDoc, CARE_DOCS, CARE_BASE_URL,
+  type CareDoc,
   type Client, type Decision, type Msg, type Service, type Settings, type StoreHours,
 } from './logic.ts';
 
@@ -90,7 +91,9 @@ async function manageToken(id: string): Promise<string> {
 }
 
 /** Strumenti dell'assistente. Ogni dato personale è filtrato sui clienti collegati al numero. */
-function toolRunner(ctx: { phone: string; clients: Client[]; services: Service[]; dryRun: boolean }) {
+type Attachment = { doc: CareDoc; url: string; filename: string; title: string };
+
+function toolRunner(ctx: { phone: string; clients: Client[]; services: Service[]; dryRun: boolean; attachments: Attachment[] }) {
   const ids = new Set(ctx.clients.map((c) => c.cliente_id));
   const needClient = (id: unknown) => {
     const v = String(id || '');
@@ -147,6 +150,23 @@ function toolRunner(ctx: { phone: string; clients: Client[]; services: Service[]
         const t = targets(a);
         const data = await Promise.all(t.map((c) => rpc('optyker_wa_ai_lac', { p_client: c.cliente_id })));
         return byClient(t, data, 'schede');
+      }
+      case 'istruzioni_pulizia': {
+        const t = targets(a);
+        const out = await Promise.all(t.map(async (c) => {
+          const doc = careDoc(await rpc('optyker_wa_ai_lac_care', { p_client: c.cliente_id }));
+          return { cliente_id: c.cliente_id, cliente: [c.nome, c.cognome].filter(Boolean).join(' '), doc };
+        }));
+        const found = out.filter((x) => x.doc);
+        for (const x of found) {
+          const d = CARE_DOCS[x.doc!];
+          if (!ctx.attachments.some((y) => y.doc === x.doc)) ctx.attachments.push({ doc: x.doc!, url: CARE_BASE_URL + d.file, filename: d.titolo + '.pdf', title: d.titolo });
+        }
+        return {
+          documenti_allegati: found.map((x) => ({ cliente: x.cliente, documento: CARE_DOCS[x.doc!].titolo })),
+          senza_documento: out.filter((x) => !x.doc).map((x) => x.cliente),
+          nota: found.length ? 'i PDF vengono allegati da soli al tuo messaggio' : 'nessun documento adatto: passa all\'operatore',
+        };
       }
       case 'appuntamenti_cliente': {
         const ids = a.cliente_id ? [needClient(a.cliente_id)] : allIds;
@@ -233,6 +253,18 @@ async function sendText(to: string, body: string) {
   return x;
 }
 
+async function sendDocument(to: string, a: Attachment) {
+  const key = String(Deno.env.get('D360_API_KEY') || '').trim();
+  const r = await fetch('https://waba-v2.360dialog.io/messages', {
+    method: 'POST', signal: AbortSignal.timeout(20000),
+    headers: { 'D360-API-KEY': key, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to, type: 'document', document: { link: a.url, filename: a.filename } }),
+  });
+  const x = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error('360dialog ' + r.status + ': ' + String(x?.error?.message || x?.meta?.developer_message || '').slice(0, 200));
+  return x;
+}
+
 async function storeOutbound(phone: string, clientId: string | null, text: string, x: any): Promise<string | null> {
   const wamid = x?.messages?.[0]?.id || null, now = new Date().toISOString();
   await rest('optyker_whatsapp_messages', {
@@ -242,29 +274,22 @@ async function storeOutbound(phone: string, clientId: string | null, text: strin
   return wamid;
 }
 
-async function think(s: Settings, phone: string, now: Date, clients: Client[], history: Msg[], pending: Msg[], dryRun: boolean): Promise<Decision> {
+async function think(s: Settings, phone: string, now: Date, clients: Client[], history: Msg[], pending: Msg[], dryRun: boolean, fallbackAfterMinutes = 0, attachments: Attachment[] = []): Promise<Decision> {
   const { hours, services } = await storeContext();
   const system = buildSystemPrompt({ storeInfo: s.store_info, hours, services });
-  const userText = buildUserMessage({ now, clients, history, pending, signature: s.signature });
+  const userText = buildUserMessage({ now, clients, history, pending, signature: s.signature, fallbackAfterMinutes });
   return runAgent({
     userText,
     callModel: (messages) => callModel(s, system, messages),
-    runTool: toolRunner({ phone, clients, services, dryRun }),
+    runTool: toolRunner({ phone, clients, services, dryRun, attachments }),
   });
 }
 
-/** Valuta l'ultimo messaggio ricevuto da un numero e, se rientra negli argomenti consentiti, risponde. */
-async function handle(phone: string, wamid: string) {
-  await sleep(DEBOUNCE_MS);
-  const messages = await recentMessages(phone);
-  // Se nel frattempo il cliente ha scritto ancora, risponde l'esecuzione del messaggio più recente.
-  if (latestInbound(messages)?.wamid !== wamid) return;
-  const s = await settings(), now = new Date();
-  const g = gate({ settings: s, phone, now, messages, lastHandoffAt: await lastHandoff(phone) });
-  if (!g.ok && !g.log) return;
-  const id = await claim(phone, wamid);
-  if (!id) return;
-  if (!g.ok) return finish(id, { decision: 'skipped', reason: g.reason });
+/**
+ * Valuta i messaggi in attesa e, se rientrano negli argomenti consentiti, risponde.
+ * fallback: risposta di riserva (un operatore segue la chat ma non ha risposto entro fallback.minutes).
+ */
+async function respond(id: string, s: Settings, phone: string, wamid: string, messages: Msg[], now: Date, fallback?: { minutes: number; inboundAt: string }) {
   const pending = pendingInbound(messages, now);
   if (!pending.length) return finish(id, { decision: 'skipped', reason: 'nessun messaggio nuovo da valutare' });
   const clients = ((await rpc('optyker_wa_ai_clients', { p_phone: phone })) || []) as Client[];
@@ -272,34 +297,103 @@ async function handle(phone: string, wamid: string) {
   if (hasNonText(pending)) return finish(id, { decision: 'handoff', client_id: clientId, reason: 'foto, audio, documento o altro messaggio non testuale' });
   const pendingIds = new Set(pending.map((m) => m.wamid));
   const history = messages.filter((m) => !pendingIds.has(m.wamid) && !IGNORED_TYPES.has(String(m.type || ''))).slice(-20);
+  const tag = fallback ? 'risposta di riserva dopo ' + fallback.minutes + ' minuti senza risposta dell\'operatore' : '';
 
   let d: Decision;
+  const attachments: Attachment[] = [];
   try {
-    d = await think(s!, phone, now, clients, history, pending, false);
+    d = await think(s, phone, now, clients, history, pending, false, fallback?.minutes || 0, attachments);
   } catch (e) {
-    return finish(id, { decision: 'error', client_id: clientId, model: s!.model, reason: msg(e).slice(0, 500) });
+    return finish(id, { decision: 'error', client_id: clientId, model: s.model, reason: msg(e).slice(0, 500) });
   }
-  const base = { client_id: clientId, model: s!.model, usage: d.usage, tool_calls: d.toolCalls };
+  const base = { client_id: clientId, model: s.model, usage: d.usage, tool_calls: d.toolCalls };
   if (d.decision !== 'reply') {
     const note = d.wrote ? ' · ATTENZIONE: appuntamento modificato senza risposta al cliente' : '';
-    return finish(id, { ...base, decision: d.decision, reason: ((d.reason || '') + note).trim() });
+    return finish(id, { ...base, decision: d.decision, reason: [tag, (d.reason || '') + note].filter(Boolean).join(' · ').trim() });
   }
-  const text = finalizeReply(d.text, s!.signature);
+  const text = finalizeReply(d.text, s.signature);
   if (!text) return finish(id, { ...base, decision: 'handoff', reason: 'risposta vuota' });
   if (!d.wrote) {
     // Mentre l'IA ragionava: nuovo messaggio del cliente (risponde la sua esecuzione) o risposta di un operatore.
     const fresh = await recentMessages(phone);
     if (latestInbound(fresh)?.wamid !== wamid) return finish(id, { ...base, decision: 'skipped', reply: text, reason: 'nel frattempo è arrivato un nuovo messaggio' });
-    if (fresh.some((m) => isOperatorMessage(m) && Date.parse(m.created_at) > now.getTime() - DEBOUNCE_MS)) {
-      return finish(id, { ...base, decision: 'skipped', reply: text, reason: 'nel frattempo ha risposto un operatore' });
-    }
+    const answered = fallback
+      ? !unanswered(fresh, fallback.inboundAt)
+      : fresh.some((m) => isOperatorMessage(m) && Date.parse(m.created_at) > now.getTime() - DEBOUNCE_MS);
+    if (answered) return finish(id, { ...base, decision: 'skipped', reply: text, reason: 'nel frattempo ha risposto un operatore' });
   }
   try {
     const x = await sendText(phone, text);
     const replyWamid = await storeOutbound(phone, clientId, text, x);
-    return finish(id, { ...base, decision: 'reply', reply: text, reply_wamid: replyWamid });
+    // Istruzioni di pulizia in PDF scelte da istruzioni_pulizia: dopo il testo, una alla volta.
+    const sentDocs: string[] = [];
+    for (const a of attachments) {
+      try {
+        const dx = await sendDocument(phone, a);
+        await storeOutbound(phone, clientId, '[PDF] ' + a.title + ' · ' + a.url, dx);
+        sentDocs.push(a.title);
+      } catch (e) {
+        sentDocs.push(a.title + ' (invio non riuscito: ' + msg(e).slice(0, 120) + ')');
+      }
+    }
+    const note = [tag, sentDocs.length ? 'allegati: ' + sentDocs.join(', ') : ''].filter(Boolean).join(' · ');
+    return finish(id, { ...base, decision: 'reply', reply: text, reply_wamid: replyWamid, reason: note || null });
   } catch (e) {
     return finish(id, { ...base, decision: 'error', reply: text, reason: 'invio non riuscito: ' + msg(e).slice(0, 300) });
+  }
+}
+
+/** Valuta l'ultimo messaggio ricevuto da un numero e, se rientra negli argomenti consentiti, risponde. */
+async function handle(phone: string, wamid: string) {
+  await sleep(DEBOUNCE_MS);
+  const messages = await recentMessages(phone);
+  // Se nel frattempo il cliente ha scritto ancora, risponde l'esecuzione del messaggio più recente.
+  const latest = latestInbound(messages);
+  if (latest?.wamid !== wamid) return;
+  const s = await settings(), now = new Date();
+  const g = gate({ settings: s, phone, now, messages, lastHandoffAt: await lastHandoff(phone) });
+  if (!g.ok && !g.log) return;
+  const id = await claim(phone, wamid);
+  if (!id) return;
+  if (!g.ok) {
+    const minutes = g.fallback ? fallbackMinutes(s) : 0;
+    if (!minutes) return finish(id, { decision: 'skipped', reason: g.reason });
+    // L'assistente ha già ripreso la chat con una risposta di riserva: continua subito (solo appuntamenti).
+    const firstPending = pendingInbound(messages, now)[0]?.created_at || latest.created_at;
+    if (botHasTurn(messages)) return respond(id, s!, phone, wamid, messages, now, { minutes, inboundAt: firstPending });
+    // Un operatore segue la chat: se entro N minuti dal primo messaggio rimasto senza risposta nessuno risponde,
+    // risponde l'assistente (solo appuntamenti). Ogni nuovo messaggio del cliente sostituisce il precedente in attesa.
+    const firstAt = firstPending;
+    await rest('optyker_wa_ai_followups?on_conflict=inbound_wamid', {
+      method: 'POST', headers: { prefer: 'resolution=ignore-duplicates,return=minimal' },
+      body: JSON.stringify({ inbound_wamid: wamid, phone, log_id: id, inbound_at: firstAt, due_at: new Date(Date.parse(firstAt) + minutes * 60000).toISOString() }),
+    });
+    return finish(id, { decision: 'waiting', reason: g.reason + ' · se nessuno risponde entro ' + minutes + ' minuti risponde l\'assistente (solo appuntamenti)' });
+  }
+  return respond(id, s!, phone, wamid, messages, now);
+}
+
+/** Risposte di riserva scadute: avviata ogni minuto da optyker-whatsapp-automations. */
+async function followups() {
+  const nowIso = new Date().toISOString();
+  const due = await rest('optyker_wa_ai_followups?select=inbound_wamid,phone,log_id,inbound_at&done_at=is.null&due_at=lte.' + encodeURIComponent(nowIso) + '&order=due_at.asc&limit=10');
+  for (const f of (due || []) as { inbound_wamid: string; phone: string; log_id: string | null; inbound_at: string }[]) {
+    // Presa in carico: una sola esecuzione per messaggio.
+    const taken = await rest('optyker_wa_ai_followups?inbound_wamid=eq.' + encodeURIComponent(f.inbound_wamid) + '&done_at=is.null', {
+      method: 'PATCH', headers: { prefer: 'return=representation' }, body: JSON.stringify({ done_at: new Date().toISOString() }),
+    });
+    if (!Array.isArray(taken) || !taken.length || !f.log_id) continue;
+    try {
+      const s = await settings(), now = new Date(), minutes = fallbackMinutes(s);
+      const g = gate({ settings: s, phone: f.phone, now, messages: [], lastHandoffAt: null });
+      if (!g.ok || !minutes) { await finish(f.log_id, { decision: 'skipped', reason: 'risposta di riserva non eseguita: ' + (g.ok ? 'disattivata' : g.reason) }); continue; }
+      const messages = await recentMessages(f.phone);
+      if (latestInbound(messages)?.wamid !== f.inbound_wamid) { await finish(f.log_id, { decision: 'skipped', reason: 'il cliente ha scritto ancora: si valuta il messaggio più recente' }); continue; }
+      if (!unanswered(messages, f.inbound_at)) { await finish(f.log_id, { decision: 'skipped', reason: 'ha risposto un operatore entro ' + minutes + ' minuti' }); continue; }
+      await respond(f.log_id, s!, f.phone, f.inbound_wamid, messages, now, { minutes, inboundAt: f.inbound_at });
+    } catch (e) {
+      await finish(f.log_id, { decision: 'error', reason: 'risposta di riserva: ' + msg(e).slice(0, 400) }).catch(() => {});
+    }
   }
 }
 
@@ -311,8 +405,10 @@ async function dryRun(phone: string, text: string) {
   const history = (await recentMessages(phone)).filter((m) => !IGNORED_TYPES.has(String(m.type || ''))).slice(-20);
   const clients = ((await rpc('optyker_wa_ai_clients', { p_phone: phone })) || []) as Client[];
   const pending: Msg[] = [{ wamid: 'prova', direction: 'inbound', sender_name: 'Cliente', message: text, created_at: now.toISOString(), type: 'text' }];
-  const d = await think(s, phone, now, clients, history, pending, true);
+  const attachments: Attachment[] = [];
+  const d = await think(s, phone, now, clients, history, pending, true, 0, attachments);
   return {
+    allegati: attachments.map((a) => a.url),
     decision: d.decision, testo: d.decision === 'reply' ? finalizeReply(d.text, s.signature) : null, motivo: d.reason || null,
     strumenti: d.toolCalls.map((t) => ({ nome: t.name, ok: t.ok })), clienti_collegati: clients.length, usage: d.usage,
   };
@@ -348,6 +444,10 @@ Deno.serve(async (req) => {
     return json({ ok: true });
   }
   if (!sameSecret(req.headers.get('authorization') || '', 'Bearer ' + K)) return json({ ok: false }, 401);
+  if (b?.mode === 'followups') {
+    EdgeRuntime.waitUntil(followups().catch((e) => console.error('optyker-whatsapp-ai followups', msg(e))));
+    return json({ ok: true, queued: true }, 202);
+  }
   const phone = digits(b.phone), wamid = String(b.wamid || '');
   if (phone.length < 9 || !wamid) return json({ ok: false, error: 'phone e wamid obbligatori' }, 400);
   EdgeRuntime.waitUntil(handle(phone, wamid).catch((e) => console.error('optyker-whatsapp-ai', msg(e))));

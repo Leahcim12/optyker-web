@@ -226,3 +226,73 @@ test('webhook: messaggi ricevuti, echi dell\'app Business, stati, cronologia ign
   assert.equal(P.messageText({ type: 'interactive', interactive: { list_reply: { title: 'Martedì 9:00' } } }), 'Martedì 9:00');
   assert.equal(P.messageText({ type: 'audio' }), '[Audio]');
 });
+
+test('risposta di riserva: operatore in chat o in attesa → fallback, minuti dalle impostazioni', () => {
+  const op = L.gate({ settings: settings(), phone, now, messages: [msg('outbound', 2), msg('inbound', 0.1)], lastHandoffAt: null });
+  assert.equal(op.ok, false);
+  assert.equal(op.fallback, true);
+  const wait = L.gate({ settings: settings(), phone, now, messages: [msg('inbound', 1)], lastHandoffAt: ago(1) });
+  assert.equal(wait.fallback, true);
+  assert.equal(L.gate({ settings: settings({ enabled: false }), phone, now, messages: [], lastHandoffAt: null }).fallback, undefined);
+  assert.equal(L.fallbackMinutes(settings()), 30);
+  assert.equal(L.fallbackMinutes(settings({ operator_fallback_minutes: 45 })), 45);
+  assert.equal(L.fallbackMinutes(settings({ operator_fallback_minutes: 0 })), 0);
+  assert.equal(L.fallbackMinutes(null), 30);
+});
+
+test('risposta di riserva: solo se nessuno del negozio ha scritto dopo il messaggio del cliente', () => {
+  const inbound = msg('inbound', 0.6);
+  const base = [msg('outbound', 2), inbound];
+  assert.equal(L.unanswered(base, inbound.created_at), true);
+  // un promemoria automatico non è una risposta
+  assert.equal(L.unanswered([...base, msg('outbound', 0.3, { sender_name: 'Automazione' })], inbound.created_at), true);
+  // operatore da Optyker o dal telefono, oppure l'assistente: risposto
+  assert.equal(L.unanswered([...base, msg('outbound', 0.3)], inbound.created_at), false);
+  assert.equal(L.unanswered([...base, msg('outbound', 0.3, { sender_name: L.PHONE_SENDER })], inbound.created_at), false);
+  assert.equal(L.unanswered([...base, msg('outbound', 0.3, { sender_name: L.BOT_SENDER })], inbound.created_at), false);
+});
+
+test('risposta di riserva: istruzioni al modello solo appuntamenti', () => {
+  const pending = [msg('inbound', 0.6, { message: 'posso spostare a giovedì?' })];
+  const normal = L.buildUserMessage({ now, clients: [], history: [], pending, signature: '' });
+  const late = L.buildUserMessage({ now, clients: [], history: [], pending, signature: '', fallbackAfterMinutes: 30 });
+  assert.ok(!normal.includes('ATTENZIONE'));
+  assert.match(late, /non ha risposto entro 30 minuti/);
+  assert.match(late, /SOLO se i nuovi messaggi riguardano appuntamenti/);
+});
+
+test('risposta di riserva: dopo la risposta dell\'assistente la conversazione continua senza riattendere', () => {
+  assert.equal(L.botHasTurn([msg('outbound', 2), msg('inbound', 1)]), false);
+  assert.equal(L.botHasTurn([msg('outbound', 2), msg('inbound', 1), msg('outbound', 0.5, { sender_name: L.BOT_SENDER }), msg('inbound', 0.1)]), true);
+  // un promemoria automatico dopo non conta; un operatore che riscrive riprende la chat
+  assert.equal(L.botHasTurn([msg('outbound', 2), msg('outbound', 0.5, { sender_name: L.BOT_SENDER }), msg('outbound', 0.3, { sender_name: 'Automazione' })]), true);
+  assert.equal(L.botHasTurn([msg('outbound', 2, { sender_name: L.BOT_SENDER }), msg('outbound', 0.3)]), false);
+});
+
+test('istruzioni di pulizia: documento dall\'ultima scheda LAC', () => {
+  assert.equal(L.careDoc(null), null);
+  assert.equal(L.careDoc({ prodotto_od: 'ortok', prodotto_os: 'ortok' }), 'ortok');
+  assert.equal(L.careDoc({ prodotto_od: 'scl_multifocale', prodotto_os: 'sclk' }), 'sclerali');
+  assert.equal(L.careDoc({ prodotto_od: 'rgp_multifocali', prodotto_os: 'rgp' }), 'rgp');
+  assert.equal(L.careDoc({ prodotto_od: 'esoform_mensili_sferiche_hydrogel_3l', prodotto_os: 'shopify_15450820280695' }), 'morbide');
+  // perossido spuntato vince sul tipo di lente
+  assert.equal(L.careDoc({ prodotto_od: 'rgp', prodotto_os: 'rgp', perossido: true }), 'perossido');
+  // permanenza: la segue l'operatore
+  assert.equal(L.careDoc({ prodotto_od: 'permanenza', prodotto_os: 'permanenza' }), null);
+  // occhi con tipi diversi: operatore
+  assert.equal(L.careDoc({ prodotto_od: 'rgp', prodotto_os: 'ortok' }), null);
+  // un solo occhio compilato
+  assert.equal(L.careDoc({ prodotto_od: 'ortok', prodotto_os: null }), 'ortok');
+  // schede importate: tipo e nome del prodotto
+  assert.equal(L.careDoc({ tipo_od: 'morbida spessorata', tipo_os: 'morbida' }), 'morbide');
+  assert.equal(L.careDoc({ tipo_od: 'rgp', nome_od: 'OK-PRO S', tipo_os: 'rgp', nome_os: 'OK-PRO S' }), 'ortok');
+  assert.equal(L.careDoc({ tipo_od: 'rgp', nome_od: 'ESA6', tipo_os: 'rgp', nome_os: 'ESA6' }), 'rgp');
+  assert.equal(L.careDoc({}), null);
+  assert.ok(L.TOOLS.some((t) => t.name === 'istruzioni_pulizia'));
+});
+
+test('prompt: appuntamento obbligatorio anche per il ritiro', () => {
+  const p = L.buildSystemPrompt({ storeInfo: '', hours: {}, services: [] });
+  assert.match(p, /anche solo per il ritiro/);
+  assert.match(p, /istruzioni_pulizia/);
+});

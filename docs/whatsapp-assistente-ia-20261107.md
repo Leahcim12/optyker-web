@@ -15,6 +15,7 @@ Per tutto il resto **non scrive niente**: il messaggio resta all'operatore, che 
 - L'assistente aspetta 6 secondi per raccogliere più messaggi scritti di fila, poi:
   - resta zitto se un operatore ha scritto in quella chat nelle ultime 12 ore (dal telefono o da Optyker);
   - resta zitto se ha già lasciato la chat all'operatore e nessuno ha ancora risposto (al massimo 48 ore);
+  - **risposta di riserva (8 novembre)**: nei due casi sopra, se il cliente scrive e nessuno del negozio risponde entro `operator_fallback_minutes` (30 minuti) dal primo messaggio rimasto senza risposta, risponde l'assistente **solo se si tratta di appuntamenti** (vedere, prenotare, spostare, disdire); per tutto il resto continua a lasciare la chat all'operatore. Dopo la sua risposta continua subito la conversazione sugli appuntamenti; appena un operatore riscrive, la chat torna all'operatore. I messaggi in attesa sono in `optyker_wa_ai_followups`; li controlla ogni minuto `optyker-whatsapp-automations`.
   - lascia all'operatore foto, audio, documenti e posizioni; ignora reazioni e sticker.
 - **Il cliente è riconosciuto dal numero WhatsApp da cui scrive**: Optyker cerca il numero nel telefono e nel secondo telefono dell'anagrafica (anche cellulari a 9 cifre e numeri con +39 o 0039). L'assistente non chiede mai nome e cognome per riconoscerlo.
 - I dati personali sono solo quelli dei clienti con quel numero. Se sul numero ci sono più persone (famiglia), guarda i dati di tutte: se riguardano una sola persona risponde chiamandola per nome («gli occhiali di Giulia sono pronti»), altrimenti risponde per ciascuna; chiede di chi si tratta solo se non riesce a capirlo. Per prenotare chiede per chi è l'appuntamento.
@@ -44,6 +45,7 @@ Prova senza inviare niente: `optyker-whatsapp-ai` con `mode: "dry_run"` e un tok
 | `model` | `claude-sonnet-5-5` | modello IA |
 | `operator_pause_hours` | 12 | ore di silenzio dopo un messaggio dell'operatore |
 | `handoff_wait_hours` | 48 | ore di attesa massima dell'operatore dopo un passaggio |
+| `operator_fallback_minutes` | 30 | minuti dopo i quali risponde l'assistente sugli appuntamenti se l'operatore che segue la chat non risponde (0 = mai) |
 | `signature` | *Assistente automatico · Ottica Visual Care* | firma in fondo alle risposte |
 | `store_info` | indirizzo, sito, WhatsApp | testo del negozio usato per le risposte su contatti |
 
