@@ -248,14 +248,17 @@ const IPHONE_UA='Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWeb
   assert.equal(await page.$('#optykerIosPrintHost'),null);
   // Cleaning documents: the published PDF opens (the old Windows program used local images); Perossido added.
   assert.deepEqual(await page.$$eval('#iuDocumentSelect option',a=>a.map(o=>o.value)).then(v=>v.slice(-1)),['Pulizia Perossido.pdf']);
-  await page.selectOption('#iuDocumentSelect','Pulizia RGP.pdf');
-  let [pdf]=await Promise.all([page.waitForEvent('popup'),page.click('#btnDoc')]);
-  await pdf.waitForURL('https://optyker.test/istruzioni-lac/pulizia-rgp.pdf');await pdf.close();
-  await page.selectOption('#iuDocumentSelect','Pulizia Perossido.pdf');
-  [pdf]=await Promise.all([page.waitForEvent('popup'),page.click('#btnDoc')]);
-  await pdf.waitForURL('https://optyker.test/istruzioni-lac/pulizia-perossido.pdf');await pdf.close();
+  // window.open is recorded (a PDF tab downloads instead of rendering in headless browsers); the files exist.
+  await page.evaluate(()=>{window.__opens=[];window.open=function(u){window.__opens.push(String(u));return {focus:function(){}}}});
+  await page.selectOption('#iuDocumentSelect','Pulizia RGP.pdf');await page.click('#btnDoc');
+  await page.selectOption('#iuDocumentSelect','Pulizia Perossido.pdf');await page.click('#btnDoc');
+  assert.deepEqual(await page.evaluate(()=>window.__opens),['https://optyker.test/istruzioni-lac/pulizia-rgp.pdf','https://optyker.test/istruzioni-lac/pulizia-perossido.pdf']);
+  assert.deepEqual(await page.evaluate(()=>Promise.all(window.__opens.map(u=>fetch(u).then(r=>r.status+' '+r.headers.get('content-type'))))),['200 application/pdf','200 application/pdf']);
+  // Popup blocked: the user is told how to allow it.
+  await page.evaluate(()=>{window.open=function(){return null}});
+  await page.click('#btnDoc');
   await page.selectOption('#iuDocumentSelect','');await page.click('#btnDoc');
-  assert.deepEqual(dialogs,['Seleziona il documento da stampare.']);
+  assert.deepEqual(dialogs,['Il browser ha bloccato l’apertura del PDF. Consenti i popup per Optyker e riprova.','Seleziona il documento da stampare.']);
   // Old Windows program (ActiveX): its own path is kept.
   await page.evaluate(()=>{window.ActiveXObject=function(){throw new Error('no')}});
   await page.selectOption('#iuDocumentSelect','Pulizia Morbide.pdf');await page.click('#btnDoc');
@@ -308,11 +311,9 @@ const IPHONE_UA='Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWeb
   await page.click('#btnIU');await page.click('#btnIU');
   await page.waitForFunction(()=>window.__mainPrints.length===4);
   assert.equal(await page.$$eval('#optykerIosPrintHost',a=>a.length),1);
-  if(!WEBKIT){
-  await page.selectOption('#iuDocumentSelect','Pulizia Sclerali.pdf');
-  const [pdf]=await Promise.all([page.waitForEvent('popup'),page.click('#btnDoc')]);
-  await pdf.waitForURL('https://optyker.test/istruzioni-lac/pulizia-sclerali.pdf');await pdf.close();
-  }
+  await page.evaluate(()=>{window.__opens=[];window.open=function(u){window.__opens.push(String(u));return {focus:function(){}}}});
+  await page.selectOption('#iuDocumentSelect','Pulizia Sclerali.pdf');await page.click('#btnDoc');
+  assert.deepEqual(await page.evaluate(()=>window.__opens),['https://optyker.test/istruzioni-lac/pulizia-sclerali.pdf']);
   assert.deepEqual(errors,[]);assert.deepEqual(dialogs,[]);await ctx.close();
 
   // ---------- iPhone ----------
