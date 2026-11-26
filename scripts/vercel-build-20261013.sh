@@ -34,6 +34,11 @@ node --check ddt-edit.js
 python scripts/apply_ddt_edit_20261126.py
 python scripts/check_desktop_html.py
 
+# Stampa iPad 20261126: su iPad/iPhone le stampe (indicazioni d'uso, prescrizione...) non escono più bianche.
+node --check ios-print.js
+python scripts/apply_ios_print_20261126.py
+python scripts/check_desktop_html.py
+
 # WhatsApp 20261107: pulsante "Controllo 6 mesi" nella prescrizione optometrica.
 node --check wa-recall-control.js
 python scripts/apply_wa_recall_20261107.py

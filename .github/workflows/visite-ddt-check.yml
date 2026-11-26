@@ -26,16 +26,23 @@ jobs:
           bash scripts/vercel-build-20261013.sh
       - name: Print code of the real page (diagnostica, nessun dato)
         run: |
-          python3 - <<'PY'
+          python3 - <<'PY2'
           import re
           html = open('_site/index.html', encoding='utf-8').read()
           print('LENGTH', len(html))
-          for needle in ['function printIndicationsUse', 'printIndicationsUse=', 'function printIndicationsDocument', 'printIndicationsDocument=',
-                         'function getPrintFrame', 'getPrintFrame=', 'OPTYKER_PRINT_WAIT_FIX', 'printHtmlDocument=function', 'function indicationsPrintHtml',
-                         'iuDocumentSelect', 'Pulizia Morbide.pdf']:
-              starts = [m.start() for m in re.finditer(re.escape(needle), html)]
-              print('\n#####', needle, 'occorrenze:', len(starts))
-              for i in starts[:4]:
-                  print('----- at', i)
-                  print(html[max(0, i - 300):i + 3200])
-          PY
+          calls = [m.start() for m in re.finditer(r'printHtmlDocument\(', html)]
+          print('##### chiamate printHtmlDocument:', len(calls))
+          for i in calls:
+              print('---', i, html[max(0, i - 260):i + 60].replace('\n', ' '))
+          for fn in ['function indicationsUsePrintHtml', 'function prescriptionPrintHtml', 'function hearingPrintHtml', 'function reportHtmlFromData',
+                     'function printHearing(', 'function printHearingImage(', 'function printReport(']:
+              i = html.find(fn)
+              print('\n#####', fn, i)
+              if i >= 0:
+                  j = html.find('\nfunction ', i + 20)
+                  body = html[i:j if j > 0 else i + 6000]
+                  print('lunghezza', len(body), 'script:', body.count('<script'), 'canvas:', body.count('<canvas'), 'toDataURL:', body.count('toDataURL'))
+                  print(body[:2500])
+          for needle in ['optykerIosPrintJs', 'optykerDdtEditJs', 'OPTYKER_DDT_EDIT_20261126', 'optyker-report.js?v=']:
+              print('#####', needle, html.count(needle))
+          PY2

@@ -30,6 +30,7 @@
   }
   function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
   function dateIt(v){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(v||''));if(m&&String(v).length===10)return m[3]+'/'+m[2]+'/'+m[1];try{var d=new Date(v);if(isNaN(d.getTime()))return '';return d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'Europe/Rome'})}catch(e){return ''}}
+  function docLabel(n){n=norm(n);return /^ddt\b/i.test(n)?n:'DDT '+(n||'in bozza')}
   function clientName(c){return [c&&c.surname,c&&c.name].filter(Boolean).join(' ').trim()}
   function clientAddress(c){return [[c&&c.street,c&&c.street_number].filter(Boolean).join(' '),[c&&c.postal_code,c&&c.city].filter(Boolean).join(' '),c&&c.province].filter(Boolean).join(' · ')}
   function selectHtml(list,value){
@@ -180,7 +181,7 @@
     var m=ensureModal();S.doc=r;S.saving=false;S.clientId=r.client_id?String(r.client_id):'';S.companyId=r.company_id?String(r.company_id):'';S.clients=[];
     S.lastFocus=document.activeElement;
     var num=norm(r.document_number)||'Bozza';
-    E('ddtETitle').textContent='Modifica DDT '+num;
+    E('ddtETitle').textContent='Modifica '+docLabel(r.document_number);
     var sub=[];if(r.created_by)sub.push('Creato da '+r.created_by+(r.created_at?' il '+dateIt(r.created_at):''));else if(r.created_at)sub.push('Creato il '+dateIt(r.created_at));
     if(r.updated_at&&r.created_at&&String(r.updated_at).slice(0,16)!==String(r.created_at).slice(0,16))sub.push('ultima modifica il '+dateIt(r.updated_at));
     E('ddtESub').textContent=sub.join(' · ')||'Modifica i dati del documento di trasporto e salva.';
@@ -250,7 +251,7 @@
     setBusy(true);
     api('update_ddt',p).then(function(x){
       var saved=x.data||null;setBusy(false);close();
-      toast('DDT '+((saved&&saved.document_number)||S.doc.document_number||'')+' aggiornato.','ok');
+      toast(docLabel((saved&&saved.document_number)||S.doc.document_number)+' aggiornato.','ok');
       try{if(typeof window.openOptykerDdt==='function')window.openOptykerDdt()}catch(e){}
       if(doPrint&&saved){if(typeof window.optykerViewDdt==='function')window.optykerViewDdt(saved);else toast('DDT salvato: aprilo dall’elenco per stamparlo.','ok')}
     }).catch(function(e){setBusy(false);toast('Modifica DDT non riuscita: '+e.message,'error')})
