@@ -65,3 +65,8 @@ python scripts/check_desktop_html.py
 node --check lac-order-number.js
 python scripts/apply_lac_order_number_20261121.py
 python scripts/check_desktop_html.py
+
+# Cassa 20261123: niente stampa RCH finché manca la chiusura del giorno precedente (o del periodo di chiusura/ferie).
+node --check cash-print-closure-guard.js
+python scripts/apply_cash_print_closure_guard_20261123.py
+python scripts/check_desktop_html.py
