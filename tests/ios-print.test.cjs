@@ -176,7 +176,7 @@ const WAIT_FIX=String.raw`<script id="OPTYKER_PRINT_WAIT_FIX_V1">
   };
 })();
 </script>`;
-const PAGE='<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><title>Optyker</title><style>body{font:13px system-ui,sans-serif;margin:0;background:#eef2f6;height:100vh;overflow:hidden}#mainApp{padding:16px}.iuRow{display:flex;gap:8px;margin:6px 0}@page{size:A4 landscape;margin:20mm}@media print{#mainApp{color:#000}}</style></head><body>'+
+const PAGE='<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><title>Optyker</title><style>body{font:13px system-ui,sans-serif;margin:0;background:#eef2f6;height:100vh;overflow:hidden}#mainApp{padding:16px}.iuRow{display:flex;gap:8px;margin:6px 0}@page{size:A4 landscape;margin:20mm}@media print{#mainApp{color:#000}body > :not(#lacSummaryOverlay){display:none!important}}</style></head><body>'+
   '<div id="mainApp"><div id="indicationsPanel" class="panel"><h2 class="iuTitle">INDICAZIONI D\'USO</h2><div id="indicationsRows">'+
   '<div class="iuRow"><input class="p" value="Lenti mensili Air Optix"><input class="d" value="Sostituire ogni 30 giorni; non dormire con le lenti."></div>'+
   '<div class="iuRow"><input class="p" value="Soluzione unica"><input class="d" value="Massaggiare e risciacquare a ogni rimozione."></div></div>'+

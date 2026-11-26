@@ -117,10 +117,12 @@
       (scoped?'<style>'+scoped+'</style>':'')+links+
       '<div class="optykerPrintHtml"><div class="optykerPrintBody'+bodyClass.replace(/"/g,'')+'">'+(doc.body?doc.body.innerHTML:'')+'</div></div>';
     var style=document.createElement('style');style.id=STYLE_ID;
-    style.textContent='@media screen{#'+HOST_ID+'{display:none!important}}'+
-      '@media print{html,body{height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;background:#fff!important;margin:0!important;padding:0!important;zoom:1!important;transform:none!important}'+
+    // Selettori più forti delle regole di stampa della pagina (per esempio «body > :not(#lacSummaryOverlay)» del riepilogo LAC).
+    var strong='html body>#'+HOST_ID+'#'+HOST_ID+'#'+HOST_ID;
+    style.textContent='@media screen{'+strong+'{display:none!important}}'+
+      '@media print{html,body{display:block!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;background:#fff!important;margin:0!important;padding:0!important;zoom:1!important;transform:none!important}'+
       'body>*:not(#'+HOST_ID+'){display:none!important}'+
-      '#'+HOST_ID+'{display:block!important;position:static!important;visibility:visible!important;opacity:1!important;transform:none!important;filter:none!important;margin:0!important;padding:0!important;width:auto!important;height:auto!important;overflow:visible!important}}'+
+      strong+'{display:block!important;position:static!important;visibility:visible!important;opacity:1!important;transform:none!important;filter:none!important;margin:0!important;padding:0!important;width:auto!important;height:auto!important;overflow:visible!important}}'+
       acc.fonts+acc.page;
     document.head.appendChild(style);
     document.body.appendChild(host);
