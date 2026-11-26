@@ -124,8 +124,9 @@
       'body>*:not(#'+HOST_ID+'){display:none!important}'+
       strong+'{display:block!important;position:static!important;visibility:visible!important;opacity:1!important;transform:none!important;filter:none!important;margin:0!important;padding:0!important;width:auto!important;height:auto!important;overflow:visible!important}}'+
       acc.fonts+acc.page;
-    document.head.appendChild(style);
+    // In fondo alla pagina, dopo gli stili del gestionale: a parità di regole (@page compresa) valgono queste.
     document.body.appendChild(host);
+    document.body.appendChild(style);
     var delay=parseInt(delayMs,10);if(isNaN(delay)||delay<100)delay=350;
     waitImages(root,function(){
       setTimeout(function(){
