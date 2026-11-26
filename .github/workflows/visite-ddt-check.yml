@@ -8,7 +8,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -20,29 +20,42 @@ jobs:
         env:
           VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
         run: |
-          python3 -m py_compile scripts/apply_ddt_edit_20261126.py scripts/apply_report_20261014.py
+          python3 -m py_compile scripts/apply_ddt_edit_20261126.py scripts/apply_ios_print_20261126.py scripts/apply_report_20261014.py
           node --check optyker-report.js
           node --check ddt-edit.js
+          node --check ios-print.js
           bash scripts/vercel-build-20261013.sh
-      - name: Print code of the real page (diagnostica, nessun dato)
+          for f in _site/index.html _site/gestionale-v2/index.html _site/gestionale-v3/index.html; do
+            for needle in 'id="optykerDdtEditJs"' 'id="optykerIosPrintJs"' 'OPTYKER_DDT_EDIT_20261126' 'optyker-report.js?v=20261126-visits1' 'optyker-report.css?v=20261126-visits1'; do
+              test "$(grep -o "$needle" "$f" | wc -l)" = 1 || { echo "$f: $needle non presente una sola volta"; exit 1; }
+            done
+          done
+          ls _site/ddt-edit.*.js _site/ios-print.*.js _site/istruzioni-lac/pulizia-perossido.pdf
+          grep -q "VERSION='20261126-visits1'" _site/optyker-report.js
+          grep -q 'optyker_visit_followup_api' _site/optyker-report.js
+      - name: Install isolated browsers
         run: |
-          python3 - <<'PY2'
-          import re
-          html = open('_site/index.html', encoding='utf-8').read()
-          print('LENGTH', len(html))
-          calls = [m.start() for m in re.finditer(r'printHtmlDocument\(', html)]
-          print('##### chiamate printHtmlDocument:', len(calls))
-          for i in calls:
-              print('---', i, html[max(0, i - 260):i + 60].replace('\n', ' '))
-          for fn in ['function indicationsUsePrintHtml', 'function prescriptionPrintHtml', 'function hearingPrintHtml', 'function reportHtmlFromData',
-                     'function printHearing(', 'function printHearingImage(', 'function printReport(']:
-              i = html.find(fn)
-              print('\n#####', fn, i)
-              if i >= 0:
-                  j = html.find('\nfunction ', i + 20)
-                  body = html[i:j if j > 0 else i + 6000]
-                  print('lunghezza', len(body), 'script:', body.count('<script'), 'canvas:', body.count('<canvas'), 'toDataURL:', body.count('toDataURL'))
-                  print(body[:2500])
-          for needle in ['optykerIosPrintJs', 'optykerDdtEditJs', 'OPTYKER_DDT_EDIT_20261126', 'optyker-report.js?v=']:
-              print('#####', needle, html.count(needle))
-          PY2
+          npm install --prefix /tmp/browser playwright@1.55.0
+          /tmp/browser/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Report › Visite senza scheda (pagina sintetica, RPC simulate)
+        env:
+          NODE_PATH: /tmp/browser/node_modules
+        run: node tests/report-visits.test.cjs
+      - name: DDT › Modifica (passi reali della build, API simulata)
+        env:
+          NODE_PATH: /tmp/browser/node_modules
+        run: node tests/ddt-edit.test.cjs
+      - name: Stampa da iPad e iPhone (Chromium)
+        env:
+          NODE_PATH: /tmp/browser/node_modules
+        run: node tests/ios-print.test.cjs
+      - name: Stampa da iPad e iPhone (WebKit, motore di Safari)
+        env:
+          NODE_PATH: /tmp/browser/node_modules
+          IOS_PRINT_ENGINE: webkit
+        run: node tests/ios-print.test.cjs
+      - name: Pagina reale della build (rete esterna bloccata, nessun dato)
+        env:
+          NODE_PATH: /tmp/browser/node_modules
+          SITE_DIR: _site
+        run: node tests/visite-ddt-ios-real-page.browser.cjs
