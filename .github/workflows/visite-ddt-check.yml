@@ -20,7 +20,7 @@ jobs:
         env:
           VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
         run: |
-          python3 -m py_compile scripts/apply_ddt_edit_20261126.py scripts/apply_ios_print_20261126.py scripts/apply_report_20261014.py
+          python3 -m py_compile scripts/apply_ddt_edit_20261126.py scripts/apply_ios_print_20261126.py scripts/apply_report_20261014.py scripts/apply_cash_ipad_edit_20261126.py
           node --check optyker-report.js
           node --check ddt-edit.js
           node --check ios-print.js
@@ -33,6 +33,9 @@ jobs:
           ls _site/ddt-edit.*.js _site/ios-print.*.js _site/istruzioni-lac/pulizia-perossido.pdf
           grep -q "VERSION='20261126-visits1'" _site/optyker-report.js
           grep -q 'optyker_visit_followup_api' _site/optyker-report.js
+          test "$(grep -o 'OPTYKER_CASH_IPAD_EDIT_20261126' _site/cash-register.js | wc -l)" = 1
+          test "$(grep -o 'cashAfterWindowFocus(function(){' _site/cash-register.js | wc -l)" = 2
+          grep -q 'class="optykerCashManualPrice" type="text" inputmode="decimal"' _site/cash-register.js
       - name: Install isolated browsers
         run: |
           npm install --prefix /tmp/browser playwright@1.55.0
@@ -54,6 +57,17 @@ jobs:
           NODE_PATH: /tmp/browser/node_modules
           IOS_PRINT_ENGINE: webkit
         run: node tests/ios-print.test.cjs
+      - name: Cassa › prezzo nel carrello su iPad (Chromium; cash-register.js della build, API simulate)
+        env:
+          NODE_PATH: /tmp/browser/node_modules
+          CASH_JS: _site/cash-register.js
+        run: node tests/cash-ipad-edit.browser.cjs
+      - name: Cassa › prezzo nel carrello su iPad (WebKit, motore di Safari)
+        env:
+          NODE_PATH: /tmp/browser/node_modules
+          CASH_JS: _site/cash-register.js
+          CASH_ENGINE: webkit
+        run: node tests/cash-ipad-edit.browser.cjs
       - name: Pagina reale della build (rete esterna bloccata, nessun dato)
         env:
           NODE_PATH: /tmp/browser/node_modules

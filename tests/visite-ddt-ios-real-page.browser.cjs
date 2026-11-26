@@ -24,7 +24,8 @@ const site=path.resolve(process.env.SITE_DIR||path.join(__dirname,'..','_site'))
       return route.fulfill({status:200,contentType:type,body:fs.readFileSync(file)});
     });
     await page.goto('https://optyker.test/'+entry,{waitUntil:'load'});
-    await page.waitForFunction(()=>window.OPTYKER_DDT_EDIT&&window.OPTYKER_IOS_PRINT&&window.OPTYKER_REPORT,null,{timeout:20000});
+    await page.waitForFunction(()=>window.OPTYKER_DDT_EDIT&&window.OPTYKER_IOS_PRINT&&window.OPTYKER_REPORT&&window.OPTYKER_CASH_IPAD_EDIT,null,{timeout:20000});
+    assert.equal(await page.evaluate(()=>window.OPTYKER_CASH_IPAD_EDIT),'20261126-ipadedit1');
     await page.waitForFunction(()=>window.printHtmlDocument&&window.printHtmlDocument.__optykerIosPrint&&window.printIndicationsDocument&&window.printIndicationsDocument.__optykerIosPrint,null,{timeout:10000});
     const info=await page.evaluate(()=>({
       ddt:window.OPTYKER_DDT_EDIT.version,ios:window.OPTYKER_IOS_PRINT.version,isIOS:window.OPTYKER_IOS_PRINT.isIOS(),report:window.OPTYKER_REPORT.version,

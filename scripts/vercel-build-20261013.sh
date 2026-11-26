@@ -70,3 +70,9 @@ python scripts/check_desktop_html.py
 node --check cash-print-closure-guard.js
 python scripts/apply_cash_print_closure_guard_20261123.py
 python scripts/check_desktop_html.py
+
+# Cassa 20261126: su iPad il prezzo scritto nel carrello non torna più quello di prima (il carrello non si
+# ridisegna mentre si scrive; «Prezzo unitario» accetta la virgola con il tastierino decimale).
+python scripts/apply_cash_ipad_edit_20261126.py
+node --check _site/cash-register.js
+grep -q 'OPTYKER_CASH_IPAD_EDIT_20261126' _site/cash-register.js
