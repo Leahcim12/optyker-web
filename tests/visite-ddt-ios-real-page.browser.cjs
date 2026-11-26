@@ -48,6 +48,23 @@ const site=path.resolve(process.env.SITE_DIR||path.join(__dirname,'..','_site'))
         const others=Array.from(document.body.children).filter(e=>e!==host&&e.tagName!=='SCRIPT'&&e.tagName!=='STYLE'&&e.tagName!=='TEMPLATE').filter(e=>{const s=getComputedStyle(e);return s.display!=='none'&&s.visibility!=='hidden'&&e.getBoundingClientRect().height>0}).map(e=>e.id||e.className||e.tagName);
         return {w:r.width,h:r.height,vis:cs.visibility,op:cs.opacity,font:cs.fontSize,others}
       });
+      if(!(print.w>900&&print.h>10))console.log('DIAGNOSI stampa iPad', JSON.stringify(await page.evaluate(()=>{
+        const host=document.getElementById('optykerIosPrintHost'),out={};
+        const cs=e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();return {display:s.display,visibility:s.visibility,position:s.position,overflow:s.overflow,height:s.height,width:s.width,zoom:s.zoom,transform:s.transform,contentVisibility:s.contentVisibility,box:[r.left,r.top,r.width,r.height]}};
+        out.html=cs(document.documentElement);out.body=cs(document.body);out.host=cs(host);
+        out.inner=['.optykerPrintHtml','.optykerPrintBody','.sheet'].map(s=>{const e=host.shadowRoot.querySelector(s);return e?[s,cs(e)]:[s,null]});
+        out.rules=[];
+        const walk=(rules,media)=>{for(const r of rules){try{
+          if(r.cssRules&&r.media){walk(r.cssRules,(media?media+' ':'')+r.media.mediaText);continue}
+          if(r.cssRules&&!r.selectorText){walk(r.cssRules,media);continue}
+          if(!r.selectorText)continue;
+          const hits=[host,document.body,document.documentElement].filter(e=>{try{return e.matches(r.selectorText)}catch(x){return false}}).map(e=>e===host?'host':e.tagName);
+          if(hits.length&&/display|visibility|height|width|position|overflow|content|zoom|transform|opacity/.test(r.style.cssText))out.rules.push([media||'all',hits.join('+'),r.selectorText.slice(0,160),r.style.cssText.slice(0,220)]);
+        }catch(x){}}};
+        for(const sh of document.styleSheets){try{walk(sh.cssRules,'')}catch(x){out.rules.push(['inaccessibile',String(sh.href)])}}
+        out.rules=out.rules.filter(r=>/print|all/.test(r[0]));
+        return out
+      })).slice(0,12000));
       await page.emulateMedia({media:'screen'});
       assert.equal(screen,'none');
       assert.ok(print.w>900&&print.h>10&&print.vis==='visible'&&print.op==='1'&&print.font==='20px','document visible in print '+JSON.stringify(print));
