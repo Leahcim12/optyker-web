@@ -111,7 +111,8 @@ const PAGE='<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><meta nam
   await page.waitForFunction(()=>/prezzo valido/.test((document.getElementById('optykerCashToast')||{}).textContent||''));
   assert.equal(await page.inputValue('#optykerCashCartItems [data-price="v2"]'),'10,00');
   assert.equal(await page.evaluate(()=>window.OPTYKER_CASH_IPAD_EDIT),'20261126-ipadedit1');
-  assert.deepEqual(errors,[]);
+  // WebKit reports the requests this test blocks (local print bridge, other APIs) as page errors: not app errors.
+  assert.deepEqual(errors.filter(e=>!/Fetch API cannot load .* due to access control checks/.test(e)),[]);
   console.log('Cassa iPad ('+(WEBKIT?'WebKit':'Chromium')+'): il prezzo scritto resta mentre si scrive, si applica uscendo dal campo; ricalcoli dopo; PC invariato');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});
