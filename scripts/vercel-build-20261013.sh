@@ -29,6 +29,11 @@ python scripts/check_desktop_html.py
 python scripts/apply_ddt_view_20261015.py
 python scripts/check_desktop_html.py
 
+# DDT 20261126: pulsante «Modifica» per ogni documento di trasporto (salva con update_ddt).
+node --check ddt-edit.js
+python scripts/apply_ddt_edit_20261126.py
+python scripts/check_desktop_html.py
+
 # WhatsApp 20261107: pulsante "Controllo 6 mesi" nella prescrizione optometrica.
 node --check wa-recall-control.js
 python scripts/apply_wa_recall_20261107.py

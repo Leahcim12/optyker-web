@@ -1,4 +1,4 @@
-/* Optyker · Report (richiami del mese e giacenze di magazzino) · 20261014-report1 */
+/* Optyker · Report (richiami del mese, visite senza scheda e giacenze di magazzino) · 20261126-visits1 */
 #moduleNav>#navReport{order:22!important}
 .optykerReportPanel{padding:0 25px 28px;box-sizing:border-box;color:#18181b;font-family:Manrope,"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif}
 .orp,.orp *{box-sizing:border-box}
@@ -160,3 +160,44 @@
 @media (max-width:340px){.orpCards{grid-template-columns:1fr}.orpKpis{grid-template-columns:1fr}}
 @media print{.orpBtn,.orpTools,.orpBack,.orpTabs,.orpSearch,.orpChips{display:none!important}.orpTableWrap{max-height:none;overflow:visible}}
 .orpLink.accent{color:var(--orp-accent-dark);margin-left:6px}
+/* Visite senza scheda · 20261126-visits1: verde fino a 7 giorni, arancione fino a 14, rosso oltre */
+.orp{--orp-green:#1f7a3f;--orp-green-wash:#e6f4ea;--orp-orange:#b45309;--orp-orange-wash:#fff1df;--orp-red:#b42318;--orp-red-wash:#fdecea}
+.orpVisitsCards{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.orpVisitsCard .orpCardFoot{display:flex;flex-wrap:wrap;gap:4px 12px}
+.orpVCount{display:inline-flex;align-items:center;white-space:nowrap;color:var(--orp-muted)}
+.orpVDot{display:inline-block;flex:0 0 auto;width:9px;height:9px;border-radius:50%;margin-right:5px;background:#bdb9b0}
+.orpVDot.green{background:var(--orp-green)}
+.orpVDot.orange{background:var(--orp-orange)}
+.orpVDot.red{background:var(--orp-red)}
+.orpVChips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.orpVChip{display:inline-flex;align-items:center;gap:4px;height:34px;padding:0 13px;border:1px solid #d6d3cc;border-radius:999px;background:#fff;color:var(--orp-ink);font:700 12px Manrope,"Segoe UI",system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+.orpVChip:hover{border-color:#b9b5ac}
+.orpVChip:focus-visible{outline:3px solid rgba(194,54,79,.3);outline-offset:2px}
+.orpVChip small{font-size:11px;font-weight:600;color:var(--orp-soft)}
+.orpVChip b{margin-left:2px;font-weight:800}
+.orpVChip.on{background:var(--orp-ink);border-color:var(--orp-ink);color:#fff}
+.orpVChip.green.on{background:var(--orp-green);border-color:var(--orp-green)}
+.orpVChip.orange.on{background:var(--orp-orange);border-color:var(--orp-orange)}
+.orpVChip.red.on{background:var(--orp-red);border-color:var(--orp-red)}
+.orpVChip.on small{color:rgba(255,255,255,.82)}
+.orpVChip.on .orpVDot{background:#fff}
+.orpVRow{border-left-width:5px}
+.orpVRow.green{border-left-color:var(--orp-green)}
+.orpVRow.orange{border-left-color:var(--orp-orange)}
+.orpVRow.red{border-left-color:var(--orp-red)}
+.orpVRow.called{border-left-color:#cfcbc3}
+.orpVAvatar.green{background:var(--orp-green-wash);color:var(--orp-green)}
+.orpVAvatar.orange{background:var(--orp-orange-wash);color:var(--orp-orange)}
+.orpVAvatar.red{background:var(--orp-red-wash);color:var(--orp-red)}
+.orpRow.called .orpVAvatar{background:#efede8;color:var(--orp-muted)}
+.orpVDays{display:inline-block;margin-right:4px;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap}
+.orpVDays.green{background:var(--orp-green-wash);color:var(--orp-green)}
+.orpVDays.orange{background:var(--orp-orange-wash);color:var(--orp-orange)}
+.orpVDays.red{background:var(--orp-red-wash);color:var(--orp-red)}
+.orpVExtra{margin-top:4px;font-size:11px;line-height:1.55;color:var(--orp-soft)}
+.orpName.orpNameStatic{cursor:default}
+.orpName.orpNameStatic:hover{color:var(--orp-ink);text-decoration:none}
+.orpBtn.orpVDel{color:var(--orp-red)}
+.orpBtn.orpVDel:hover{border-color:var(--orp-red);background:var(--orp-red-wash)}
+@media (max-width:760px){.orpVisitsCards{grid-template-columns:1fr}.orpVChip small{display:none}}
+@media print{.orpVChips{display:none!important}}

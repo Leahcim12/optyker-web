@@ -1,4 +1,5 @@
 """Report 20261014: voce "Report" per gli account (richiami del mese e giacenze di magazzino).
+Dal 26/11/2026 (20261126-visits1) anche "Visite senza scheda" (RPC optyker_visit_followup_api).
 
 Passo della build Vercel dopo apply_release_20261013.py. Pubblica optyker-report.js/.css e li
 aggiunge alla pagina del gestionale e alle sue copie (gestionale-v2, gestionale-v3), che devono
@@ -14,7 +15,7 @@ import sys
 ROOT = Path(__file__).resolve().parent.parent
 SITE = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / '_site'
 ALIASES = ('gestionale-v2', 'gestionale-v3')
-VERSION = '20261014-report1'
+VERSION = '20261126-visits1'
 ASSETS = ('optyker-report.js', 'optyker-report.css')
 TAG_IDS = ('optykerReportCss', 'optykerReportJs')
 
@@ -67,7 +68,7 @@ def main():
         if html.count(needle) != 1:
             raise SystemExit('Report 20261014: nella pagina "' + needle + '" compare ' + str(html.count(needle)) + ' volte')
     js = (SITE / 'optyker-report.js').read_text(encoding='utf-8')
-    if "VERSION='" + VERSION + "'" not in js or 'optyker_report_api' not in js:
+    if "VERSION='" + VERSION + "'" not in js or 'optyker_report_api' not in js or 'optyker_visit_followup_api' not in js:
         raise SystemExit('Report 20261014: optyker-report.js non corrisponde alla versione ' + VERSION)
 
     manifest = {

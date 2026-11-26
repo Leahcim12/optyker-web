@@ -1,0 +1,41 @@
+name: Verifica Visite senza scheda, DDT modificabili e stampa iPad
+on:
+  push:
+    branches: [visite-senza-scheda-ddt]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build the exact Vercel artifact
+        env:
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          python3 -m py_compile scripts/apply_ddt_edit_20261126.py scripts/apply_report_20261014.py
+          node --check optyker-report.js
+          node --check ddt-edit.js
+          bash scripts/vercel-build-20261013.sh
+      - name: Print code of the real page (diagnostica, nessun dato)
+        run: |
+          python3 - <<'PY'
+          import re
+          html = open('_site/index.html', encoding='utf-8').read()
+          print('LENGTH', len(html))
+          for needle in ['function printIndicationsUse', 'printIndicationsUse=', 'function printIndicationsDocument', 'printIndicationsDocument=',
+                         'function getPrintFrame', 'getPrintFrame=', 'OPTYKER_PRINT_WAIT_FIX', 'printHtmlDocument=function', 'function indicationsPrintHtml',
+                         'iuDocumentSelect', 'Pulizia Morbide.pdf']:
+              starts = [m.start() for m in re.finditer(re.escape(needle), html)]
+              print('\n#####', needle, 'occorrenze:', len(starts))
+              for i in starts[:4]:
+                  print('----- at', i)
+                  print(html[max(0, i - 300):i + 3200])
+          PY
