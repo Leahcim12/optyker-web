@@ -199,5 +199,6 @@
 .orpName.orpNameStatic:hover{color:var(--orp-ink);text-decoration:none}
 .orpBtn.orpVDel{color:var(--orp-red)}
 .orpBtn.orpVDel:hover{border-color:var(--orp-red);background:var(--orp-red-wash)}
+@media (min-width:1101px){.orpVRow{grid-template-columns:auto minmax(0,1.6fr) minmax(170px,.9fr) 190px}}
 @media (max-width:760px){.orpVisitsCards{grid-template-columns:1fr}.orpVChip small{display:none}}
 @media print{.orpVChips{display:none!important}}

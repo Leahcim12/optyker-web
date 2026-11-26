@@ -113,7 +113,7 @@
     E('ddtESave').onclick=function(){save(false)};
     E('ddtESavePrint').onclick=function(){save(true)};
     m.addEventListener('click',function(ev){if(ev.target===m)close()});
-    m.addEventListener('keydown',function(ev){if(ev.key==='Escape'){ev.preventDefault();close()}});
+    document.addEventListener('keydown',function(ev){if(ev.key==='Escape'&&m.classList.contains('open')){ev.preventDefault();close()}},true);
     return m
   }
 
@@ -173,7 +173,8 @@
     E('ddtECustomerName').value=clientName(c);E('ddtEVat').value=c.vat||'';E('ddtEFiscal').value=c.fiscal||'';
     var addr=clientAddress(c);if(addr)E('ddtEDestination').value=addr;
     E('ddtEClientSearch').value='';var box=E('ddtEClientResults');if(box)box.classList.remove('open');
-    linkedNote()
+    linkedNote();
+    try{E('ddtECustomerName').focus()}catch(e){}
   }
 
   function open(r){
