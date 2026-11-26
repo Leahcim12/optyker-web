@@ -1,0 +1,30 @@
+name: Diagnostica Cassa iPad (copia della build, nessun dato)
+on:
+  push:
+    branches: [diag-cassa-ipad]
+permissions:
+  contents: read
+jobs:
+  dump:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build the exact Vercel artifact
+        env:
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+        run: bash scripts/vercel-build-20261013.sh
+      - name: Dump the desktop page and its scripts (base64)
+        run: |
+          cd _site
+          tar czf /tmp/site.tgz --exclude='gestionale-v2' --exclude='gestionale-v3' --exclude='*.pdf' --exclude='*.png' --exclude='*.webp' --exclude='*.jpg' --exclude='iphone*' --exclude='mobile-app' --exclude='visual-training' --exclude='INFORMATIVE' .
+          ls -la /tmp/site.tgz
+          sha256sum /tmp/site.tgz
+          echo "=====BEGIN-SITE-TGZ====="
+          base64 -w 120 /tmp/site.tgz
+          echo "=====END-SITE-TGZ====="
