@@ -29,10 +29,14 @@ function serve() {
   });
 }
 
+// Date relative al giorno della prova: ultima chiusura due giorni fa, manca quella di ieri.
+function addDays(day, n) { const [y, m, d] = day.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10); }
+function dayLabel(day) { return new Intl.DateTimeFormat('it-IT', {weekday: 'long', day: '2-digit', month: '2-digit', timeZone: 'UTC'}).format(new Date(day + 'T12:00:00Z')); }
 function blockedGate(today, extra) {
-  return Object.assign({allowed: false, reason: 'missing_closure', today, last_closure_date: '2026-11-21', last_closure_number: 1246,
-    last_closure_text: 'sabato 21/11 alle 19:51', documents_after_closure: 0, uncertain_jobs: 0, pending_closure: null, today_opened: false,
-    message: 'Stampa bloccata: manca la chiusura RCH del giorno precedente (domenica 22/11). Ultima chiusura: sabato 21/11 alle 19:51. Fai prima «Chiusura cassa e RCH» con la chiusura della RCH: poi la stampa si sblocca.'}, extra || {});
+  const last = addDays(today, -2);
+  return Object.assign({allowed: false, reason: 'missing_closure', today, last_closure_date: last, last_closure_number: 1246,
+    last_closure_text: dayLabel(last) + ' alle 19:51', documents_after_closure: 0, uncertain_jobs: 0, pending_closure: null, today_opened: false,
+    message: 'Stampa bloccata: manca la chiusura RCH del giorno precedente (' + dayLabel(addDays(today, -1)) + '). Ultima chiusura: ' + dayLabel(last) + ' alle 19:51. Fai prima «Chiusura cassa e RCH» con la chiusura della RCH: poi la stampa si sblocca.'}, extra || {});
 }
 function allowedGate(today) {
   return {allowed: true, reason: 'closed_today', message: '', today, last_closure_text: 'lunedì 23/11 alle 08:57', uncertain_jobs: 0, today_opened: true};
@@ -124,8 +128,8 @@ const showCash = page => page.evaluate(() => {
     await page.waitForSelector('#optykerPrintLockBanner', {timeout: 15000});
     const banner = await page.textContent('#optykerPrintLockBanner');
     assert.match(banner, /Stampa bloccata: fai prima la chiusura/);
-    assert.match(banner, /Manca la chiusura RCH di domenica 22\/11/);
-    assert.match(banner, /sabato 21\/11 alle 19:51/);
+    assert.ok(banner.includes('Manca la chiusura RCH di ' + dayLabel(addDays(today, -1))), banner);
+    assert.ok(banner.includes(dayLabel(addDays(today, -2)) + ' alle 19:51'), banner);
     assert.match(banner, /1 · Apertura cassa/);
     assert.match(banner, /2 · Chiusura cassa e RCH/);
     await page.waitForFunction(() => document.getElementById('optykerCashGiftBtn').getAttribute('data-optyker-print-lock') === '1');

@@ -57,8 +57,7 @@ jobs:
         run: node tests/cash-print-closure-guard.browser.cjs _site
 
   live:
-    # Dopo la pubblicazione su main: pagina e API raggiungibili, senza credenziali e senza stampe.
-    if: github.ref == 'refs/heads/main'
+    # Sito pubblicato (optyker.it) e API raggiungibili, senza credenziali e senza stampe.
     needs: verify
     runs-on: ubuntu-24.04
     timeout-minutes: 15
