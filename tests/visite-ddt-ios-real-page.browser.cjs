@@ -36,6 +36,25 @@ const site=path.resolve(process.env.SITE_DIR||path.join(__dirname,'..','_site'))
     assert.deepEqual(info,{ddt:'20261126-ddt-edit1',ios:'20261126-ios-print1',isIOS:ipad,report:'20261126-visits1',base:true,editFn:'function',viewFn:'function',openDdt:'function',perox:true},entry+(ipad?' iPad':''));
     // The DDT list row binding carries the Modifica button (inline script of the real page).
     assert.equal(await page.evaluate(()=>Array.from(document.scripts).filter(s=>s.textContent.indexOf('OPTYKER_DDT_EDIT_20261126')>=0).length),1);
+    if(ipad){
+      // With the real page's own styles: in print only the document is visible, on screen nothing changes.
+      await page.evaluate(()=>{window.__prints=0;window.print=function(){window.__prints++};
+        window.printHtmlDocument('<!doctype html><html><head><style>@page{size:A4 portrait;margin:.01mm}html,body{margin:0!important;padding:0!important}body{font-size:20px;color:#172033}.sheet{padding:5mm}</style></head><body><div class="sheet"><div id="probe">INDICAZIONI D\'USO · PROVA</div></div></body></html>')});
+      await page.waitForFunction(()=>window.__prints===1,null,{timeout:5000});
+      const screen=await page.evaluate(()=>getComputedStyle(document.getElementById('optykerIosPrintHost')).display);
+      await page.emulateMedia({media:'print'});
+      const print=await page.evaluate(()=>{
+        const host=document.getElementById('optykerIosPrintHost'),probe=host.shadowRoot.getElementById('probe'),r=probe.getBoundingClientRect(),cs=getComputedStyle(probe);
+        const others=Array.from(document.body.children).filter(e=>e!==host&&e.tagName!=='SCRIPT'&&e.tagName!=='STYLE'&&e.tagName!=='TEMPLATE').filter(e=>{const s=getComputedStyle(e);return s.display!=='none'&&s.visibility!=='hidden'&&e.getBoundingClientRect().height>0}).map(e=>e.id||e.className||e.tagName);
+        return {w:r.width,h:r.height,vis:cs.visibility,op:cs.opacity,font:cs.fontSize,others}
+      });
+      await page.emulateMedia({media:'screen'});
+      assert.equal(screen,'none');
+      assert.ok(print.w>900&&print.h>10&&print.vis==='visible'&&print.op==='1'&&print.font==='20px','document visible in print '+JSON.stringify(print));
+      assert.deepEqual(print.others,[],'only the document is printed');
+      await page.evaluate(()=>window.dispatchEvent(new Event('afterprint')));
+      await page.waitForFunction(()=>!document.getElementById('optykerIosPrintHost'));
+    }
     assert.deepEqual(mine,[],'no errors from the new modules');
     await ctx.close();
    }
