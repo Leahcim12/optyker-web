@@ -56,6 +56,15 @@ jobs:
           LAB_READY_REAL_SCREENSHOT: lab-check/real-dialog.png
           LAB_READY_REAL_CARDS_SCREENSHOT: lab-check/real-cards.png
         run: node tests/lab-ready-notice-real-page.browser.cjs
+      - name: Print the synthetic screenshots for review
+        if: always()
+        run: |
+          for f in lab-check/real-dialog.png lab-check/real-cards.png; do
+            test -s "$f" || continue
+            echo "SCREENSHOT $f"
+            base64 -w 0 "$f" | fold -w 8000 | sed 's/^/SCREENSHOT_B64:/'
+            echo
+          done
       - uses: actions/upload-artifact@v4
         if: always()
         with:

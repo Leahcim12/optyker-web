@@ -90,7 +90,7 @@ function labApi(fn, b) {
     const text = await page.locator('.lrnDialog').innerText();
     for (const s of ['Busta pronta per la consegna', 'BU-OC-2026-990001', 'PROVA ROSSI', '+39 333 123 4567', 'il tuo occhiale è pronto'])
       assert.ok(text.includes(s), 'manca: ' + s + '\n' + text);
-    if (process.env.LAB_READY_REAL_SCREENSHOT) await page.screenshot({path: process.env.LAB_READY_REAL_SCREENSHOT});
+    if (process.env.LAB_READY_REAL_SCREENSHOT) await page.locator('.lrnDialog').screenshot({path: process.env.LAB_READY_REAL_SCREENSHOT});
     await page.click('.lrnDialog [data-lrn-action="cancel"]');
     await page.waitForSelector('.lrnOverlay', {state: 'detached'});
     assert.equal(await select(ID.A).inputValue(), 'costruzione'); assert.equal(statusCalls().length, 0);
@@ -117,7 +117,7 @@ function labApi(fn, b) {
       return s && /Avvisa il cliente su WhatsApp/.test((s.closest('.labStatusBox').querySelector('.lrnSlot') || {}).textContent || ''); }, ID.B, {timeout: 10000});
     await page.waitForFunction((id) => { const s = [...document.querySelectorAll('#labOrdersList select')].find((x) => (x.getAttribute('onchange') || '').includes(id));
       return s && /in partenza/.test((s.closest('.labStatusBox').querySelector('.lrnSlot') || {}).textContent || ''); }, ID.A, {timeout: 10000});
-    if (process.env.LAB_READY_REAL_CARDS_SCREENSHOT) await page.screenshot({path: process.env.LAB_READY_REAL_CARDS_SCREENSHOT});
+    if (process.env.LAB_READY_REAL_CARDS_SCREENSHOT) await page.locator('#labOrdersList').screenshot({path: process.env.LAB_READY_REAL_CARDS_SCREENSHOT});
     await card(ID.B).locator('.lrnSlot button').click();
     await page.waitForSelector('.lrnDialog [data-lrn-action="send"]');
     await page.click('.lrnDialog [data-lrn-action="send"]');
