@@ -1,0 +1,64 @@
+name: Verifica Laboratorio conferma avviso busta pronta
+on:
+  push:
+    branches: [lab-avviso-pronto-conferma]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build the exact Vercel artifact
+        env:
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          python3 -m py_compile scripts/apply_lab_ready_notice_20261127.py
+          bash scripts/vercel-build-20261013.sh
+          test -s _site/lab-ready-notice-version.json
+          for f in _site/index.html _site/gestionale-v2/index.html _site/gestionale-v3/index.html; do
+            test "$(grep -o 'id="optykerLabReadyNoticeJs"' "$f" | wc -l)" = 1 || { echo "$f: modulo non presente una sola volta"; exit 1; }
+          done
+          ls _site/lab-ready-notice.*.js
+      - name: Laboratorio della pagina pubblicata (punti usati dal modulo)
+        run: |
+          python3 - <<'PY'
+          import re
+          html = open('_site/index.html', encoding='utf-8').read()
+          lab = re.search(r'<script\b[^>]*\bid="optykerLaboratoryScript"[^>]*>(.*?)</script>', html, re.S).group(1)
+          for key in ('window.labUpdateStatus=function(id,status)', 'labUpdateStatus(\\\'', 'id="labRefresh"', '<option value="pronto_consegna"'):
+              i = lab.find(key)
+              print('==', key, i)
+              print(lab[max(0, i - 150):i + 350] if i >= 0 else '(assente)')
+          PY
+      - name: Install isolated browser
+        run: |
+          npm install --prefix /tmp/browser playwright@1.55.0
+          /tmp/browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Conferma e stato dell'avviso (pagina sintetica, API simulate, nessun dato reale)
+        env:
+          NODE_PATH: /tmp/browser/node_modules
+          LAB_READY_SCREENSHOT: lab-check/dialog.png
+          LAB_READY_CARDS_SCREENSHOT: lab-check/cards.png
+        run: |
+          mkdir -p lab-check
+          node tests/lab-ready-notice.test.cjs
+      - name: Conferma sulla pagina pubblicata (accesso e API simulati, nessun dato reale)
+        env:
+          NODE_PATH: /tmp/browser/node_modules
+          LAB_READY_REAL_SCREENSHOT: lab-check/real-dialog.png
+          LAB_READY_REAL_CARDS_SCREENSHOT: lab-check/real-cards.png
+        run: node tests/lab-ready-notice-real-page.browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lab-ready-notice-check
+          path: lab-check/
+          retention-days: 3
