@@ -111,7 +111,8 @@ function labVisible() {
   return !!p && p.getClientRects().length > 0;
 }
 
-/* ---------- finestra di conferma ---------- */
+/* ---------- finestra di conferma ----------
+   Classi proprie (lrnMain, lrnGhost): il gestionale ridisegna con !important ogni button.primary. */
 function openDialog(title, sub) {
   if (dialog) dialog.close();
   const overlay = el('div', 'lrnOverlay');
@@ -135,7 +136,7 @@ function openDialog(title, sub) {
     actions(list) {
       actions.replaceChildren();
       list.forEach((a) => {
-        const b = el('button', a.kind || '', a.label);
+        const b = el('button', a.kind === 'primary' ? 'lrnMain' : a.kind === 'ghost' ? 'lrnGhost' : '', a.label);
         b.type = 'button';
         if (a.id) b.setAttribute('data-lrn-action', a.id);
         b.onclick = async () => {
@@ -155,7 +156,7 @@ function openDialog(title, sub) {
         };
         actions.appendChild(b);
       });
-      const first = actions.querySelector('button.primary') || actions.querySelector('button');
+      const first = actions.querySelector('button.lrnMain') || actions.querySelector('button');
       if (first) setTimeout(() => { if (d.alive) first.focus(); }, 0);
     },
     close() {
@@ -317,7 +318,7 @@ function renderSlot(box, id, entry) {
   const nodes = [el('div', 'lrnState ' + state.cls, state.text)];
   if (state.note) nodes.push(el('div', 'lrnMuted', state.note));
   if (state.button) {
-    const b = el('button', state.button.primary ? 'primary' : '', state.button.label);
+    const b = el('button', state.button.primary ? 'lrnMain' : '', state.button.label);
     b.type = 'button';
     b.setAttribute('data-lrn', state.button.action);
     b.setAttribute('data-lrn-id', id);
@@ -431,13 +432,13 @@ css.textContent =
   '.lrnError{font-size:13px;background:#fdecec;border:1px solid #f3c1c1;color:#9b1c1c;border-radius:10px;padding:8px 10px;margin:8px 0}' +
   '.lrnActions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:14px}' +
   '.lrnActions button{min-height:44px;padding:10px 16px;border-radius:10px;border:1px solid #c9d6e0;background:#fff;color:#17324a;font:inherit;font-weight:750;cursor:pointer}' +
-  '.lrnActions button.primary{background:#1f9d55;border-color:#1a8a4a;color:#fff}' +
-  '.lrnActions button.ghost{border-color:transparent;background:transparent;color:#5d7385}' +
+  '.lrnActions button.lrnMain{background:#1f9d55;border-color:#1a8a4a;color:#fff}' +
+  '.lrnActions button.lrnGhost{border-color:transparent;background:transparent;color:#5d7385}' +
   '.lrnActions button:disabled{opacity:.6;cursor:default}' +
   '.lrnSlot{margin-top:4px;padding-top:7px;border-top:1px dashed #dce5ec;font-size:10px;line-height:1.4;color:#36536a}' +
   '.lrnSlot .lrnState{font-weight:850}.lrnSlot .lrnState.ok{color:#1a7f45}.lrnSlot .lrnState.wait{color:#9a6700}.lrnSlot .lrnState.bad{color:#b42318}.lrnSlot .lrnState.muted,.lrnSlot .lrnMuted{color:#7a8a96;font-weight:600}' +
   '.lrnSlot button{display:block;margin-top:6px;padding:7px 10px;border-radius:9px;border:1px solid #c9d6e0;background:#fff;color:#17324a;font:inherit;font-size:10.5px;font-weight:850;cursor:pointer}' +
-  '.lrnSlot button.primary{background:#1f9d55;border-color:#1a8a4a;color:#fff}' +
+  '.lrnSlot button.lrnMain{background:#1f9d55;border-color:#1a8a4a;color:#fff}' +
   '#lrnToast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,16px);opacity:0;pointer-events:none;background:#17324a;color:#fff;padding:10px 16px;border-radius:12px;font:650 13px/1.4 system-ui,-apple-system,"Segoe UI",Arial,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.22);transition:opacity .2s,transform .2s;z-index:2147483001;max-width:min(560px,calc(100vw - 32px))}' +
   '#lrnToast.show{opacity:1;transform:translate(-50%,0)}#lrnToast.bad{background:#9b1c1c}';
 document.head.appendChild(css);
