@@ -1,0 +1,75 @@
+name: Verifica Visite senza scheda, DDT modificabili e stampa iPad
+on:
+  push:
+    branches: [visite-senza-scheda-ddt]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build the exact Vercel artifact
+        env:
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          python3 -m py_compile scripts/apply_ddt_edit_20261126.py scripts/apply_ios_print_20261126.py scripts/apply_report_20261014.py scripts/apply_cash_ipad_edit_20261126.py
+          node --check optyker-report.js
+          node --check ddt-edit.js
+          node --check ios-print.js
+          bash scripts/vercel-build-20261013.sh
+          for f in _site/index.html _site/gestionale-v2/index.html _site/gestionale-v3/index.html; do
+            for needle in 'id="optykerDdtEditJs"' 'id="optykerIosPrintJs"' 'OPTYKER_DDT_EDIT_20261126' 'optyker-report.js?v=20261126-visits1' 'optyker-report.css?v=20261126-visits1'; do
+              test "$(grep -o "$needle" "$f" | wc -l)" = 1 || { echo "$f: $needle non presente una sola volta"; exit 1; }
+            done
+          done
+          ls _site/ddt-edit.*.js _site/ios-print.*.js _site/istruzioni-lac/pulizia-perossido.pdf
+          grep -q "VERSION='20261126-visits1'" _site/optyker-report.js
+          grep -q 'optyker_visit_followup_api' _site/optyker-report.js
+          test "$(grep -o 'OPTYKER_CASH_IPAD_EDIT_20261126' _site/cash-register.js | wc -l)" = 1
+          test "$(grep -o 'cashAfterWindowFocus(function(){' _site/cash-register.js | wc -l)" = 2
+          grep -q 'class="optykerCashManualPrice" type="text" inputmode="decimal"' _site/cash-register.js
+      - name: Install isolated browsers
+        run: |
+          npm install --prefix /tmp/browser playwright@1.55.0
+          /tmp/browser/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Report › Visite senza scheda (pagina sintetica, RPC simulate)
+        env:
+          NODE_PATH: /tmp/browser/node_modules
+        run: node tests/report-visits.test.cjs
+      - name: DDT › Modifica (passi reali della build, API simulata)
+        env:
+          NODE_PATH: /tmp/browser/node_modules
+        run: node tests/ddt-edit.test.cjs
+      - name: Stampa da iPad e iPhone (Chromium)
+        env:
+          NODE_PATH: /tmp/browser/node_modules
+        run: node tests/ios-print.test.cjs
+      - name: Stampa da iPad e iPhone (WebKit, motore di Safari)
+        env:
+          NODE_PATH: /tmp/browser/node_modules
+          IOS_PRINT_ENGINE: webkit
+        run: node tests/ios-print.test.cjs
+      - name: Cassa › prezzo nel carrello su iPad (Chromium; cash-register.js della build, API simulate)
+        env:
+          NODE_PATH: /tmp/browser/node_modules
+          CASH_JS: _site/cash-register.js
+        run: node tests/cash-ipad-edit.browser.cjs
+      - name: Cassa › prezzo nel carrello su iPad (WebKit, motore di Safari)
+        env:
+          NODE_PATH: /tmp/browser/node_modules
+          CASH_JS: _site/cash-register.js
+          CASH_ENGINE: webkit
+        run: node tests/cash-ipad-edit.browser.cjs
+      - name: Pagina reale della build (rete esterna bloccata, nessun dato)
+        env:
+          NODE_PATH: /tmp/browser/node_modules
+          SITE_DIR: _site
+        run: node tests/visite-ddt-ios-real-page.browser.cjs

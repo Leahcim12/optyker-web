@@ -29,6 +29,16 @@ python scripts/check_desktop_html.py
 python scripts/apply_ddt_view_20261015.py
 python scripts/check_desktop_html.py
 
+# DDT 20261126: pulsante «Modifica» per ogni documento di trasporto (salva con update_ddt).
+node --check ddt-edit.js
+python scripts/apply_ddt_edit_20261126.py
+python scripts/check_desktop_html.py
+
+# Stampa iPad 20261126: su iPad/iPhone le stampe (indicazioni d'uso, prescrizione...) non escono più bianche.
+node --check ios-print.js
+python scripts/apply_ios_print_20261126.py
+python scripts/check_desktop_html.py
+
 # WhatsApp 20261107: pulsante "Controllo 6 mesi" nella prescrizione optometrica.
 node --check wa-recall-control.js
 python scripts/apply_wa_recall_20261107.py
@@ -66,3 +76,9 @@ python scripts/check_desktop_html.py
 node --check cash-print-closure-guard.js
 python scripts/apply_cash_print_closure_guard_20261123.py
 python scripts/check_desktop_html.py
+
+# Cassa 20261126: su iPad il prezzo scritto nel carrello non torna più quello di prima (il carrello non si
+# ridisegna mentre si scrive; «Prezzo unitario» accetta la virgola con il tastierino decimale).
+python scripts/apply_cash_ipad_edit_20261126.py
+node --check _site/cash-register.js
+grep -q 'OPTYKER_CASH_IPAD_EDIT_20261126' _site/cash-register.js

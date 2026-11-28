@@ -1,15 +1,18 @@
-/* Optyker · Report · 20261014-report1
+/* Optyker · Report · 20261126-visits1
  * Voce "Report" nella barra laterale degli account (non in Amministrazione):
  *  - richiami del mese: scadenze LAC, analisi visive (ultima visita di due anni prima), controlli LAC, udito;
  *    "Chiamato" toglie il cliente dall'elenco del mese per tutti gli operatori, "Ripristina" lo rimette;
+ *  - visite senza scheda: analisi visive e visite specialistiche LAC senza scheda occhiali o lenti a contatto
+ *    dal giorno della visita, in verde (fino a 7 giorni), arancione (fino a 14) o rosso (oltre);
+ *    "Elimina" toglie il cliente dalla lista per tutti (ricompare con una nuova visita), "Ripristina" lo rimette;
  *  - giacenze di magazzino con ricerca, filtri e download Excel (.xlsx).
  * Nella scheda Udito aggiunge il campo "Data richiamo controllo" (letto da Report › Udito).
- * Dati: RPC optyker_report_api (stesse credenziali delle altre API Optyker). */
+ * Dati: RPC optyker_report_api e optyker_visit_followup_api (stesse credenziali delle altre API Optyker). */
 (function(){
   'use strict';
   if(window.__OPTYKER_REPORT_20261014__)return;
   window.__OPTYKER_REPORT_20261014__=true;
-  var VERSION='20261014-report1';
+  var VERSION='20261126-visits1';
   var ROOT='https://whgziwaegjzqsgcntesr.supabase.co';
   var KEY='sb_publishable_DndhLvY32YeCmqWMNRi30g_dEDm8upv';
   var MONTHS=['','Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
@@ -52,11 +55,13 @@
     t.style.display='flex';clearTimeout(t.__h);t.__h=setTimeout(function(){t.style.display='none'},action?7000:4200)
   }
 
-  function api(action,payload){
+  function api(action,payload){return rpc('optyker_report_api',action,payload)}
+  function vapi(action,payload){return rpc('optyker_visit_followup_api',action,payload)}
+  function rpc(fn,action,payload){
     var c=cloud(),u=String(c.username||'').trim(),p=String(c.password||'');
     if(!u||!p){var err=new Error('Sessione non disponibile: esci e accedi di nuovo.');err.auth=true;return Promise.reject(err)}
     var root=c.root||ROOT,key=c.key||KEY;
-    return fetch(root+'/rest/v1/rpc/optyker_report_api',{
+    return fetch(root+'/rest/v1/rpc/'+fn,{
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key},
       body:JSON.stringify({p_username:u,p_password:p,p_action:action,p_payload:payload||{}})
@@ -155,6 +160,7 @@
   var R={open:false,guard:false,view:'home',year:0,month:0,
     overview:null,ovError:'',ovSeq:0,
     type:'vision',list:null,listError:'',listSeq:0,tab:'pending',search:'',
+    vSummary:null,vSumError:'',vSumSeq:0,visits:null,vError:'',vSeq:0,vTab:'pending',vColor:'',vSearch:'',
     stock:null,stockRows:[],stockError:'',stockSeq:0,stockLoading:false,stockSearch:'',stockCat:'',stockKind:'stock',showAll:false};
   var KINDS={stock:'Disponibili',negative:'Giacenze negative',unlimited:'Illimitate online'};
 
@@ -246,7 +252,7 @@
   }
 
   /* ---------- Pagina iniziale ---------- */
-  function render(){var root=E('orpRoot');if(!root)return;if(R.view==='list')renderList(root);else if(R.view==='stock')renderStock(root);else renderHome(root)}
+  function render(){var root=E('orpRoot');if(!root)return;if(R.view==='list')renderList(root);else if(R.view==='visits')renderVisits(root);else if(R.view==='stock')renderStock(root);else renderHome(root)}
   function renderHome(root){
     var ov=R.overview,y=R.year,m=R.month,t=romeToday(),st=ov&&ov.stock;
     var h='<div class="orpHead"><div><div class="orpEyebrow">Ottica Visual Care · Report</div><h1 class="orpTitle">Report</h1><div class="orpSub">I clienti da richiamare nel mese e l’elenco aggiornato delle giacenze di magazzino.</div></div>'+
@@ -259,15 +265,18 @@
       return '<button type="button" class="orpCard'+(pending?' has':'')+'" data-orp-type="'+k+'"><span class="orpCardTop"><span class="orpCardTitle">'+esc(TYPES[k].title)+'</span><span class="orpArrow" aria-hidden="true">→</span></span>'+
         '<span class="orpCardLead">'+esc(TYPES[k].lead)+'</span><b class="orpCardNum">'+(pending==null?'—':intIt(pending))+'</b><span class="orpCardFoot">'+esc(foot)+'</span></button>'
     }).join('')+'</div>';
+    h+='<div class="orpSection">Dopo la visita</div><div class="orpCards orpVisitsCards">'+visitsCardHtml()+'</div>';
     h+='<div class="orpSection">Magazzino</div><button type="button" class="orpStockCard" id="orpOpenStock"><span class="orpStockText"><span class="orpCardTitle">Giacenze di magazzino</span><span class="orpCardLead">Tutti gli articoli disponibili, con ricerca, filtri per categoria e download in Excel.</span></span>'+
       '<span class="orpStockNums">'+(st?'<b>'+intIt(st.items)+'</b> articoli · <b>'+intIt(st.pieces)+'</b> pezzi':'…')+'</span><span class="orpArrow" aria-hidden="true">→</span></button>';
     root.innerHTML=h;root.onclick=null;
     bindMonthNav('orpHome',function(y2,m2){R.year=y2;R.month=m2;loadOverview()});
     E('orpHomeReload').onclick=loadOverview;
     root.querySelectorAll('[data-orp-type]').forEach(function(b){b.onclick=function(){openList(b.getAttribute('data-orp-type'))}});
+    E('orpOpenVisits').onclick=openVisits;
     E('orpOpenStock').onclick=openStock
   }
   function loadOverview(){
+    loadVisitSummary();
     var seq=++R.ovSeq;R.ovError='';R.overview=null;if(R.view==='home')render();
     api('overview',{year:R.year,month:R.month}).then(function(d){if(seq!==R.ovSeq)return;R.overview=d;if(R.view==='home')render()})
       .catch(function(e){if(seq!==R.ovSeq)return;R.ovError=errText(e,'Report non disponibile');if(R.view==='home')render()})
@@ -405,6 +414,158 @@
         R.type==='vision'?r.base_date:r.due_date,reasonText(r).join(' · '),r.called?'Chiamato':'Da chiamare',r.called?(r.called_by||''):'',r.called&&r.called_at?dateTime(r.called_at):'']
     });
     XL.download('Richiami '+T.title+' '+MONTHS[R.month]+' '+R.year+'.xlsx',[{name:T.title+' '+MONTHS[R.month]+' '+R.year,cols:cols,rows:data,filter:true}]);
+    toast('Elenco scaricato: '+rows.length+' client'+(rows.length===1?'e':'i')+'.','ok')
+  }
+
+  /* ---------- Visite senza scheda ----------
+     Analisi visive e visite specialistiche LAC (agenda) senza scheda occhiali o lenti a contatto creata dal giorno
+     della visita. Colore dai giorni passati: verde fino a 7, arancione fino a 14, rosso oltre. */
+  var VCOLORS={
+    green:{label:'Verde',one:'verde',many:'verdi',range:'fino a 7 giorni'},
+    orange:{label:'Arancione',one:'arancione',many:'arancioni',range:'da 8 a 14 giorni'},
+    red:{label:'Rosso',one:'rosso',many:'rossi',range:'oltre 14 giorni'}
+  };
+  var VCOLOR_ORDER=['green','orange','red'];
+  var VNOTE='Compaiono le analisi visive e le visite specialistiche per lenti a contatto degli ultimi 12 mesi se, dal giorno della visita, per il cliente non è stata creata una scheda occhiali o lenti a contatto (i preventivi non contano). '+
+    'Verde: visita fino a 7 giorni fa · Arancione: da 8 a 14 giorni · Rosso: oltre 14 giorni. '+
+    '«Elimina» toglie il cliente dalla lista per tutti gli operatori: ricompare solo con una nuova visita; in «Eliminati» puoi ripristinarlo. '+
+    'Gli appuntamenti senza cliente collegato sono abbinati all’anagrafica da telefono, email o nome e cognome; se non c’è un cliente sicuro restano con i dati dell’appuntamento.';
+  function vColor(days){days=num(days);return days<=7?'green':(days<=14?'orange':'red')}
+  function vColorOf(r){return r&&VCOLORS[r.color]?r.color:vColor(r&&r.days)}
+  function daysText(d){d=Math.max(0,Math.round(num(d)));return d===0?'Oggi':(d===1?'Ieri':d+' giorni fa')}
+  function serviceText(s){var n=norm(s);if(n.indexOf('analisi')===0)return 'Analisi visiva';if(n.indexOf('specialistic')>=0)return 'Visita specialistica lenti a contatto';return String(s||'Visita')}
+  function timeIt(v){try{var d=new Date(v);if(isNaN(d.getTime()))return '';return d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Rome'})}catch(e){return ''}}
+  function dayIt(v){try{var d=new Date(v);if(isNaN(d.getTime()))return '';return d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'Europe/Rome'})}catch(e){return ''}}
+  function quoteText(q){return q&&q.kind?((q.kind==='lac_quote'?'Preventivo lenti a contatto':'Preventivo occhiali')+' del '+isoDate(q.day)):''}
+  function nextText(n){return n&&n.at?('Prossimo appuntamento '+dayIt(n.at)+' alle '+timeIt(n.at)+(n.service?' · '+n.service:'')):''}
+  function earlierText(list){
+    if(!Array.isArray(list)||!list.length)return '';
+    return 'Anche '+list.slice(0,3).map(function(v){return serviceText(v.service)+' del '+isoDate(v.day)}).join(', ')+(list.length>3?' e altre '+(list.length-3):'')
+  }
+  function visitsCardHtml(){
+    var s=R.vSummary,pending=s?num(s.pending):null,foot;
+    if(pending==null)foot=esc(R.vSumError?'Non disponibile':'Caricamento…');
+    else if(!pending)foot='Nessun cliente da seguire';
+    else foot=VCOLOR_ORDER.map(function(k){var n=num(s[k]);return '<span class="orpVCount"><span class="orpVDot '+k+'" aria-hidden="true"></span>'+intIt(n)+' '+(n===1?VCOLORS[k].one:VCOLORS[k].many)+'</span>'}).join('');
+    return '<button type="button" class="orpCard orpVisitsCard'+(pending?' has':'')+'" id="orpOpenVisits"><span class="orpCardTop"><span class="orpCardTitle">Visite senza scheda</span><span class="orpArrow" aria-hidden="true">→</span></span>'+
+      '<span class="orpCardLead">Analisi visive e visite specialistiche LAC senza scheda occhiali o lenti a contatto</span><b class="orpCardNum">'+(pending==null?'—':intIt(pending))+'</b><span class="orpCardFoot">'+foot+'</span></button>'
+  }
+  function loadVisitSummary(){
+    var seq=++R.vSumSeq;R.vSumError='';
+    vapi('summary',{}).then(function(d){if(seq!==R.vSumSeq)return;R.vSummary=d;if(R.view==='home'&&R.open)render()})
+      .catch(function(e){if(seq!==R.vSumSeq)return;R.vSummary=null;R.vSumError=errText(e,'Non disponibile');if(R.view==='home'&&R.open)render()})
+  }
+  function openVisits(){R.view='visits';R.vTab='pending';R.vColor='';R.vSearch='';R.visits=null;goTop();loadVisits()}
+  function loadVisits(){
+    var seq=++R.vSeq;R.vError='';R.visits=null;render();
+    vapi('list',{}).then(function(d){if(seq!==R.vSeq)return;R.visits=d;render()})
+      .catch(function(e){if(seq!==R.vSeq)return;R.vError=errText(e,'Elenco non disponibile');render()})
+  }
+  function vRows(){return R.visits&&Array.isArray(R.visits.rows)?R.visits.rows:[]}
+  function vTabRows(tab){return vRows().filter(function(r){return tab==='dismissed'?!!r.dismissed:!r.dismissed})}
+  function vFind(key){var rows=vRows();for(var i=0;i<rows.length;i++)if(rows[i].person_key===key)return rows[i];return null}
+  function vFullName(r){return (String(r.surname||'')+' '+String(r.name||'')).trim()}
+  function vMatch(r,q){
+    var terms=norm(q).split(/\s+/).filter(Boolean);if(!terms.length)return true;
+    var hay=norm([r.surname,r.name,r.name,r.surname,r.phone,String(r.phone||'').replace(/\D/g,''),r.home_phone,String(r.home_phone||'').replace(/\D/g,''),
+      r.other_phone,String(r.other_phone||'').replace(/\D/g,''),r.email,r.city,r.client_ref,r.service,serviceText(r.service),r.operator].join(' '));
+    return terms.every(function(t){return hay.indexOf(t)>=0})
+  }
+  function vRowHtml(r){
+    var c=vColorOf(r),name=vFullName(r)||'Cliente senza nome',meta=[],b=anyDate(r.birth),contacts='',extra=[];
+    if(!r.linked)meta.push('Non in anagrafica · dati dell’appuntamento');
+    else{
+      if(b)meta.push('Nato/a '+b);if(r.city)meta.push(r.city);if(r.client_ref)meta.push(r.client_ref);
+      if(r.match==='telefono')meta.push('riconosciuto dal telefono');else if(r.match==='email')meta.push('riconosciuto dall’email');else if(r.match==='nome')meta.push('riconosciuto da nome e cognome')
+    }
+    var t=timeIt(r.visit_at);
+    var why='<span class="orpVDays '+c+'">'+esc(daysText(r.days))+'</span> '+esc(serviceText(r.service)+' del '+isoDate(r.visit_day)+(t?' alle '+t:''))+(r.operator?' · '+esc(r.operator):'');
+    [earlierText(r.earlier),quoteText(r.quote),nextText(r.next)].forEach(function(x){if(x)extra.push(x)});
+    if(extra.length)why+='<div class="orpVExtra">'+extra.map(esc).join('<br>')+'</div>';
+    if(r.dismissed)why+='<div class="orpCalled">Eliminato dalla lista'+(r.dismissed_by?' da '+esc(r.dismissed_by):'')+(r.dismissed_at?' il '+esc(dateTime(r.dismissed_at)):'')+'</div>';
+    if(r.phone)contacts+='<a class="orpPhone" href="'+esc(telHref(r.phone))+'">'+esc(phoneLabel(r.phone))+'</a>';
+    if(r.home_phone&&r.home_phone!==r.phone)contacts+='<a class="orpPhone alt" href="'+esc(telHref(r.home_phone))+'">'+esc(phoneLabel(r.home_phone))+'</a>';
+    if(r.other_phone)contacts+='<a class="orpPhone alt" href="'+esc(telHref(r.other_phone))+'" title="Numero lasciato nell’appuntamento">'+esc(phoneLabel(r.other_phone))+'</a>';
+    if(!r.phone&&!r.home_phone&&!r.other_phone)contacts+='<span class="orpNoPhone">Nessun telefono</span>';
+    if(r.email)contacts+='<a class="orpMail" href="mailto:'+esc(r.email)+'">'+esc(r.email)+'</a>';
+    var nameHtml=r.linked?'<button type="button" class="orpName" data-orp-client="'+esc(r.client_id)+'" title="Apri la scheda cliente">'+esc(name)+'</button>':'<span class="orpName orpNameStatic">'+esc(name)+'</span>';
+    var act=(r.linked?'<button type="button" class="orpBtn small" data-orp-client="'+esc(r.client_id)+'">Apri cliente</button>':'')+
+      (r.dismissed?'<button type="button" class="orpBtn small" data-orp-vrestore="'+esc(r.person_key)+'">Ripristina</button>'
+        :'<button type="button" class="orpBtn small orpVDel" data-orp-vdismiss="'+esc(r.person_key)+'" title="Togli dalla lista per tutti gli operatori">Elimina</button>');
+    return '<div class="orpRow orpVRow '+c+(r.dismissed?' called':'')+'" data-orp-vkey="'+esc(r.person_key)+'"><div class="orpAvatar orpVAvatar '+c+'" aria-hidden="true">'+esc(initials(r.surname,r.name))+'</div>'+
+      '<div class="orpMain">'+nameHtml+(meta.length?'<div class="orpMeta">'+esc(meta.join(' · '))+'</div>':'')+'<div class="orpWhy">'+why+'</div></div>'+
+      '<div class="orpContacts">'+contacts+'</div><div class="orpActions">'+act+'</div></div>'
+  }
+  function vChipsHtml(){
+    var rows=vTabRows(R.vTab),cnt={green:0,orange:0,red:0};
+    rows.forEach(function(r){cnt[vColorOf(r)]++});
+    return '<div class="orpVChips" role="group" aria-label="Filtra per giorni dalla visita"><button type="button" class="orpVChip'+(R.vColor?'':' on')+'" data-orp-vcolor="" aria-pressed="'+(!R.vColor)+'">Tutti <b>'+intIt(rows.length)+'</b></button>'+
+      VCOLOR_ORDER.map(function(k){return '<button type="button" class="orpVChip '+k+(R.vColor===k?' on':'')+'" data-orp-vcolor="'+k+'" aria-pressed="'+(R.vColor===k)+'"><span class="orpVDot '+k+'" aria-hidden="true"></span>'+esc(VCOLORS[k].label)+' <small>'+esc(VCOLORS[k].range)+'</small> <b>'+intIt(cnt[k])+'</b></button>'}).join('')+'</div>'
+  }
+  function vBodyHtml(){
+    var list=vTabRows(R.vTab).filter(function(r){return (!R.vColor||vColorOf(r)===R.vColor)&&vMatch(r,R.vSearch)});
+    if(list.length)return '<div class="orpRows">'+list.map(vRowHtml).join('')+'</div>';
+    var msg=R.vSearch?'Nessun cliente corrisponde alla ricerca.':(R.vColor?'Nessun cliente in '+VCOLORS[R.vColor].one+'.':(R.vTab==='dismissed'?'Nessun cliente eliminato dalla lista.':'Nessuna visita senza scheda. ✓'));
+    return '<div class="orpEmpty">'+esc(msg)+'</div>'
+  }
+  function refreshVisitsBody(){var w=E('orpVChipsWrap');if(w)w.innerHTML=vChipsHtml();var body=E('orpVBody');if(body)body.innerHTML=vBodyHtml()}
+  function renderVisits(root){
+    var d=R.visits,rows=vRows(),pending=vTabRows('pending').length,dismissed=rows.length-pending;
+    var h='<button type="button" class="orpBack" id="orpBack">← Report</button>'+
+      '<div class="orpHead"><div><div class="orpEyebrow">Report · Dopo la visita</div><h1 class="orpTitle">Visite senza scheda</h1><div class="orpSub">Clienti venuti per un’analisi visiva o una visita specialistica per lenti a contatto per i quali, dal giorno della visita, non è stata creata una scheda occhiali o lenti a contatto.</div></div>'+
+      '<div class="orpTools"><button type="button" class="orpBtn" id="orpVReload">Aggiorna</button><button type="button" class="orpBtn" id="orpVXlsx"'+(rows.length?'':' disabled')+'>Scarica Excel</button></div></div>';
+    if(R.vError)h+='<div class="orpError">'+esc(R.vError)+'</div>';
+    else if(!d)h+='<div class="orpLoading">Caricamento delle visite…</div>';
+    else{
+      h+='<div class="orpBar"><div class="orpTabs" role="tablist"><button type="button" role="tab" data-orp-vtab="pending" class="'+(R.vTab==='pending'?'on':'')+'" aria-selected="'+(R.vTab==='pending')+'">Da seguire <b>'+intIt(pending)+'</b></button>'+
+        '<button type="button" role="tab" data-orp-vtab="dismissed" class="'+(R.vTab==='dismissed'?'on':'')+'" aria-selected="'+(R.vTab==='dismissed')+'">Eliminati <b>'+intIt(dismissed)+'</b></button></div>'+
+        '<input type="search" class="orpSearch" id="orpVSearch" placeholder="Cerca nome, telefono, email o operatore" autocomplete="off" value="'+esc(R.vSearch)+'"></div>'+
+        '<div id="orpVChipsWrap">'+vChipsHtml()+'</div><div id="orpVBody">'+vBodyHtml()+'</div><p class="orpNote">'+esc(VNOTE)+'</p>'
+    }
+    root.innerHTML=h;
+    E('orpBack').onclick=goHome;
+    E('orpVReload').onclick=loadVisits;
+    var xb=E('orpVXlsx');if(xb)xb.onclick=downloadVisits;
+    root.querySelectorAll('[data-orp-vtab]').forEach(function(b){b.onclick=function(){R.vTab=b.getAttribute('data-orp-vtab');render()}});
+    var s=E('orpVSearch');if(s)s.oninput=function(){R.vSearch=this.value||'';var body=E('orpVBody');if(body)body.innerHTML=vBodyHtml()};
+    root.onclick=function(ev){
+      var t=ev.target&&ev.target.closest?ev.target.closest('[data-orp-vdismiss],[data-orp-vrestore],[data-orp-client],[data-orp-vcolor]'):null;if(!t||!root.contains(t))return;
+      if(t.hasAttribute('data-orp-vcolor')){R.vColor=t.getAttribute('data-orp-vcolor')||'';refreshVisitsBody()}
+      else if(t.hasAttribute('data-orp-vdismiss'))setDismissed(t.getAttribute('data-orp-vdismiss'),true,t);
+      else if(t.hasAttribute('data-orp-vrestore'))setDismissed(t.getAttribute('data-orp-vrestore'),false,t);
+      else if(t.hasAttribute('data-orp-client'))openClient(t.getAttribute('data-orp-client'))
+    }
+  }
+  function adjustVisitSummary(r,on){
+    var s=R.vSummary,k=vColorOf(r);if(!s)return;
+    var d=on?-1:1;s.pending=Math.max(0,num(s.pending)+d);s[k]=Math.max(0,num(s[k])+d);s.dismissed=Math.max(0,num(s.dismissed)-d)
+  }
+  function setDismissed(key,on,btn){
+    var r=vFind(key);if(!r||!!r.dismissed===on)return;
+    var name=vFullName(r)||'Cliente',old=btn?btn.textContent:'';
+    if(btn){btn.disabled=true;btn.textContent='…'}
+    vapi(on?'dismiss':'restore',{person_key:key}).then(function(d){
+      if(R.view!=='visits'||vFind(key)!==r)return;
+      r.dismissed=on;r.dismissed_by=on?((d&&d.dismissed_by)||''):'';r.dismissed_at=on?((d&&d.dismissed_at)||null):null;
+      adjustVisitSummary(r,on);render();
+      if(on)toast(name+' eliminato dalla lista.','ok',{label:'Annulla',fn:function(){if(R.view==='visits')setDismissed(key,false)}});
+      else toast(name+' è di nuovo nella lista.','ok')
+    }).catch(function(e){
+      toast((on?'Non eliminato: ':'Non ripristinato: ')+(e.auth?'sessione scaduta, esci e accedi di nuovo.':e.message),'error');
+      if(btn&&document.body.contains(btn)){btn.disabled=false;btn.textContent=old}
+    })
+  }
+  function downloadVisits(){
+    var rows=vRows();if(!rows.length)return;
+    var cols=[{h:'Cliente',w:28},{h:'Telefono',w:16},{h:'Altri telefoni',w:22},{h:'Email',w:30},{h:'Visita',w:34},{h:'Data visita',w:13,t:'date'},{h:'Giorni',w:8,t:'int'},{h:'Colore',w:11},
+      {h:'Operatore',w:20},{h:'Altre visite',w:40},{h:'Preventivo',w:34},{h:'Prossimo appuntamento',w:40},{h:'In anagrafica',w:13},{h:'Stato',w:13},{h:'Eliminato da',w:20},{h:'Eliminato il',w:18}];
+    var data=rows.slice().sort(function(a,b){return (a.dismissed?1:0)-(b.dismissed?1:0)||String(b.visit_at||'').localeCompare(String(a.visit_at||''))}).map(function(r){
+      var other=[r.home_phone&&r.home_phone!==r.phone?r.home_phone:'',r.other_phone||''].filter(Boolean).join(' · ');
+      return [vFullName(r),r.phone||'',other,r.email||'',serviceText(r.service),r.visit_day,num(r.days),VCOLORS[vColorOf(r)].label,r.operator||'',
+        earlierText(r.earlier).replace(/^Anche /,''),quoteText(r.quote),nextText(r.next).replace(/^Prossimo appuntamento /,''),r.linked?'Sì':'No',
+        r.dismissed?'Eliminato':'Da seguire',r.dismissed?(r.dismissed_by||''):'',r.dismissed&&r.dismissed_at?dateTime(r.dismissed_at):'']
+    });
+    XL.download('Visite senza scheda '+todayIso()+'.xlsx',[{name:'Visite senza scheda',cols:cols,rows:data,filter:true}]);
     toast('Elenco scaricato: '+rows.length+' client'+(rows.length===1?'e':'i')+'.','ok')
   }
 
@@ -572,5 +733,5 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tick);else tick();
   setInterval(tick,1000);
-  window.OPTYKER_REPORT={version:VERSION,open:openReport,close:closeReport,xlsx:XL};
+  window.OPTYKER_REPORT={version:VERSION,open:openReport,close:closeReport,openVisits:function(){openReport();openVisits()},xlsx:XL};
 })();
