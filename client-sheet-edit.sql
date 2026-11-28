@@ -1,5 +1,7 @@
 -- Edit existing LAC documents in-place from the customer record.
 -- The RPC is staff-authenticated and keeps document identity/reference immutable.
+-- Sheets stay editable after the order is delivered (completato) or closed;
+-- only sheets deleted from the customer record (archived) remain read-only.
 create or replace function public.optyker_client_sheet_update(
   p_username text,
   p_password text,
@@ -53,15 +55,13 @@ begin
   if snap is null or jsonb_typeof(snap)<>'object' then raise exception 'Dati della scheda non validi'; end if;
   if octet_length(snap::text)>700000 then raise exception 'Scheda troppo grande'; end if;
 
+  -- Anche con ordine Consegnato o chiuso la scheda resta modificabile.
   select * into w
   from public.optyker_work_orders
   where source_sheet_id=s.id
   order by created_at desc
   limit 1
   for update;
-  if found and w.status in ('completato','annullato') then
-    raise exception 'Ordine già chiuso: la scheda non può essere modificata';
-  end if;
 
   lac_state:=case when jsonb_typeof(snap->'lacState')='object' then snap->'lacState' else '{}'::jsonb end;
   elems:=case when jsonb_typeof(snap->'elements')='object' then snap->'elements' else '{}'::jsonb end;
@@ -88,6 +88,11 @@ begin
   snap:=jsonb_set(snap,'{lacState}',lac_state,true);
   snap:=jsonb_set(snap,'{elements}',elems,true);
 
+  -- La correzione aggiorna il carrello solo se l'ordine è ancora da incassare:
+  -- un ordine già incassato e consegnato non torna nel carrello cliente
+  -- (vedi optyker_private.client_cart_add_work_order, migrazione 20261124163249).
+  perform set_config('optyker.cart_refresh_only','on',true);
+
   update public.optyker_sheets
   set data=snap,
       operator=p_username,
@@ -108,6 +113,8 @@ begin
         updated_at=now()
     where id=w.id;
   end if;
+
+  perform set_config('optyker.cart_refresh_only','',true);
 
   return jsonb_build_object('ok',true,'data',to_jsonb(updated),'work_order_synced',w.id is not null);
 exception
